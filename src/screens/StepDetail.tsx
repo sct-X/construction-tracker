@@ -7,7 +7,9 @@
  * naming the empty categories (rule 6), never a silently dead button. A step
  * whose forecast start is still ahead cannot be finished either; the API
  * says so and the sentence is shown the same way.
- * Stage 5 extends the hold-point block (src/components/HoldPointCheck.tsx).
+ * The hold-point block (src/components/HoldPointCheck.tsx) names each empty
+ * set with its own "Add photos" link into the upload screen, which comes
+ * back here (`?return=`).
  */
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -17,6 +19,7 @@ import type { Item, Job, Person, Requirement, Stage, Step } from '../domain/type
 import type { JobForecast, StepForecast } from '../domain/forecast';
 import { formatLong, formatShort } from '../domain/dates';
 import { HoldPointCheck } from '../components/HoldPointCheck';
+import { useQueuedPhotos } from '../components/QueueBadge';
 import { ItemRow, ItemRowList } from '../components/ItemRow';
 import { StatusText } from '../components/StatusText';
 import NotFound from './NotFound';
@@ -73,22 +76,19 @@ export default function StepDetail() {
     [id],
   );
   const [refusal, setRefusal] = useState<Extract<StepStatusResult, { ok: false }> | undefined>();
-  const [queued, setQueued] = useState(0);
+  const queuedPhotos = useQueuedPhotos(data?.job.id);
 
   // Photos still in the phone's queue for this step's required categories do
-  // not count for the hold point yet; say so. Other categories are not counted.
-  const requiredIds = (data?.forecast?.holdPoints.find((h) => h.stepId === id)?.required ?? []).map((r) => r.categoryId).join(',');
+  // not count for the hold point yet; say so, per set. Other categories are
+  // not counted. The refusal clears by itself once every set has a photo.
+  const requiredIds = (data?.forecast?.holdPoints.find((h) => h.stepId === id)?.required ?? []).map((r) => r.categoryId);
+  const queuedByCategory: Record<string, number> = {};
+  for (const p of queuedPhotos) if (requiredIds.includes(p.categoryId)) queuedByCategory[p.categoryId] = (queuedByCategory[p.categoryId] ?? 0) + 1;
+  const queued = Object.values(queuedByCategory).reduce((a, b) => a + b, 0);
+  const holdOk = data?.forecast?.holdPoints.find((h) => h.stepId === id)?.ok;
   useEffect(() => {
-    if (!requiredIds) return;
-    const ids = new Set(requiredIds.split(','));
-    let live = true;
-    void api.listQueuedPhotos().then((q) => {
-      if (live) setQueued(q.filter((p) => ids.has(p.categoryId)).length);
-    });
-    return () => {
-      live = false;
-    };
-  }, [api, id, requiredIds, offline]);
+    if (holdOk) setRefusal((r) => (r?.reason === 'hold_point' ? undefined : r));
+  }, [holdOk]);
 
   if (!data) return <NotFound />;
   const { step, job, stage, forecast, steps, items, requirements, people } = data;
@@ -188,7 +188,9 @@ export default function StepDetail() {
             check={check}
             refusal={refusal?.reason === 'hold_point' ? refusal.message : undefined}
             queuedCount={queued}
+            queuedByCategory={queuedByCategory}
             uploadHref={`/jobs/${job.id}/upload?stage=${step.stageId}`}
+            addHref={(categoryId) => `/jobs/${job.id}/upload?stage=${step.stageId}&category=${categoryId}&return=/steps/${step.id}`}
             canComplete={canTick}
             testId="step-holdpoint"
           />

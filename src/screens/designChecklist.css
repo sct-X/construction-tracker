@@ -1,0 +1,236 @@
+/*
+  Design checklist. The memorable thing is the stage ladder: a column of drawn
+  tick boxes down the left, like a clipboard checklist, with the current
+  stage's open items indented under it. The one big figure is what is
+  outstanding. Hairlines carry structure; no cards, no orange (nothing here is
+  the screen's primary action: adding an item is a quiet button).
+*/
+.checklist__meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+
+/* job tabs, the same strip the build overview draws */
+.checklist__tabs {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  margin: calc(-1 * var(--space-2)) 0 var(--space-6);
+  border-bottom: var(--hairline);
+}
+.checklist__tab {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+.checklist__tab:hover {
+  color: var(--text);
+}
+.checklist__tab[aria-current='page'] {
+  color: var(--text);
+  font-weight: var(--weight-bold);
+  border-bottom-color: var(--ink);
+}
+.shell--phone .checklist__tab {
+  min-height: var(--tap);
+}
+
+/* the one big figure */
+.checklist__hero {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+.checklist__count {
+  font-size: var(--text-display);
+  line-height: 1;
+}
+.checklist__count-words {
+  font-size: var(--text-md);
+  color: var(--text-secondary);
+}
+.checklist__hero--amber .checklist__count {
+  color: var(--amber-ink);
+}
+.checklist__hero--amber .checklist__count-words::before {
+  content: '! ';
+  font-weight: var(--weight-bold);
+  color: var(--amber-ink);
+}
+.checklist__hero--muted .checklist__count {
+  color: var(--text-muted);
+}
+
+/* the ladder */
+.checklist__stages {
+  list-style: none;
+  border-top: 2px solid var(--concrete-200);
+}
+.checklist__stage {
+  border-bottom: var(--hairline);
+}
+.checklist__row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-areas:
+    'box name'
+    'box status';
+  column-gap: var(--space-3);
+  row-gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-3) 0;
+}
+.checklist__box {
+  grid-area: box;
+  align-self: start;
+  margin-top: 2px;
+  fill: var(--surface-raised);
+  stroke: var(--steel-500);
+  stroke-width: 1.6;
+}
+.checklist__box--done {
+  fill: var(--steel-700);
+  stroke: var(--steel-700);
+}
+.checklist__tick {
+  fill: none;
+  stroke: var(--text-on-dark);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.checklist__half {
+  fill: var(--steel-500);
+  stroke: none;
+}
+.checklist__name {
+  grid-area: name;
+  font-size: var(--text-lg);
+  color: var(--text-secondary);
+}
+.checklist__stage--done .checklist__name {
+  color: var(--text-muted);
+}
+.checklist__stage--current .checklist__name {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-xl);
+  color: var(--text);
+}
+.checklist__words {
+  grid-area: status;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* one segmented control per stage: three joined segments, the pressed one filled steel so it reads without colour */
+.checklist__status {
+  grid-area: status;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  overflow: hidden;
+}
+.checklist__status-btn {
+  min-height: 48px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  transition: background var(--motion-fast) var(--ease);
+}
+.checklist__status-btn:first-child {
+  border-left: 0;
+}
+.checklist__status-btn:hover {
+  background: var(--concrete-100);
+}
+.checklist__status-btn[aria-pressed='true'] {
+  background: var(--steel-700);
+  color: var(--text-on-dark);
+  font-weight: var(--weight-bold);
+}
+.checklist__status-btn:focus-visible {
+  outline: none;
+  box-shadow: inset var(--focus-ring);
+}
+
+/* items under the current stage, indented to the name column */
+.checklist__items {
+  padding: 0 0 var(--space-3) calc(24px + var(--space-3));
+  border-top: var(--hairline);
+}
+.checklist__empty {
+  padding: var(--space-3) 0 0;
+  color: var(--text-muted);
+}
+.checklist__leftover {
+  margin-top: var(--space-6);
+}
+.checklist__section-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--concrete-200);
+}
+
+/* done items, folded */
+.checklist__done {
+  margin-top: var(--space-6);
+}
+.checklist__done-summary {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+}
+.shell--phone .checklist__done-summary {
+  min-height: var(--tap);
+}
+
+@media (min-width: 768px) {
+  .checklist__row {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    grid-template-areas: 'box name status';
+    padding: var(--space-3) 0;
+  }
+  .checklist__box {
+    align-self: center;
+    margin-top: 0;
+  }
+  .checklist__status {
+    display: inline-flex;
+  }
+  .checklist__status-btn--desktop {
+    min-height: 36px;
+    padding: 0 var(--space-3);
+  }
+  .checklist__words {
+    text-align: right;
+  }
+  .checklist__stages {
+    max-width: 760px;
+  }
+  .checklist__leftover,
+  .checklist__done {
+    max-width: 760px;
+  }
+}

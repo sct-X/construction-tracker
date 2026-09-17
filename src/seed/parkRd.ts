@@ -138,12 +138,12 @@ export const parkRdPhotos: Photo[] = [
 ];
 
 export const parkRdNotes: DailyNote[] = [
-  { id: 'dn-pr-0910', sideId: SIDE_ND, jobId: J, date: '2026-09-10', authorId: P.alec, text: 'Brickies finishing rear elevation. Sand delivery 7am. Noticed cracked roof tiles above garage, told Raff.', createdAt: '2026-09-10T15:40' },
+  { id: 'dn-pr-0910', sideId: SIDE_ND, jobId: J, date: '2026-09-10', authorId: P.alec, text: 'Brickies finishing rear elevation. Sand delivery 7am. Noticed cracked roof tiles above garage, told Raff.', createdAt: '2026-09-10T15:40', weather: 'fine', onSite: [P.alec] },
   { id: 'dn-pr-0911', sideId: SIDE_ND, jobId: J, date: '2026-09-11', authorId: P.alec, text: 'Brickwork done and cleaned down. Scaffold stays up for the cladders.', createdAt: '2026-09-11T15:05' },
-  { id: 'dn-pr-0914', sideId: SIDE_ND, jobId: J, date: '2026-09-14', authorId: P.alec, text: 'Roof plumber on site, two blokes. Downpipes started on the north side.', createdAt: '2026-09-14T16:02' },
+  { id: 'dn-pr-0914', sideId: SIDE_ND, jobId: J, date: '2026-09-14', authorId: P.alec, text: 'Roof plumber on site, two blokes. Downpipes started on the north side.', createdAt: '2026-09-14T16:02', weather: 'overcast', onSite: [P.alec, 'tr-roofplumber'] },
   { id: 'dn-pr-0915', sideId: SIDE_ND, jobId: J, date: '2026-09-15', authorId: P.raff, text: 'Cladding delivered, stacked under cover. One pack short, Weathertex chasing it.', createdAt: '2026-09-15T12:48' },
-  { id: 'dn-pr-0916', sideId: SIDE_ND, jobId: J, date: '2026-09-16', authorId: P.alec, text: 'Cladders started on the rear wall. Roof plumber still here.', createdAt: '2026-09-16T15:31' },
-  { id: 'dn-pr-0917', sideId: SIDE_ND, jobId: J, date: '2026-09-17', authorId: P.alec, text: 'Rain till 10. Cladding continued after. Roof plumbing finished bar the garage.', createdAt: '2026-09-17T15:55' },
+  { id: 'dn-pr-0916', sideId: SIDE_ND, jobId: J, date: '2026-09-16', authorId: P.alec, text: 'Cladders started on the rear wall. Roof plumber still here.', createdAt: '2026-09-16T15:31', weather: 'fine', onSite: [P.alec, 'tr-cladder', 'tr-roofplumber'] },
+  { id: 'dn-pr-0917', sideId: SIDE_ND, jobId: J, date: '2026-09-17', authorId: P.alec, text: 'Rain till 10. Cladding continued after. Roof plumbing finished bar the garage.', createdAt: '2026-09-17T15:55', weather: 'rain', onSite: [P.alec, 'tr-cladder', 'tr-roofplumber'] },
 ];
 
 /** Snapshots equal the forecast at the time: nothing had moved. */

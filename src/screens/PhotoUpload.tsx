@@ -104,6 +104,10 @@ export default function PhotoUpload() {
 
   const stageParam = params.get('stage');
   const categoryParam = params.get('category');
+  // `?return=` is where Done and the back link go (a step sheet, a note);
+  // `?item=` attaches the first uploaded photo to that item (a defect).
+  const returnTo = params.get('return');
+  const itemParam = params.get('item');
   const [stageId, setStageId] = useState<string | null>(null);
   const [categoryId, setCategoryId] = useState<string | null>(categoryParam);
   const [picked, setPicked] = useState<Picked[]>([]);
@@ -236,9 +240,15 @@ export default function PhotoUpload() {
       return;
     }
     setPhase('sending');
+    const before = new Set(api.listPhotos(job.id).map((p) => p.id));
     await api.flushPhotoQueue();
     // Signal may have dropped part way: whatever is left is held, calmly.
     const left = (await api.listQueuedPhotos()).filter((p) => ids.includes(p.id)).length;
+    if (itemParam) {
+      const fresh = api.listPhotos(job.id).find((p) => !before.has(p.id));
+      const item = api.getItem(itemParam);
+      if (fresh && item && !item.photoId) api.updateItem(item.id, { photoId: fresh.id });
+    }
     setPhase(left === 0 ? 'sent' : 'held');
   };
 
@@ -250,14 +260,14 @@ export default function PhotoUpload() {
   const showSending = phase === 'sending' || (phase === 'held' && !signalOff && stillQueued > batchFailed);
   const showFailed = phase === 'held' && !showSending && batchFailed > 0 && !signalOff;
   const showHeld = phase === 'held' && !showSending && !showFailed;
-  const jobHref = `/jobs/${job.id}`;
+  const jobHref = returnTo && returnTo.startsWith('/') ? returnTo : `/jobs/${job.id}`;
 
   return (
     <main className="page upload" data-testid="photo-upload">
       <PageHeader
         title="Upload photos"
         meta={stage ? `${stage.name} stage${stage.id === currentStageId ? ' now' : ''}` : undefined}
-        back={{ to: jobHref, label: job.name }}
+        back={{ to: jobHref, label: returnTo?.startsWith('/steps/') ? 'Back to the step' : returnTo?.includes('/notes') ? 'Back to the notes' : job.name }}
         actions={
           <Link to="/jobs" className="upload__change-job">
             Different job

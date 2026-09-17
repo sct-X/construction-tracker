@@ -12,13 +12,16 @@ import { useParams } from 'react-router-dom';
 import type { ScreenKey } from '../data/api';
 import { useQuery } from '../data/context';
 import CallList from '../screens/CallList';
+import DailyNotes from '../screens/DailyNotes';
 import Deliveries from '../screens/Deliveries';
+import DesignChecklist from '../screens/DesignChecklist';
 import ItemSheet from '../screens/ItemSheet';
 import JobOverview from '../screens/JobOverview';
 import JobsList from '../screens/JobsList';
 import Monday from '../screens/Monday';
 import PhotoUpload from '../screens/PhotoUpload';
 import NotFound from '../screens/NotFound';
+import Notifications from '../screens/Notifications';
 import PhotoGallery from '../screens/PhotoGallery';
 import Placeholder from '../screens/Placeholder';
 import Program from '../screens/Program';
@@ -39,12 +42,12 @@ export interface RouteDef {
   element: ReactElement;
 }
 
-/** `/jobs/:id`: the build overview (Alec's Today section lands in Stage 3); design checklist in Stage 5. */
+/** `/jobs/:id`: the build overview, or the design checklist for a design job. */
 function JobRoute() {
   const { id = '' } = useParams();
   const job = useQuery((api) => api.getJob(id), [id]);
   if (!job) return <NotFound />;
-  if (job.kind === 'design') return <Placeholder title={job.name} stage={5} />;
+  if (job.kind === 'design') return <DesignChecklist />;
   return <JobOverview />;
 }
 
@@ -67,8 +70,8 @@ export const ROUTES: RouteDef[] = [
   { path: '/jobs/:id/photos', screen: 'photos', title: 'Photos', stage: 3, element: <PhotoGallery /> },
   { path: '/jobs/:id/upload', screen: 'upload', title: 'Upload photos', stage: 3, element: <PhotoUpload /> },
   { path: '/queue', screen: 'queue', title: 'Upload queue', stage: 3, element: <UploadQueue /> },
-  { path: '/jobs/:id/notes', screen: 'notes', title: 'Daily notes', stage: 5, element: soon('Daily notes', 5) },
-  { path: '/notifications', screen: 'notifications', title: 'Notifications', stage: 5, element: soon('Notifications', 5) },
+  { path: '/jobs/:id/notes', screen: 'notes', title: 'Daily notes', stage: 5, element: <DailyNotes /> },
+  { path: '/notifications', screen: 'notifications', title: 'Notifications', stage: 5, element: <Notifications /> },
   { path: '/settings', screen: 'settings', title: 'My settings', stage: 6, element: soon('My settings', 6) },
   { path: '/jobs/:id/edit', screen: 'editor', title: 'Program editor', stage: 6, element: soon('Program editor', 6) },
   { path: '/templates', screen: 'templates', title: 'Templates and new job', stage: 6, element: soon('Templates and new job', 6) },

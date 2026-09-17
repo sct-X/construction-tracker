@@ -337,6 +337,14 @@ export function holdPointCheck(
   };
 }
 
+/** "1 of 3 required photo sets uploaded": the readiness words the step sheet, Today and notifications share. */
+export function holdPointReadinessWords(check: HoldPointCheck): string {
+  const filled = check.required.filter((r) => r.uploadedCount > 0).length;
+  const n = check.required.length;
+  if (n === 0) return 'No required photo sets for this hold point';
+  return `${filled} of ${n} required photo set${n === 1 ? '' : 's'} uploaded`;
+}
+
 /** The sentence a refusal shows. Names the empty categories (rule 6). */
 export function holdPointRefusalText(check: HoldPointCheck): string {
   const n = check.missingCategories.length;

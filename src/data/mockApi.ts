@@ -31,7 +31,7 @@ import type {
 } from '../domain/types';
 import { ITEM_STATUS_LABELS, ITEM_STATUS_ORDER, SHIPMENT_STATUS_LABELS } from '../domain/types';
 import type { EtaPreview, ForecastBundle, JobForecast } from '../domain/forecast';
-import { forecastJob, holdPointCheck, holdPointRefusalText, previewEtaChange, topWaitingOn } from '../domain/forecast';
+import { forecastJob, holdPointCheck, holdPointReadinessWords, holdPointRefusalText, previewEtaChange, topWaitingOn } from '../domain/forecast';
 import {
   addCalendarWeeks,
   formatDayMonth,
@@ -1075,18 +1075,41 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
         authorId: session.personId,
         text: input.text,
         createdAt: stamp(),
+        ...(input.weather ? { weather: input.weather } : {}),
+        ...(input.onSite && input.onSite.length ? { onSite: [...input.onSite] } : {}),
+        ...(input.photoIds && input.photoIds.length ? { photoIds: [...input.photoIds] } : {}),
+        ...(input.queued ? { queued: true } : {}),
       };
       d().dailyNotes.push(note);
       log('note_added', `Daily note on ${job.name}: ${note.text.slice(0, 60)}${note.text.length > 60 ? '...' : ''}`, { jobId: job.id });
       commit();
       return scoped(note);
     },
-    updateDailyNote(id, text) {
+    updateDailyNote(id, patch) {
       const note = d().dailyNotes.find((n) => n.id === id);
       if (!note) throw new Error(`No note ${id}`);
-      note.text = text;
+      if (typeof patch === 'string') note.text = patch;
+      else {
+        if (patch.text !== undefined) note.text = patch.text;
+        if (patch.weather !== undefined) note.weather = patch.weather;
+        if (patch.onSite !== undefined) note.onSite = patch.onSite;
+        if (patch.photoIds !== undefined) note.photoIds = patch.photoIds;
+        if (patch.queued !== undefined) {
+          if (patch.queued) note.queued = true;
+          else delete note.queued;
+        }
+      }
       commit();
       return scoped(note);
+    },
+    flushDailyNotes() {
+      if (session.offline) return 0;
+      const held = d().dailyNotes.filter((n) => n.queued);
+      if (held.length === 0) return 0;
+      for (const n of held) delete n.queued;
+      persist();
+      notify();
+      return held.length;
     },
 
     // ---- forecast ----
@@ -1094,6 +1117,26 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
       if (!visibleJobIds().has(jobId)) return undefined;
       const f = rawForecast(jobId);
       return f ? scoped(f) : undefined;
+    },
+    holdPointReadiness(stepId) {
+      const step = d().steps.find((s) => s.id === stepId);
+      if (!step || !step.isHoldPoint || !visibleJobIds().has(step.jobId)) return undefined;
+      const check = rawForecast(step.jobId)?.holdPoints.find((h) => h.stepId === stepId);
+      if (!check) return undefined;
+      return scoped({
+        stepId,
+        stepName: step.name,
+        jobId: step.jobId,
+        jobName: jobName(step.jobId),
+        stageId: step.stageId,
+        forecastStart: check.forecastStart,
+        filled: check.required.filter((r) => r.uploadedCount > 0).length,
+        total: check.required.length,
+        words: holdPointReadinessWords(check),
+        missingCategories: check.missingCategories,
+        ok: check.ok,
+        check,
+      });
     },
     listForecasts() {
       return visibleJobs()
@@ -1203,10 +1246,18 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
     fireRemindersDueToday() {
       const today = session.today;
       const raised: Notification[] = [];
-      const already = (personId: string, kind: NotificationKind, ref: { itemId?: string; stepId?: string }) =>
+      // One reminder per person, kind, thing and day. `jobId` only narrows when given (job-level reminders).
+      const already = (personId: string, kind: NotificationKind, ref: { itemId?: string; stepId?: string; jobId?: string }) =>
         d().notifications.some(
-          (n) => n.personId === personId && n.kind === kind && n.at.startsWith(today) && n.itemId === ref.itemId && n.stepId === ref.stepId,
+          (n) =>
+            n.personId === personId &&
+            n.kind === kind &&
+            n.at.startsWith(today) &&
+            n.itemId === ref.itemId &&
+            n.stepId === ref.stepId &&
+            (ref.jobId === undefined || n.jobId === ref.jobId),
         );
+      const members = (roles: Role[]) => onSide(d().memberships).filter((m) => roles.includes(m.role));
       for (const job of visibleJobs()) {
         const f = rawForecast(job.id);
         if (!f) continue;
@@ -1221,24 +1272,59 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
               ? `expected ${formatDayMonth(fi.expected)}, needed ${formatDayMonth(fi.neededBy)}`
               : `needed ${fi.neededBy ? formatDayMonth(fi.neededBy) : 'earlier'}, ${fi.lateText}`;
             raised.push(raise(item.ownerId, 'overdue', `${item.title} at ${job.name} is late: ${why}`, { jobId: job.id, itemId: item.id }));
+          } else if (fi.actByPassed && fi.actBy && !already(item.ownerId, 'overdue', { itemId: item.id })) {
+            // Not late yet, but the day to act on it has gone by and nothing has been done.
+            raised.push(
+              raise(item.ownerId, 'overdue', `${item.title} at ${job.name}: act by ${formatShort(fi.actBy)} has passed`, { jobId: job.id, itemId: item.id }),
+            );
           }
         }
-        // A hold point a week away with photos missing: tell the builders and admins on the side.
+        // A hold point a week away with photos missing: tell the builders and admins on the side, with the readiness words.
         const weekAway = addCalendarWeeks(today, 1);
         for (const hp of f.holdPoints) {
           const step = d().steps.find((s) => s.id === hp.stepId);
           if (!step || step.status === 'done' || hp.ok) continue;
           if (hp.forecastStart < today || hp.forecastStart > weekAway) continue;
-          for (const m of onSide(d().memberships).filter((m) => m.role === 'builder' || m.role === 'admin')) {
+          for (const m of members(['builder', 'admin'])) {
             if (already(m.personId, 'hold_point_week_away', { stepId: step.id })) continue;
             raised.push(
               raise(
                 m.personId,
                 'hold_point_week_away',
-                `${step.name} at ${job.name} is on ${formatDayMonth(hp.forecastStart)} and ${hp.missingCategories.length} photo ${hp.missingCategories.length === 1 ? 'category is' : 'categories are'} empty: ${hp.missingCategories.join('; ')}`,
+                `${step.name} at ${job.name} is on ${formatShort(hp.forecastStart)}: ${holdPointReadinessWords(hp)}. Still empty: ${hp.missingCategories.join('; ')}`,
                 { jobId: job.id, stepId: step.id },
               ),
             );
+          }
+        }
+        // Photos uploaded today into a required category of an open hold point: tell the builders and admins who tick it off.
+        for (const hp of f.holdPoints) {
+          const step = d().steps.find((s) => s.id === hp.stepId);
+          if (!step || step.status === 'done') continue;
+          const requiredIds = new Set(hp.required.map((r) => r.categoryId));
+          const todays = d().photos.filter((p) => p.jobId === job.id && p.uploadedAt.startsWith(today) && requiredIds.has(p.categoryId));
+          if (!todays.length) continue;
+          const uploaders = [...new Set(todays.map((p) => p.uploadedById))]
+            .map((id) => d().people.find((p) => p.id === id)?.shortName ?? 'Someone')
+            .join(' and ');
+          for (const m of members(['builder', 'admin'])) {
+            if (already(m.personId, 'photos_uploaded', { stepId: step.id })) continue;
+            raised.push(
+              raise(
+                m.personId,
+                'photos_uploaded',
+                `${uploaders} added ${todays.length} photo${todays.length === 1 ? '' : 's'} for ${step.name} at ${job.name}: ${holdPointReadinessWords(hp)}`,
+                { jobId: job.id, stepId: step.id },
+              ),
+            );
+          }
+        }
+        // Rule 7: a job unconfirmed for more than 7 days is amber; tell the admin and the partners.
+        if (f.freshness.amber && job.kind === 'build') {
+          for (const m of members(['admin', 'partner'])) {
+            if (already(m.personId, 'job_unconfirmed', { jobId: job.id })) continue;
+            const words = f.freshness.lastConfirmed ? `has not been confirmed for ${f.freshness.daysUnconfirmed} days` : 'has never been confirmed';
+            raised.push(raise(m.personId, 'job_unconfirmed', `${job.name} ${words}`, { jobId: job.id }));
           }
         }
       }

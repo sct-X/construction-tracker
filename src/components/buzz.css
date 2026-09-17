@@ -1,0 +1,106 @@
+/*
+  Buzz: one line at the foot of the screen, above the phone tab bar. Dark
+  steel, so it reads as "something arrived" without any red; the words say
+  what. It floats, so it is the one place a shadow is allowed. The slide-up
+  answers the arrival and is dropped under reduced motion.
+*/
+.buzz-slot {
+  position: fixed;
+  z-index: 20;
+  left: 50%;
+  bottom: calc(var(--tap) + env(safe-area-inset-bottom, 0px) + var(--space-3));
+  transform: translateX(-50%);
+  width: calc(100% - 2 * var(--space-3));
+  max-width: 456px;
+  pointer-events: none;
+}
+.buzz {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'words words'
+    'link dismiss';
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--steel-900);
+  color: var(--text-on-dark);
+  box-shadow: var(--shadow-float);
+  pointer-events: auto;
+  animation: buzz-in var(--motion-sheet) var(--ease);
+}
+@keyframes buzz-in {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .buzz {
+    animation: none;
+  }
+}
+.buzz__words {
+  grid-area: words;
+  font-size: var(--text-md);
+  line-height: var(--leading-body);
+}
+.buzz__more {
+  display: inline-block;
+  margin-left: var(--space-2);
+  white-space: nowrap;
+  color: var(--steel-200);
+  text-decoration: underline;
+}
+.buzz__link {
+  grid-area: link;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--hivis);
+  color: var(--ink);
+  font-weight: var(--weight-bold);
+  text-decoration: none;
+}
+.buzz__link:hover {
+  filter: brightness(0.93);
+}
+.buzz__dismiss {
+  grid-area: dismiss;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--steel-500);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-on-dark);
+  font-weight: var(--weight-medium);
+}
+.buzz__dismiss:hover {
+  background: var(--steel-700);
+}
+.buzz__link:focus-visible,
+.buzz__dismiss:focus-visible,
+.buzz__more:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--steel-900), 0 0 0 4px var(--hivis);
+}
+
+/* Desktop: no tab bar; sit at the foot of the content column, beside the sidebar. */
+.buzz-slot--desktop {
+  left: calc(260px + var(--space-6));
+  transform: none;
+  bottom: var(--space-6);
+  max-width: 560px;
+}
+.buzz-slot--desktop .buzz {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas: 'words link dismiss';
+}

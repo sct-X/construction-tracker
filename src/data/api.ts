@@ -37,6 +37,7 @@ import type {
   StepLink,
   StepStatus,
   Trade,
+  Weather,
 } from '../domain/types';
 import type { EtaPreview, Freshness, HoldPointCheck, JobForecast, WaitingOnRow } from '../domain/forecast';
 import type { Session } from './session';
@@ -250,6 +251,31 @@ export interface DailyNoteInput {
   text: string;
   /** Defaults to the session's today. */
   date?: string;
+  weather?: Weather;
+  onSite?: string[];
+  photoIds?: string[];
+  /** Saved without signal: the note carries the flag until `flushDailyNotes` clears it. */
+  queued?: boolean;
+}
+
+export type DailyNotePatch = Partial<Pick<DailyNote, 'text' | 'weather' | 'onSite' | 'photoIds' | 'queued'>>;
+
+/** Rule 6 readiness for one hold-point step, for the step sheet and for notifications ("1 of 3 sets uploaded"). */
+export interface HoldPointReadiness {
+  stepId: string;
+  stepName: string;
+  jobId: string;
+  jobName: string;
+  stageId: string;
+  forecastStart: string;
+  /** Required categories with at least one uploaded photo. */
+  filled: number;
+  total: number;
+  /** "1 of 3 required photo sets uploaded". */
+  words: string;
+  missingCategories: string[];
+  ok: boolean;
+  check: HoldPointCheck;
 }
 
 // ---------------------------------------------------------------------------
@@ -363,11 +389,16 @@ export interface TrackerApi {
   // ---- daily notes ----
   listDailyNotes(jobId: string): DailyNote[];
   addDailyNote(input: DailyNoteInput): DailyNote;
-  updateDailyNote(id: string, text: string): DailyNote;
+  /** A bare string patches the text (Stage 0 shape); a patch sets any of text, weather, onSite, photoIds, queued. */
+  updateDailyNote(id: string, patch: string | DailyNotePatch): DailyNote;
+  /** Clears the queued flag on every note while there is signal. Returns how many sent. */
+  flushDailyNotes(): number;
 
   // ---- forecast ----
   getForecast(jobId: string): JobForecast | undefined;
   listForecasts(): JobForecast[];
+  /** Rule 6 readiness for a hold-point step (undefined for other steps). */
+  holdPointReadiness(stepId: string): HoldPointReadiness | undefined;
   getMondayRows(): MondayRow[];
   listSnapshots(jobId: string): ForecastSnapshot[];
   /** Saves a snapshot for every build job for the Monday of the given date (default: last Monday of today). */

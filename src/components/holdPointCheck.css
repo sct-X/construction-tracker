@@ -1,4 +1,18 @@
-/* HoldPointCheck: a list of required photo sets with their counts in words. */
+/*
+  HoldPointCheck: a ledger of required photo sets with their counts in words.
+  Each row is a small grid: name and count on the first line, the queued words
+  and the "Add photos" link on the second, so an empty set reads as a problem
+  with its fix beside it. The refusal sits first, under the Mark done button.
+*/
+.holdpoint__refusal {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--amber-ink);
+  border-radius: var(--radius-sm);
+  background: var(--amber-bg);
+  color: var(--amber-ink);
+  max-width: var(--measure);
+}
 .holdpoint__head {
   display: flex;
   flex-wrap: wrap;
@@ -16,10 +30,14 @@
   flex-direction: column;
 }
 .holdpoint__row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'name count'
+    'queued add';
   align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
+  column-gap: var(--space-3);
+  row-gap: 2px;
   min-height: 44px;
   padding: var(--space-2) 0;
   border-top: var(--hairline);
@@ -29,15 +47,38 @@
   padding: var(--space-1) 0;
 }
 .holdpoint__name {
+  grid-area: name;
   min-width: 0;
 }
-.holdpoint__refusal {
+.holdpoint__count {
+  grid-area: count;
+  justify-self: end;
+}
+.holdpoint__row-queued {
+  grid-area: queued;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.holdpoint__add {
+  grid-area: add;
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  font-weight: var(--weight-medium);
+}
+.shell--phone .holdpoint__add {
+  min-height: var(--tap);
+  padding: 0 var(--space-3);
+  margin-right: calc(-1 * var(--space-3));
+}
+.holdpoint__ready {
   margin-top: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--amber-ink);
+  border: 1px solid var(--ok-ink);
   border-radius: var(--radius-sm);
-  background: var(--amber-bg);
-  color: var(--amber-ink);
+  background: var(--ok-bg);
+  color: var(--ok-ink);
   max-width: var(--measure);
 }
 .holdpoint__queued {
@@ -49,6 +90,15 @@
   margin-top: var(--space-4);
 }
 @media (min-width: 768px) {
+  /* the desktop has the width for one line: name, queued words, count, link */
+  .shell--desktop .holdpoint__row {
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    grid-template-areas: 'name queued count add';
+    column-gap: var(--space-4);
+  }
+  .shell--desktop .holdpoint__add {
+    min-height: 24px;
+  }
   .holdpoint__upload {
     min-height: var(--control);
     padding: 0 var(--space-4);

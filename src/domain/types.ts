@@ -213,6 +213,9 @@ export interface Photo {
   caption?: string;
 }
 
+/** Site conditions on a daily note; buttons on the phone, never a dropdown. */
+export type Weather = 'fine' | 'overcast' | 'rain' | 'wind' | 'hot';
+
 export interface DailyNote {
   id: string;
   sideId: string;
@@ -221,6 +224,12 @@ export interface DailyNote {
   authorId: string;
   text: string;
   createdAt: string;
+  weather?: Weather;
+  /** Who was on site: person ids and trade ids. */
+  onSite?: string[];
+  photoIds?: string[];
+  /** Saved on the phone without signal; clears when the note has sent. */
+  queued?: boolean;
 }
 
 export interface ForecastSnapshot {
@@ -281,6 +290,7 @@ export type NotificationKind =
   | 'eta_moved'
   | 'hold_point_week_away'
   | 'job_unconfirmed'
+  | 'photos_uploaded'
   | 'upload_failed'
   | 'test_buzz';
 

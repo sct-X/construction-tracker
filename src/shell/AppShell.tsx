@@ -14,6 +14,8 @@ import { createContext, useContext, useEffect, useState, type CSSProperties } fr
 import { Link, Outlet, matchPath, useLocation } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
 import { OfflineBar } from './OfflineBar';
+import { BellBadge } from '../components/BellBadge';
+import { Buzz } from '../components/Buzz';
 import { QueueBadge } from '../components/QueueBadge';
 import { SideSwitcher } from './SideSwitcher';
 import { isHere, phoneTabs, sidebarMain, sidebarSetup, type NavItem } from './nav';
@@ -61,17 +63,6 @@ function NavLinkItem({ item, pathname, className }: { item: NavItem; pathname: s
   );
 }
 
-function UnreadCount({ className }: { className: string }) {
-  const unread = useQuery((api) => api.listNotifications({ unreadOnly: true }).length, []);
-  if (!unread) return null;
-  return (
-    <span className={className} data-testid="unread-count">
-      {unread}
-      <span className="sr-only"> unread</span>
-    </span>
-  );
-}
-
 function PhoneChrome({ pathname }: { pathname: string }) {
   const api = useApi();
   const { person, role } = useSession();
@@ -84,7 +75,7 @@ function PhoneChrome({ pathname }: { pathname: string }) {
         <div className="topbar__tools">
           <Link to="/notifications" className="topbar__tool" data-testid="nav-notifications" aria-label="Notifications">
             <BellIcon />
-            <UnreadCount className="topbar__count" />
+            <BellBadge className="topbar__count" />
           </Link>
           <Link to="/settings" className="topbar__tool" data-testid="nav-settings" aria-label={`${person.shortName}: my settings`}>
             <PersonIcon />
@@ -150,7 +141,7 @@ function DesktopChrome({ pathname }: { pathname: string }) {
       <div className="sidebar__foot">
         <Link to="/notifications" className="sidebar__link sidebar__link--tool sidebar__link--bell" data-testid="nav-notifications" aria-label="Notifications" title="Notifications">
           <BellIcon />
-          <UnreadCount className="sidebar__count" />
+          <BellBadge className="sidebar__count" />
         </Link>
         <Link to="/settings" className="sidebar__link sidebar__link--tool" data-testid="nav-settings">
           <PersonIcon />
@@ -201,6 +192,7 @@ export function AppShell() {
           <QueueBadge />
           <Outlet />
         </div>
+        <Buzz layout={phone ? 'phone' : 'desktop'} />
       </div>
     </LayoutContext.Provider>
   );

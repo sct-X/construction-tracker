@@ -55,12 +55,18 @@ export interface ItemRowProps {
   context?: string;
   /** A control on the right, outside the link (Stage 4's status advance, Finish call). */
   action?: ReactNode;
+  /**
+   * Replaces the row's one date phrase (the waiting-on list says "Act by
+   * Mon 10 Aug, 5 weeks ago" where the default would say "Expected 26 Oct").
+   * `null` draws no date line; undefined keeps the default from the calculator.
+   */
+  when?: { text: string; tone: Tone } | null;
   testId?: string;
 }
 
-export function ItemRow({ item, forecast, ownerName, href, context, action, testId }: ItemRowProps) {
+export function ItemRow({ item, forecast, ownerName, href, context, action, when: whenOverride, testId }: ItemRowProps) {
   const { personId } = useSession();
-  const when = itemWhenWords(forecast, item.status);
+  const when = whenOverride === undefined ? itemWhenWords(forecast, item.status) : whenOverride;
   const flagged = when?.tone === 'late' || when?.tone === 'amber';
   const owner = item.ownerId && item.ownerId === personId ? 'you' : ownerName;
   const who = [item.waitingOn ? `waiting on ${item.waitingOn}` : '', owner ? `with ${owner}` : ''].filter(Boolean).join(', ');

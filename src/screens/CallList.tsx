@@ -22,6 +22,7 @@ import type { Item, ItemStatus, Job, Person, Step, Trade } from '../domain/types
 import type { JobForecast } from '../domain/forecast';
 import { addCalendarWeeks, calendarDaysBetween, formatDelta, formatLong, formatShort } from '../domain/dates';
 import { CallItem, type Handled } from '../components/CallItem';
+import { nextStatus } from '../domain/itemFlow';
 import { Money } from '../components/Money';
 import { StatusText, type Tone } from '../components/StatusText';
 import { useLayout } from '../shell/AppShell';
@@ -220,14 +221,9 @@ export default function CallList() {
     const before = api.getForecast(item.jobId);
     if (status === 'confirmed' && confirmedFor && confirmedFor !== item.expectedDate) api.setItemExpectedDate(item.id, confirmedFor);
     api.updateItemStatus(item.id, status);
-    const words =
-      status === 'booked'
-        ? item.type === 'material'
-          ? 'ordered'
-          : 'booked'
-        : status === 'confirmed'
-          ? `confirmed${confirmedFor ? ` for ${formatShort(confirmedFor)}` : ''}`
-          : 'done';
+    // The folded sentence uses the button's own words ("Mark requested" -> "requested"), so the flow reads the same everywhere.
+    const label = (nextStatus(item)?.label ?? 'Mark done').replace(/^Mark /, '').toLowerCase();
+    const words = `${label}${status === 'confirmed' && confirmedFor ? ` for ${formatShort(confirmedFor)}` : ''}`;
     const moved = status === 'confirmed' && confirmedFor ? finishMoveWords(item.jobId, before) : null;
     setHandled((h) => ({ ...h, [item.id]: { item, words: <>{words}{moved}</> } }));
   };
@@ -523,7 +519,8 @@ export default function CallList() {
                             <span className="calls__tick-words">
                               <span className="calls__tick-name">{g.job.name}</span>
                               <span className="calls__tick-note">
-                                Confirmed today{n > 0 ? `, ${n} item${n === 1 ? '' : 's'} updated` : ''}
+                                {ticked[g.job.id] ? 'Confirmed today' : 'Not confirmed'}
+                                {n > 0 ? `, ${n} item${n === 1 ? '' : 's'} updated` : ''}
                               </span>
                             </span>
                           </label>

@@ -142,6 +142,13 @@ describe('mock API', () => {
     expect(api.getForecast(job.id)!.slipDays).toBeUndefined(); // no Monday yet
   });
 
+  it('refuses an item whose step is on another job', () => {
+    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
+    expect(() => api.addItem({ jobId: SEAVIEW, type: 'trade', title: 'Book glazier', stepId: 'pr-install-windows' })).toThrow(/not on/);
+    const ok = api.addItem({ jobId: PARK_RD, type: 'trade', title: 'Book glazier', stepId: 'pr-install-windows' });
+    expect(api.getItem(ok.id)?.stepId).toBe('pr-install-windows');
+  });
+
   it('reset restores the seed', () => {
     const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
     api.updateItemStatus('it-pr-tile-choice', 'done');

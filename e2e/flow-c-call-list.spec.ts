@@ -172,6 +172,25 @@ test.describe('Flow c: the call list', () => {
     await page.getByTestId('dev-reset').click();
   });
 
+  test('the button words follow the shared item flow: a consultant report reads Mark requested', async ({ page }) => {
+    // Dom rings Dominic: the glazing certificate (a consultant report, to do) is on Dominic's list.
+    await page.goto('#/calls?as=dom&today=2026-09-17&person=dominic');
+    await expect(page.getByTestId('calls-person-dominic')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('call-action-it-pr-glazing-cert')).toHaveText('Mark requested');
+    await expect(page.getByTestId('call-action-it-pr-sw-council')).toHaveText('Mark received'); // council request, already requested
+    await page.getByTestId('call-action-it-pr-glazing-cert').click();
+    await expect(page.getByTestId('call-done-it-pr-glazing-cert')).toContainText('requested');
+    await page.getByTestId('call-reopen-it-pr-glazing-cert').click();
+    await expect(page.getByTestId('call-action-it-pr-glazing-cert')).toHaveText('Mark received');
+    // Unticked jobs on the finish panel read "Not confirmed".
+    await page.getByTestId('calls-finish').click();
+    await expect(page.getByTestId('calls-finish-panel')).toContainText('Not confirmed');
+    await page.getByTestId('calls-confirm-park-rd').check();
+    await expect(page.getByTestId('calls-finish-panel')).toContainText('Confirmed today');
+    await expect(page.getByTestId('calls-finish-panel')).toContainText('Not confirmed'); // the other jobs stay unticked
+    await page.getByTestId('dev-reset').click();
+  });
+
   test('offline: status ticks still work, date changes need signal', async ({ page }) => {
     await page.goto('#/calls?as=dominic&today=2026-09-17&offline=1');
     await openMore(page, 'it-sv-pump');

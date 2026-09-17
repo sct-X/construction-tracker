@@ -15,38 +15,11 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Item, ItemStatus, Step, Trade } from '../domain/types';
 import { ITEM_STATUS_LABELS } from '../domain/types';
 import type { ItemForecast } from '../domain/forecast';
-import { calendarDaysBetween, formatShort } from '../domain/dates';
+import { agoWords, calendarDaysBetween, formatShort } from '../domain/dates';
+import { nextStatus } from '../domain/itemFlow';
 import { ITEM_TYPE_WORDS } from './ItemRow';
 import { StatusText, type Tone } from './StatusText';
 import './callItem.css';
-
-/** "5 weeks ago", "3 days ago", "today", "tomorrow", "in 3 days", "in 2 weeks". */
-export function agoWords(iso: string, today: string): string {
-  const n = calendarDaysBetween(iso, today);
-  if (n === 0) return 'today';
-  if (n === 1) return 'yesterday';
-  if (n === -1) return 'tomorrow';
-  const abs = Math.abs(n);
-  const span = abs >= 14 ? `${Math.floor(abs / 7)} weeks` : `${abs} days`;
-  return n > 0 ? `${span} ago` : `in ${span}`;
-}
-
-/** The status the primary action moves the item to, and its words. */
-export function nextStatus(item: Item): { status: ItemStatus; words: string } | null {
-  const bookable = item.type === 'trade' || item.type === 'inspection' || item.type === 'defect';
-  switch (item.status) {
-    case 'to_do':
-      if (item.type === 'material') return { status: 'booked', words: 'Mark ordered' };
-      if (bookable) return { status: 'booked', words: 'Mark booked' };
-      return { status: 'done', words: 'Mark done' };
-    case 'booked':
-      return { status: 'confirmed', words: 'Mark confirmed' };
-    case 'confirmed':
-      return { status: 'done', words: 'Mark done' };
-    default:
-      return null;
-  }
-}
 
 export interface Handled {
   /** "booked", "confirmed for Wed 23 Sep", "expected moved to Mon 12 Oct. Beatty St finish moves +7 days, $2,000" */
@@ -258,7 +231,7 @@ export function CallItem(props: CallItemProps) {
       <div className="callitem__do">
         {next && !confirming && (
           <button type="button" className="btn btn--desktop callitem__primary" onClick={advance} data-testid={`call-action-${id}`}>
-            {next.words}
+            {next.label}
           </button>
         )}
         {confirming && (

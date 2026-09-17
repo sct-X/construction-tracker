@@ -130,7 +130,9 @@
   display: none;
 }
 
-/* ---- phone rows: the shared row, then a strip with the act-by and the one button ---- */
+/* ---- phone rows: the shared row (its date line says "Act by Mon 10 Aug,
+   5 weeks ago"), then a strip of controls under it, right-aligned so the
+   status button sits under a thumb: [Call] [Set date] [Mark confirmed] ---- */
 .waiting .itemrow__li--with-action {
   flex-wrap: wrap;
   gap: 0 var(--space-3);
@@ -146,40 +148,71 @@
 }
 .waiting__act {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  justify-content: flex-end;
+  gap: var(--space-2);
   width: 100%;
-  padding-left: calc(5.5em + var(--space-2)); /* the row's content column, past the type word */
 }
-.waiting__actby {
-  white-space: normal;
-  min-width: 0;
-  flex: 1 1 auto;
-  font-size: 0.8125rem; /* 13: room beside a 56px button on a 390px phone */
-  line-height: 1.3;
+.waiting__act--dating {
+  justify-content: flex-start;
 }
-.waiting__actby--none {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
+.waiting__act-more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
 }
-.waiting__advance {
+.waiting__advance,
+.waiting__quiet-btn,
+.waiting__call {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: var(--tap);
   padding: 0 var(--space-3);
-  border: 1px solid var(--steel-700);
   border-radius: var(--radius-md);
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background var(--motion-fast) var(--ease);
+}
+.waiting__advance {
+  border: 1px solid var(--steel-700);
   background: var(--surface-raised);
   color: var(--steel-700);
   font-weight: var(--weight-bold);
-  white-space: nowrap;
-  transition: background var(--motion-fast) var(--ease);
 }
 .waiting__advance:hover {
   background: var(--steel-100);
 }
 .waiting__advance:active {
   background: var(--steel-200);
+}
+.waiting__quiet-btn,
+.waiting__call {
+  border: 1px solid var(--line-strong);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+}
+.waiting__quiet-btn:hover,
+.waiting__call:hover {
+  background: var(--concrete-100);
+}
+.waiting__date {
+  flex: 1 1 9em;
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  font-size: var(--text-md);
+  font-variant-numeric: tabular-nums;
+}
+.waiting__needs-signal {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }
 
 /* ---- desktop table ---- */
@@ -290,10 +323,41 @@
   white-space: nowrap;
   text-align: right;
 }
-.waiting__table .waiting__advance {
+.waiting__table .waiting__advance,
+.waiting__table .waiting__quiet-btn,
+.waiting__table .waiting__call,
+.waiting__table .waiting__date {
   min-height: 36px;
   padding: 0 var(--space-2);
   font-size: 0.8125rem;
+}
+.waiting__table .waiting__act {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+}
+.waiting__table .waiting__quiet-btn,
+.waiting__table .waiting__call {
+  min-height: 24px;
+  padding: 0 var(--space-1);
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  text-decoration: underline;
+  font-size: var(--text-xs);
+}
+.waiting__table .waiting__act--dating .waiting__quiet-btn {
+  min-height: 36px;
+  border: 1px solid var(--line-strong);
+  text-decoration: none;
+  font-size: 0.8125rem;
+}
+.waiting__table .waiting__act--dating {
+  flex-wrap: wrap;
+  max-width: 12em;
+}
+.waiting__table .waiting__date {
+  flex-basis: 100%;
 }
 @media (min-width: 768px) {
   .waiting__chip {

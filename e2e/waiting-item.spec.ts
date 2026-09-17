@@ -21,8 +21,8 @@ test.describe('Waiting-on list as Raff', () => {
     await expect(overdue).toContainText('Overdue');
     const windows = overdue.getByTestId('item-row-it-pr-windows');
     await expect(windows).toBeVisible();
-    await expect(overdue).toContainText('10 Aug');
-    await expect(overdue).toContainText('5 weeks ago');
+    await expect(windows).toContainText('Mon 10 Aug');
+    await expect(windows).toContainText('5 weeks ago');
     await expect(windows).toContainText('Ordered or booked');
     await expect(overdue.getByTestId('item-row-it-pr-sliding-doors')).toBeVisible();
 
@@ -58,6 +58,39 @@ test.describe('Waiting-on list as Raff', () => {
 
     await reset(page);
     await expect(page.getByTestId('waiting-group-overdue').getByTestId('item-row-it-pr-windows')).toBeVisible();
+  });
+
+  test('Call rings the trade, Set date saves an expected date inline, and reports say requested and received', async ({ page }) => {
+    await page.goto('#/waiting?as=dominic&today=2026-09-17');
+    // Gyprock Bros has a number; the council has none.
+    await expect(page.getByTestId('item-call-it-pr-plasterer')).toHaveAttribute('href', /^tel:0411/);
+    await expect(page.getByTestId('item-call-it-pr-sw-council')).toHaveCount(0);
+    // A shipment sets the expected date, so those rows offer no Set date.
+    await expect(page.getByTestId('item-set-date-it-pr-windows')).toHaveCount(0);
+
+    await page.getByTestId('item-set-date-it-pr-plasterer').click();
+    await page.getByTestId('item-date-input-it-pr-plasterer').fill('2026-09-23');
+    await page.getByTestId('item-date-save-it-pr-plasterer').click();
+    await expect(page.getByTestId('item-date-input-it-pr-plasterer')).toHaveCount(0);
+    await page.goto('#/items/it-pr-plasterer?as=dominic&today=2026-09-17');
+    await expect(page.getByTestId('item-expected')).toHaveValue('2026-09-23');
+    await expect(page.getByTestId('item-history')).toContainText('expected date set to 23 Sep');
+
+    // The one flow, shared with the call list: a report is requested, then received.
+    await page.goto('#/waiting?as=dominic&today=2026-09-17');
+    await expect(page.getByTestId('item-advance-it-pr-glazing-cert')).toHaveText('Mark requested');
+    await expect(page.getByTestId('item-advance-it-pr-sw-council')).toHaveText('Mark received');
+    await reset(page);
+  });
+
+  test('offline, Set date needs signal but the status button still works', async ({ page }) => {
+    await page.goto('#/waiting?as=raff&owner=me&today=2026-09-17&offline=1');
+    await expect(page.getByTestId('item-set-date-it-pr-plasterer')).toHaveCount(0);
+    await expect(page.getByTestId('waiting-group-this-week')).toContainText('Date needs signal');
+    await page.getByTestId('item-advance-it-pr-plasterer').click();
+    await expect(page.getByTestId('item-row-it-pr-plasterer')).toContainText('Ordered or booked');
+    await page.goto('#/waiting?as=raff&owner=me&today=2026-09-17&offline=0');
+    await reset(page);
   });
 
   test('a decision goes straight to done, and the job filter narrows the list', async ({ page }) => {
@@ -99,7 +132,7 @@ test.describe('Item sheet', () => {
 
     // The list reads the saved figure through the calculator.
     await page.goto('#/waiting?owner=me&as=raff&today=2026-09-17');
-    await expect(page.getByTestId('waiting-group-overdue')).toContainText('24 Aug');
+    await expect(page.getByTestId('waiting-group-overdue')).toContainText('Mon 24 Aug');
     await reset(page);
   });
 
@@ -130,9 +163,27 @@ test.describe('Item sheet', () => {
     await expect(page.getByText('Ring the certifier about the OC paperwork')).toHaveCount(0);
   });
 
-  test('Dominic can delete an item; Raff cannot', async ({ page }) => {
+  test('an item with its own late expected date says so on the sheet, and a defect offers a photo', async ({ page }) => {
+    await page.goto('#/items/it-bt-tiler?as=dominic&today=2026-09-17');
+    await expect(page.getByTestId('item-late')).toContainText('Expected Mon 5 Oct');
+    await expect(page.getByTestId('item-late')).toContainText('7 days late');
+    await expect(page.getByTestId('item-late')).toHaveAttribute('data-tone', 'late');
+
+    await page.goto('#/items/it-pr-defect-tile?as=dominic&today=2026-09-17');
+    await expect(page.getByTestId('item-photo-link')).toBeVisible();
+    await page.getByTestId('item-photo-clear').click();
+    await expect(page.getByTestId('item-photo-take')).toHaveAttribute('href', '#/jobs/park-rd/upload?item=it-pr-defect-tile');
+    await expect(page.locator('[data-testid^="item-photo-pick-"]').first()).toBeVisible();
+    await page.locator('[data-testid^="item-photo-pick-"]').first().click();
+    await expect(page.getByTestId('item-photo-link')).toBeVisible();
+    await page.getByTestId('item-cancel').click();
+  });
+
+  test('Dominic and Dom can delete an item; Raff cannot', async ({ page }) => {
     await page.goto('#/items/it-pr-insurance?as=raff&today=2026-09-17');
     await expect(page.getByTestId('item-delete')).toHaveCount(0);
+    await page.goto('#/items/it-pr-insurance?as=dom&today=2026-09-17');
+    await expect(page.getByTestId('item-delete')).toBeVisible();
     await page.goto('#/items/it-pr-insurance?as=dominic&today=2026-09-17');
     await page.getByTestId('item-delete').click();
     await page.getByTestId('item-delete-confirm').click();
@@ -207,6 +258,9 @@ test.describe('Desktop table', () => {
     test.skip(test.info().project.name !== 'phone', 'phone layout only');
     await page.goto('#/waiting?as=dominic&today=2026-09-17');
     await expect(page.locator('.waiting__table')).toHaveCount(0);
-    await expect(page.getByTestId('waiting-actby-it-pr-windows')).toContainText('Act by 10 Aug, 5 weeks ago');
+    await expect(page.getByTestId('item-row-it-pr-windows')).toContainText('Act by Mon 10 Aug, 5 weeks ago');
+    // The strip under the row holds only controls: the button is a tap target and so is Call.
+    const call = await page.getByTestId('item-call-it-pr-plasterer').boundingBox();
+    expect(call!.height).toBeGreaterThanOrEqual(56);
   });
 });

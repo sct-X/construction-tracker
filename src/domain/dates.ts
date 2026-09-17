@@ -207,6 +207,21 @@ export function relativeDays(fromISO: string, todayISOStr: string): string {
   return `in ${-n} days`;
 }
 
+/**
+ * A date relative to today, in words: "today", "yesterday", "tomorrow",
+ * "3 days ago", "in 8 days", "5 weeks ago", "in 2 weeks". Past a fortnight
+ * it speaks in whole weeks, because that is how a builder says it.
+ */
+export function agoWords(iso: string, todayISOStr: string): string {
+  const n = calendarDaysBetween(iso, todayISOStr); // positive when iso is in the past
+  if (n === 0) return 'today';
+  if (n === 1) return 'yesterday';
+  if (n === -1) return 'tomorrow';
+  const abs = Math.abs(n);
+  const span = abs >= 14 ? `${Math.floor(abs / 7)} weeks` : `${abs} days`;
+  return n > 0 ? `${span} ago` : `in ${span}`;
+}
+
 /** "+14 days", "0", "-3 days" */
 export function formatDelta(days: number): string {
   if (days === 0) return '0';

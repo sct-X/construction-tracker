@@ -765,6 +765,10 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
     },
     addItem(input) {
       const job = requireJob(input.jobId);
+      if (input.stepId) {
+        const step = d().steps.find((s) => s.id === input.stepId);
+        if (!step || step.jobId !== job.id) throw new Error(`Step ${input.stepId} is not on ${job.name}`);
+      }
       const item: Item = {
         id: newId('it'),
         sideId: job.sideId,

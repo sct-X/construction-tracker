@@ -33,13 +33,12 @@ import { useApi, useQuery, useSession } from '../data/context';
 import type { ItemPatch, NewItemInput } from '../data/api';
 import type { Item, ItemStatus, ItemType } from '../domain/types';
 import { ITEM_STATUS_LABELS, ITEM_STATUS_ORDER, ITEM_TYPE_LABELS } from '../domain/types';
-import { addCalendarWeeks, formatLong, formatShort, formatStamp, formatDayMonth } from '../domain/dates';
+import { addCalendarWeeks, agoWords, formatDayMonth, formatLong, formatShort, formatStamp } from '../domain/dates';
 import { BigNumber } from '../components/BigNumber';
 import { ItemTypePicker } from '../components/ItemTypePicker';
 import { StatusText } from '../components/StatusText';
 import NotFound from './NotFound';
 import { PageHeader } from '../shell/PageHeader';
-import { agoWords } from './WaitingOn';
 import './itemSheet.css';
 
 interface Draft {
@@ -56,6 +55,7 @@ interface Draft {
   status: ItemStatus;
   confirmedDate: string;
   notes: string;
+  photoId: string;
 }
 
 function draftFrom(item: Item | undefined, params: URLSearchParams, personId: string): Draft {
@@ -74,6 +74,7 @@ function draftFrom(item: Item | undefined, params: URLSearchParams, personId: st
       status: item.status,
       confirmedDate: item.confirmedDate ?? '',
       notes: item.notes ?? '',
+      photoId: item.photoId ?? '',
     };
   }
   const type = (params.get('type') as ItemType | null) ?? 'trade';
@@ -91,6 +92,7 @@ function draftFrom(item: Item | undefined, params: URLSearchParams, personId: st
     status: 'to_do',
     confirmedDate: '',
     notes: '',
+    photoId: params.get('photo') ?? '',
   };
 }
 
@@ -136,7 +138,9 @@ export default function ItemSheet() {
   const steps = useQuery((api) => (draft.jobId ? api.listSteps(draft.jobId) : []), [draft.jobId]);
   const forecast = useQuery((api) => (draft.jobId ? api.getForecast(draft.jobId) : undefined), [draft.jobId]);
   const shipment = useQuery((api) => (item?.shipmentId ? api.getShipment(item.shipmentId) : undefined), [item?.shipmentId]);
-  const photo = useQuery((api) => (item?.photoId ? api.getPhoto(item.photoId) : undefined), [item?.photoId]);
+  const photo = useQuery((api) => (draft.photoId ? api.getPhoto(draft.photoId) : undefined), [draft.photoId]);
+  // A defect asks for a photo: the job's newest few to pick from, or a link to take one.
+  const jobPhotos = useQuery((api) => (draft.type === 'defect' && draft.jobId ? api.listPhotos(draft.jobId).slice(0, 6) : []), [draft.type, draft.jobId]);
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -163,9 +167,10 @@ export default function ItemSheet() {
     : draft.neededBy || undefined;
   const actBy = neededBy ? addCalendarWeeks(neededBy, -leadWeeks) : undefined;
   const actByPassed = !!actBy && actBy < today && draft.status !== 'done';
-  const expectedFromShipment = shipment ? (forecast?.items[item!.id]?.expected ?? shipment.eta) : undefined;
+  const savedForecast = item ? forecast?.items[item.id] : undefined;
+  const expectedFromShipment = shipment ? (savedForecast?.expected ?? shipment.eta) : undefined;
 
-  const canDelete = !isNew && role === 'admin';
+  const canDelete = !isNew && (role === 'admin' || role === 'partner');
 
   const validate = (): string[] => {
     const out: string[] = [];
@@ -192,6 +197,7 @@ export default function ItemSheet() {
       neededBy: step ? undefined : draft.neededBy || undefined,
       expectedDate: shipment ? undefined : draft.expectedDate || undefined,
       notes: draft.notes.trim() || undefined,
+      photoId: draft.photoId || undefined,
     };
     if (isNew) {
       const input: NewItemInput = { ...common, jobId: draft.jobId, status: draft.status };
@@ -263,9 +269,10 @@ export default function ItemSheet() {
 
       <section className="sheet__figure" aria-label="Act by">
         {actByFigure}
-        {expectedFromShipment && forecast?.items[item!.id]?.isLate && (
+        {savedForecast?.isLate && (
           <StatusText tone="late" testId="item-late">
-            Expected {formatShort(expectedFromShipment)}, {forecast.items[item!.id].lateText}
+            {savedForecast.expected ? `Expected ${formatShort(savedForecast.expected)}` : `Needed ${formatShort(savedForecast.neededBy!)}, nothing expected`},{' '}
+            {savedForecast.lateText}
           </StatusText>
         )}
       </section>
@@ -516,13 +523,43 @@ export default function ItemSheet() {
           />
         </div>
 
-        {photo && (
+        {(photo || draft.type === 'defect') && (
           <div className="sheet__field">
-            <span className="sheet__label">Photo</span>
-            <Link to={`/jobs/${photo.jobId}/photos?photo=${photo.id}`} className="sheet__photo" data-testid="item-photo-link">
-              <img src={photo.dataUrl} alt={`Photo taken ${formatDayMonth(photo.takenOn)}`} />
-              <span>Taken {formatShort(photo.takenOn)}, open in the gallery</span>
-            </Link>
+            <span className="sheet__label">Photo{draft.type === 'defect' ? ' of the defect (optional)' : ''}</span>
+            {photo ? (
+              <span className="sheet__photo-row">
+                <Link to={`/jobs/${photo.jobId}/photos?photo=${photo.id}`} className="sheet__photo" data-testid="item-photo-link">
+                  <img src={photo.dataUrl} alt={`Photo taken ${formatDayMonth(photo.takenOn)}`} />
+                  <span>Taken {formatShort(photo.takenOn)}, open in the gallery</span>
+                </Link>
+                <button type="button" className="sheet__quiet-btn" onClick={() => set('photoId', '')} data-testid="item-photo-clear">
+                  Use a different photo
+                </button>
+              </span>
+            ) : (
+              <span className="sheet__photo-pick">
+                {jobPhotos.length > 0 && (
+                  <span className="sheet__photo-grid" role="group" aria-label="Pick a photo">
+                    {jobPhotos.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        className="sheet__photo-thumb"
+                        onClick={() => set('photoId', p.id)}
+                        data-testid={`item-photo-pick-${p.id}`}
+                      >
+                        <img src={p.dataUrl} alt={`Photo taken ${formatDayMonth(p.takenOn)}`} />
+                      </button>
+                    ))}
+                  </span>
+                )}
+                {draft.jobId && (
+                  <Link to={`/jobs/${draft.jobId}/upload${item ? `?item=${item.id}` : ''}`} className="sheet__ring" data-testid="item-photo-take">
+                    Take a photo
+                  </Link>
+                )}
+              </span>
+            )}
           </div>
         )}
 

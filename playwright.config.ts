@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// PW_PORT lets parallel agents run their own preview server; PW_OUT keeps their
+// test-results apart. Defaults match CI and a single local run.
+const PORT = Number(process.env.PW_PORT ?? 4173);
+const OUT = process.env.PW_OUT ?? 'test-results';
+
 // Runs against the built app served by `vite preview`, exactly as Pages serves it.
 export default defineConfig({
   testDir: './e2e',
@@ -7,8 +12,9 @@ export default defineConfig({
   fullyParallel: true,
   retries: 0,
   reporter: [['list']],
+  outputDir: OUT,
   use: {
-    baseURL: 'http://localhost:4173/construction-tracker/',
+    baseURL: `http://localhost:${PORT}/construction-tracker/`,
     trace: 'retain-on-failure',
   },
   projects: [
@@ -22,8 +28,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npx vite preview --port 4173 --strictPort',
-    url: 'http://localhost:4173/construction-tracker/',
+    command: `npx vite preview --port ${PORT} --strictPort`,
+    url: `http://localhost:${PORT}/construction-tracker/`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
   },

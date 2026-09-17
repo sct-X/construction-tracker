@@ -1,0 +1,15 @@
+{
+  "name": "Construction Tracker",
+  "short_name": "Tracker",
+  "description": "Job tracker prototype: forecast finish, waiting-on items, site photos.",
+  "start_url": "/construction-tracker/#/",
+  "scope": "/construction-tracker/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f3f2ef",
+  "theme_color": "#2f3a44",
+  "icons": [
+    { "src": "/construction-tracker/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/construction-tracker/icons/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

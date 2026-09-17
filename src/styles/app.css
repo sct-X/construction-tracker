@@ -1,0 +1,17 @@
+/* Shell styles for Stage 0. Screens add their own files from Stage 1. */
+.stage0 {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-8) var(--gutter);
+}
+.stage0__title {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+  margin-bottom: var(--space-4);
+}
+.stage0__lede {
+  max-width: var(--measure);
+  color: var(--text-secondary);
+}

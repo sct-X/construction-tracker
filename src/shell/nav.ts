@@ -1,0 +1,89 @@
+/**
+ * Navigation per role, from docs/UI_PLAN.md section 2. The lists are built
+ * from `api.canSee`, never by hiding links: a role only gets the items its
+ * screens allow. Test ids are `nav-<name>`.
+ */
+import type { ScreenKey, TrackerApi } from '../data/api';
+import type { Role } from '../domain/types';
+import { currentJobId } from './lastJob';
+
+export interface NavItem {
+  id: string;
+  label: string;
+  to: string;
+  screen?: ScreenKey;
+  /** Which route paths count as "here" for this item (prefix match on the pathname). */
+  match: string[];
+}
+
+/** Where each role opens the app. */
+export function homeFor(role: Role, api: TrackerApi): string {
+  switch (role) {
+    case 'admin':
+    case 'partner':
+      return '/monday';
+    case 'builder':
+      return '/waiting?owner=me';
+    case 'site': {
+      const id = currentJobId(api);
+      return id ? `/jobs/${id}` : '/jobs';
+    }
+  }
+}
+
+/** Phone bottom tabs, left to right, per UI_PLAN section 2. */
+export function phoneTabs(role: Role, api: TrackerApi): NavItem[] {
+  const jobId = currentJobId(api);
+  const jobPath = jobId ? `/jobs/${jobId}` : '/jobs';
+  const all: Record<Role, NavItem[]> = {
+    site: [
+      { id: 'today', label: 'Today', to: jobPath, screen: 'job', match: jobId ? [`/jobs/${jobId}`] : [] },
+      { id: 'jobs', label: 'Jobs', to: '/jobs', screen: 'jobs', match: ['/jobs'] },
+    ],
+    builder: [
+      { id: 'waiting', label: 'My items', to: '/waiting?owner=me', screen: 'waiting', match: ['/waiting', '/items'] },
+      { id: 'jobs', label: 'Jobs', to: '/jobs', screen: 'jobs', match: ['/jobs'] },
+      { id: 'upload', label: '+ Photos', to: `${jobPath}/upload`, screen: 'upload', match: [`${jobPath}/upload`, '/queue'] },
+      { id: 'monday', label: 'Monday', to: '/monday', screen: 'monday', match: ['/monday'] },
+    ],
+    partner: [
+      { id: 'monday', label: 'Monday', to: '/monday', screen: 'monday', match: ['/monday'] },
+      { id: 'waiting', label: 'Waiting on', to: '/waiting', screen: 'waiting', match: ['/waiting', '/items'] },
+      { id: 'jobs', label: 'Jobs', to: '/jobs', screen: 'jobs', match: ['/jobs'] },
+    ],
+    admin: [
+      { id: 'monday', label: 'Monday', to: '/monday', screen: 'monday', match: ['/monday'] },
+      { id: 'waiting', label: 'Waiting on', to: '/waiting', screen: 'waiting', match: ['/waiting', '/items'] },
+      { id: 'calls', label: 'Call list', to: '/calls', screen: 'calls', match: ['/calls'] },
+      { id: 'jobs', label: 'Jobs', to: '/jobs', screen: 'jobs', match: ['/jobs'] },
+    ],
+  };
+  return all[role].filter((t) => !t.screen || api.canSee(t.screen));
+}
+
+/** Desktop sidebar, main group. */
+export function sidebarMain(api: TrackerApi): NavItem[] {
+  const items: NavItem[] = [
+    { id: 'monday', label: 'Monday', to: '/monday', screen: 'monday', match: ['/monday'] },
+    { id: 'waiting', label: 'Waiting on', to: '/waiting', screen: 'waiting', match: ['/waiting', '/items'] },
+    { id: 'calls', label: 'Call list', to: '/calls', screen: 'calls', match: ['/calls'] },
+    { id: 'jobs', label: 'Jobs', to: '/jobs', screen: 'jobs', match: ['/jobs', '/steps'] },
+    { id: 'shipments', label: 'Shipments', to: '/shipments', screen: 'shipments', match: ['/shipments'] },
+    { id: 'activity', label: 'Activity', to: '/notifications', screen: 'activity', match: ['/notifications'] },
+  ];
+  return items.filter((t) => !t.screen || api.canSee(t.screen));
+}
+
+/** Desktop sidebar, setup group (admin; partners see Templates and Trades; builders Trades). */
+export function sidebarSetup(api: TrackerApi): NavItem[] {
+  const items: NavItem[] = [
+    { id: 'templates', label: 'Templates and new job', to: '/templates', screen: 'templates', match: ['/templates'] },
+    { id: 'trades', label: 'Trades', to: '/trades', screen: 'trades', match: ['/trades'] },
+    { id: 'people', label: 'People and roles', to: '/people', screen: 'people', match: ['/people'] },
+  ];
+  return items.filter((t) => !t.screen || api.canSee(t.screen));
+}
+
+export function isHere(item: NavItem, pathname: string): boolean {
+  return item.match.some((m) => pathname === m || pathname.startsWith(m + '/'));
+}

@@ -1,0 +1,9 @@
+.money {
+  white-space: nowrap;
+}
+.money__label {
+  color: var(--text-muted);
+}
+.money__value {
+  font-variant-numeric: tabular-nums;
+}

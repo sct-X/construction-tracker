@@ -1,0 +1,138 @@
+/* Jobs list: a table on the desktop, cards on the phone, the same words. */
+.jobs__group + .jobs__group {
+  margin-top: var(--space-8);
+}
+.jobs__group-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--concrete-200);
+  margin-bottom: var(--space-2);
+}
+.jobs__name {
+  font-weight: var(--weight-bold);
+  color: var(--text);
+  text-decoration: none;
+}
+.jobs__name:hover {
+  text-decoration: underline;
+}
+.jobs__path {
+  margin-left: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--timber-500);
+}
+.jobs__finish {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  color: var(--text);
+  white-space: nowrap;
+}
+.jobs__money {
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.jobs__muted {
+  color: var(--text-muted);
+}
+.jobs__empty {
+  padding: var(--space-8) 0;
+  font-size: var(--text-lg);
+}
+.jobs__empty-hint {
+  margin-top: var(--space-2);
+  font-size: var(--text-md);
+  color: var(--text-muted);
+}
+
+/* ---- table (desktop) ---- */
+.jobs__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.jobs__table th {
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  padding: var(--space-2) var(--space-3);
+}
+.jobs__table td {
+  padding: var(--space-3);
+  border-top: var(--hairline);
+  vertical-align: top;
+}
+.jobs__table th:first-child,
+.jobs__table td:first-child {
+  padding-left: 0;
+}
+.jobs__row {
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease);
+}
+.jobs__row:hover {
+  background: var(--concrete-100);
+}
+.jobs__cell-name {
+  width: 22%;
+}
+.jobs__cell-stage {
+  color: var(--text-secondary);
+}
+.jobs__finish-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+.jobs__cell-money {
+  white-space: nowrap;
+}
+
+/* ---- cards (phone) ---- */
+.jobs__cards {
+  display: flex;
+  flex-direction: column;
+}
+.jobs__cards li + li {
+  border-top: var(--hairline);
+}
+.jobs__card {
+  display: block;
+  min-height: var(--tap);
+  padding: var(--space-4) 0;
+  text-decoration: none;
+  color: var(--text);
+}
+.jobs__card:active {
+  background: var(--concrete-100);
+}
+.jobs__card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.jobs__card-top .jobs__name {
+  font-size: var(--text-lg);
+}
+.jobs__card-mid {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: 2px;
+  color: var(--text-secondary);
+}
+.jobs__card-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.jobs__card-fresh {
+  margin-top: var(--space-2);
+}

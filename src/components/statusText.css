@@ -1,0 +1,45 @@
+/* StatusText: words first, wash second. */
+.status {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: 1.4;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.status--late {
+  color: var(--late-ink);
+  background: var(--late-bg);
+}
+.status--amber {
+  color: var(--amber-ink);
+  background: var(--amber-bg);
+}
+.status--ok {
+  color: var(--ok-ink);
+  background: var(--ok-bg);
+}
+.status--muted {
+  color: var(--text-muted);
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+  font-weight: var(--weight-regular);
+}
+.status--plain,
+.status--plain.status {
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+.status--plain {
+  color: var(--text);
+  font-weight: var(--weight-regular);
+}
+.status__mark {
+  font-weight: var(--weight-bold);
+}

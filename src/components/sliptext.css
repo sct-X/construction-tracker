@@ -1,0 +1,21 @@
+.sliptext {
+  white-space: nowrap;
+}
+.sliptext--late {
+  color: var(--late-ink);
+}
+.sliptext--ok {
+  color: var(--ok-ink);
+}
+.sliptext--muted {
+  color: var(--text-muted);
+}
+.sliptext__note {
+  display: block;
+  white-space: normal;
+  font-family: var(--font-ui);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  letter-spacing: 0;
+}

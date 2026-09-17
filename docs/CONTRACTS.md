@@ -22,7 +22,7 @@ const forecast = useQuery((api) => api.getForecast(jobId), [jobId]);
 
 ## Session
 
-`Session = { personId, sideId, today, offline }` in `src/data/session.ts`, persisted in localStorage. URL params override it on load and on every hash change: `#/monday?as=alec&today=2026-09-17&offline=1&side=side-nd`. Playwright specs use those. The dev bar (`src/dev/DevBar.tsx`) has `data-testid`s `dev-person`, `dev-side`, `dev-today`, `dev-offline`, `dev-reset`, `dev-fire-reminders`.
+`Session = { personId, sideId, today, offline }` in `src/data/session.ts`, persisted in localStorage. URL params override it on load and on every hash change: `#/monday?as=alec&today=2026-09-17&offline=1&side=side-nd`. Playwright specs use those. The dev bar (`src/dev/DevBar.tsx`) has `data-testid`s `dev-person`, `dev-side`, `dev-today`, `dev-offline`, `dev-reset`, `dev-fire-reminders`. Reset reseeds the data, clears the photo queue, and returns today to 2026-09-17 and offline to false; the person stays.
 
 People: `dominic` (admin), `dom`, `norm` (partners), `raff` (builder), `alec` (site). Sides: `side-nd` "Norm and Dom", `side-norm` "Norm" (empty). Jobs: `park-rd`, `seaview`, `beatty`, `west-st`, `tollbar`, `lower-beach`, `john-st`; template `tpl-duplex`. Windows shipment `sh-park-windows`.
 
@@ -33,7 +33,7 @@ People: `dominic` (admin), `dom`, `norm` (partners), `raff` (builder), `alec` (s
 - `freshness: { lastConfirmed, daysUnconfirmed, amber, text }`. Amber after 7 days. Show `text`.
 - `currentStageId/Name`, `stages[]` (bands with planned and forecast start/end, `lateDays`, derived `status`), `steps{}` by id (`forecastStart/End`, `plannedStart/End`, `lateDays`, `driver`, `reason` sentence, `waitsFor`, `holdsUp`, `itemIds`), `items{}` by id (`neededBy`, `actBy`, `expected`, `expectedFromShipmentId`, `lateDays`, `isLate`, `lateText` like "14 days late", `actByPassed`, `daysSitting`).
 - `holdPoints[]` and `nextHoldPoint` (`required[]` with `uploadedCount`, `missingCategories`, `ok`).
-- `whyItMoved[]` (against last Monday when the snapshot holds step dates, else against plan) and `whyItMovedSincePlan[]`: entries `{ kind: 'cause'|'step'|'stage'|'finish', text, deltaDays, from, to, refId }`. Render `text` in order.
+- `whyItMoved[]` (against last Monday when the snapshot holds step dates, else against plan) and `whyItMovedSincePlan[]`: entries `{ kind: 'cause'|'step'|'stage'|'finish', baseline: 'plan'|'snapshot', text, deltaDays, from, to, refId }`. Render `text` in order. Finish lines name their baseline ("7 days later than planned (27 Nov)", "5 days later than Monday's snapshot (29 Nov)"); when a snapshot has no step dates the chain runs against the plan and ends with both finish lines.
 - Design jobs: `checklist` with `stages`, `currentStageName`, `outstanding`, `oldestDays`, `outstandingItems[]`; no finish, no steps.
 - `api.previewEtaChange(shipmentId, newEta)` returns `{ linkedItemIds, movedSteps[], finishBefore, finishAfter, deltaDays, slipDaysAfter, slipCostAfter, costDelta }` for the impact panel.
 - `api.getMondayRows()` returns `MondayRow[]` sorted builds by slip cost then design by oldest item, with `waitingOn` (top three) per build job.

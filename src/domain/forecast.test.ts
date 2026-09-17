@@ -1,10 +1,12 @@
 /**
- * Every number in SPEC.md "Mock data", plus the rules that have edges.
- * Today is Thu 17 Sep 2026 unless a test says otherwise.
+ * The rules, on a hand-built job. No seed, no data layer: this file must stay
+ * as pure as the calculator. SPEC's mock-data numbers are asserted in
+ * src/seed/seed.test.ts; the data layer in src/data/mockApi.test.ts.
  */
 import { describe, expect, it } from 'vitest';
 import type { ForecastBundle } from './forecast';
-import { forecastJob, holdPointCheck, holdPointRefusalText, previewEtaChange, topWaitingOn } from './forecast';
+import { forecastJob, holdPointCheck, holdPointRefusalText, previewEtaChange } from './forecast';
+import type { Item, Job, Photo, PhotoCategory, Stage, Step, StepLink } from './types';
 import {
   addCalendarWeeks,
   addWorkingDays,
@@ -17,31 +19,6 @@ import {
   workingDaysBetween,
 } from './dates';
 import { MONEY_FIELDS, slipCostFor, stripMoney } from './money';
-import { buildSeed, DEFAULT_TODAY, BEATTY, PARK_RD, SEAVIEW } from '../seed';
-import { createMockApi } from '../data/mockApi';
-import { MemoryStorage } from '../data/storage';
-
-const seed = buildSeed();
-
-function bundleFor(jobId: string, today = DEFAULT_TODAY, overrides: Partial<ForecastBundle> = {}): ForecastBundle {
-  const job = seed.jobs.find((j) => j.id === jobId)!;
-  return {
-    job,
-    stages: seed.stages.filter((s) => s.jobId === jobId),
-    steps: seed.steps.filter((s) => s.jobId === jobId),
-    links: seed.stepLinks.filter((l) => l.jobId === jobId),
-    requirements: seed.requirements.filter((r) => r.jobId === jobId),
-    items: seed.items.filter((i) => i.jobId === jobId),
-    shipments: seed.shipments.filter((s) => s.jobId === jobId),
-    snapshots: seed.snapshots.filter((s) => s.jobId === jobId),
-    photoCategories: seed.photoCategories.filter((c) => c.jobId === jobId),
-    photos: seed.photos.filter((p) => p.jobId === jobId),
-    activity: seed.activity.filter((a) => a.jobId === jobId),
-    people: seed.people,
-    today,
-    ...overrides,
-  };
-}
 
 describe('working days (rule 5)', () => {
   it('skips weekends', () => {
@@ -71,248 +48,163 @@ describe('working days (rule 5)', () => {
   });
 });
 
-describe('Park Rd', () => {
-  const f = forecastJob(bundleFor(PARK_RD));
 
-  it('finishes Fri 26 Feb 2027 with slip 0 against the 14 Sep snapshot', () => {
-    expect(f.forecastFinish).toBe('2027-02-26');
-    expect(f.snapshotDate).toBe('2026-09-14');
+/** A two-stage job: Frame (done) then Lock-up with "Install windows" (10d, Mon 2 Nov) and "External doors" (5d). */
+function tinyJob(opts: { eta?: string; today?: string; lastConfirmed?: string } = {}): ForecastBundle {
+  const side = 's';
+  const job: Job = { id: 'j', sideId: side, name: 'Tiny', kind: 'build', weeklyHoldingCost: 4500, lastConfirmed: opts.lastConfirmed ?? '2026-09-15', isTemplate: false, createdAt: '2026-06-01' };
+  const stages: Stage[] = [
+    { id: 'frame', sideId: side, jobId: 'j', name: 'Frame', order: 1, status: 'done' },
+    { id: 'lockup', sideId: side, jobId: 'j', name: 'Lock-up', order: 2, status: 'not_started' },
+  ];
+  const steps: Step[] = [
+    { id: 'frame-1', sideId: side, jobId: 'j', stageId: 'frame', name: 'Frame', order: 1, durationDays: 5, plannedStart: '2026-10-19', plannedEnd: '2026-10-23', status: 'done', isHoldPoint: false },
+    { id: 'frame-insp', sideId: side, jobId: 'j', stageId: 'frame', name: 'Frame inspection', order: 2, durationDays: 1, plannedStart: '2026-10-26', plannedEnd: '2026-10-26', status: 'not_started', isHoldPoint: true },
+    { id: 'windows', sideId: side, jobId: 'j', stageId: 'lockup', name: 'Install windows', order: 1, durationDays: 10, plannedStart: '2026-11-02', plannedEnd: '2026-11-13', status: 'not_started', isHoldPoint: false },
+    { id: 'doors', sideId: side, jobId: 'j', stageId: 'lockup', name: 'External doors', order: 2, durationDays: 5, plannedStart: '2026-11-16', plannedEnd: '2026-11-20', status: 'not_started', isHoldPoint: false },
+  ];
+  const links: StepLink[] = [
+    { id: 'l1', sideId: side, jobId: 'j', stepId: 'windows', waitsForStepId: 'frame-insp' },
+    { id: 'l2', sideId: side, jobId: 'j', stepId: 'doors', waitsForStepId: 'windows' },
+  ];
+  const items: Item[] = [
+    { id: 'win', sideId: side, jobId: 'j', type: 'material', title: 'Windows', ownerId: 'raff', stepId: 'windows', shipmentId: 'sh', leadTimeWeeks: 12, status: 'booked', createdAt: '2026-07-20' },
+    { id: 'sliders', sideId: side, jobId: 'j', type: 'material', title: 'Sliding doors', ownerId: 'raff', stepId: 'windows', shipmentId: 'sh', leadTimeWeeks: 12, status: 'booked', createdAt: '2026-07-20' },
+    { id: 'installer', sideId: side, jobId: 'j', type: 'trade', title: 'Book window installers', ownerId: 'raff', stepId: 'windows', leadTimeWeeks: 3, status: 'to_do', createdAt: '2026-08-10' },
+  ];
+  const photoCategories: PhotoCategory[] = [
+    { id: 'c-brace', sideId: side, jobId: 'j', stageId: 'frame', name: 'Frame bracing', requiredForHoldPoint: true, order: 1 },
+    { id: 'c-tie', sideId: side, jobId: 'j', stageId: 'frame', name: 'Tie-downs', requiredForHoldPoint: true, order: 2 },
+    { id: 'c-general', sideId: side, jobId: 'j', stageId: null, name: 'General', requiredForHoldPoint: false, order: 3 },
+  ];
+  const photos: Photo[] = [
+    { id: 'p1', sideId: side, jobId: 'j', stageId: 'frame', categoryId: 'c-brace', uploadedById: 'alec', uploadedAt: '2026-10-23T14:00', takenOn: '2026-10-23', dataUrl: 'data:image/svg+xml;utf8,<svg/>' },
+  ];
+  return {
+    job,
+    stages,
+    steps,
+    links,
+    requirements: [],
+    items,
+    shipments: [{ id: 'sh', sideId: side, jobId: 'j', name: 'Tiny windows', status: 'in_production', eta: opts.eta ?? '2026-10-26' }],
+    snapshots: [{ id: 'snap', sideId: side, jobId: 'j', date: '2026-09-14', forecastFinish: '2026-11-20' }],
+    photoCategories,
+    photos,
+    today: opts.today ?? '2026-09-17',
+  };
+}
+
+describe('rules 1 to 4 on a hand-built job', () => {
+  it('rule 2 and 3: an early shipment moves nothing; finish is the latest step end', () => {
+    const f = forecastJob(tinyJob());
+    expect(f.steps.windows.forecastStart).toBe('2026-11-02');
+    expect(f.steps.windows.reason).toBe('Starts 2 Nov as planned.');
+    expect(f.forecastFinish).toBe('2026-11-20');
     expect(f.slipDays).toBe(0);
     expect(f.slipCost).toBe(0);
-    expect(f.isLate).toBe(false);
-    expect(f.currentStageName).toBe('Lock-up');
-    expect(f.freshness.daysUnconfirmed).toBe(2);
-    expect(f.freshness.amber).toBe(false);
+    expect(f.whyItMoved).toEqual([]);
   });
 
-  it('Install windows is planned Mon 2 Nov and the windows act by Mon 10 Aug', () => {
-    const step = f.steps['pr-install-windows'];
-    expect(step.plannedStart).toBe('2026-11-02');
-    expect(step.forecastStart).toBe('2026-11-02');
-    const windows = f.items['it-pr-windows'];
-    expect(windows.neededBy).toBe('2026-11-02');
-    expect(windows.actBy).toBe('2026-08-10');
-    expect(windows.expected).toBe('2026-10-26');
-    expect(windows.expectedFromShipmentId).toBe('sh-park-windows');
-    expect(windows.isLate).toBe(false);
-  });
-
-  it('has the windows shipment in production with 3 linked items, 2 owned by Raff', () => {
-    const sh = seed.shipments.find((s) => s.id === 'sh-park-windows')!;
-    expect(sh.status).toBe('in_production');
-    expect(sh.eta).toBe('2026-10-26');
-    const linked = seed.items.filter((i) => i.shipmentId === sh.id);
-    expect(linked).toHaveLength(3);
-    expect(linked.filter((i) => i.ownerId === 'raff')).toHaveLength(2);
-  });
-
-  it('ETA 16 Nov moves Install windows to 16 Nov, finish to Fri 12 Mar 2027, slip +14, $9,000', () => {
-    const b = bundleFor(PARK_RD);
-    const moved = forecastJob({ ...b, shipments: b.shipments.map((s) => ({ ...s, eta: '2026-11-16' })) });
-    expect(moved.steps['pr-install-windows'].forecastStart).toBe('2026-11-16');
-    expect(moved.forecastFinish).toBe('2027-03-12');
-    expect(moved.slipDays).toBe(14);
-    expect(moved.slipCost).toBe(9000);
-    expect(moved.lateDays).toBe(14);
-    // rule 1: the windows still look late, needed-by does not chase the step
-    const windows = moved.items['it-pr-windows'];
-    expect(windows.neededBy).toBe('2026-11-02');
-    expect(windows.lateDays).toBe(14);
-    expect(windows.lateText).toBe('14 days late');
-    for (const id of ['it-pr-sliding-doors', 'it-pr-glazing-cert']) {
-      expect(moved.items[id].neededBy).toBe('2026-11-02');
-      expect(moved.items[id].isLate).toBe(true);
+  it('rule 1: needed-by ignores the item and its shipment-mates, so a late item still shows late', () => {
+    const f = forecastJob(tinyJob({ eta: '2026-11-16' }));
+    expect(f.steps.windows.forecastStart).toBe('2026-11-16');
+    expect(f.steps.doors.forecastStart).toBe('2026-11-30');
+    for (const id of ['win', 'sliders']) {
+      expect(f.items[id].neededBy).toBe('2026-11-02');
+      expect(f.items[id].actBy).toBe('2026-08-10');
+      expect(f.items[id].lateDays).toBe(14);
+      expect(f.items[id].lateText).toBe('14 days late');
     }
-    expect(moved.steps['pr-install-windows'].reason).toBe(
-      'Starts 16 Nov, not 2 Nov, because the Park Rd windows shipment is expected 16 Nov.',
-    );
+    // the installer booking is needed when the step can actually start
+    expect(f.items.installer.neededBy).toBe('2026-11-16');
+    expect(f.items.installer.actBy).toBe('2026-10-26');
   });
 
-  it('previewEtaChange reports the same numbers without mutating anything', () => {
-    const b = bundleFor(PARK_RD);
+  it('rule 4: slip is calendar days against last Monday and cost rounds to $10', () => {
+    const f = forecastJob(tinyJob({ eta: '2026-11-16' }));
+    expect(f.forecastFinish).toBe('2026-12-04');
+    expect(f.slipDays).toBe(14);
+    expect(f.slipCost).toBe(9000);
+    expect(f.whyItMoved.map((w) => w.text)).toEqual([
+      'Tiny windows expected 16 Nov, needed 2 Nov',
+      'Install windows starts 16 Nov, not 2 Nov (+14 days)',
+      'Lock-up ends 4 Dec, not 20 Nov (+14 days)',
+      'Finish 4 Dec, 14 days later than planned (20 Nov)',
+      "Finish 4 Dec, 14 days later than Monday's snapshot (20 Nov)",
+    ]);
+    expect(slipCostFor(5, 2000)).toBe(1430);
+    expect(slipCostFor(0, 3800)).toBe(0);
+    expect(slipCostFor(5, undefined)).toBeUndefined();
+  });
+
+  it('previewEtaChange gives the delta without mutating the bundle', () => {
+    const b = tinyJob();
     const before = JSON.stringify(b);
-    const p = previewEtaChange(b, 'sh-park-windows', '2026-11-16');
+    const p = previewEtaChange(b, 'sh', '2026-11-16');
     expect(JSON.stringify(b)).toBe(before);
-    expect(p.linkedItemIds).toHaveLength(3);
-    expect(p.finishBefore).toBe('2027-02-26');
-    expect(p.finishAfter).toBe('2027-03-12');
+    expect(p.linkedItemIds).toEqual(['win', 'sliders']);
+    expect(p.finishBefore).toBe('2026-11-20');
+    expect(p.finishAfter).toBe('2026-12-04');
     expect(p.deltaDays).toBe(14);
     expect(p.costDelta).toBe(9000);
-    expect(p.slipDaysAfter).toBe(14);
-    expect(p.slipCostAfter).toBe(9000);
-    const iw = p.movedSteps.find((s) => s.stepId === 'pr-install-windows')!;
-    expect(iw.from).toBe('2026-11-02');
-    expect(iw.to).toBe('2026-11-16');
+    expect(p.movedSteps.map((s) => s.stepId)).toEqual(['windows', 'doors']);
   });
 
-  it('explains why it moved: cause, step, stages, finish', () => {
-    const b = bundleFor(PARK_RD);
-    const activity = [
-      ...b.activity!,
-      {
-        id: 'act-test',
-        sideId: 'side-nd',
-        kind: 'eta_changed' as const,
-        at: '2026-09-15T15:10',
-        personId: 'dominic',
-        jobId: PARK_RD,
-        shipmentId: 'sh-park-windows',
-        from: '2026-10-26',
-        to: '2026-11-16',
-        text: 'Park Rd windows ETA changed 26 Oct to 16 Nov',
-      },
-    ];
-    const moved = forecastJob({ ...b, activity, shipments: b.shipments.map((s) => ({ ...s, eta: '2026-11-16' })) });
-    const kinds = moved.whyItMoved.map((w) => w.kind);
-    expect(kinds[0]).toBe('cause');
-    expect(kinds[1]).toBe('step');
-    expect(kinds[kinds.length - 1]).toBe('finish');
-    expect(moved.whyItMoved[0].text).toBe('Park Rd windows ETA changed 26 Oct to 16 Nov (Dominic, Tue 3:10pm)');
-    expect(moved.whyItMoved[1].text).toBe('Install windows starts 16 Nov, not 2 Nov (+14 days)');
-    const stageLines = moved.whyItMoved.filter((w) => w.kind === 'stage').map((w) => w.text);
-    expect(stageLines).toContain('Lock-up ends 4 Dec, not 20 Nov (+14 days)');
-    expect(stageLines).toContain('Handover ends 12 Mar, not 26 Feb (+14 days)');
-    expect(moved.whyItMoved[moved.whyItMoved.length - 1].text).toBe('Finish 12 Mar, not 26 Feb (+14 days)');
-  });
-
-  it('Book plasterer acts by Fri 18 Sep and the tile choice is overdue for Dom', () => {
-    expect(f.items['it-pr-plasterer'].neededBy).toBe('2026-12-11');
-    expect(f.items['it-pr-plasterer'].actBy).toBe('2026-09-18');
-    const tile = f.items['it-pr-tile-choice'];
-    expect(tile.neededBy).toBe('2026-09-14');
-    expect(tile.isLate).toBe(true);
-    expect(tile.lateText).toBe('3 days late');
-  });
-
-  it('has about 30 items across every item type', () => {
-    const items = seed.items.filter((i) => i.jobId === PARK_RD);
-    expect(items.length).toBeGreaterThanOrEqual(30);
-    const types = new Set(items.map((i) => i.type));
-    for (const t of [
-      'trade',
-      'material',
-      'decision',
-      'consultant_report',
-      'council_request',
-      'inspection',
-      'defect',
-      'condition_of_consent',
-      'manual_reminder',
-    ]) {
-      expect(types.has(t as never)).toBe(true);
-    }
-  });
-
-  it('topWaitingOn puts late items first', () => {
-    const rows = topWaitingOn(f, seed.items.filter((i) => i.jobId === PARK_RD));
-    expect(rows).toHaveLength(3);
-    expect(rows[0].itemId).toBe('it-pr-tile-choice');
-    expect(rows[0].isLate).toBe(true);
+  it('a delay across the shutdown skips it', () => {
+    const b = tinyJob({ eta: '2026-12-14' });
+    const f = forecastJob(b);
+    expect(f.steps.windows.forecastStart).toBe('2026-12-14');
+    expect(f.steps.windows.forecastEnd).toBe('2027-01-15'); // 5 days before, 5 after the shutdown
   });
 });
 
-describe('Seaview St', () => {
-  const f = forecastJob(bundleFor(SEAVIEW));
-
-  it('finishes Fri 29 Oct 2027 with slip 0 and was confirmed 1 day ago', () => {
-    // SPEC says 30 Oct 2027, which is a Saturday. Steps end on working days, so the
-    // nearest the calculator can land is Fri 29 Oct 2027. Logged in PROGRESS.md.
-    expect(f.forecastFinish).toBe('2027-10-29');
-    expect(f.slipDays).toBe(0);
-    expect(f.slipCost).toBe(0);
-    expect(f.freshness.daysUnconfirmed).toBe(1);
-    expect(f.freshness.amber).toBe(false);
-    expect(f.currentStageName).toBe('Slab');
-  });
-
-  it('Book concrete pump acts by Fri 18 Sep', () => {
-    const pump = f.items['it-sv-pump'];
-    expect(pump.neededBy).toBe('2026-10-02');
-    expect(pump.actBy).toBe('2026-09-18');
-  });
-
-  it('slab inspection is a hold point on Mon 28 Sep with 1 of 3 required categories filled', () => {
-    const step = f.steps['sv-slab-insp'];
-    expect(step.isHoldPoint).toBe(true);
-    expect(step.forecastStart).toBe('2026-09-28');
-    const hp = f.nextHoldPoint!;
-    expect(hp.stepId).toBe('sv-slab-insp');
-    expect(hp.required).toHaveLength(3);
-    expect(hp.required.filter((r) => r.uploadedCount > 0)).toHaveLength(1);
-    expect(hp.required.find((r) => r.name === 'Steel reinforcement in place')!.uploadedCount).toBe(4);
-    expect(hp.missingCategories).toEqual(['Plumbing under slab', 'Membrane and termite barrier']);
-    expect(hp.ok).toBe(false);
-  });
-
-  it('rule 6: the refusal names the empty categories, and passes once each has a photo', () => {
-    const step = seed.steps.find((s) => s.id === 'sv-slab-insp')!;
-    const cats = seed.photoCategories.filter((c) => c.jobId === SEAVIEW);
-    const check = holdPointCheck(step, cats, seed.photos);
-    expect(holdPointRefusalText(check)).toBe(
-      "Can't tick this off yet. The certifier needs before-cover photos and 2 categories are empty: Plumbing under slab; Membrane and termite barrier.",
-    );
-    const extra = ['sv-pc-slab-plumbing', 'sv-pc-slab-membrane'].map((categoryId, i) => ({
-      ...seed.photos[0],
-      id: `test-${i}`,
-      categoryId,
-      jobId: SEAVIEW,
-      stageId: 'sv-st-slab',
-    }));
-    const ok = holdPointCheck(step, cats, [...seed.photos, ...extra]);
+describe('rule 6: hold points', () => {
+  it('refuses while a required category is empty and names it', () => {
+    const b = tinyJob();
+    const step = b.steps.find((s) => s.id === 'frame-insp')!;
+    const check = holdPointCheck(step, b.photoCategories!, b.photos!);
+    expect(check.ok).toBe(false);
+    expect(check.required.map((r) => r.uploadedCount)).toEqual([1, 0]);
+    expect(check.missingCategories).toEqual(['Tie-downs']);
+    expect(holdPointRefusalText(check)).toBe("Can't tick this off yet. The certifier needs before-cover photos and 1 category is empty: Tie-downs.");
+    const ok = holdPointCheck(step, b.photoCategories!, [...b.photos!, { ...b.photos![0], id: 'p2', categoryId: 'c-tie' }]);
     expect(ok.ok).toBe(true);
-    expect(ok.missingCategories).toEqual([]);
+    expect(forecastJob(b).nextHoldPoint!.stepId).toBe('frame-insp');
   });
 });
 
-describe('Beatty St', () => {
-  const f = forecastJob(bundleFor(BEATTY));
-
-  it('finishes Fri 4 Dec 2026, slip +5 days, $1,430, tiler expected 5 Oct, amber after 9 days', () => {
-    expect(f.forecastFinish).toBe('2026-12-04');
-    expect(f.plannedFinish).toBe('2026-11-27');
-    expect(f.slipDays).toBe(5);
-    expect(f.slipCost).toBe(1430);
-    const tiler = f.items['it-bt-tiler'];
-    expect(tiler.expected).toBe('2026-10-05');
-    expect(tiler.neededBy).toBe('2026-09-28');
-    expect(tiler.isLate).toBe(true);
-    expect(tiler.lateText).toBe('7 days late');
-    expect(f.freshness.daysUnconfirmed).toBe(9);
-    expect(f.freshness.amber).toBe(true);
-    expect(f.freshness.text).toBe('Last confirmed 9 days ago');
-  });
-
-  it('rule 7: amber only after 7 days', () => {
-    expect(forecastJob(bundleFor(BEATTY, '2026-09-15')).freshness.amber).toBe(false); // 7 days
-    expect(forecastJob(bundleFor(BEATTY, '2026-09-16')).freshness.amber).toBe(true); // 8 days
-  });
-
-  it('why it moved names the tiler (against the plan: the seeded snapshot has no step dates)', () => {
-    expect(f.whyItMoved[0].kind).toBe('cause');
-    expect(f.whyItMoved[0].text).toBe('Book tiler expected 5 Oct, needed 28 Sep');
-    expect(f.whyItMoved[1].text).toBe('Tiling, whole stage starts 5 Oct, not 28 Sep (+7 days)');
-    expect(f.whyItMoved[f.whyItMoved.length - 1].text).toBe('Finish 4 Dec, not 27 Nov (+7 days)');
+describe('rule 7: freshness', () => {
+  it('goes amber after 7 days unconfirmed', () => {
+    expect(forecastJob(tinyJob({ lastConfirmed: '2026-09-10' })).freshness).toMatchObject({ daysUnconfirmed: 7, amber: false, text: 'Last confirmed 7 days ago' });
+    expect(forecastJob(tinyJob({ lastConfirmed: '2026-09-09' })).freshness).toMatchObject({ daysUnconfirmed: 8, amber: true });
+    expect(forecastJob(tinyJob({ lastConfirmed: '2026-09-17' })).freshness.text).toBe('Last confirmed today');
   });
 });
 
-describe('Design jobs (rule 9)', () => {
-  const expected: Record<string, { stage: string; outstanding: number; oldest: number | null }> = {
-    'west-st': { stage: 'With council', outstanding: 2, oldest: 23 },
-    tollbar: { stage: 'With council', outstanding: 1, oldest: 8 },
-    'lower-beach': { stage: 'Design', outstanding: 0, oldest: null },
-    'john-st': { stage: 'Design', outstanding: 1, oldest: 4 },
-  };
-  for (const [jobId, exp] of Object.entries(expected)) {
-    it(`${jobId}: ${exp.stage}, ${exp.outstanding} outstanding, oldest ${exp.oldest ?? 'none'}`, () => {
-      const f = forecastJob(bundleFor(jobId));
-      expect(f.kind).toBe('design');
-      expect(f.forecastFinish).toBeUndefined();
-      expect(Object.keys(f.steps)).toHaveLength(0);
-      expect(f.checklist!.currentStageName).toBe(exp.stage);
-      expect(f.checklist!.outstanding).toBe(exp.outstanding);
-      expect(f.checklist!.oldestDays).toBe(exp.oldest);
+describe('rule 9: design jobs', () => {
+  it('has no steps or finish, and counts outstanding items by age', () => {
+    const b = tinyJob();
+    const f = forecastJob({
+      ...b,
+      job: { ...b.job, kind: 'design', path: 'DA' },
+      stages: [
+        { id: 'd1', sideId: 's', jobId: 'j', name: 'Design', order: 1, status: 'done' },
+        { id: 'd2', sideId: 's', jobId: 'j', name: 'With council', order: 2, status: 'in_progress' },
+      ],
+      steps: [],
+      links: [],
+      items: [
+        { id: 'a', sideId: 's', jobId: 'j', type: 'consultant_report', title: 'Traffic report', status: 'to_do', createdAt: '2026-08-25' },
+        { id: 'b', sideId: 's', jobId: 'j', type: 'council_request', title: 'RFI', status: 'to_do', createdAt: '2026-09-03' },
+        { id: 'c', sideId: 's', jobId: 'j', type: 'council_request', title: 'Lodge DA', status: 'done', createdAt: '2026-07-01' },
+      ],
     });
-  }
+    expect(f.kind).toBe('design');
+    expect(f.forecastFinish).toBeUndefined();
+    expect(f.checklist).toMatchObject({ currentStageName: 'With council', outstanding: 2, oldestDays: 23 });
+    expect(f.checklist!.outstandingItems[0].title).toBe('Traffic report');
+  });
 });
 
 describe('money (rule 4 and the site role)', () => {
@@ -330,107 +222,5 @@ describe('money (rule 4 and the site role)', () => {
     expect(MONEY_FIELDS).toContain('slipCost');
   });
 
-  it('the site role never receives a money field from the API', () => {
-    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'alec', today: DEFAULT_TODAY } });
-    const job = api.getJob(PARK_RD)!;
-    expect('weeklyHoldingCost' in job).toBe(false);
-    const f = api.getForecast(PARK_RD)!;
-    expect('slipCost' in f).toBe(false);
-    expect(f.slipDays).toBe(0);
-    const preview = api.previewEtaChange('sh-park-windows', '2026-11-16');
-    expect('costDelta' in preview).toBe(false);
-    expect(preview.deltaDays).toBe(14);
-    const everything = JSON.stringify([api.listJobs(), api.getMondayRows(), api.listItems(), api.listActivity(), api.listNotifications()]);
-    for (const field of MONEY_FIELDS) expect(everything).not.toContain(`"${field}"`);
-    expect(everything).not.toContain('$');
-    // Alec sees builds only.
-    expect(api.listJobs().every((j) => j.kind === 'build')).toBe(true);
-  });
-
-  it('a partner receives money fields', () => {
-    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dom', today: DEFAULT_TODAY } });
-    expect(api.getJob(PARK_RD)!.weeklyHoldingCost).toBe(4500);
-    const rows = api.getMondayRows();
-    expect(rows[0].jobId).toBe(BEATTY); // sorted by slip cost, largest first
-    expect(rows.find((r) => r.jobId === PARK_RD)!.slipCost).toBe(0);
-  });
 });
 
-describe('mock API', () => {
-  it('setting the ETA moves the finish and logs who did it', () => {
-    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
-    api.setShipmentEta('sh-park-windows', '2026-11-16');
-    const f = api.getForecast(PARK_RD)!;
-    expect(f.forecastFinish).toBe('2027-03-12');
-    expect(f.slipDays).toBe(14);
-    expect(f.slipCost).toBe(9000);
-    const entry = api.listActivity({ jobId: PARK_RD })[0];
-    expect(entry.kind).toBe('eta_changed');
-    expect(entry.from).toBe('2026-10-26');
-    expect(entry.to).toBe('2026-11-16');
-    // Raff owns 2 linked items, so he is told.
-    const raffNotes = api.listNotifications({ personId: 'raff' }).filter((n) => n.kind === 'eta_moved');
-    expect(raffNotes).toHaveLength(1);
-    expect(raffNotes[0].text).toBe('Park Rd windows now expected 16 Nov. 2 of your items moved.');
-  });
-
-  it('refuses a hold point with empty categories and names them (rule 6)', () => {
-    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'raff', today: DEFAULT_TODAY } });
-    const result = api.setStepStatus('sv-slab-insp', 'done');
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.missingCategories).toEqual(['Plumbing under slab', 'Membrane and termite barrier']);
-    for (const categoryId of ['sv-pc-slab-plumbing', 'sv-pc-slab-membrane']) {
-      api.addPhoto({ jobId: SEAVIEW, stageId: 'sv-st-slab', categoryId, dataUrl: 'data:image/svg+xml;utf8,<svg/>', takenOn: DEFAULT_TODAY });
-    }
-    expect(api.setStepStatus('sv-slab-insp', 'done').ok).toBe(true);
-    expect(api.getStep('sv-slab-insp')!.status).toBe('done');
-  });
-
-  it('confirming a job resets freshness, and the Monday snapshot saves today\'s forecast', () => {
-    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
-    api.confirmJob(BEATTY);
-    expect(api.getForecast(BEATTY)!.freshness.daysUnconfirmed).toBe(0);
-    api.setSession({ today: '2026-09-21' });
-    const saved = api.saveMondaySnapshot();
-    expect(saved.find((s) => s.jobId === BEATTY)!.forecastFinish).toBe('2026-12-04');
-    expect(api.getForecast(BEATTY)!.slipDays).toBe(0);
-  });
-
-  it('copies a template into a dated job', () => {
-    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
-    const job = api.copyTemplate('tpl-duplex', { name: '1 Test St', startDate: '2026-10-05', weeklyHoldingCost: 1000 });
-    const steps = api.listSteps(job.id);
-    expect(steps.length).toBe(api.listSteps('tpl-duplex').length);
-    expect(steps.every((s) => !!s.plannedStart)).toBe(true);
-    expect(api.listPhotoCategories(job.id).length).toBeGreaterThan(0);
-    expect(api.getForecast(job.id)!.forecastFinish).toBeDefined();
-    expect(api.getForecast(job.id)!.slipDays).toBeUndefined(); // no Monday yet
-  });
-
-  it('reset restores the seed', () => {
-    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
-    api.updateItemStatus('it-pr-tile-choice', 'done');
-    expect(api.getItem('it-pr-tile-choice')!.status).toBe('done');
-    api.reset();
-    expect(api.getItem('it-pr-tile-choice')!.status).toBe('to_do');
-  });
-});
-
-describe('photo queue', () => {
-  it('holds photos while offline, sends them once when signal returns, and they then count for hold points', async () => {
-    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'alec', today: DEFAULT_TODAY, offline: true } });
-    for (const categoryId of ['sv-pc-slab-plumbing', 'sv-pc-slab-membrane']) {
-      await api.queuePhoto({ jobId: SEAVIEW, stageId: 'sv-st-slab', categoryId, dataUrl: 'data:image/svg+xml;utf8,<svg/>' });
-    }
-    expect(await api.listQueuedPhotos()).toHaveLength(2);
-    expect(await api.flushPhotoQueue()).toBe(0); // no signal
-    expect(api.listPhotos(SEAVIEW, { categoryId: 'sv-pc-slab-plumbing' })).toHaveLength(0);
-    api.setSession({ offline: false });
-    expect(await api.flushPhotoQueue()).toBe(2);
-    expect(await api.listQueuedPhotos()).toHaveLength(0);
-    expect(await api.flushPhotoQueue()).toBe(0); // nothing lands twice
-    expect(api.listPhotos(SEAVIEW, { categoryId: 'sv-pc-slab-plumbing' })).toHaveLength(1);
-    api.setSession({ personId: 'raff' });
-    expect(api.setStepStatus('sv-slab-insp', 'done').ok).toBe(true);
-  });
-});

@@ -31,7 +31,7 @@ There is no login. The dark strip at the top sets who you are and what day it is
 - **Today is**: default Thu 17 Sep 2026. Every date, slip and reminder is relative to this.
 - **Offline**: turns the signal off. Photos and notes queue; date changes need signal.
 - **Fire reminders due today**: stands in for the server's scheduler and raises notifications for the chosen day.
-- **Reset data**: wipes local storage and the photo queue and reseeds.
+- **Reset**: wipes local storage and the photo queue, reseeds, and puts today back to 17 Sep 2026 with offline off. You stay who you were.
 
 The same controls work from the URL: `#/monday?as=alec&today=2026-09-17&offline=1`.
 

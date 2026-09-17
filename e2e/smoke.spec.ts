@@ -28,7 +28,13 @@ test.describe('Stage 0 smoke', () => {
     await expect(page.getByTestId('stage0-home')).toContainText('offline');
     await page.getByTestId('dev-fire-reminders').click();
     await expect(page.getByTestId('dev-fire-result')).toContainText('raised');
+    await page.getByTestId('dev-today').fill('2026-10-05');
+    await expect(page.getByTestId('dev-today-label')).toHaveText('Mon 5 Oct 2026');
     await page.getByTestId('dev-reset').click();
     await expect(page.getByTestId('dev-fire-result')).toHaveCount(0);
+    // Reset returns today and offline to defaults and keeps the person.
+    await expect(page.getByTestId('dev-today')).toHaveValue('2026-09-17');
+    await expect(page.getByTestId('dev-offline')).not.toBeChecked();
+    await expect(page.getByTestId('dev-person')).toHaveValue('dominic');
   });
 });

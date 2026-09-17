@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useApi, useQuery, useSession } from '../data/context';
 import { ROLE_LABELS } from '../domain/types';
 import { formatLong } from '../domain/dates';
+import { DEFAULT_TODAY } from '../data/session';
 import './devbar.css';
 
 export function DevBar() {
@@ -97,10 +98,11 @@ export function DevBar() {
         className="devbar__button devbar__button--quiet"
         onClick={() => {
           api.reset();
+          session.setSession({ today: DEFAULT_TODAY, offline: false });
           setLastFired(null);
         }}
       >
-        Reset data
+        Reset
       </button>
     </div>
   );

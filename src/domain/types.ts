@@ -280,6 +280,7 @@ export type NotificationKind =
   | 'overdue'
   | 'eta_moved'
   | 'hold_point_week_away'
+  | 'job_unconfirmed'
   | 'upload_failed'
   | 'test_buzz';
 

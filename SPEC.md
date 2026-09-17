@@ -31,7 +31,7 @@ Accepted additions from the UI Plan's model gaps: item.job (required), job.plann
 2. Step forecast start = latest of planned start, the finish of every step it waits for, and the expected date of every item it needs.
 3. Job forecast finish = latest forecast end of any step. Planned dates never change; late means forecast vs planned.
 4. Slip = today's forecast finish minus last Monday's snapshot, in calendar days. Slip cost = slip / 7 x weekly holding cost, rounded to the nearest $10.
-5. Working days are Mon to Fri, minus a shutdown list (21 Dec 2026 to 8 Jan 2027). Lead times are calendar weeks.
+5. Working days are Mon to Fri, minus a shutdown list (21 Dec 2026 to 8 Jan 2027). Lead times are calendar weeks. Public holidays other than the shutdown are out of scope for the prototype.
 6. A hold-point step can't be marked done until every required photo category has at least one uploaded (not queued) photo. The refusal names the empty categories.
 7. A job goes amber after 7 days unconfirmed.
 8. Templates are jobs with is_template and no dates; copying one copies stages, steps, links, requirements and photo categories.
@@ -40,7 +40,7 @@ Accepted additions from the UI Plan's model gaps: item.job (required), job.plann
 ## Mock data (the unit tests assert these exact numbers)
 
 - Park Rd, full program, $4,500/wk. "Install windows" planned start Mon 2 Nov 2026, windows lead time 12 weeks, so act-by Mon 10 Aug 2026. Windows shipment seeded at ETA 26 Oct 2026, in production, 3 linked items, 2 owned by Raff. Forecast finish Fri 26 Feb 2027, equal to the Mon 14 Sep 2026 snapshot. Changing the ETA to 16 Nov 2026 must give: Install windows starts 16 Nov, finish Fri 12 Mar 2027, slip +14 days, $9,000. Tune step durations in the mock data until this holds. Never tune the calculator to fit.
-- Seaview St, stage level, $3,800/wk, finish 30 Oct 2027, slip 0, confirmed 1 day ago, "Book concrete pump" act-by Fri 18 Sep 2026, slab inspection hold point 28 Sep 2026 with 1 of 3 required photo categories filled.
+- Seaview St, stage level, $3,800/wk, finish Fri 29 Oct 2027 (SPEC's 30 Oct is a Saturday; see PROGRESS), slip 0, confirmed 1 day ago, "Book concrete pump" act-by Fri 18 Sep 2026, slab inspection hold point 28 Sep 2026 with 1 of 3 required photo categories filled.
 - Beatty St, stage level, $2,000/wk, finish 4 Dec 2026, slip +5 days, $1,430, tiler expected 5 Oct 2026, last confirmed 9 days ago (amber).
 - Design: West St (with council, 2 outstanding, oldest 23 days), Tollbar Ave (with council, 1, 8 days), Lower Beach St (design, 0), John St (design, 1, 4 days).
 - About 30 items on Park Rd across every item type, a duplex template, trades with phone numbers, a week of daily notes, some placeholder photos (generated SVG/canvas, no stock imagery).

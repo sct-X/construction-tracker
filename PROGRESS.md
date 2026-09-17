@@ -2,7 +2,7 @@
 
 ## Stage checklist
 
-- [x] Stage 0: types, seed data, calculator, unit tests, data layer, dev bar. Built, awaiting review. Reviewer sign-off: pending
+- [x] Stage 0: types, seed data, calculator, unit tests, data layer, dev bar. Reviewer sign-off: done
 - [ ] Stage 1: shell, per-role nav, jobs list, Monday screen, Why it moved. Reviewer sign-off: pending
 - [ ] Stage 2: shipments + ETA impact preview, Gantt, look-ahead, step detail, build job overview. Reviewer sign-off: pending
 - [ ] Stage 3: photo upload + IndexedDB queue, upload queue, gallery, Alec's Today. Reviewer sign-off: pending
@@ -13,7 +13,7 @@
 
 ## Decisions
 
-- 2026-09-18 Orchestrator: repo created private first; flipped to public only if Pages refuses to enable on the free plan (data is invented).
+- 2026-09-18 Orchestrator: repo created private, then flipped to public because the free plan refuses Pages on private repos (data is invented).
 - 2026-09-18 Orchestrator: phone breakpoint 768px; tests drive the dev bar via URL params `as` and `today`.
 - 2026-09-18 Stage 0: libraries: react-router-dom 6 (HashRouter), vitest 2, @playwright/test 1.63, no UI kit, no icon library, no web fonts (system stack for UI, a condensed system face for hero numbers so the app works offline).
 - 2026-09-18 Stage 0: the API (`src/data/api.ts`) is synchronous over a local copy of the data and returns copies; `subscribe` fires on every change. A server adapter keeps the copy warm and refreshes quietly, which is the UI Plan's loading rule. Photo queue methods are async (IndexedDB, hand-rolled, memory fallback in tests).
@@ -32,15 +32,19 @@
 - 2026-09-18 Stage 0: `fireRemindersDueToday` raises act-by-today (owner, status to do), overdue (owner), and hold-point-a-week-away-with-photos-missing (builders and admins on the side), deduplicated per person, kind, item/step and day. ETA changes raise "X now expected D. N of your items moved." to each owner of a linked open item.
 - 2026-09-18 Stage 0: Raff's call-list cut (act-by within 14 days or past, status to do or booked) is 9 items across 3 jobs in the seed, matching flow c.
 - 2026-09-18 Stage 0: service worker parses the built index.html for `/assets/` URLs at install; navigation is network-first with the cached shell as fallback, hashed assets cache-first; registered only in production builds.
+- 2026-09-18 Orchestrator (locked, A): Beatty keeps SPEC's numbers (finish Fri 4 Dec 2026, slip +5, $1,430); its 14 Sep snapshot stays a stored value of 29 Nov. "Why it moved" on Beatty labels both figures: "Finish 4 Dec, 7 days later than planned (27 Nov)" and "Finish 4 Dec, 5 days later than Monday's snapshot (29 Nov)"; finish lines always name their baseline, never a bare "+7 days". The Beatty "unconfirmed 7 days" notification now has its own kind, `job_unconfirmed`.
+- 2026-09-18 Orchestrator (locked, B): Seaview's forecast finish is Fri 29 Oct 2027 (30 Oct is a Saturday); `job.plannedFinish` is 2027-10-29 too, SPEC.md's mock-data line says so, and the test asserts 2027-10-29.
+- 2026-09-18 Orchestrator (locked, C): flow c's "Pour ground floor slab" is Fri 2 Oct in the seed (28 Sep is the slab inspection); Stage 4 renders the date from data. No seed change.
+- 2026-09-18 Orchestrator (locked, D): SPEC.md rule 5 now says public holidays other than the shutdown are out of scope for the prototype.
+- 2026-09-18 Stage 0 fixes: tests split for purity: `src/domain/forecast.test.ts` tests the rules on a hand-built job and imports nothing outside `src/domain`; SPEC's mock-data numbers live in `src/seed/seed.test.ts` (plus holding costs, the 12-week windows lead, phones on every trade, a week of Park Rd notes, data-URL photos, the empty Norm side); the data layer and photo queue are in `src/data/mockApi.test.ts`.
+- 2026-09-18 Stage 0 fixes: the service worker caches a navigation response as the shell only when `res.ok`.
+- 2026-09-18 Stage 0 fixes: dev bar "Reset" reseeds the data, clears the photo queue, and sets today back to 2026-09-17 and offline to false, keeping the current person. The smoke spec covers it.
 - 2026-09-18 Stage 0: Playwright "phone" project is Desktop Chrome at 390x844 with `isMobile` and touch (no WebKit download); CI does not run Playwright.
 
 ## Open problems
 
-- SPEC says Seaview St finishes 30 Oct 2027, which is a Saturday. Steps end on working days, so the calculator lands on Fri 29 Oct 2027 and the unit test asserts that. Either accept 29 Oct in the spec and flow text, or say if a Saturday finish is really intended (that would need a calculator change, which Stage 0 did not make).
-- SPEC's Beatty numbers (finish Fri 4 Dec, slip +5 days) force the 14 Sep snapshot to Sun 29 Nov. It is seeded that way; a snapshot the app saves always lands on a weekday. Beatty's "why it moved" therefore explains +7 days against the plan (27 Nov) while the slip figure is +5 against the snapshot.
-- Flow c reads "Book concrete pump. Act by Fri 18 Sep. For: Pour ground floor slab, 28 Sep". With lead times in whole calendar weeks, a Monday needed-by cannot give a Friday act-by, so the pour is planned Fri 2 Oct and 28 Sep is the slab inspection. Stage 4 should word the row from the data.
-- Public holidays (Australia Day 26 Jan 2027, Easter 2027) are not working-day exceptions; SPEC's calendar is weekdays minus the shutdown only.
+(none: the four Stage 0 questions were decided by the orchestrator on 2026-09-18, see Decisions A to D)
 
 ## Reviewer sign-offs
 
-(none yet)
+- Stage 0: signed off by reviewer, 2026-09-18, tests 49/49, e2e 6/6

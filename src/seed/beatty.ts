@@ -79,5 +79,5 @@ export const beattyActivity: ActivityEntry[] = [
 ];
 
 export const beattyNotifications: Notification[] = [
-  { id: 'nt-bt-1', sideId: SIDE_ND, personId: P.dominic, kind: 'hold_point_week_away', at: '2026-09-15T07:00', text: '26a Beatty St has not been confirmed for 7 days', read: false, jobId: J },
+  { id: 'nt-bt-1', sideId: SIDE_ND, personId: P.dominic, kind: 'job_unconfirmed', at: '2026-09-15T07:00', text: '26a Beatty St has not been confirmed for 7 days', read: false, jobId: J },
 ];

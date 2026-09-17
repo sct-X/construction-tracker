@@ -155,6 +155,8 @@ export interface HoldPointCheck {
 
 export interface WhyEntry {
   kind: 'cause' | 'step' | 'stage' | 'finish';
+  /** What the movement is measured against. Finish lines always say it in words. */
+  baseline: 'plan' | 'snapshot';
   text: string;
   deltaDays: number;
   refId?: string;
@@ -643,20 +645,30 @@ function forecastBuildJob(bundle: ForecastBundle, freshness: Freshness): JobFore
 
   // Why it moved.
   const whyItMovedSincePlan = explainMovement(bundle, ordered, steps, stagesById, stageForecasts, forecastFinish, plannedFinish, {
+    kind: 'plan',
     starts: Object.fromEntries(stepList.map((s) => [s.stepId, s.plannedStart ?? s.forecastStart])),
     ends: Object.fromEntries(stepList.map((s) => [s.stepId, s.plannedEnd ?? s.forecastEnd])),
     stageEnds: Object.fromEntries(stageForecasts.map((s) => [s.stageId, s.plannedEnd ?? s.forecastEnd ?? ''])),
     finish: plannedFinish,
   });
-  const whyItMoved =
-    snapshot && snapshot.stepEnds
-      ? explainMovement(bundle, ordered, steps, stagesById, stageForecasts, forecastFinish, snapshot.forecastFinish, {
-          starts: snapshot.stepStarts ?? {},
-          ends: snapshot.stepEnds,
-          stageEnds: stageEndsFromSnapshot(snapshot.stepEnds, bundle.steps),
-          finish: snapshot.forecastFinish,
-        })
-      : whyItMovedSincePlan;
+  let whyItMoved: WhyEntry[];
+  if (snapshot && snapshot.stepEnds) {
+    whyItMoved = explainMovement(bundle, ordered, steps, stagesById, stageForecasts, forecastFinish, snapshot.forecastFinish, {
+      kind: 'snapshot',
+      starts: snapshot.stepStarts ?? {},
+      ends: snapshot.stepEnds,
+      stageEnds: stageEndsFromSnapshot(snapshot.stepEnds, bundle.steps),
+      finish: snapshot.forecastFinish,
+    });
+  } else {
+    // A snapshot with only a finish (seeded, or from an older save) cannot say
+    // which step moved, so the chain runs against the plan and the last line
+    // states the slip against the snapshot in its own words.
+    whyItMoved = [...whyItMovedSincePlan];
+    if (snapshot && forecastFinish && slipDays !== undefined && slipDays !== 0) {
+      whyItMoved.push(finishEntry(forecastFinish, snapshot.forecastFinish, slipDays, 'snapshot'));
+    }
+  }
 
   return {
     jobId: job.id,
@@ -732,6 +744,7 @@ function reasonText(step: Step, forecastStart: string, driver: StartDriver): str
 }
 
 interface Baseline {
+  kind: 'plan' | 'snapshot';
   starts: Record<string, string>;
   ends: Record<string, string>;
   stageEnds: Record<string, string>;
@@ -770,10 +783,11 @@ function explainMovement(
       const causeKey = d.shipmentId ? `shipment:${d.shipmentId}` : `item:${d.itemId}`;
       if (!seenCauses.has(causeKey)) {
         seenCauses.add(causeKey);
-        out.push(causeEntry(bundle, d, sf, steps, peopleById));
+        out.push(causeEntry(bundle, d, sf, steps, peopleById, baseline.kind));
       }
       out.push({
         kind: 'step',
+        baseline: baseline.kind,
         refId: step.id,
         deltaDays: baseStart ? calendarDaysBetween(baseStart, sf.forecastStart) : delta,
         from: baseStart,
@@ -799,6 +813,7 @@ function explainMovement(
       seenCauses.add(key);
       out.push({
         kind: 'step',
+        baseline: baseline.kind,
         refId: step.id,
         deltaDays: delta,
         from: baseEnd,
@@ -817,6 +832,7 @@ function explainMovement(
     if (delta <= 0) continue;
     out.push({
       kind: 'stage',
+      baseline: baseline.kind,
       refId: st.stageId,
       deltaDays: delta,
       from: base,
@@ -827,17 +843,24 @@ function explainMovement(
 
   if (forecastFinish && baselineFinish) {
     const delta = calendarDaysBetween(baselineFinish, forecastFinish);
-    if (delta !== 0) {
-      out.push({
-        kind: 'finish',
-        deltaDays: delta,
-        from: baselineFinish,
-        to: forecastFinish,
-        text: `Finish ${formatDayMonth(forecastFinish)}, not ${formatDayMonth(baselineFinish)} (${signed(delta)})`,
-      });
-    }
+    if (delta !== 0) out.push(finishEntry(forecastFinish, baselineFinish, delta, baseline.kind));
   }
   return out;
+}
+
+/** "Finish 4 Dec, 7 days later than planned (27 Nov)" / "Finish 4 Dec, 5 days later than Monday's snapshot (29 Nov)". Never a bare "+7 days". */
+function finishEntry(forecastFinish: string, baselineFinish: string, delta: number, baseline: 'plan' | 'snapshot'): WhyEntry {
+  const abs = Math.abs(delta);
+  const dir = delta > 0 ? 'later' : 'earlier';
+  const against = baseline === 'plan' ? 'than planned' : "than Monday's snapshot";
+  return {
+    kind: 'finish',
+    baseline,
+    deltaDays: delta,
+    from: baselineFinish,
+    to: forecastFinish,
+    text: `Finish ${formatDayMonth(forecastFinish)}, ${abs} day${abs === 1 ? '' : 's'} ${dir} ${against} (${formatDayMonth(baselineFinish)})`,
+  };
 }
 
 function causeEntry(
@@ -846,6 +869,7 @@ function causeEntry(
   sf: StepForecast,
   steps: Record<string, StepForecast>,
   peopleById: Map<string, Person>,
+  baseline: 'plan' | 'snapshot',
 ): WhyEntry {
   const needed = sf.plannedStart ?? steps[sf.stepId].plannedStart;
   const neededText = needed ? `, needed ${formatDayMonth(needed)}` : '';
@@ -858,6 +882,7 @@ function causeEntry(
       const stamp = formatStamp(change.at);
       return {
         kind: 'cause',
+        baseline,
         refId: d.shipmentId,
         deltaDays: calendarDaysBetween(change.from, change.to ?? d.expected),
         from: change.from,
@@ -869,6 +894,7 @@ function causeEntry(
     }
     return {
       kind: 'cause',
+      baseline,
       refId: d.shipmentId,
       deltaDays: needed ? calendarDaysBetween(needed, d.expected) : 0,
       to: d.expected,
@@ -877,6 +903,7 @@ function causeEntry(
   }
   return {
     kind: 'cause',
+    baseline,
     refId: d.itemId,
     deltaDays: needed ? calendarDaysBetween(needed, d.expected) : 0,
     to: d.expected,

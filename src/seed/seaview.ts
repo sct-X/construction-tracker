@@ -21,6 +21,7 @@ export const seaviewJob: Job = {
   lastConfirmed: '2026-09-16',
   isTemplate: false,
   startDate: '2026-08-24',
+  plannedFinish: '2027-10-29',
   createdAt: '2026-08-10',
 };
 

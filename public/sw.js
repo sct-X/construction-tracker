@@ -63,8 +63,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req)
         .then(async (res) => {
-          const cache = await caches.open(VERSION);
-          cache.put(SHELL_URL, res.clone());
+          if (res.ok) (await caches.open(VERSION)).put(SHELL_URL, res.clone());
           return res;
         })
         .catch(async () => (await caches.match(SHELL_URL)) || Response.error()),

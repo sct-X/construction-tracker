@@ -1,0 +1,181 @@
+/*
+  My settings. Token plan: one column at reading measure, sections split by
+  hairlines. The memorable thing is the three-step phone setup: big condensed
+  step numbers, state in words, and the one hi-vis button under step 2 because
+  that tap is the whole reason the screen exists on an iPhone. Toggles are
+  words ("On" / "Off") in a steel switch, never a colour alone.
+
+  You
+  Dominic Barone                 Admin on Norm and Dom. Also on Norm.
+  ---------------------------------------------------------
+  Phone setup
+  1  Added to the home screen    Not yet. The steps are below.
+  2  Notifications allowed       Not asked yet.       [ Allow notifications ]
+  3  Test buzz received          Not yet.             [ Send me a test buzz ]
+  ---------------------------------------------------------
+  What to tell me about
+  Reminders   When one of your items...                        [ On ]
+*/
+.settings__section {
+  max-width: var(--measure);
+  padding: var(--space-5) 0;
+  border-top: var(--hairline);
+}
+.settings__section:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+.settings__title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  margin-bottom: var(--space-3);
+}
+
+/* ---- you ---- */
+.settings__who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.settings__who-name {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+}
+.settings__who-role {
+  color: var(--text-secondary);
+}
+.settings__who-phone {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- the three steps ---- */
+.settings__steps {
+  list-style: none;
+}
+.settings__step {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+.settings__step + .settings__step {
+  border-top: var(--hairline);
+}
+.settings__step-n {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-display);
+  line-height: 1;
+  color: var(--concrete-200);
+}
+.settings__step[data-done='true'] .settings__step-n {
+  color: var(--ok-ink);
+}
+.settings__step-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.settings__step-name {
+  font-weight: var(--weight-bold);
+  font-size: var(--text-lg);
+}
+.settings__step-state {
+  color: var(--text-secondary);
+}
+.settings__step[data-done='true'] .settings__step-state {
+  color: var(--ok-ink);
+}
+.settings__allow,
+.settings__buzz {
+  align-self: flex-start;
+}
+.settings__push-note {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* ---- preferences ---- */
+.settings__prefs {
+  list-style: none;
+}
+.settings__pref {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+}
+.settings__pref + .settings__pref {
+  border-top: var(--hairline);
+}
+.settings__pref-words {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.settings__pref-label {
+  font-weight: var(--weight-bold);
+}
+.settings__pref-detail {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.settings__toggle {
+  flex-shrink: 0;
+  min-width: 4.5rem;
+  min-height: var(--tap);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  transition: background var(--motion-fast) var(--ease);
+}
+.settings__toggle[aria-checked='true'] {
+  background: var(--steel-700);
+  border-color: var(--steel-700);
+  color: var(--text-on-dark);
+  font-weight: var(--weight-bold);
+}
+
+/* ---- this phone ---- */
+.settings__version {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+.settings__confirm {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--late-ink);
+  border-radius: var(--radius-md);
+  background: var(--late-bg);
+  color: var(--late-ink);
+}
+.settings__confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.settings__danger {
+  color: var(--late-ink);
+}
+.settings__done {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--ok-ink);
+  border-radius: var(--radius-md);
+  background: var(--ok-bg);
+  color: var(--ok-ink);
+}
+@media (min-width: 768px) {
+  .settings__toggle {
+    min-height: var(--control);
+  }
+}

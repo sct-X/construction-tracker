@@ -23,11 +23,16 @@ import PhotoUpload from '../screens/PhotoUpload';
 import NotFound from '../screens/NotFound';
 import Notifications from '../screens/Notifications';
 import PhotoGallery from '../screens/PhotoGallery';
-import Placeholder from '../screens/Placeholder';
+import People from '../screens/People';
 import Program from '../screens/Program';
+import ProgramEditor from '../screens/ProgramEditor';
+import Settings from '../screens/Settings';
+import Trades from '../screens/Trades';
 import ShipmentDetail from '../screens/ShipmentDetail';
 import Shipments from '../screens/Shipments';
 import StepDetail from '../screens/StepDetail';
+import Templates, { TemplateDetail } from '../screens/Templates';
+import NewJob from '../screens/NewJob';
 import UploadQueue from '../screens/UploadQueue';
 import WaitingOn from '../screens/WaitingOn';
 import WhyItMoved from '../screens/WhyItMoved';
@@ -51,8 +56,6 @@ function JobRoute() {
   return <JobOverview />;
 }
 
-const soon = (title: string, stage: number) => <Placeholder title={title} stage={stage} />;
-
 export const ROUTES: RouteDef[] = [
   { path: '/monday', screen: 'monday', title: 'Monday', stage: 1, element: <Monday /> },
   { path: '/jobs', screen: 'jobs', title: 'Jobs', stage: 1, element: <JobsList /> },
@@ -72,9 +75,11 @@ export const ROUTES: RouteDef[] = [
   { path: '/queue', screen: 'queue', title: 'Upload queue', stage: 3, element: <UploadQueue /> },
   { path: '/jobs/:id/notes', screen: 'notes', title: 'Daily notes', stage: 5, element: <DailyNotes /> },
   { path: '/notifications', screen: 'notifications', title: 'Notifications', stage: 5, element: <Notifications /> },
-  { path: '/settings', screen: 'settings', title: 'My settings', stage: 6, element: soon('My settings', 6) },
-  { path: '/jobs/:id/edit', screen: 'editor', title: 'Program editor', stage: 6, element: soon('Program editor', 6) },
-  { path: '/templates', screen: 'templates', title: 'Templates and new job', stage: 6, element: soon('Templates and new job', 6) },
-  { path: '/trades', screen: 'trades', title: 'Trades', stage: 6, element: soon('Trades', 6) },
-  { path: '/people', screen: 'people', title: 'People and roles', stage: 6, element: soon('People and roles', 6) },
+  { path: '/settings', screen: 'settings', title: 'My settings', stage: 6, element: <Settings /> },
+  { path: '/jobs/:id/edit', screen: 'editor', title: 'Program editor', stage: 6, element: <ProgramEditor /> },
+  { path: '/templates', screen: 'templates', title: 'Templates and new job', stage: 6, element: <Templates /> },
+  { path: '/templates/:id', screen: 'templates', title: 'Template', stage: 6, element: <TemplateDetail /> },
+  { path: '/jobs/new', screen: 'templates', title: 'New job', stage: 6, element: <NewJob /> },
+  { path: '/trades', screen: 'trades', title: 'Trades', stage: 6, element: <Trades /> },
+  { path: '/people', screen: 'people', title: 'People and roles', stage: 6, element: <People /> },
 ];

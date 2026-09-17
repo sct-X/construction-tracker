@@ -142,6 +142,70 @@ describe('mock API', () => {
     expect(api.getForecast(job.id)!.slipDays).toBeUndefined(); // no Monday yet
   });
 
+  it('previews a template copy: planned finish from Mon 5 Oct 2026 matches what copyTemplate makes', () => {
+    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
+    const jobsBefore = api.listJobs().length;
+    const preview = api.previewTemplate('tpl-duplex', { startDate: '2026-10-05' });
+    expect(preview.startsOn).toBe('2026-10-05');
+    expect(preview.stageCount).toBe(8);
+    expect(preview.stepCount).toBe(29);
+    expect(preview.stagesDone).toBe(0);
+    expect(preview.plannedFinish).toBeDefined();
+    expect(api.listJobs().length).toBe(jobsBefore); // nothing saved
+    const job = api.copyTemplate('tpl-duplex', { name: '2 Test St', startDate: '2026-10-05', weeklyHoldingCost: 1000 });
+    expect(job.plannedFinish).toBe(preview.plannedFinish);
+    expect(api.getForecast(job.id)!.forecastFinish).toBe(preview.plannedFinish);
+    // A Saturday start snaps forward to Monday.
+    expect(api.previewTemplate('tpl-duplex', { startDate: '2026-10-03' }).startsOn).toBe('2026-10-05');
+  });
+
+  it('starts from a stage: earlier stages are done and the finish comes sooner', () => {
+    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
+    const stages = api.listStages('tpl-duplex');
+    const lockup = stages.find((s) => s.name === 'Lock-up')!;
+    const whole = api.previewTemplate('tpl-duplex', { startDate: '2026-10-05' });
+    const fromLockup = api.previewTemplate('tpl-duplex', { startDate: '2026-10-05', startsFromStageId: lockup.id });
+    expect(fromLockup.stagesDone).toBe(4);
+    expect(fromLockup.plannedFinish! < whole.plannedFinish!).toBe(true);
+    const job = api.copyTemplate('tpl-duplex', { name: '3 Test St', startDate: '2026-10-05', startsFromStageId: lockup.id });
+    expect(job.startsFromStageId).toBeDefined();
+    expect(api.listStages(job.id).filter((s) => s.status === 'done').length).toBe(4);
+    expect(api.getForecast(job.id)!.currentStageName).toBe('Lock-up');
+  });
+
+  it('saves a job as a template with no dates and no statuses', () => {
+    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
+    const tpl = api.saveJobAsTemplate(PARK_RD, 'Park Rd as built');
+    expect(tpl.isTemplate).toBe(true);
+    expect(tpl.startDate).toBeUndefined();
+    expect(tpl.plannedFinish).toBeUndefined();
+    expect(api.listTemplates().map((t) => t.id)).toContain(tpl.id);
+    expect(api.listJobs().map((j) => j.id)).not.toContain(tpl.id);
+    const steps = api.listSteps(tpl.id);
+    expect(steps.length).toBe(api.listSteps(PARK_RD).length);
+    expect(steps.every((s) => !s.plannedStart && !s.plannedEnd && !s.actualStart && s.status === 'not_started')).toBe(true);
+    expect(api.listStages(tpl.id).every((s) => s.status === 'not_started')).toBe(true);
+    expect(api.listStepLinks(tpl.id).length).toBe(api.listStepLinks(PARK_RD).length);
+    expect(api.listRequirements(tpl.id).length).toBe(api.listRequirements(PARK_RD).length);
+    expect(api.listPhotoCategories(tpl.id).length).toBe(api.listPhotoCategories(PARK_RD).length);
+    expect(api.getForecast(tpl.id)).toBeUndefined();
+  });
+
+  it('a new blank template and a design template give checklist stages only', () => {
+    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
+    const blank = api.addJob({ name: 'Townhouse', kind: 'build', isTemplate: true });
+    expect(blank.isTemplate).toBe(true);
+    expect(api.listTemplates().map((t) => t.id)).toContain(blank.id);
+    expect(api.listJobs().map((j) => j.id)).not.toContain(blank.id);
+    const design = api.addJob({ name: 'DA design', kind: 'design', path: 'DA', isTemplate: true });
+    expect(api.listStages(design.id).length).toBe(4);
+    const job = api.copyTemplate(design.id, { name: '9 Plan St', startDate: '2026-10-05' });
+    expect(job.kind).toBe('design');
+    expect(api.listStages(job.id).length).toBe(4);
+    expect(api.listSteps(job.id).length).toBe(0);
+    expect(api.getForecast(job.id)!.checklist).toBeDefined();
+  });
+
   it('refuses an item whose step is on another job', () => {
     const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
     expect(() => api.addItem({ jobId: SEAVIEW, type: 'trade', title: 'Book glazier', stepId: 'pr-install-windows' })).toThrow(/not on/);
@@ -175,5 +239,96 @@ describe('photo queue', () => {
     expect(api.listPhotos(SEAVIEW, { categoryId: 'sv-pc-slab-plumbing' })).toHaveLength(1);
     api.setSession({ personId: 'raff', today: '2026-09-28' });
     expect(api.setStepStatus('sv-slab-insp', 'done').ok).toBe(true);
+  });
+});
+
+describe('program editor preview (Stage 6)', () => {
+  function draftOf(api: ReturnType<typeof createMockApi>, jobId: string) {
+    return {
+      stages: api.listStages(jobId),
+      steps: api.listSteps(jobId),
+      links: api.listStepLinks(jobId),
+      requirements: api.listRequirements(jobId),
+      photoCategories: api.listPhotoCategories(jobId),
+    };
+  }
+
+  it('an unchanged draft leaves the finish where it is and writes nothing', () => {
+    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
+    const before = api.listActivity({ jobId: PARK_RD }).length;
+    const p = api.previewProgramChange(PARK_RD, draftOf(api, PARK_RD))!;
+    expect(p.finishBefore).toBe('2027-02-26');
+    expect(p.finishAfter).toBe('2027-02-26');
+    expect(p.deltaDays).toBe(0);
+    expect(p.costDelta).toBe(0);
+    expect(api.listActivity({ jobId: PARK_RD })).toHaveLength(before);
+  });
+
+  it('five more working days on Install windows moves the finish a calendar week, $4,500, and planned end follows the duration', () => {
+    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
+    const draft = draftOf(api, PARK_RD);
+    draft.steps = draft.steps.map((s) => (s.id === 'pr-install-windows' ? { ...s, durationDays: s.durationDays + 5 } : s));
+    const p = api.previewProgramChange(PARK_RD, draft)!;
+    expect(p.finishAfter).toBe('2027-03-05');
+    expect(p.deltaDays).toBe(7);
+    expect(p.costDelta).toBe(4500);
+    expect(p.forecast.steps['pr-install-windows'].plannedEnd).toBe('2026-11-20');
+    // Nothing saved: the real forecast still says 26 Feb.
+    expect(api.getForecast(PARK_RD)!.forecastFinish).toBe('2027-02-26');
+  });
+
+  it('a draft that drops a step with items on it still forecasts, and templates give no preview', () => {
+    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
+    const draft = draftOf(api, PARK_RD);
+    draft.steps = draft.steps.filter((s) => s.id !== 'pr-landscaping');
+    draft.links = draft.links.filter((l) => l.stepId !== 'pr-landscaping' && l.waitsForStepId !== 'pr-landscaping');
+    const p = api.previewProgramChange(PARK_RD, draft)!;
+    expect(p.forecast.steps['pr-landscaping']).toBeUndefined();
+    expect(p.finishAfter).toBeDefined();
+    expect(api.previewProgramChange('tpl-duplex', draftOf(api, 'tpl-duplex'))).toBeUndefined();
+  });
+
+  it('the site role gets no cost on the preview', () => {
+    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'alec', today: DEFAULT_TODAY } });
+    const p = api.previewProgramChange(PARK_RD, draftOf(api, PARK_RD))!;
+    expect(p).toBeDefined();
+    expect('costDelta' in p).toBe(false);
+  });
+});
+
+describe('my settings: notification preferences and push subscriptions (Stage 6, setup)', () => {
+  it('preferences default to the person flag, persist per person and survive a reload', () => {
+    const storage = new MemoryStorage();
+    const api = createMockApi({ storage, session: { personId: 'dominic', today: DEFAULT_TODAY } });
+    expect(api.getNotificationPrefs()).toEqual({ reminders: true, hold_points: true, eta_changes: true, unconfirmed_jobs: true });
+    // Norm has notifications off, so every key starts off for him.
+    expect(api.getNotificationPrefs('norm').reminders).toBe(false);
+    api.setNotificationPref('eta_changes', false);
+    expect(api.getNotificationPrefs().eta_changes).toBe(false);
+    expect(api.getNotificationPrefs().reminders).toBe(true);
+    expect(api.getNotificationPrefs('dom').eta_changes).toBe(true);
+    const again = createMockApi({ storage, session: { personId: 'dominic', today: DEFAULT_TODAY } });
+    expect(again.getNotificationPrefs().eta_changes).toBe(false);
+    again.reset();
+    expect(again.getNotificationPrefs().eta_changes).toBe(true);
+  });
+
+  it('a push subscription is stored once per device for the current person and logged without money', () => {
+    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'norm', today: DEFAULT_TODAY } });
+    expect(api.listPushSubscriptions()).toEqual([]);
+    const first = api.savePushSubscription({ device: 'iPhone, Safari', subscription: 'placeholder' });
+    expect(first.personId).toBe('norm');
+    expect(first.enabled).toBe(true);
+    expect(api.getPerson('norm')!.notificationsEnabled).toBe(true);
+    api.savePushSubscription({ device: 'iPhone, Safari', subscription: 'placeholder 2', enabled: false });
+    const subs = api.listPushSubscriptions();
+    expect(subs).toHaveLength(1);
+    expect(subs[0].subscription).toBe('placeholder 2');
+    expect(subs[0].enabled).toBe(false);
+    expect(api.getPerson('norm')!.notificationsEnabled).toBe(false);
+    const texts = api.listActivity({ personId: 'norm' }).map((a) => a.text);
+    expect(texts).toContain('Norm allowed notifications on iPhone, Safari');
+    expect(texts).toContain('Norm turned off notifications on iPhone, Safari');
+    expect(api.listPushSubscriptions('dominic')).toEqual([]);
   });
 });

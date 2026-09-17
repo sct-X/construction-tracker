@@ -1,0 +1,65 @@
+/* Install steps: a numbered list in the display face, because the content is a sequence. */
+.install {
+  max-width: var(--measure);
+}
+.install__lede {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+.install__done {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--ok-ink);
+  border-radius: var(--radius-md);
+  background: var(--ok-bg);
+  color: var(--ok-ink);
+}
+.install__switch {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.install__tab {
+  min-height: var(--tap);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+}
+.install__tab[aria-pressed='true'] {
+  background: var(--steel-700);
+  border-color: var(--steel-700);
+  color: var(--text-on-dark);
+  font-weight: var(--weight-bold);
+}
+.install__steps {
+  list-style: none;
+  counter-reset: install;
+}
+.install__steps li {
+  counter-increment: install;
+  display: grid;
+  grid-template-columns: 2.25rem 1fr;
+  gap: var(--space-3);
+  align-items: baseline;
+  padding: var(--space-2) 0;
+  border-top: var(--hairline);
+}
+.install__steps li::before {
+  content: counter(install);
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-xl);
+  color: var(--steel-500);
+}
+.install__note {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+@media (min-width: 768px) {
+  .install__tab {
+    min-height: var(--control);
+  }
+}

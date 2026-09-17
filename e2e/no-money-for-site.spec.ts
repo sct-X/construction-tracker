@@ -21,6 +21,7 @@ const IDS: Record<string, string> = {
   '/steps/:id': 'pr-install-windows',
   '/items/:id': 'it-pr-windows',
   '/shipments/:id': 'sh-park-windows',
+  '/templates/:id': 'tpl-duplex',
 };
 
 function concrete(path: string): string {

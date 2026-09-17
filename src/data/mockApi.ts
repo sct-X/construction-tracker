@@ -19,6 +19,7 @@ import type {
   Person,
   Photo,
   PhotoCategory,
+  PushSubscriptionRecord,
   Requirement,
   Role,
   SeedData,
@@ -35,18 +36,21 @@ import type { EtaPreview, ForecastBundle, JobForecast } from '../domain/forecast
 import { forecastJob, holdPointCheck, holdPointReadinessWords, holdPointRefusalText, previewEtaChange, topWaitingOn } from '../domain/forecast';
 import {
   addCalendarWeeks,
+  calendarDaysBetween,
   formatDayMonth,
   formatShort,
   lastMonday,
   maxDate,
   nextWorkingDay,
   previousWorkingDay,
+  snapToWorkingDay,
   stepEnd,
 } from '../domain/dates';
-import { stripMoney } from '../domain/money';
+import { slipCostFor, stripMoney } from '../domain/money';
 import { buildSeed, SEED_VERSION } from '../seed';
-import type { JobListOptions, Listener, MondayRow, NewPhotoInput, ScreenKey, StepStatusResult, TrackerApi } from './api';
-import { SCREEN_ACCESS } from './api';
+import type { CopyTemplateInput, JobListOptions, Listener, MondayRow, NewPhotoInput, ProgramPreview, ScreenKey, StepStatusResult, TrackerApi } from './api';
+import { NOTIFICATION_PREF_KEYS, SCREEN_ACCESS } from './api';
+import type { NotificationPrefs } from './api';
 import { defaultStorage, type KeyValueStorage } from './storage';
 import { loadSession, saveSession, type Session } from './session';
 import { createPhotoQueue, type PhotoQueue, type QueuedPhoto } from './photoQueue';
@@ -56,6 +60,8 @@ export const DATA_KEY = 'construction-tracker.data.v1';
 interface Store {
   seedVersion: number;
   data: SeedData;
+  /** Notification preferences by person id (UI_PLAN 3.19); absent keys fall back to the person's flag. */
+  prefs?: Record<string, Partial<NotificationPrefs>>;
 }
 
 export interface MockApiOptions {
@@ -287,6 +293,108 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
     return photo;
   }
 
+  /**
+   * Rule 8: what copying a template into a dated job makes. Stages before
+   * "starts from" are done with planned start = end = the working day before
+   * the start date; the rest run forward from the start date through the
+   * links. Design templates give checklist stages only (rule 9). Pure over the
+   * store: nothing is pushed, so `previewTemplate` can call it too.
+   */
+  function planCopy(
+    tpl: Job,
+    input: CopyTemplateInput,
+  ): { job: Job; stages: Stage[]; steps: Step[]; links: StepLink[]; requirements: Requirement[]; categories: PhotoCategory[] } {
+    const data = d();
+    const sideId = input.sideId ?? session.sideId;
+    const job: Job = {
+      id: newId('job'),
+      sideId,
+      name: input.name,
+      address: input.address,
+      kind: tpl.kind,
+      path: input.path ?? tpl.path,
+      weeklyHoldingCost: input.weeklyHoldingCost,
+      startDate: input.startDate,
+      // Made today by the person who knows the program: confirmed as of today (rule 7's clock starts now).
+      lastConfirmed: session.today,
+      isTemplate: false,
+      templateId: tpl.id,
+      createdAt: session.today,
+    };
+    const stageMap = new Map<string, string>();
+    const stepMap = new Map<string, string>();
+    const tplStages = data.stages.filter((s) => s.jobId === tpl.id).sort((a, b) => a.order - b.order);
+    const fromIndex = input.startsFromStageId ? Math.max(0, tplStages.findIndex((s) => s.id === input.startsFromStageId)) : 0;
+    const newStages: Stage[] = tplStages.map((s, i) => {
+      const id = newId('stage');
+      stageMap.set(s.id, id);
+      const status = i < fromIndex ? 'done' : i === fromIndex && tpl.kind === 'design' ? 'in_progress' : 'not_started';
+      return { id, sideId, jobId: job.id, name: s.name, order: s.order, status };
+    });
+    if (fromIndex > 0) job.startsFromStageId = stageMap.get(tplStages[fromIndex].id);
+    const doneStageIds = new Set(newStages.filter((s) => s.status === 'done').map((s) => s.id));
+    const tplSteps = tpl.kind === 'design' ? [] : data.steps.filter((s) => s.jobId === tpl.id);
+    const newSteps: Step[] = tplSteps.map((s) => {
+      const id = newId('step');
+      stepMap.set(s.id, id);
+      const stageId = stageMap.get(s.stageId)!;
+      return {
+        id,
+        sideId,
+        jobId: job.id,
+        stageId,
+        name: s.name,
+        order: s.order,
+        durationDays: s.durationDays,
+        status: doneStageIds.has(stageId) ? 'done' : 'not_started',
+        isHoldPoint: s.isHoldPoint,
+        isPlaceholder: s.isPlaceholder,
+        tradeType: s.tradeType,
+      };
+    });
+    const newLinks: StepLink[] = data.stepLinks
+      .filter((l) => l.jobId === tpl.id && stepMap.has(l.stepId) && stepMap.has(l.waitsForStepId))
+      .map((l) => ({ id: newId('link'), sideId, jobId: job.id, stepId: stepMap.get(l.stepId)!, waitsForStepId: stepMap.get(l.waitsForStepId)! }));
+    const newReqs: Requirement[] = data.requirements
+      .filter((r) => r.jobId === tpl.id && stepMap.has(r.stepId))
+      .map((r) => ({ ...r, id: newId('rq'), sideId, jobId: job.id, stepId: stepMap.get(r.stepId)! }));
+    const newCats: PhotoCategory[] = data.photoCategories
+      .filter((c) => c.jobId === tpl.id)
+      .map((c) => ({ ...c, id: newId('pc'), sideId, jobId: job.id, stageId: c.stageId ? stageMap.get(c.stageId)! : null }));
+    if (!newCats.some((c) => c.stageId === null)) {
+      newCats.push({ id: newId('pc'), sideId, jobId: job.id, stageId: null, name: 'General', requiredForHoldPoint: false, order: 1 });
+    }
+
+    // Planned dates run forward from the start date. Steps in earlier stages are done the day before.
+    const before = previousWorkingDay(input.startDate);
+    const preds = new Map<string, string[]>();
+    for (const l of newLinks) {
+      if (!preds.has(l.stepId)) preds.set(l.stepId, []);
+      preds.get(l.stepId)!.push(l.waitsForStepId);
+    }
+    const stageOrder = new Map(newStages.map((s) => [s.id, s.order]));
+    const remaining = [...newSteps].sort((a, b) => stageOrder.get(a.stageId)! - stageOrder.get(b.stageId)! || a.order - b.order);
+    const placed = new Set<string>();
+    const byId = new Map(newSteps.map((s) => [s.id, s]));
+    let guard = 0;
+    while (remaining.length && guard++ < 10_000) {
+      const idx = remaining.findIndex((s) => (preds.get(s.id) ?? []).every((p) => placed.has(p)));
+      const step = remaining.splice(idx < 0 ? 0 : idx, 1)[0];
+      if (step.status === 'done') {
+        step.plannedStart = before;
+        step.plannedEnd = before;
+      } else {
+        const predEnds = (preds.get(step.id) ?? []).map((p) => byId.get(p)!.plannedEnd);
+        const latest = maxDate(...predEnds);
+        step.plannedStart = latest && latest >= input.startDate ? nextWorkingDay(latest) : snapToWorkingDay(input.startDate);
+        recomputePlannedEnd(step);
+      }
+      placed.add(step.id);
+    }
+    job.plannedFinish = maxDate(...newSteps.map((s) => s.plannedEnd));
+    return { job, stages: newStages, steps: newSteps, links: newLinks, requirements: newReqs, categories: newCats };
+  }
+
   // ---- the api ----
   const api: TrackerApi = {
     getSession() {
@@ -362,6 +470,36 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
       log('person_edited', r ? `${person?.name ?? personId} is now ${r}` : `${person?.name ?? personId} removed from side`);
       commit();
     },
+    getNotificationPrefs(personId = session.personId) {
+      const person = d().people.find((p) => p.id === personId);
+      const fallback = person?.notificationsEnabled ?? true;
+      const stored = store.prefs?.[personId] ?? {};
+      const out = {} as NotificationPrefs;
+      for (const key of NOTIFICATION_PREF_KEYS) out[key] = stored[key] ?? fallback;
+      return out;
+    },
+    setNotificationPref(key, enabled, personId = session.personId) {
+      store.prefs = store.prefs ?? {};
+      store.prefs[personId] = { ...store.prefs[personId], [key]: enabled };
+      commit();
+      return api.getNotificationPrefs(personId);
+    },
+    listPushSubscriptions(personId = session.personId) {
+      return scoped(d().pushSubscriptions.filter((s) => s.personId === personId));
+    },
+    savePushSubscription(input) {
+      const data = d();
+      const existing = data.pushSubscriptions.find((s) => s.personId === session.personId && s.device === input.device);
+      const record: PushSubscriptionRecord = existing ?? { id: newId('push'), sideId: session.sideId, personId: session.personId, device: input.device, subscription: '', enabled: true };
+      record.subscription = input.subscription;
+      record.enabled = input.enabled ?? true;
+      if (!existing) data.pushSubscriptions.push(record);
+      const person = data.people.find((p) => p.id === session.personId);
+      if (person) person.notificationsEnabled = record.enabled;
+      log('person_edited', `${person?.shortName ?? 'Someone'} ${record.enabled ? 'allowed' : 'turned off'} notifications on ${input.device}`);
+      commit();
+      return scoped(record);
+    },
 
     // ---- jobs ----
     listJobs(opts) {
@@ -384,9 +522,10 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
         kind: input.kind,
         path: input.path,
         weeklyHoldingCost: input.weeklyHoldingCost,
-        startDate: input.startDate,
-        plannedFinish: input.plannedFinish,
-        isTemplate: false,
+        startDate: input.isTemplate ? undefined : input.startDate,
+        plannedFinish: input.isTemplate ? undefined : input.plannedFinish,
+        lastConfirmed: input.isTemplate ? undefined : session.today,
+        isTemplate: !!input.isTemplate,
         createdAt: session.today,
       };
       d().jobs.push(job);
@@ -397,7 +536,7 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
         );
       }
       d().photoCategories.push({ id: newId('pc'), sideId: job.sideId, jobId: job.id, stageId: null, name: 'General', requiredForHoldPoint: false, order: 1 });
-      log('job_added', `Created ${job.name}`, { jobId: job.id });
+      log('job_added', job.isTemplate ? `Created the ${job.name} template` : `Created ${job.name}`, { jobId: job.id });
       commit();
       return scoped(job);
     },
@@ -411,97 +550,93 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
     copyTemplate(templateId, input) {
       const tpl = requireJob(templateId);
       const data = d();
-      const sideId = input.sideId ?? session.sideId;
-      const job: Job = {
-        id: newId('job'),
+      const plan = planCopy(tpl, input);
+      data.jobs.push(plan.job);
+      data.stages.push(...plan.stages);
+      data.steps.push(...plan.steps);
+      data.stepLinks.push(...plan.links);
+      data.requirements.push(...plan.requirements);
+      data.photoCategories.push(...plan.categories);
+      log('job_added', `Created ${plan.job.name} from the ${tpl.name} template`, { jobId: plan.job.id });
+      commit();
+      return scoped(plan.job);
+    },
+    previewTemplate(templateId, input) {
+      const tpl = requireJob(templateId);
+      const plan = planCopy(tpl, { name: tpl.name, startDate: input.startDate, startsFromStageId: input.startsFromStageId });
+      return {
+        templateId,
+        plannedFinish: plan.job.plannedFinish,
+        startsOn: snapToWorkingDay(input.startDate),
+        stageCount: plan.stages.length,
+        stagesDone: plan.stages.filter((s) => s.status === 'done').length,
+        stepCount: plan.steps.length,
+      };
+    },
+    saveJobAsTemplate(jobId, name) {
+      const source = requireJob(jobId);
+      const data = d();
+      const sideId = source.sideId;
+      const tpl: Job = {
+        id: newId('tpl'),
         sideId,
-        name: input.name,
-        address: input.address,
-        kind: tpl.kind,
-        path: input.path ?? tpl.path,
-        weeklyHoldingCost: input.weeklyHoldingCost,
-        startDate: input.startDate,
-        isTemplate: false,
-        templateId: tpl.id,
+        name,
+        kind: source.kind,
+        path: source.path,
+        isTemplate: true,
         createdAt: session.today,
       };
       const stageMap = new Map<string, string>();
       const stepMap = new Map<string, string>();
-      const tplStages = data.stages.filter((s) => s.jobId === tpl.id).sort((a, b) => a.order - b.order);
-      const fromIndex = input.startsFromStageId ? tplStages.findIndex((s) => s.id === input.startsFromStageId) : 0;
-      const newStages: Stage[] = tplStages.map((s, i) => {
-        const id = newId('stage');
-        stageMap.set(s.id, id);
-        return { id, sideId, jobId: job.id, name: s.name, order: s.order, status: i < fromIndex ? 'done' : 'not_started' };
-      });
-      if (fromIndex > 0) job.startsFromStageId = stageMap.get(tplStages[fromIndex].id);
-      const doneStageIds = new Set(newStages.filter((s) => s.status === 'done').map((s) => s.id));
-      const tplSteps = data.steps.filter((s) => s.jobId === tpl.id);
-      const newSteps: Step[] = tplSteps.map((s) => {
-        const id = newId('step');
-        stepMap.set(s.id, id);
-        const stageId = stageMap.get(s.stageId)!;
-        return {
-          id,
-          sideId,
-          jobId: job.id,
-          stageId,
-          name: s.name,
-          order: s.order,
-          durationDays: s.durationDays,
-          status: doneStageIds.has(stageId) ? 'done' : 'not_started',
-          isHoldPoint: s.isHoldPoint,
-          isPlaceholder: s.isPlaceholder,
-          tradeType: s.tradeType,
-        };
-      });
-      const newLinks: StepLink[] = data.stepLinks
-        .filter((l) => l.jobId === tpl.id)
-        .map((l) => ({ id: newId('link'), sideId, jobId: job.id, stepId: stepMap.get(l.stepId)!, waitsForStepId: stepMap.get(l.waitsForStepId)! }));
-      const newReqs: Requirement[] = data.requirements
-        .filter((r) => r.jobId === tpl.id)
-        .map((r) => ({ ...r, id: newId('rq'), sideId, jobId: job.id, stepId: stepMap.get(r.stepId)! }));
-      const newCats: PhotoCategory[] = data.photoCategories
-        .filter((c) => c.jobId === tpl.id)
-        .map((c) => ({ ...c, id: newId('pc'), sideId, jobId: job.id, stageId: c.stageId ? stageMap.get(c.stageId)! : null }));
-
-      // Planned dates run forward from the start date. Steps in earlier stages are done the day before.
-      const before = previousWorkingDay(input.startDate);
-      const preds = new Map<string, string[]>();
-      for (const l of newLinks) {
-        if (!preds.has(l.stepId)) preds.set(l.stepId, []);
-        preds.get(l.stepId)!.push(l.waitsForStepId);
-      }
-      const stageOrder = new Map(newStages.map((s) => [s.id, s.order]));
-      const remaining = [...newSteps].sort((a, b) => stageOrder.get(a.stageId)! - stageOrder.get(b.stageId)! || a.order - b.order);
-      const placed = new Set<string>();
-      const byId = new Map(newSteps.map((s) => [s.id, s]));
-      let guard = 0;
-      while (remaining.length && guard++ < 10_000) {
-        const idx = remaining.findIndex((s) => (preds.get(s.id) ?? []).every((p) => placed.has(p)));
-        const step = remaining.splice(idx < 0 ? 0 : idx, 1)[0];
-        if (step.status === 'done') {
-          step.plannedStart = before;
-          step.plannedEnd = before;
-        } else {
-          const predEnds = (preds.get(step.id) ?? []).map((p) => byId.get(p)!.plannedEnd);
-          const latest = maxDate(...predEnds);
-          step.plannedStart = latest && latest >= input.startDate ? nextWorkingDay(latest) : input.startDate;
-          recomputePlannedEnd(step);
-        }
-        placed.add(step.id);
-      }
-      job.plannedFinish = maxDate(...newSteps.map((s) => s.plannedEnd));
-
-      data.jobs.push(job);
-      data.stages.push(...newStages);
-      data.steps.push(...newSteps);
-      data.stepLinks.push(...newLinks);
-      data.requirements.push(...newReqs);
-      data.photoCategories.push(...newCats);
-      log('job_added', `Created ${job.name} from the ${tpl.name} template`, { jobId: job.id });
+      const stages: Stage[] = data.stages
+        .filter((s) => s.jobId === source.id)
+        .sort((a, b) => a.order - b.order)
+        .map((s) => {
+          const id = newId('stage');
+          stageMap.set(s.id, id);
+          return { id, sideId, jobId: tpl.id, name: s.name, order: s.order, status: 'not_started' };
+        });
+      // Design jobs carry checklist stages only (rule 9).
+      const steps: Step[] =
+        source.kind === 'design'
+          ? []
+          : data.steps
+              .filter((s) => s.jobId === source.id)
+              .map((s) => {
+                const id = newId('step');
+                stepMap.set(s.id, id);
+                return {
+                  id,
+                  sideId,
+                  jobId: tpl.id,
+                  stageId: stageMap.get(s.stageId)!,
+                  name: s.name,
+                  order: s.order,
+                  durationDays: s.durationDays,
+                  status: 'not_started',
+                  isHoldPoint: s.isHoldPoint,
+                  isPlaceholder: s.isPlaceholder,
+                  tradeType: s.tradeType,
+                };
+              });
+      const links: StepLink[] = data.stepLinks
+        .filter((l) => l.jobId === source.id && stepMap.has(l.stepId) && stepMap.has(l.waitsForStepId))
+        .map((l) => ({ id: newId('link'), sideId, jobId: tpl.id, stepId: stepMap.get(l.stepId)!, waitsForStepId: stepMap.get(l.waitsForStepId)! }));
+      const requirements: Requirement[] = data.requirements
+        .filter((r) => r.jobId === source.id && stepMap.has(r.stepId))
+        .map((r) => ({ ...r, id: newId('rq'), sideId, jobId: tpl.id, stepId: stepMap.get(r.stepId)! }));
+      const categories: PhotoCategory[] = data.photoCategories
+        .filter((c) => c.jobId === source.id)
+        .map((c) => ({ ...c, id: newId('pc'), sideId, jobId: tpl.id, stageId: c.stageId ? stageMap.get(c.stageId)! : null }));
+      data.jobs.push(tpl);
+      data.stages.push(...stages);
+      data.steps.push(...steps);
+      data.stepLinks.push(...links);
+      data.requirements.push(...requirements);
+      data.photoCategories.push(...categories);
+      log('job_added', `Saved ${source.name} as the ${tpl.name} template`, { jobId: tpl.id });
       commit();
-      return scoped(job);
+      return scoped(tpl);
     },
     confirmJob(jobId, date) {
       const job = requireJob(jobId);
@@ -1124,6 +1259,32 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
       if (!visibleJobIds().has(jobId)) return undefined;
       const f = rawForecast(jobId);
       return f ? scoped(f) : undefined;
+    },
+    previewProgramChange(jobId, draft): ProgramPreview | undefined {
+      if (!visibleJobIds().has(jobId)) return undefined;
+      const job = d().jobs.find((j) => j.id === jobId && j.sideId === session.sideId);
+      if (!job || job.isTemplate || job.kind !== 'build') return undefined;
+      const bundle = bundleFor(job);
+      const before = forecastJob(bundle);
+      // Planned end always derives from planned start over working days (rule 3: the editor sets planned start by hand).
+      const steps = draft.steps.map((s) => ({ ...s, plannedEnd: s.plannedStart ? stepEnd(s.plannedStart, s.durationDays) : undefined }));
+      const after = forecastJob({
+        ...bundle,
+        stages: draft.stages,
+        steps,
+        links: draft.links,
+        requirements: draft.requirements,
+        photoCategories: draft.photoCategories ?? bundle.photoCategories,
+      });
+      const deltaDays = before.forecastFinish && after.forecastFinish ? calendarDaysBetween(before.forecastFinish, after.forecastFinish) : 0;
+      return scoped({
+        jobId,
+        finishBefore: before.forecastFinish,
+        finishAfter: after.forecastFinish,
+        deltaDays,
+        costDelta: slipCostFor(deltaDays, job.weeklyHoldingCost),
+        forecast: after,
+      });
     },
     holdPointReadiness(stepId) {
       const step = d().steps.find((s) => s.id === stepId);

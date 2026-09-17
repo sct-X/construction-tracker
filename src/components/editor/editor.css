@@ -1,0 +1,206 @@
+/*
+  Program editor pieces: the step form, the stage form, the link picker, the
+  needs list and the photo-set list. Desktop only (the phone gets a sentence),
+  so controls sit at the 40px desktop height. The panel is a form on the
+  surface tone with hairline dividers between its sections, so it reads like
+  the step sheet, not a card. Derived facts (planned end, forecast dates) sit
+  on timber paper, the app's "worked out, not typed" treatment.
+*/
+.ed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.ed__title {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.ed__kicker {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.ed__section {
+  padding-top: var(--space-4);
+  border-top: var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.ed__section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+}
+.ed__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.ed__field > label,
+.ed__label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+}
+.ed__row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+}
+.ed__row > .ed__field {
+  flex: 1 1 8rem;
+}
+.ed__row > .ed__field--short {
+  flex: 0 1 7.5rem;
+}
+.ed__input {
+  width: 100%;
+  min-height: var(--control);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: var(--text-md);
+  font-variant-numeric: tabular-nums;
+}
+.ed__input:disabled {
+  background: var(--concrete-100);
+  color: var(--text-muted);
+}
+.ed__input--num {
+  max-width: 7.5rem;
+}
+.ed__check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+.ed__check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--steel-700);
+}
+.ed__check--quiet {
+  font-weight: var(--weight-regular);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.ed__derived {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--timber-100);
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+.ed__derived strong {
+  font-weight: var(--weight-medium);
+}
+.ed__hint {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.ed__refusal {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--late-bg);
+  color: var(--late-ink);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+}
+.ed__list {
+  display: flex;
+  flex-direction: column;
+}
+.ed__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-top: var(--hairline);
+}
+.ed__item:first-child {
+  border-top: 0;
+}
+.ed__item--need {
+  grid-template-columns: 6.5rem minmax(0, 1fr) 4.5rem auto;
+}
+.ed__item-name {
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+}
+.ed__item-sub {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.ed__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: none;
+  color: var(--steel-700);
+  font-weight: var(--weight-medium);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.ed__link:hover {
+  background: var(--concrete-100);
+}
+.ed__link:disabled {
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: default;
+  background: none;
+}
+.ed__link--danger {
+  color: var(--late-ink);
+}
+.ed__empty {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.ed__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.ed__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--late-ink);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+.ed__confirm p {
+  line-height: var(--leading-body);
+}
+.btn--danger {
+  border-color: var(--late-ink);
+  color: var(--late-ink);
+}
+.btn--danger:hover {
+  background: var(--late-bg);
+}

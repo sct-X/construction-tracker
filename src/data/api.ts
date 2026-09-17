@@ -27,6 +27,7 @@ import type {
   Person,
   Photo,
   PhotoCategory,
+  PushSubscriptionRecord,
   Requirement,
   Role,
   Shipment,
@@ -178,6 +179,8 @@ export interface NewJobInput {
   weeklyHoldingCost?: number;
   startDate?: string;
   plannedFinish?: string;
+  /** A template (rule 8): no dates, hidden from the jobs list. Design templates still get the checklist stages. */
+  isTemplate?: boolean;
 }
 
 export interface CopyTemplateInput {
@@ -192,6 +195,19 @@ export interface CopyTemplateInput {
 }
 
 export type JobPatch = Partial<Omit<Job, 'id' | 'sideId' | 'createdAt' | 'isTemplate'>>;
+
+/** What `copyTemplate` would make, before it is made: the new job screen shows the planned finish under the form. */
+export interface TemplatePreview {
+  templateId: string;
+  /** The template's durations run forward over working days from the start date (undefined for a design template). */
+  plannedFinish?: string;
+  /** The first working day on or after the start date. */
+  startsOn: string;
+  stageCount: number;
+  /** Stages before "starts from", marked done on create. */
+  stagesDone: number;
+  stepCount: number;
+}
 
 /** The end of a call-list call: who was rung and, per job worked through, how many items changed. */
 export interface FinishCallInput {
@@ -246,6 +262,20 @@ export interface NewPhotoCategoryInput {
 export type TradeInput = Omit<Trade, 'id' | 'sideId'>;
 export type PersonInput = Omit<Person, 'id'>;
 
+/** My settings (UI_PLAN 3.19): what a person wants to be told about. Stored per person, off by key. */
+export type NotificationPrefKey = 'reminders' | 'hold_points' | 'eta_changes' | 'unconfirmed_jobs';
+export const NOTIFICATION_PREF_KEYS: NotificationPrefKey[] = ['reminders', 'hold_points', 'eta_changes', 'unconfirmed_jobs'];
+export type NotificationPrefs = Record<NotificationPrefKey, boolean>;
+
+/** One phone's push subscription (model gap 6). The prototype stores a placeholder; the real server fills `subscription`. */
+export interface PushSubscriptionInput {
+  /** Words for the device, e.g. "iPhone, Safari". */
+  device: string;
+  /** The PushSubscription JSON from the browser, or a placeholder while there is no push server. */
+  subscription: string;
+  enabled?: boolean;
+}
+
 export interface DailyNoteInput {
   jobId: string;
   text: string;
@@ -278,6 +308,33 @@ export interface HoldPointReadiness {
   check: HoldPointCheck;
 }
 
+/**
+ * The program editor's unsaved program (Stage 6): the whole of one job's
+ * stages, steps, links, requirements and photo categories as they would be
+ * after Save. Records the editor added carry ids of its own choosing; the
+ * preview never writes them.
+ */
+export interface ProgramDraft {
+  stages: Stage[];
+  steps: Step[];
+  links: StepLink[];
+  requirements: Requirement[];
+  photoCategories?: PhotoCategory[];
+}
+
+/** What a program draft would do to the forecast, before it is saved ("finish Fri 26 Feb 2027 -> Fri 5 Mar 2027, +7 days"). */
+export interface ProgramPreview {
+  jobId: string;
+  finishBefore?: string;
+  finishAfter?: string;
+  /** finishAfter minus finishBefore, calendar days. */
+  deltaDays: number;
+  /** Money: holding cost of the delta alone. */
+  costDelta?: number;
+  /** The forecast over the draft, for drawing the Gantt as it would be. */
+  forecast: JobForecast;
+}
+
 // ---------------------------------------------------------------------------
 // The interface
 // ---------------------------------------------------------------------------
@@ -303,6 +360,13 @@ export interface TrackerApi {
   removePerson(id: string): void;
   /** role = null removes the membership. */
   setMembership(personId: string, sideId: string, role: Role | null): void;
+  /** Notification preferences, defaulting to the person's `notificationsEnabled` flag for every key. Current person by default. */
+  getNotificationPrefs(personId?: string): NotificationPrefs;
+  setNotificationPref(key: NotificationPrefKey, enabled: boolean, personId?: string): NotificationPrefs;
+  /** This person's phones (any side; a phone is not side-specific). Current person by default. */
+  listPushSubscriptions(personId?: string): PushSubscriptionRecord[];
+  /** Upserts by person and device for the current person. Logs "allowed notifications on <device>". */
+  savePushSubscription(input: PushSubscriptionInput): PushSubscriptionRecord;
 
   // ---- jobs and programs ----
   listJobs(opts?: JobListOptions): Job[];
@@ -311,6 +375,10 @@ export interface TrackerApi {
   addJob(input: NewJobInput): Job;
   updateJob(id: string, patch: JobPatch): Job;
   copyTemplate(templateId: string, input: CopyTemplateInput): Job;
+  /** The planned finish and counts `copyTemplate` would give, without saving anything. */
+  previewTemplate(templateId: string, input: Pick<CopyTemplateInput, 'startDate' | 'startsFromStageId'>): TemplatePreview;
+  /** Rule 8: copies a job's stages, steps, links, requirements and photo categories into a template with every date and status stripped. */
+  saveJobAsTemplate(jobId: string, name: string): Job;
   confirmJob(jobId: string, date?: string): Job;
   /**
    * Finish call (UI_PLAN 3.11): stamps every listed job's last confirmed date
@@ -399,6 +467,12 @@ export interface TrackerApi {
   listForecasts(): JobForecast[];
   /** Rule 6 readiness for a hold-point step (undefined for other steps). */
   holdPointReadiness(stepId: string): HoldPointReadiness | undefined;
+  /**
+   * The program editor's live preview: the forecast the draft would give,
+   * against the saved program. Writes nothing. Undefined for templates and
+   * design jobs, which have no forecast finish.
+   */
+  previewProgramChange(jobId: string, draft: ProgramDraft): ProgramPreview | undefined;
   getMondayRows(): MondayRow[];
   listSnapshots(jobId: string): ForecastSnapshot[];
   /** Saves a snapshot for every build job for the Monday of the given date (default: last Monday of today). */

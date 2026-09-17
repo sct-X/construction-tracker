@@ -67,7 +67,7 @@ export default function JobsList() {
   const showMoney = builds.some((r) => r.job.weeklyHoldingCost !== undefined);
 
   const newJob = canAdd ? (
-    <Link to="/templates" className="btn btn--primary btn--desktop" data-testid="jobs-new">
+    <Link to="/jobs/new" className="btn btn--primary btn--desktop" data-testid="jobs-new">
       New job
     </Link>
   ) : undefined;

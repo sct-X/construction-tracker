@@ -12,12 +12,15 @@
  * Nothing here draws money, so Alec's settings look the same as everyone's.
  */
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { NotificationPrefKey } from '../data/api';
 import { NOTIFICATION_PREF_KEYS } from '../data/api';
 import { ROLE_LABELS } from '../domain/types';
+import { formatStamp } from '../domain/dates';
+import { DEFAULT_PERSON, DEFAULT_SIDE } from '../data/session';
 import { SEED_VERSION } from '../seed';
-import { InstallSteps, deviceWords, isStandalone } from '../components/InstallSteps';
+import { InstallSteps, detectPlatform, deviceWords, isStandalone } from '../components/InstallSteps';
 import { PageHeader } from '../shell/PageHeader';
 import './settings.css';
 
@@ -40,20 +43,39 @@ export function readPermission(): PermissionState {
   return Notification.permission;
 }
 
-export function permissionWords(state: PermissionState, platform: 'iphone' | 'android' | 'other'): string {
+export type Platform = 'iphone' | 'android' | 'other';
+
+/** The permission state in words that fit the device, and whether the ask button does anything. */
+export function permissionWords(state: PermissionState, platform: Platform): { text: string; canAsk: boolean } {
+  if (platform === 'other') {
+    if (state === 'granted') return { text: 'Allowed in this browser.', canAsk: true };
+    return {
+      text: `Notifications aren't set up on a desktop browser in this prototype. Open the app on your phone and allow them there.${state === 'denied' ? ' This browser also has them blocked.' : ''}`,
+      canAsk: false,
+    };
+  }
   switch (state) {
     case 'granted':
-      return 'Allowed on this phone.';
+      // Still askable: the tap records this phone against the person when that has not happened yet.
+      return { text: 'Allowed on this phone.', canAsk: true };
     case 'denied':
-      return platform === 'android'
-        ? 'Blocked on this phone. To unblock: hold the Tracker icon, tap App info, then Notifications, and turn them on.'
-        : 'Blocked on this phone. To unblock: open Settings, tap Notifications, find Tracker and turn Allow Notifications on.';
+      return {
+        text:
+          platform === 'android'
+            ? 'Blocked on this phone. To unblock: hold the Tracker icon, tap App info, then Notifications, and turn them on. Then come back here.'
+            : 'Blocked on this phone. To unblock: open Settings, tap Notifications, find Tracker and turn Allow Notifications on. Then come back here.',
+        canAsk: false,
+      };
     case 'default':
-      return 'Not asked yet. Tap the button and the phone will ask you.';
+      return { text: 'Not asked yet. Tap the button and the phone will ask you.', canAsk: true };
     case 'unsupported':
-      return platform === 'iphone'
-        ? 'This browser cannot ask yet. On an iPhone, notifications only work once the app is on the home screen and opened from there (iOS 16.4 or later).'
-        : 'This browser cannot show notifications.';
+      return {
+        text:
+          platform === 'iphone'
+            ? 'This browser cannot ask yet. On an iPhone, notifications only work once the app is on the home screen and opened from there (iOS 16.4 or later).'
+            : 'This browser cannot show notifications.',
+        canAsk: false,
+      };
   }
 }
 
@@ -71,8 +93,10 @@ function requestPermission(): Promise<PermissionState> {
 
 export default function Settings() {
   const api = useApi();
+  const navigate = useNavigate();
   const { person, role, side, sides, personId } = useSession();
   const prefs = useQuery((api) => api.getNotificationPrefs(), [personId]);
+  const lastSync = useQuery((api) => api.getLastSync(), []);
   const subscriptions = useQuery((api) => api.listPushSubscriptions(), [personId]);
   const me = useQuery((api) => api.getPerson(personId), [personId]);
   const [permission, setPermission] = useState<PermissionState>(() => readPermission());
@@ -80,9 +104,30 @@ export default function Settings() {
   const [buzzed, setBuzzed] = useState(false);
   const [resetStep, setResetStep] = useState<'idle' | 'confirm' | 'done'>('idle');
   const standalone = isStandalone();
-  const platform = /iPhone|iPad/i.test(typeof navigator === 'undefined' ? '' : navigator.userAgent) ? 'iphone' : /Android/i.test(typeof navigator === 'undefined' ? '' : navigator.userAgent) ? 'android' : 'other';
+  const platform = detectPlatform();
   const device = deviceWords();
+  const permWords = permissionWords(permission, platform);
   const thisPhone = subscriptions.find((s) => s.device === device);
+
+  // The Permissions API is the live read: it also changes when someone unblocks in phone settings and comes back.
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.permissions?.query || readPermission() === 'unsupported') return;
+    let status: PermissionStatus | undefined;
+    const apply = () => {
+      if (status) setPermission(status.state === 'prompt' ? 'default' : status.state);
+    };
+    navigator.permissions
+      .query({ name: 'notifications' as PermissionName })
+      .then((st) => {
+        status = st;
+        apply();
+        st.addEventListener('change', apply);
+      })
+      .catch(() => {
+        /* keep Notification.permission */
+      });
+    return () => status?.removeEventListener('change', apply);
+  }, []);
 
   // Opened from the home screen: record it against the person, once.
   useEffect(() => {
@@ -108,6 +153,12 @@ export default function Settings() {
     setResetStep('done');
   }
 
+  /** No login in the prototype: signing out drops back to the default person and the sign-in page, which explains the dev bar. */
+  function signOut() {
+    api.setSession({ personId: DEFAULT_PERSON, sideId: DEFAULT_SIDE });
+    navigate('/sign-in');
+  }
+
   const otherSides = sides.filter((s) => s.id !== side.id);
   const homeDone = standalone || !!me?.installedToHomeScreen;
   const notifDone = permission === 'granted' || (!!thisPhone && thisPhone.enabled);
@@ -129,6 +180,9 @@ export default function Settings() {
           </span>
           {person.phone && <span className="settings__who-phone">{person.phone}</span>}
         </p>
+        <button type="button" className="btn btn--desktop settings__signout" data-testid="settings-sign-out" onClick={signOut}>
+          Sign out
+        </button>
       </section>
 
       <section className="settings__section" aria-labelledby="settings-setup-title">
@@ -154,10 +208,10 @@ export default function Settings() {
             <div className="settings__step-body">
               <span className="settings__step-name">Notifications allowed</span>
               <span className="settings__step-state" data-testid="settings-permission-state">
-                {permissionWords(permission, platform)}
+                {permWords.text}
               </span>
-              <button type="button" className="btn btn--primary settings__allow" data-testid="settings-allow-notifications" disabled={asking || permission === 'unsupported'} onClick={allow}>
-                {permission === 'granted' ? 'Notifications are allowed' : asking ? 'Asking the phone' : 'Allow notifications'}
+              <button type="button" className="btn btn--primary settings__allow" data-testid="settings-allow-notifications" disabled={asking || !permWords.canAsk || (permission === 'granted' && !!thisPhone)} onClick={allow}>
+                {permission === 'granted' && thisPhone ? 'Notifications are allowed' : asking ? 'Asking the phone' : permission === 'granted' ? 'Record this phone' : 'Allow notifications'}
               </button>
               <span className="settings__push-note" data-testid="settings-push-note">
                 {thisPhone
@@ -224,6 +278,9 @@ export default function Settings() {
         </h2>
         <p className="settings__version" data-testid="settings-version">
           Prototype, sample data version {SEED_VERSION}. Everything is saved on this phone only.
+        </p>
+        <p className="settings__version" data-testid="settings-last-sync">
+          {lastSync ? `Last change saved ${formatStamp(lastSync)}.` : 'Nothing changed on this phone yet.'}
         </p>
         {resetStep === 'idle' && (
           <button type="button" className="btn" data-testid="settings-reset" onClick={() => setResetStep('confirm')}>

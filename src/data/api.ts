@@ -491,6 +491,8 @@ export interface TrackerApi {
   subscribe(listener: Listener): () => void;
   /** Wipes local data and reseeds. Keeps the session. */
   reset(): void;
+  /** When the local copy last changed (the mock: the last write through the API), as a `YYYY-MM-DDTHH:mm` stamp; undefined before any write. */
+  getLastSync(): string | undefined;
 }
 
 /** Screen keys used by navigation and `canSee`. Routes are in src/screens/README.md. */

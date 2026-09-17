@@ -45,7 +45,7 @@ export function roleChangeRefusal(actingPersonId: string, target: Person, curren
 
 export default function People() {
   const api = useApi();
-  const { side, sides, personId } = useSession();
+  const { side, sides, personId, offline } = useSession();
   const layout = useLayout();
   const people = useQuery((api) => api.listPeople(), []);
   const memberships = useQuery((api) => api.listMemberships(), []);
@@ -55,6 +55,7 @@ export default function People() {
   const roleOf = (id: string) => memberships.find((m) => m.personId === id)?.role;
 
   function setRole(person: Person, role: Role | null) {
+    if (offline) return;
     const words = roleChangeRefusal(personId, person, roleOf(person.id), role);
     setRefusal(words);
     if (words) return;
@@ -63,14 +64,19 @@ export default function People() {
 
   const count = people.length === 1 ? '1 person' : `${people.length} people`;
   const addButton = !adding ? (
-    <button type="button" className="btn btn--primary btn--desktop" data-testid="person-add" onClick={() => { setAdding(true); setAdded(null); }}>
-      Add a person
+    <button type="button" className="btn btn--primary btn--desktop" data-testid="person-add" disabled={offline} onClick={() => { setAdding(true); setAdded(null); }}>
+      {offline ? 'Add a person: needs signal' : 'Add a person'}
     </button>
   ) : undefined;
 
   return (
     <main className="page people" data-testid="people">
       <PageHeader title="People and roles" meta={`${count} on ${side.name}`} actions={addButton} />
+      {offline && (
+        <p className="people__offline" data-testid="people-offline">
+          Needs signal. Roles and people can be read here, but changing them waits until you are back in range.
+        </p>
+      )}
       {adding && (
         <AddPerson
           onDone={(words) => {
@@ -90,9 +96,9 @@ export default function People() {
         </p>
       )}
       {layout === 'desktop' ? (
-        <PeopleTable people={people} roleOf={roleOf} setRole={setRole} sideName={side.name} />
+        <PeopleTable people={people} roleOf={roleOf} setRole={setRole} sideName={side.name} disabled={offline} />
       ) : (
-        <PeopleCards people={people} roleOf={roleOf} setRole={setRole} sideName={side.name} />
+        <PeopleCards people={people} roleOf={roleOf} setRole={setRole} sideName={side.name} disabled={offline} />
       )}
       {sides.length > 1 && (
         <p className="people__note">Roles are per side. Switch side at the top to set who does what on {sides.filter((s) => s.id !== side.id).map((s) => s.name).join(' and ')}.</p>
@@ -119,13 +125,15 @@ interface ListProps {
   roleOf: (id: string) => Role | undefined;
   setRole: (person: Person, role: Role | null) => void;
   sideName: string;
+  /** Offline: every control reads but does nothing. */
+  disabled: boolean;
 }
 
-function RoleButtons({ person, role, setRole }: { person: Person; role: Role | undefined; setRole: ListProps['setRole'] }) {
+function RoleButtons({ person, role, setRole, disabled }: { person: Person; role: Role | undefined; setRole: ListProps['setRole']; disabled: boolean }) {
   return (
     <div className="people__picker" role="group" aria-label={`${person.shortName}'s role`}>
       {ROLES.map((r) => (
-        <button key={r} type="button" className="people__pick" aria-pressed={role === r} data-testid={`person-role-${person.id}-${r}`} onClick={() => setRole(person, r)}>
+        <button key={r} type="button" className="people__pick" aria-pressed={role === r} disabled={disabled} data-testid={`person-role-${person.id}-${r}`} onClick={() => setRole(person, r)}>
           {ROLE_LABELS[r]}
         </button>
       ))}
@@ -133,15 +141,15 @@ function RoleButtons({ person, role, setRole }: { person: Person; role: Role | u
   );
 }
 
-function RemoveButton({ person, setRole, sideName }: { person: Person; setRole: ListProps['setRole']; sideName: string }) {
+function RemoveButton({ person, setRole, sideName, disabled }: { person: Person; setRole: ListProps['setRole']; sideName: string; disabled: boolean }) {
   return (
-    <button type="button" className="people__remove" data-testid={`person-remove-${person.id}`} onClick={() => setRole(person, null)}>
-      Remove from {sideName}
+    <button type="button" className="people__remove" data-testid={`person-remove-${person.id}`} disabled={disabled} onClick={() => setRole(person, null)}>
+      {disabled ? 'Needs signal' : `Remove from ${sideName}`}
     </button>
   );
 }
 
-function PeopleTable({ people, roleOf, setRole, sideName }: ListProps) {
+function PeopleTable({ people, roleOf, setRole, sideName, disabled }: ListProps) {
   return (
     <table className="people__table">
       <thead>
@@ -162,13 +170,13 @@ function PeopleTable({ people, roleOf, setRole, sideName }: ListProps) {
               {p.phone && <span className="people__phone">{p.phone}</span>}
             </td>
             <td>
-              <RoleButtons person={p} role={roleOf(p.id)} setRole={setRole} />
+              <RoleButtons person={p} role={roleOf(p.id)} setRole={setRole} disabled={disabled} />
             </td>
             <td className="people__cell-setup" data-testid={`person-setup-${p.id}`}>
               {setupWords(p)}
             </td>
             <td className="people__cell-remove">
-              <RemoveButton person={p} setRole={setRole} sideName={sideName} />
+              <RemoveButton person={p} setRole={setRole} sideName={sideName} disabled={disabled} />
             </td>
           </tr>
         ))}
@@ -177,7 +185,7 @@ function PeopleTable({ people, roleOf, setRole, sideName }: ListProps) {
   );
 }
 
-function PeopleCards({ people, roleOf, setRole, sideName }: ListProps) {
+function PeopleCards({ people, roleOf, setRole, sideName, disabled }: ListProps) {
   return (
     <ul className="people__cards">
       {people.map((p) => (
@@ -186,12 +194,12 @@ function PeopleCards({ people, roleOf, setRole, sideName }: ListProps) {
             <span className="people__name">{p.name}</span>
             {p.phone && <span className="people__phone">{p.phone}</span>}
           </div>
-          <RoleButtons person={p} role={roleOf(p.id)} setRole={setRole} />
+          <RoleButtons person={p} role={roleOf(p.id)} setRole={setRole} disabled={disabled} />
           <div className="people__card-foot">
             <span className="people__setup" data-testid={`person-setup-${p.id}`}>
               {setupWords(p)}
             </span>
-            <RemoveButton person={p} setRole={setRole} sideName={sideName} />
+            <RemoveButton person={p} setRole={setRole} sideName={sideName} disabled={disabled} />
           </div>
         </li>
       ))}
@@ -202,12 +210,12 @@ function PeopleCards({ people, roleOf, setRole, sideName }: ListProps) {
 /** Name, phone, role and side. The person lands on the chosen side with that role. */
 function AddPerson({ onDone }: { onDone: (words: string) => void }) {
   const api = useApi();
-  const { side, sides } = useSession();
+  const { side, sides, offline } = useSession();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<Role>('builder');
   const [sideId, setSideId] = useState(side.id);
-  const ready = name.trim().length > 0;
+  const ready = name.trim().length > 0 && !offline;
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -266,7 +274,7 @@ function AddPerson({ onDone }: { onDone: (words: string) => void }) {
       )}
       <div className="people__form-actions">
         <button type="submit" className="btn btn--primary" data-testid="person-add-save" disabled={!ready}>
-          Add {name.trim() ? name.trim().split(/\s+/)[0] : 'person'}
+          {offline ? 'Needs signal' : `Add ${name.trim() ? name.trim().split(/\s+/)[0] : 'person'}`}
         </button>
         <button type="button" className="btn" data-testid="person-add-cancel" onClick={() => onDone('')}>
           Cancel

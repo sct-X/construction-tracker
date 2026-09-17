@@ -18,7 +18,7 @@
  * no dates and no finish. On a phone the screen is one sentence and a link
  * to the read-only program.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { ProgramDraft } from '../data/api';
 import { useApi, useQuery, useSession } from '../data/context';
@@ -53,6 +53,7 @@ export default function ProgramEditor() {
   const [draft, setDraft] = useState<ProgramDraft | null>(null);
   const [selection, setSelection] = useState<Selection>(null);
   const [savedWords, setSavedWords] = useState<string | null>(null);
+  const panelRef = useRef<HTMLElement>(null);
 
   const program = draft ?? saved;
   const preview = useMemo(() => (job && !job.isTemplate && job.kind === 'build' ? api.previewProgramChange(id, program) : undefined), [api, id, job, program]);
@@ -64,6 +65,13 @@ export default function ProgramEditor() {
     const exists = selection.kind === 'step' ? program.steps.some((s) => s.id === selection.id) : program.stages.some((s) => s.id === selection.id);
     if (!exists) setSelection(null);
   }, [selection, program]);
+
+  // Under 1400px the panel sits below the chart: bring it into view when something is picked.
+  useEffect(() => {
+    if (!selection || !panelRef.current) return;
+    const beside = typeof window !== 'undefined' && window.matchMedia('(min-width: 1400px)').matches;
+    panelRef.current.scrollIntoView({ block: beside ? 'nearest' : 'start' });
+  }, [selection]);
 
   if (!job) return <NotFound />;
 
@@ -275,7 +283,7 @@ export default function ProgramEditor() {
           </div>
         )}
 
-        <aside className="editor__panel" aria-label="Edit">
+        <aside className="editor__panel" aria-label="Edit" ref={panelRef}>
           {selectedStep ? (
             <StepForm
               key={selectedStep.id}

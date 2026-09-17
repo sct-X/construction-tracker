@@ -1,7 +1,6 @@
 /**
  * Routes. Every hash route from src/screens/README.md is registered in
- * src/shell/routes.tsx with its element; unbuilt screens render the
- * Placeholder there so nothing 404s. Access is checked by <Guard> against
+ * src/shell/routes.tsx with its element. Access is checked by <Guard> against
  * `api.canSee`, and `#/` sends each role to its home (src/shell/Landing).
  */
 import { useEffect } from 'react';

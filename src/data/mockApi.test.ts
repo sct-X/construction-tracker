@@ -331,4 +331,15 @@ describe('my settings: notification preferences and push subscriptions (Stage 6,
     expect(texts).toContain('Norm turned off notifications on iPhone, Safari');
     expect(api.listPushSubscriptions('dominic')).toEqual([]);
   });
+
+  it('last sync is the stamp of the last write and survives a reload', () => {
+    const storage = new MemoryStorage();
+    const clock = () => new Date(2026, 8, 17, 15, 10);
+    const api = createMockApi({ storage, session: { personId: 'dominic', today: DEFAULT_TODAY }, clock });
+    expect(api.getLastSync()).toBeUndefined();
+    api.setNotificationPref('reminders', false);
+    expect(api.getLastSync()).toBe('2026-09-17T15:10');
+    const again = createMockApi({ storage, session: { personId: 'dominic', today: DEFAULT_TODAY }, clock });
+    expect(again.getLastSync()).toBe('2026-09-17T15:10');
+  });
 });

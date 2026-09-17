@@ -1,8 +1,8 @@
 /**
  * The route registry: every hash route from src/screens/README.md with the
- * screen key that gates it (`api.canSee`), a title, the stage it arrives in,
- * and the element to render. Adding a screen is one edit here: swap its
- * Placeholder for the component. App.tsx turns this list into <Route>s.
+ * screen key that gates it (`api.canSee`), a title, the stage it arrived in,
+ * and the element to render. Adding a screen is one entry here. App.tsx
+ * turns this list into <Route>s.
  *
  * e2e/no-money-for-site.spec.ts reads the `path:` values out of this file,
  * so keep each entry on one line, starting with its path.
@@ -27,7 +27,7 @@ import People from '../screens/People';
 import Program from '../screens/Program';
 import ProgramEditor from '../screens/ProgramEditor';
 import Settings from '../screens/Settings';
-import Trades from '../screens/Trades';
+import Trades, { TradeDetail } from '../screens/Trades';
 import ShipmentDetail from '../screens/ShipmentDetail';
 import Shipments from '../screens/Shipments';
 import StepDetail from '../screens/StepDetail';
@@ -81,5 +81,6 @@ export const ROUTES: RouteDef[] = [
   { path: '/templates/:id', screen: 'templates', title: 'Template', stage: 6, element: <TemplateDetail /> },
   { path: '/jobs/new', screen: 'templates', title: 'New job', stage: 6, element: <NewJob /> },
   { path: '/trades', screen: 'trades', title: 'Trades', stage: 6, element: <Trades /> },
+  { path: '/trades/:id', screen: 'trades', title: 'Trade', stage: 6, element: <TradeDetail /> },
   { path: '/people', screen: 'people', title: 'People and roles', stage: 6, element: <People /> },
 ];

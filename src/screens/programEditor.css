@@ -77,9 +77,13 @@
 }
 
 /* ---- chart and panel ---- */
+/* Under 1400px the chart takes the full width (the label column is 292px, so
+   the timeline needs the room) and the panel sits under it; the page scrolls
+   and the finish footer stays pinned. From 1400px the panel moves beside the
+   chart. Nothing is capped but the chart's own scroll box. */
 .editor__cols {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 352px;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
   align-items: start;
 }
@@ -89,20 +93,24 @@
 .editor__chart {
   min-width: 0;
 }
-.editor__chart .gantt__scroll {
-  /* chart, caption and the footer fit one viewport, so the finish is in view without scrolling */
-  max-height: calc(100dvh - var(--above, 0px) - 380px);
-}
 .editor__panel {
-  position: sticky;
-  top: var(--space-4);
-  /* the chart's height (its scroll box plus caption), so the panel ends where the chart ends and the footer covers neither */
-  max-height: calc(100dvh - var(--above, 0px) - 336px);
-  overflow: auto;
+  /* a form, not a banner: under the chart it keeps a form's width */
+  max-width: 680px;
   padding: var(--space-5);
   border: var(--hairline);
   border-radius: var(--radius-lg);
   background: var(--surface);
+  scroll-margin-top: var(--space-4);
+}
+@media (min-width: 1400px) {
+  .editor__cols:not(.editor__cols--bare) {
+    grid-template-columns: minmax(0, 1fr) 352px;
+  }
+  .editor__panel {
+    position: sticky;
+    top: var(--space-4);
+    max-width: none;
+  }
 }
 .editor__help {
   color: var(--text-secondary);

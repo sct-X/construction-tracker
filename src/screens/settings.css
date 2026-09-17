@@ -52,6 +52,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+.settings__signout {
+  margin-top: var(--space-3);
+}
+
 /* ---- the three steps ---- */
 .settings__steps {
   list-style: none;

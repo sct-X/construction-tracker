@@ -62,6 +62,8 @@ interface Store {
   data: SeedData;
   /** Notification preferences by person id (UI_PLAN 3.19); absent keys fall back to the person's flag. */
   prefs?: Record<string, Partial<NotificationPrefs>>;
+  /** Stamp of the last write (settings' "last sync"). */
+  lastSync?: string;
 }
 
 export interface MockApiOptions {
@@ -126,6 +128,7 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
   }
 
   function commit(): void {
+    store.lastSync = stamp();
     persist();
     notify();
   }
@@ -1514,10 +1517,13 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
       };
     },
     reset() {
-      store = { seedVersion: SEED_VERSION, data: buildSeed() };
+      store = { seedVersion: SEED_VERSION, data: buildSeed(), lastSync: stamp() };
       persist();
       void queue.clear().then(() => notify());
       notify();
+    },
+    getLastSync() {
+      return store.lastSync;
     },
   };
 

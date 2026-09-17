@@ -40,6 +40,22 @@ test.describe('Trades as Dominic', () => {
     await page.reload();
     await expect(page.locator('[data-testid^="trade-tr-"]', { hasText: 'Scaff City' })).toHaveCount(1);
 
+    // One trade's page: the number, the jobs, and the items waiting on them.
+    await page.getByTestId('trade-open-tr-plumber').click();
+    await expect(page).toHaveURL(/#\/trades\/tr-plumber$/);
+    await expect(page.getByTestId('trade-detail')).toBeVisible();
+    await expect(page.getByTestId('trade-ring-tr-plumber')).toHaveAttribute('href', 'tel:0411200308');
+    await expect(page.getByTestId('trade-jobs-tr-plumber')).toContainText('Park Rd');
+    expect(await page.locator('[data-testid^="trade-detail-item-"]').count()).toBeGreaterThanOrEqual(1);
+    await expect(page.getByTestId('trade-edit-tr-plumber')).toBeVisible();
+
+    // Offline: reading and ringing work, writing waits.
+    await page.goto('#/trades?as=dominic&side=side-nd&today=2026-09-17&offline=1');
+    await expect(page.getByTestId('trades-offline')).toContainText('Needs signal');
+    await expect(page.getByTestId('trade-add')).toBeDisabled();
+    await expect(page.getByTestId('trade-ring-tr-plumber')).toBeVisible();
+    await page.goto('#/trades?as=dominic&side=side-nd&today=2026-09-17&offline=0');
+
     // The Norm side has nothing yet, in words.
     await page.goto('#/trades?as=dominic&side=side-norm&today=2026-09-17');
     await expect(page.getByTestId('trades-empty')).toContainText('No trades yet. Add them as you book them.');
@@ -88,6 +104,13 @@ test.describe('People and roles as Dominic', () => {
     await expect(page.getByTestId('people-refusal')).toContainText("can't remove yourself");
     await expect(page.getByTestId('person-dominic')).toBeVisible();
 
+    // Offline: roles read but do not change.
+    await page.goto('#/people?as=dominic&side=side-nd&today=2026-09-17&offline=1');
+    await expect(page.getByTestId('people-offline')).toContainText('Needs signal');
+    await expect(page.getByTestId('person-role-raff-builder')).toBeDisabled();
+    await expect(page.getByTestId('person-add')).toBeDisabled();
+    await page.goto('#/people?as=dominic&side=side-nd&today=2026-09-17&offline=0');
+
     // Raff now gets a partner's navigation.
     await page.goto('#/?as=raff');
     await expect(page).toHaveURL(/#\/monday$/);
@@ -123,7 +146,7 @@ test.describe('People and roles as Dominic', () => {
 });
 
 test.describe('My settings', () => {
-  test('shows Dominic, keeps a preference across a reload, has the install steps and the permission words', async ({ page, context, baseURL }) => {
+  test('shows Dominic, keeps a preference across a reload, has the install steps and the permission words', async ({ page }) => {
     await page.goto('#/settings?as=dominic&side=side-nd&today=2026-09-17');
     await expect(page.getByTestId('settings')).toBeVisible();
     await expect(page.getByTestId('placeholder')).toHaveCount(0);
@@ -151,14 +174,14 @@ test.describe('My settings', () => {
     await expect(page.getByTestId('settings-install-steps')).toContainText('three dots');
     await expect(page.getByTestId('settings-install-steps').locator('li')).toHaveCount(4);
 
-    // Permission state in words, then a real permission ask.
+    // Both projects run a desktop browser, so the words say so and the ask is off.
     const state = page.getByTestId('settings-permission-state');
-    await expect(state).toContainText(/Not asked yet|Blocked|Allowed|cannot/);
-    await context.grantPermissions(['notifications'], { origin: new URL(baseURL ?? page.url()).origin });
-    await page.getByTestId('settings-allow-notifications').click();
-    await expect(state).toHaveText('Allowed on this phone.');
-    await expect(page.getByTestId('settings-push-note')).toContainText('recorded against your name');
+    await expect(state).toContainText("Notifications aren't set up on a desktop browser in this prototype");
+    await expect(page.getByTestId('settings-allow-notifications')).toBeDisabled();
     await expect(page.getByTestId('settings-push-note')).toContainText('no push server');
+
+    // Last sync is the last write through the API.
+    await expect(page.getByTestId('settings-last-sync')).toContainText('Last change saved');
 
     // The test buzz lands in the app's own list.
     await page.getByTestId('settings-test-buzz').click();
@@ -171,9 +194,46 @@ test.describe('My settings', () => {
     await page.getByTestId('settings-reset-confirm').click();
     await expect(page.getByTestId('settings-reset-done')).toContainText('Reset done');
     await expect(page.getByTestId('settings-pref-eta_changes')).toHaveAttribute('aria-checked', 'true');
+
+    // Sign out drops to the sign-in page, which explains the dev bar.
+    await page.goto('#/settings?as=alec&today=2026-09-17');
+    await page.getByTestId('settings-sign-out').click();
+    await expect(page).toHaveURL(/#\/sign-in$/);
+    await expect(page.getByTestId('sign-in')).toBeVisible();
+    await expect(page.getByTestId('dev-person')).toHaveValue('dominic');
   });
 
-  test('Alec sees no money and no admin screens; Raff can add trades but not edit them; partners have no people screen', async ({ page }) => {
+  test.describe('on an iPhone', () => {
+    test.use({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
+
+    test('blocked shows the unblock words with the ask off', async ({ page }) => {
+      // Headless Chromium starts denied.
+      await page.goto('#/settings?as=dominic&side=side-nd&today=2026-09-17');
+      const state = page.getByTestId('settings-permission-state');
+      await expect(state).toContainText(/Blocked on this phone|Not asked yet/);
+      if ((await state.innerText()).startsWith('Blocked')) {
+        await expect(state).toContainText('To unblock');
+        await expect(page.getByTestId('settings-allow-notifications')).toBeDisabled();
+      }
+      await expect(page.getByTestId('settings-install-steps')).toContainText('Add to Home Screen');
+    });
+
+    test('allowed records the phone against the person', async ({ page, context, baseURL }) => {
+      await context.grantPermissions(['notifications'], { origin: new URL(baseURL ?? 'http://localhost').origin });
+      await page.goto('#/settings?as=dominic&side=side-nd&today=2026-09-17');
+      const state = page.getByTestId('settings-permission-state');
+      await expect(state).toContainText(/Allowed on this phone|Not asked yet/);
+      // The tap asks (or, already allowed, records this phone), then goes quiet.
+      await page.getByTestId('settings-allow-notifications').click();
+      await expect(state).toHaveText('Allowed on this phone.');
+      await expect(page.getByTestId('settings-push-note')).toContainText('recorded against your name');
+      await expect(page.getByTestId('settings-allow-notifications')).toBeDisabled();
+      await expect(page.getByTestId('settings-allow-notifications')).toHaveText('Notifications are allowed');
+      await page.getByTestId('dev-reset').click();
+    });
+  });
+
+  test('Alec sees no money and no admin screens; Raff keeps trades too; partners have no people screen', async ({ page }) => {
     await page.goto('#/settings?as=alec&today=2026-09-17');
     await expect(page.getByTestId('settings')).toBeVisible();
     await expect(page.getByTestId('settings-who')).toContainText('Alec Ferris');
@@ -192,7 +252,12 @@ test.describe('My settings', () => {
     await page.goto('#/trades?as=raff&today=2026-09-17');
     await expect(page.getByTestId('trades')).toBeVisible();
     await expect(page.getByTestId('trade-add')).toBeVisible();
-    await expect(page.locator('[data-testid^="trade-edit-"]')).toHaveCount(0);
+    await expect(page.getByTestId('trade-edit-tr-plumber')).toBeVisible();
+    await page.goto('#/trades/tr-plumber?as=raff&today=2026-09-17');
+    await expect(page.getByTestId('trade-detail')).toBeVisible();
+    await expect(page.getByTestId('trade-edit-tr-plumber')).toBeVisible();
+    await page.goto('#/trades/tr-plumber?as=alec&today=2026-09-17');
+    await expect(page.getByTestId('no-access')).toBeVisible();
 
     await page.goto('#/people?as=dom&today=2026-09-17');
     await expect(page.getByTestId('no-access')).toBeVisible();

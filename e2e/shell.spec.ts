@@ -123,16 +123,16 @@ test.describe('Shell: navigation and landing per role', () => {
     await expect(page.getByTestId('offline-bar')).toHaveCount(0);
   });
 
-  test('a typed route the role cannot see is refused; Monday does not exist for Alec', async ({ page }) => {
+  test('a typed route the role cannot see is refused, Monday for Alec included', async ({ page }) => {
     await page.goto('#/calls?as=raff');
     await expect(page.getByTestId('no-access')).toContainText("You don't have access to this");
     await page.goto('#/monday?as=alec');
-    await expect(page.getByTestId('not-found')).toBeVisible();
+    await expect(page.getByTestId('no-access')).toContainText("You don't have access to this");
     await page.goto('#/nowhere?as=dominic');
     await expect(page.getByTestId('not-found')).toBeVisible();
   });
 
-  test('every route in the plan resolves to a screen or a placeholder', async ({ page }) => {
+  test('every route in the plan resolves to a screen', async ({ page }) => {
     const routes = [
       '/monday',
       '/jobs',

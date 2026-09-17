@@ -8,8 +8,12 @@
  * requirement without anyone typing the same words twice.
  */
 import { useState, type FormEvent } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
-import type { Job, Trade } from '../domain/types';
+import type { Item, Job, Trade } from '../domain/types';
+import type { ItemForecast } from '../domain/forecast';
+import { ItemRow } from '../components/ItemRow';
+import NotFound from './NotFound';
 import { PageHeader } from '../shell/PageHeader';
 import { useLayout } from '../shell/AppShell';
 import './trades.css';
@@ -92,32 +96,41 @@ function useRows(): TradeRow[] {
   }, []);
 }
 
+/** Admin, partners and the builder keep the trade list; the site role only reads it (and cannot open the screen). */
+export function canEditTrades(role: string): boolean {
+  return role === 'admin' || role === 'partner' || role === 'builder';
+}
+
 export default function Trades() {
-  const { side, role } = useSession();
+  const { side, role, offline } = useSession();
   const layout = useLayout();
   const rows = useRows();
   const types = useTradeTypes();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const canEdit = role === 'admin' || role === 'partner';
-  const canAdd = canEdit || role === 'builder';
+  const canEdit = canEditTrades(role) && !offline;
   const count = rows.length === 1 ? '1 trade' : `${rows.length} trades`;
 
   const addButton =
-    canAdd && !adding ? (
-      <button type="button" className="btn btn--primary btn--desktop" data-testid="trade-add" onClick={() => { setAdding(true); setEditingId(null); }}>
-        Add trade
+    canEditTrades(role) && !adding ? (
+      <button type="button" className="btn btn--primary btn--desktop" data-testid="trade-add" disabled={offline} onClick={() => { setAdding(true); setEditingId(null); }}>
+        {offline ? 'Add trade: needs signal' : 'Add trade'}
       </button>
     ) : undefined;
 
   return (
     <main className="page trades" data-testid="trades">
       <PageHeader title="Trades" meta={`${count} on ${side.name}`} actions={addButton} />
+      {offline && canEditTrades(role) && (
+        <p className="trades__offline" data-testid="trades-offline">
+          Needs signal. You can ring anyone from here, but adding or changing a trade waits until you are back in range.
+        </p>
+      )}
       {adding && <TradeForm types={types} onDone={() => setAdding(false)} />}
       {rows.length === 0 ? (
         <div className="trades__empty" data-testid="trades-empty">
           <p className="trades__empty-words">No trades yet. Add them as you book them.</p>
-          {canAdd && !adding && (
+          {canEdit && !adding && (
             <button type="button" className="btn btn--primary" data-testid="trade-add-empty" onClick={() => setAdding(true)}>
               Add the first trade
             </button>
@@ -167,7 +180,9 @@ function TradeTable({ rows, canEdit, editingId, setEditingId, types }: ListProps
           ) : (
             <tr key={trade.id} className="trades__row" data-testid={`trade-${trade.id}`}>
               <td className="trades__cell-name">
-                <span className="trades__name">{trade.name}</span>
+                <Link to={`/trades/${trade.id}`} className="trades__name" data-testid={`trade-open-${trade.id}`}>
+                  {trade.name}
+                </Link>
               </td>
               <td className="trades__cell-type">{trade.type || <span className="trades__muted">No type</span>}</td>
               <td className="trades__cell-phone">
@@ -207,7 +222,9 @@ function TradeCards({ rows, canEdit, editingId, setEditingId, types }: ListProps
           ) : (
             <>
               <div className="trades__card-words">
-                <span className="trades__name">{trade.name}</span>
+                <Link to={`/trades/${trade.id}`} className="trades__name" data-testid={`trade-open-${trade.id}`}>
+                  {trade.name}
+                </Link>
                 <span className="trades__type">{trade.type || 'No type'}</span>
                 <span className="trades__jobs" data-testid={`trade-jobs-${trade.id}`}>
                   {jobsWords(jobs)}
@@ -239,9 +256,9 @@ function TradeCards({ rows, canEdit, editingId, setEditingId, types }: ListProps
  * requirements; "Something else" opens a text field for a type no program
  * has asked for yet. Delete asks once, in words, before it goes.
  */
-function TradeForm({ trade, types, onDone }: { trade?: Trade; types: string[]; onDone: () => void }) {
+function TradeForm({ trade, types, onDone, onDeleted }: { trade?: Trade; types: string[]; onDone: () => void; onDeleted?: () => void }) {
   const api = useApi();
-  const { role } = useSession();
+  const { role, offline } = useSession();
   const [name, setName] = useState(trade?.name ?? '');
   const [type, setType] = useState(trade?.type ?? '');
   const [other, setOther] = useState(() => (trade?.type && !types.includes(trade.type) ? trade.type : ''));
@@ -249,8 +266,8 @@ function TradeForm({ trade, types, onDone }: { trade?: Trade; types: string[]; o
   const [phone, setPhone] = useState(trade?.phone ?? '');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const finalType = otherOpen ? other.trim() : type;
-  const ready = name.trim().length > 0 && finalType.length > 0;
-  const canDelete = !!trade && (role === 'admin' || role === 'partner');
+  const ready = name.trim().length > 0 && finalType.length > 0 && !offline;
+  const canDelete = !!trade && canEditTrades(role) && !offline;
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -265,6 +282,7 @@ function TradeForm({ trade, types, onDone }: { trade?: Trade; types: string[]; o
     if (!trade) return;
     api.deleteTrade(trade.id);
     onDone();
+    onDeleted?.();
   }
 
   const prefix = trade ? `trade-${trade.id}-` : '';
@@ -309,7 +327,7 @@ function TradeForm({ trade, types, onDone }: { trade?: Trade; types: string[]; o
       </div>
       <div className="trades__form-actions">
         <button type="submit" className="btn btn--primary" data-testid="trade-save" disabled={!ready}>
-          {trade ? 'Save changes' : 'Add trade'}
+          {offline ? 'Needs signal' : trade ? 'Save changes' : 'Add trade'}
         </button>
         <button type="button" className="btn" data-testid="trade-cancel" onClick={onDone}>
           Cancel
@@ -334,5 +352,86 @@ function TradeForm({ trade, types, onDone }: { trade?: Trade; types: string[]; o
         </div>
       )}
     </form>
+  );
+}
+
+/**
+ * One trade (UI_PLAN 3.22): the number, the jobs they are on, and the items
+ * waiting on them, as the shared item row. Version two's "what's owed" sits
+ * on this page later. Edit and delete live here too, through the same form.
+ */
+export function TradeDetail() {
+  const { id = '' } = useParams();
+  const navigate = useNavigate();
+  const api = useApi();
+  const { role, offline } = useSession();
+  const types = useTradeTypes();
+  const [editing, setEditing] = useState(false);
+  const row = useRows().find((r) => r.trade.id === id);
+  const items = useQuery<{ item: Item; forecast?: ItemForecast; jobName: string; ownerName?: string }[]>(
+    (api) => {
+      const jobs = new Map(api.listJobs().map((j) => [j.id, j.name]));
+      return api
+        .listItems({ tradeId: id })
+        .map((item) => ({
+          item,
+          forecast: api.getForecast(item.jobId)?.items[item.id],
+          jobName: jobs.get(item.jobId) ?? '',
+          ownerName: item.ownerId ? api.getPerson(item.ownerId)?.shortName : undefined,
+        }))
+        .sort((a, b) => (a.forecast?.actBy ?? '9').localeCompare(b.forecast?.actBy ?? '9'));
+    },
+    [id],
+  );
+  if (!row) return <NotFound />;
+  const { trade, jobs } = row;
+  const canEdit = canEditTrades(role);
+  const itemHref = api.canSee('item') ? (itemId: string) => `/items/${itemId}` : () => undefined;
+  const editButton =
+    canEdit && !editing ? (
+      <button type="button" className="btn btn--desktop" data-testid={`trade-edit-${trade.id}`} disabled={offline} onClick={() => setEditing(true)}>
+        {offline ? 'Edit: needs signal' : 'Edit'}
+      </button>
+    ) : undefined;
+
+  return (
+    <main className="page trades" data-testid="trade-detail">
+      <PageHeader title={trade.name} meta={trade.type || 'No type'} back={{ to: '/trades', label: 'Trades' }} actions={editButton} />
+      {editing ? (
+        <TradeForm trade={trade} types={types} onDone={() => setEditing(false)} onDeleted={() => navigate('/trades')} />
+      ) : (
+        <div className="trades__detail-top">
+          {trade.phone ? (
+            <a className="trades__ring" href={telHref(trade.phone)} data-testid={`trade-ring-${trade.id}`}>
+              <span className="trades__ring-word">Ring</span>
+              <span className="trades__ring-number">{trade.phone}</span>
+            </a>
+          ) : (
+            <span className="trades__ring trades__ring--none">No number</span>
+          )}
+          <p className="trades__detail-jobs" data-testid={`trade-jobs-${trade.id}`}>
+            {jobs.length === 0 ? 'Not on a job yet.' : `On ${jobsWords(jobs)}.`}
+          </p>
+        </div>
+      )}
+      <section className="trades__items" aria-labelledby="trade-items-title">
+        <h2 id="trade-items-title" className="trades__items-title">
+          {items.length === 0 ? 'Nothing waiting on them' : items.length === 1 ? '1 item waiting on them' : `${items.length} items waiting on them`}
+        </h2>
+        {items.length === 0 ? (
+          <p className="trades__muted" data-testid="trade-detail-empty">
+            No open items are waiting on {trade.name}.
+          </p>
+        ) : (
+          <ul className="trades__item-list" data-testid="trade-detail-items">
+            {items.map(({ item, forecast, jobName, ownerName }) => (
+              <li key={item.id}>
+                <ItemRow item={item} forecast={forecast} ownerName={ownerName} href={itemHref(item.id)} context={jobName} testId={`trade-detail-item-${item.id}`} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
   );
 }

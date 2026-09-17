@@ -40,11 +40,11 @@ test.describe('Build job overview', () => {
 
   test('Alec gets the Today layout with no money anywhere', async ({ page }) => {
     await page.goto('#/jobs/park-rd?as=alec&today=2026-09-17');
-    await expect(page.getByTestId('job-today-placeholder')).toBeVisible();
+    await expect(page.getByTestId('today')).toBeVisible();
     await expect(page.getByTestId('job-finish')).toContainText('Fri 26 Feb 2027');
     await expect(page.getByTestId('job-slip')).toHaveCount(0);
     await expect(page.getByTestId('job-confirm')).toHaveCount(0);
-    await expect(page.getByTestId('job-next-holdpoint')).toBeVisible();
+    await expect(page.getByTestId('today-holdpoint')).toBeVisible();
     const text = await page.locator('body').innerText();
     expect(text).not.toContain('$');
   });

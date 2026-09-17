@@ -1,0 +1,188 @@
+/* Photo upload: a ledger of tall buttons, a grid of thumbnails, one hi-vis button. */
+.upload {
+  max-width: 640px;
+}
+.upload__change-job {
+  font-size: var(--text-sm);
+  align-self: center;
+}
+.upload__block {
+  margin-bottom: var(--space-6);
+}
+.upload__label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+.upload__quiet,
+.upload__hint {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-2);
+}
+
+/* Stage: a wrapped row of tall chips, the chosen one filled steel. */
+.upload__stages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.upload__stage {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tap);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-weight: var(--weight-medium);
+  transition: background var(--motion-fast) var(--ease);
+}
+.upload__stage:hover {
+  background: var(--concrete-100);
+}
+.upload__stage:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+.upload__stage-now {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.upload__stage--chosen,
+.upload__stage--chosen:hover {
+  background: var(--steel-700);
+  border-color: var(--steel-700);
+  color: var(--text-on-dark);
+  font-weight: var(--weight-bold);
+}
+.upload__stage--chosen .upload__stage-now {
+  color: var(--steel-200);
+}
+
+/* Choosing photos. */
+.upload__choose {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.upload__choose-btn {
+  flex: 1 1 180px;
+}
+
+/* Thumbnails: three across, each tile a photo and a full-width Remove. */
+.upload__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.upload__tile {
+  display: flex;
+  flex-direction: column;
+  border: var(--hairline);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface-raised);
+}
+.upload__thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background: var(--concrete-100);
+}
+.upload__remove {
+  min-height: 44px;
+  border: 0;
+  border-top: var(--hairline);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+.upload__remove:hover {
+  background: var(--concrete-100);
+}
+.upload__remove:focus-visible {
+  box-shadow: inset var(--focus-ring);
+}
+.shell--phone .upload__remove {
+  min-height: var(--tap);
+}
+
+/* Sending, held, done. */
+.upload__send {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: var(--hairline);
+}
+.upload__line {
+  font-size: var(--text-lg);
+}
+.upload__line .upload__figure {
+  font-size: var(--text-2xl);
+  vertical-align: -0.05em;
+}
+.upload__bar {
+  height: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--concrete-100);
+  overflow: hidden;
+}
+.upload__bar-fill {
+  height: 100%;
+  background: var(--steel-700);
+  transition: width var(--motion-fast) var(--ease);
+}
+.upload__note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--timber-100);
+  color: var(--text);
+}
+.upload__note-glyph {
+  flex: 0 0 auto;
+  margin-top: 4px;
+  color: var(--timber-500);
+}
+.upload__done {
+  font-size: var(--text-lg);
+  color: var(--ok-ink);
+}
+.upload__problem {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--amber-bg);
+  color: var(--amber-ink);
+}
+.upload__filing {
+  color: var(--text-secondary);
+}
+.upload__submit {
+  width: 100%;
+  font-size: var(--text-lg);
+}
+.upload__after {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.upload__submit.btn:disabled {
+  background: var(--concrete-100);
+  border-color: var(--concrete-200);
+  color: var(--text-muted);
+  cursor: default;
+}
+@media (prefers-reduced-motion: reduce) {
+  .upload__bar-fill,
+  .upload__stage,
+  .catpick__row {
+    transition: none;
+  }
+}

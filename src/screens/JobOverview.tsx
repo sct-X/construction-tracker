@@ -7,14 +7,15 @@
  * Then the next hold point with its photo sets, the stages in order, the top
  * waiting-on items, and this week's notes. Money draws nothing when absent.
  *
- * Alec gets the phone layout with a "Today" section that Stage 3 fills in
- * (upload, note, deliveries); he sees the finish date and the hold point,
- * never slip or money (the data layer strips them; nothing here defaults).
+ * Alec gets the phone layout with the Today section on top (AlecToday:
+ * upload, note, this week, deliveries, the next hold point), then the finish
+ * date, the stages and the latest photos; never slip or money (the data
+ * layer strips them; nothing here defaults).
  */
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
-import type { DailyNote, Item, Job, Person } from '../domain/types';
+import type { DailyNote, Item, Job, Person, Photo } from '../domain/types';
 import type { JobForecast, StageForecast } from '../domain/forecast';
 import { topWaitingOn } from '../domain/forecast';
 import { addCalendarDays, formatDayMonth, formatLong, formatShort, relativeDays } from '../domain/dates';
@@ -24,6 +25,7 @@ import { ItemRow, ItemRowList } from '../components/ItemRow';
 import { Money } from '../components/Money';
 import { SlipText, slipTone } from '../components/SlipText';
 import { StatusText, type Tone } from '../components/StatusText';
+import AlecToday from './AlecToday';
 import NotFound from './NotFound';
 import { PageHeader } from '../shell/PageHeader';
 import './jobOverview.css';
@@ -35,6 +37,8 @@ interface Data {
   people: Person[];
   notes: DailyNote[];
   photoCount: number;
+  /** The newest few, for the strip at the foot. */
+  latestPhotos: Photo[];
   stepCount: number;
 }
 
@@ -73,6 +77,7 @@ export default function JobOverview() {
         people: api.listPeople(),
         notes: api.listDailyNotes(id),
         photoCount: api.listPhotos(id).length,
+        latestPhotos: api.listPhotos(id).slice(0, 6),
         stepCount: api.listSteps(id).length,
       };
     },
@@ -81,7 +86,7 @@ export default function JobOverview() {
   const [confirmedNow, setConfirmedNow] = useState(false);
 
   if (!data) return <NotFound />;
-  const { job, forecast, items, people, notes, photoCount, stepCount } = data;
+  const { job, forecast, items, people, notes, photoCount, latestPhotos, stepCount } = data;
   const site = role === 'site';
   const canConfirm = !site;
   const nameOf = (pid?: string) => people.find((p) => p.id === pid)?.shortName;
@@ -133,14 +138,7 @@ export default function JobOverview() {
         ))}
       </nav>
 
-      {site && (
-        <section className="job__section job__today" aria-labelledby="job-today" data-testid="job-today-placeholder">
-          <h2 id="job-today" className="job__section-title">
-            Today
-          </h2>
-          <p className="job__quiet">Upload photos, today's note and deliveries due this fortnight arrive in stage 3.</p>
-        </section>
-      )}
+      {site && <AlecToday jobId={id} />}
 
       {!forecast || stepCount === 0 ? (
         <p className="job__empty" data-testid="job-empty">
@@ -212,6 +210,7 @@ export default function JobOverview() {
 
           <div className="job__body">
             <div className="job__col">
+              {!site && (
               <section className="job__section" aria-labelledby="job-hp" data-testid="job-next-holdpoint">
                 <h2 id="job-hp" className="job__section-title">
                   Next hold point
@@ -238,6 +237,7 @@ export default function JobOverview() {
                   <p className="job__quiet">No hold points left on this program.</p>
                 )}
               </section>
+              )}
 
               <section className="job__section" aria-labelledby="job-stages">
                 <h2 id="job-stages" className="job__section-title">
@@ -335,6 +335,30 @@ export default function JobOverview() {
           </div>
         </>
       )}
+
+      <section className="job__section job__photos" aria-labelledby="job-photos" data-testid="overview-latest-photos">
+        <h2 id="job-photos" className="job__section-title">
+          Latest photos
+        </h2>
+        {latestPhotos.length === 0 ? (
+          <p className="job__quiet">No photos yet.</p>
+        ) : (
+          <ul className="job__photo-strip">
+            {latestPhotos.map((p) => (
+              <li key={p.id}>
+                <Link to={`/jobs/${id}/photos?photo=${p.id}`} className="job__photo" data-testid={`overview-photo-${p.id}`} aria-label={`${p.caption ?? 'Photo'}, ${formatShort(p.takenOn)}`}>
+                  <img src={p.dataUrl} alt="" loading="lazy" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="job__more">
+          <Link to={`/jobs/${id}/photos`} data-testid="overview-all-photos">
+            All {photoCount} photo{photoCount === 1 ? '' : 's'}
+          </Link>
+        </p>
+      </section>
     </main>
   );
 }

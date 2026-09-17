@@ -165,7 +165,7 @@ test.describe('Shell: navigation and landing per role', () => {
       await expect(page.getByTestId('no-access')).toHaveCount(0);
     }
     await page.goto('#/deliveries?as=alec');
-    await expect(page.getByTestId('placeholder')).toContainText('Coming in stage 3');
+    await expect(page.getByTestId('deliveries')).toBeVisible();
   });
 });
 

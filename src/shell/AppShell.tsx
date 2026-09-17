@@ -14,6 +14,7 @@ import { createContext, useContext, useEffect, useState, type CSSProperties } fr
 import { Link, Outlet, matchPath, useLocation } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
 import { OfflineBar } from './OfflineBar';
+import { QueueBadge } from '../components/QueueBadge';
 import { SideSwitcher } from './SideSwitcher';
 import { isHere, phoneTabs, sidebarMain, sidebarSetup, type NavItem } from './nav';
 import { rememberJob } from './lastJob';
@@ -197,6 +198,7 @@ export function AppShell() {
         {phone ? <PhoneChrome pathname={pathname} /> : <DesktopChrome pathname={pathname} />}
         <div className="shell__content">
           <OfflineBar />
+          <QueueBadge />
           <Outlet />
         </div>
       </div>

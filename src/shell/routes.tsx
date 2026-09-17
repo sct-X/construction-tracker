@@ -11,15 +11,19 @@ import type { ReactElement } from 'react';
 import { useParams } from 'react-router-dom';
 import type { ScreenKey } from '../data/api';
 import { useQuery } from '../data/context';
+import Deliveries from '../screens/Deliveries';
 import JobOverview from '../screens/JobOverview';
 import JobsList from '../screens/JobsList';
 import Monday from '../screens/Monday';
+import PhotoUpload from '../screens/PhotoUpload';
 import NotFound from '../screens/NotFound';
+import PhotoGallery from '../screens/PhotoGallery';
 import Placeholder from '../screens/Placeholder';
 import Program from '../screens/Program';
 import ShipmentDetail from '../screens/ShipmentDetail';
 import Shipments from '../screens/Shipments';
 import StepDetail from '../screens/StepDetail';
+import UploadQueue from '../screens/UploadQueue';
 import WhyItMoved from '../screens/WhyItMoved';
 
 export interface RouteDef {
@@ -51,15 +55,15 @@ export const ROUTES: RouteDef[] = [
   { path: '/jobs/:id/program', screen: 'program', title: 'Program', stage: 2, element: <Program /> },
   { path: '/steps/:id', screen: 'step', title: 'Step', stage: 2, element: <StepDetail /> },
   { path: '/waiting', screen: 'waiting', title: 'Waiting on', stage: 4, element: soon('Waiting on', 4) },
-  { path: '/deliveries', screen: 'deliveries', title: 'Deliveries', stage: 3, element: soon('Deliveries', 3) },
+  { path: '/deliveries', screen: 'deliveries', title: 'Deliveries', stage: 3, element: <Deliveries /> },
   { path: '/items/new', screen: 'item', title: 'New item', stage: 4, element: soon('New item', 4) },
   { path: '/items/:id', screen: 'item', title: 'Item', stage: 4, element: soon('Item', 4) },
   { path: '/calls', screen: 'calls', title: 'Call list', stage: 4, element: soon('Call list', 4) },
   { path: '/shipments', screen: 'shipments', title: 'Shipments', stage: 2, element: <Shipments /> },
   { path: '/shipments/:id', screen: 'shipment', title: 'Shipment', stage: 2, element: <ShipmentDetail /> },
-  { path: '/jobs/:id/photos', screen: 'photos', title: 'Photos', stage: 3, element: soon('Photos', 3) },
-  { path: '/jobs/:id/upload', screen: 'upload', title: 'Upload photos', stage: 3, element: soon('Upload photos', 3) },
-  { path: '/queue', screen: 'queue', title: 'Upload queue', stage: 3, element: soon('Upload queue', 3) },
+  { path: '/jobs/:id/photos', screen: 'photos', title: 'Photos', stage: 3, element: <PhotoGallery /> },
+  { path: '/jobs/:id/upload', screen: 'upload', title: 'Upload photos', stage: 3, element: <PhotoUpload /> },
+  { path: '/queue', screen: 'queue', title: 'Upload queue', stage: 3, element: <UploadQueue /> },
   { path: '/jobs/:id/notes', screen: 'notes', title: 'Daily notes', stage: 5, element: soon('Daily notes', 5) },
   { path: '/notifications', screen: 'notifications', title: 'Notifications', stage: 5, element: soon('Notifications', 5) },
   { path: '/settings', screen: 'settings', title: 'My settings', stage: 6, element: soon('My settings', 6) },

@@ -1,25 +1,42 @@
 /**
  * The phone's own upload queue, in IndexedDB so it survives the offline
  * toggle, a reload, and the app being closed. Hand-rolled: one object store,
- * four operations. Falls back to memory where IndexedDB is missing (tests).
+ * a handful of operations. Falls back to memory where IndexedDB is missing
+ * (tests).
  *
  * iPhones don't upload in the background, so `flush` runs while the app is
  * open and only when the session is not offline. Each photo is removed from
- * the queue only after the upload succeeds, so nothing lands twice or is lost.
+ * the queue only after the upload succeeds, so nothing lands twice or is
+ * lost; a flush already under way is shared, not doubled.
+ *
+ * In the browser there is one queue (`sharedPhotoQueue()`): the api sends
+ * through it and the badge and the queue screen `subscribe` to it, so a
+ * photo changing from queued to sending shows everywhere at once.
  */
+export type QueuedPhotoState = 'queued' | 'sending' | 'failed';
+
 export interface QueuedPhoto {
   id: string;
   jobId: string;
   stageId: string | null;
   categoryId: string;
+  /** What gets uploaded by the mock: the photo downscaled on the phone. */
   dataUrl: string;
+  /** A small thumbnail for lists and badges. Falls back to dataUrl when absent. */
+  thumbDataUrl?: string;
+  /** The original file, kept for the real server; the mock uploads dataUrl. */
+  blob?: Blob;
   takenOn: string;
   caption?: string;
   uploadedById: string;
   queuedAt: string;
-  state: 'waiting' | 'sending' | 'failed';
+  state: QueuedPhotoState;
   error?: string;
+  /** Failed sends so far, for the retry back-off. */
+  attempts?: number;
 }
+
+export type QueueListener = () => void;
 
 export interface PhotoQueue {
   enqueue(photo: Omit<QueuedPhoto, 'id' | 'state' | 'queuedAt'> & { queuedAt?: string }): Promise<QueuedPhoto>;
@@ -28,10 +45,13 @@ export interface PhotoQueue {
   update(id: string, patch: Partial<QueuedPhoto>): Promise<void>;
   remove(id: string): Promise<void>;
   clear(): Promise<void>;
+  /** Called after every change (enqueue, state change, remove, clear). Returns the unsubscribe. */
+  subscribe(listener: QueueListener): () => void;
   /**
-   * Sends every waiting or failed photo through `upload`, one at a time, in
-   * order. Stops at the first failure (marked failed, kept). Does nothing when
-   * `canSend()` is false. Returns how many were sent.
+   * Sends every queued or failed photo through `upload`, one at a time, in
+   * order. Stops at the first failure (marked failed, kept, attempts + 1).
+   * Does nothing when `canSend()` is false. A flush already running is
+   * returned rather than started again. Returns how many were sent.
    */
   flush(upload: (photo: QueuedPhoto) => Promise<void> | void, canSend: () => boolean): Promise<number>;
 }
@@ -50,13 +70,19 @@ function nowStamp(): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+/** Oldest first; a failed photo keeps its place so nothing lands out of order. */
+export function sortQueued(list: QueuedPhoto[]): QueuedPhoto[] {
+  return [...list].sort((a, b) => (a.queuedAt < b.queuedAt ? -1 : a.queuedAt > b.queuedAt ? 1 : a.id < b.id ? -1 : 1));
+}
+
 async function flushWith(
   queue: PhotoQueue,
   upload: (photo: QueuedPhoto) => Promise<void> | void,
   canSend: () => boolean,
 ): Promise<number> {
   if (!canSend()) return 0;
-  const all = (await queue.list()).filter((p) => p.state !== 'sending').sort((a, b) => (a.queuedAt < b.queuedAt ? -1 : 1));
+  // A photo left "sending" by a closed app is sent again: nothing was removed, so nothing landed.
+  const all = sortQueued(await queue.list());
   let sent = 0;
   for (const photo of all) {
     if (!canSend()) break;
@@ -66,18 +92,53 @@ async function flushWith(
       await queue.remove(photo.id);
       sent++;
     } catch (err) {
-      await queue.update(photo.id, { state: 'failed', error: err instanceof Error ? err.message : String(err) });
+      await queue.update(photo.id, {
+        state: 'failed',
+        error: err instanceof Error ? err.message : String(err),
+        attempts: (photo.attempts ?? 0) + 1,
+      });
       break;
     }
   }
   return sent;
 }
 
-class MemoryPhotoQueue implements PhotoQueue {
+/** Listeners and the single-flight flush, shared by both implementations. */
+abstract class BaseQueue implements PhotoQueue {
+  private listeners = new Set<QueueListener>();
+  private inFlight: Promise<number> | null = null;
+
+  abstract enqueue(photo: Omit<QueuedPhoto, 'id' | 'state' | 'queuedAt'> & { queuedAt?: string }): Promise<QueuedPhoto>;
+  abstract list(): Promise<QueuedPhoto[]>;
+  abstract get(id: string): Promise<QueuedPhoto | undefined>;
+  abstract update(id: string, patch: Partial<QueuedPhoto>): Promise<void>;
+  abstract remove(id: string): Promise<void>;
+  abstract clear(): Promise<void>;
+
+  subscribe(listener: QueueListener): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+  protected changed(): void {
+    for (const l of [...this.listeners]) l();
+  }
+  flush(upload: (photo: QueuedPhoto) => Promise<void> | void, canSend: () => boolean): Promise<number> {
+    if (this.inFlight) return this.inFlight;
+    this.inFlight = flushWith(this, upload, canSend).finally(() => {
+      this.inFlight = null;
+    });
+    return this.inFlight;
+  }
+}
+
+class MemoryPhotoQueue extends BaseQueue {
   private map = new Map<string, QueuedPhoto>();
   async enqueue(photo: Omit<QueuedPhoto, 'id' | 'state' | 'queuedAt'> & { queuedAt?: string }): Promise<QueuedPhoto> {
-    const q: QueuedPhoto = { ...photo, id: newId(), state: 'waiting', queuedAt: photo.queuedAt ?? nowStamp() };
+    const q: QueuedPhoto = { ...photo, id: newId(), state: 'queued', queuedAt: photo.queuedAt ?? nowStamp() };
     this.map.set(q.id, q);
+    this.changed();
     return q;
   }
   async list(): Promise<QueuedPhoto[]> {
@@ -88,20 +149,21 @@ class MemoryPhotoQueue implements PhotoQueue {
   }
   async update(id: string, patch: Partial<QueuedPhoto>): Promise<void> {
     const cur = this.map.get(id);
-    if (cur) this.map.set(id, { ...cur, ...patch });
+    if (cur) {
+      this.map.set(id, { ...cur, ...patch });
+      this.changed();
+    }
   }
   async remove(id: string): Promise<void> {
-    this.map.delete(id);
+    if (this.map.delete(id)) this.changed();
   }
   async clear(): Promise<void> {
     this.map.clear();
-  }
-  flush(upload: (photo: QueuedPhoto) => Promise<void> | void, canSend: () => boolean): Promise<number> {
-    return flushWith(this, upload, canSend);
+    this.changed();
   }
 }
 
-class IndexedDbPhotoQueue implements PhotoQueue {
+class IndexedDbPhotoQueue extends BaseQueue {
   private dbPromise: Promise<IDBDatabase> | null = null;
 
   private db(): Promise<IDBDatabase> {
@@ -130,8 +192,9 @@ class IndexedDbPhotoQueue implements PhotoQueue {
   }
 
   async enqueue(photo: Omit<QueuedPhoto, 'id' | 'state' | 'queuedAt'> & { queuedAt?: string }): Promise<QueuedPhoto> {
-    const q: QueuedPhoto = { ...photo, id: newId(), state: 'waiting', queuedAt: photo.queuedAt ?? nowStamp() };
+    const q: QueuedPhoto = { ...photo, id: newId(), state: 'queued', queuedAt: photo.queuedAt ?? nowStamp() };
     await this.tx('readwrite', (s) => s.put(q));
+    this.changed();
     return q;
   }
   async list(): Promise<QueuedPhoto[]> {
@@ -142,21 +205,36 @@ class IndexedDbPhotoQueue implements PhotoQueue {
   }
   async update(id: string, patch: Partial<QueuedPhoto>): Promise<void> {
     const cur = await this.get(id);
-    if (cur) await this.tx('readwrite', (s) => s.put({ ...cur, ...patch }));
+    if (cur) {
+      await this.tx('readwrite', (s) => s.put({ ...cur, ...patch }));
+      this.changed();
+    }
   }
   async remove(id: string): Promise<void> {
     await this.tx('readwrite', (s) => s.delete(id));
+    this.changed();
   }
   async clear(): Promise<void> {
     await this.tx('readwrite', (s) => s.clear());
-  }
-  flush(upload: (photo: QueuedPhoto) => Promise<void> | void, canSend: () => boolean): Promise<number> {
-    return flushWith(this, upload, canSend);
+    this.changed();
   }
 }
 
+let shared: PhotoQueue | null = null;
+
+/**
+ * The browser's one queue. The api sends through it (`createPhotoQueue`
+ * returns it when IndexedDB exists) and the UI subscribes to it. Where
+ * IndexedDB is missing (tests, SSR) the api gets a fresh memory queue per
+ * call so tests stay independent, and the shared one is a memory queue too.
+ */
+export function sharedPhotoQueue(): PhotoQueue {
+  if (!shared) shared = typeof indexedDB !== 'undefined' ? new IndexedDbPhotoQueue() : new MemoryPhotoQueue();
+  return shared;
+}
+
 export function createPhotoQueue(): PhotoQueue {
-  if (typeof indexedDB !== 'undefined') return new IndexedDbPhotoQueue();
+  if (typeof indexedDB !== 'undefined') return sharedPhotoQueue();
   return new MemoryPhotoQueue();
 }
 

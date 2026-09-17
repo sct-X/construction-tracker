@@ -1,0 +1,35 @@
+/* QueueBadge: a thin calm strip, a clock and words, never a red dot. */
+.queue-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: var(--space-2) var(--gutter);
+  background: var(--concrete-100);
+  color: var(--text);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  text-decoration: none;
+  border-bottom: var(--hairline);
+}
+.queue-badge:hover {
+  background: var(--concrete-200);
+}
+.queue-badge:focus-visible {
+  box-shadow: inset var(--focus-ring);
+}
+.queue-badge__glyph {
+  flex: 0 0 auto;
+  color: var(--text-secondary);
+}
+.queue-badge__go {
+  margin-left: auto;
+  color: var(--primary);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+.shell--phone .queue-badge {
+  min-height: var(--tap);
+}

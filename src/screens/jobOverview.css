@@ -43,8 +43,38 @@
 .job__quiet {
   color: var(--text-muted);
 }
-.job__today {
-  margin-bottom: var(--space-8);
+
+/* latest photos: a strip of square thumbnails linking into the gallery */
+.job__photos {
+  margin-top: var(--space-8);
+}
+.job__photo-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.job__photo {
+  display: block;
+  aspect-ratio: 1;
+  border: var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--concrete-100);
+  overflow: hidden;
+}
+.job__photo:hover {
+  border-color: var(--line-strong);
+}
+.job__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@media (min-width: 768px) {
+  .shell--desktop .job__photo-strip {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    max-width: 720px;
+  }
 }
 
 /* ---- hero ---- */
@@ -257,7 +287,8 @@
     justify-content: space-between;
     gap: var(--space-6) var(--space-10);
   }
-  .job__body {
+  /* two columns on the desktop shell only; Alec's phone column stays one */
+  .shell--desktop .job__body {
     grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
     gap: var(--space-10);
   }

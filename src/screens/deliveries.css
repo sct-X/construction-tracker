@@ -1,0 +1,118 @@
+/*
+  Deliveries (Alec, phone only).
+
+  Layout concept: a week-grouped list like the look-ahead, headings in the
+  condensed face on a 2px concrete rule, one delivery per row with its
+  status in words and one 56px "Mark delivered" button. No cards, no
+  colour without words. The whole screen is one column of rows.
+*/
+.deliveries__empty {
+  font-size: var(--text-lg);
+  max-width: var(--measure);
+  color: var(--text-secondary);
+}
+.deliveries__group {
+  margin-top: var(--space-6);
+}
+.deliveries__group:first-of-type {
+  margin-top: 0;
+}
+.deliveries__group-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--concrete-200);
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  color: var(--text);
+}
+.deliveries__range {
+  font-family: var(--font-ui);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.deliveries__list {
+  display: flex;
+  flex-direction: column;
+}
+.deliveries__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  min-height: var(--tap);
+  padding: var(--space-3) 0;
+}
+.deliveries__row + .deliveries__row {
+  border-top: var(--hairline);
+}
+.deliveries__main {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.deliveries__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.deliveries__title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  min-width: 0;
+}
+.deliveries__job {
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.deliveries__from,
+.deliveries__contents {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.deliveries__contents {
+  color: var(--text-muted);
+}
+.deliveries__when {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  margin-top: var(--space-1);
+}
+.deliveries__when .status {
+  display: inline;
+  white-space: normal;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.deliveries__when .status__mark {
+  margin-right: 0.35em;
+}
+.deliveries__status {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.deliveries__mark {
+  flex: 1 0 100%;
+  min-height: var(--tap);
+}
+.deliveries__foot {
+  margin-top: var(--space-8);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.deliveries__foot a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+}

@@ -1,0 +1,269 @@
+/*
+  Photos: gallery.
+
+  Layout concept: the photos are the only images in the app, so they get the
+  room. Stage headings in the condensed face on the 2px concrete rule, each
+  with its count in words; category sub-heads on a hairline; then a grid of
+  square thumbnails, three across on the phone (each well over 56px), six on
+  the desktop. Filters are 56px chips on the phone, 40px on the desktop.
+  The full-size view is a plain panel over the page, no lightbox chrome.
+*/
+.gallery__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.gallery__filters--who {
+  align-items: center;
+  margin-bottom: var(--space-5);
+}
+.gallery__chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease);
+}
+.gallery__chip:hover {
+  background: var(--concrete-100);
+}
+.gallery__chip[aria-pressed='true'] {
+  background: var(--steel-700);
+  border-color: var(--steel-700);
+  color: var(--text-on-dark);
+}
+.gallery__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.gallery__sort select {
+  min-height: var(--control);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+}
+.gallery__empty {
+  max-width: var(--measure);
+  font-size: var(--text-lg);
+  color: var(--text-secondary);
+  margin: var(--space-4) 0 var(--space-6);
+}
+
+/* stages */
+.gallery__stage {
+  margin-top: var(--space-8);
+}
+.gallery__filters + .gallery__stage,
+.gallery__filters--who + .gallery__stage {
+  margin-top: var(--space-4);
+}
+.gallery__stage-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--concrete-200);
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  color: var(--text);
+}
+.gallery__stage-count {
+  font-family: var(--font-ui);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* categories */
+.gallery__category {
+  padding: var(--space-3) 0 var(--space-4);
+}
+.gallery__category + .gallery__category {
+  border-top: var(--hairline);
+}
+.gallery__category-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  margin-bottom: var(--space-3);
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+}
+.gallery__category-count {
+  font-weight: var(--weight-regular);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.gallery__tag {
+  font-weight: var(--weight-regular);
+  font-size: var(--text-sm);
+  color: var(--steel-500);
+}
+.gallery__upload-here {
+  min-height: var(--tap);
+}
+
+/* the grid */
+.gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.gallery__thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--concrete-100);
+  overflow: hidden;
+  cursor: pointer;
+}
+.gallery__thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gallery__thumb:hover {
+  border-color: var(--line-strong);
+}
+.gallery__thumb--queued {
+  cursor: default;
+}
+.gallery__thumb--queued img {
+  opacity: 0.55;
+}
+.gallery__queued-words {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: var(--space-1) var(--space-2);
+  background: var(--amber-bg);
+  color: var(--amber-ink);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  text-align: center;
+}
+
+/* full-size view */
+.gallery__view {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow: auto;
+  padding: var(--space-4) var(--gutter) var(--space-12);
+  background: var(--bg);
+}
+.gallery__view-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.gallery__view-title {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+}
+.gallery__close {
+  flex-shrink: 0;
+}
+.gallery__view-img {
+  display: block;
+  width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  border: var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--concrete-100);
+}
+.gallery__view-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-8);
+  margin-top: var(--space-4);
+}
+.gallery__view-facts dt {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.gallery__view-facts dd {
+  margin: 0;
+}
+.gallery__view-actions {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.gallery__move {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.gallery__move-label {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-right: var(--space-1);
+}
+.gallery__delete {
+  align-self: flex-start;
+}
+.gallery__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+}
+
+@media (min-width: 768px) {
+  .gallery__chip {
+    min-height: var(--control);
+    padding: 0 var(--space-3);
+  }
+  /* Alec on a wide window keeps the phone column and the 56px targets */
+  .shell--phone .gallery__chip,
+  .shell--phone .gallery .btn--desktop {
+    min-height: var(--tap);
+    padding: 0 var(--space-4);
+  }
+  .shell--desktop .gallery__grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+  .shell--desktop .gallery__view {
+    padding: var(--space-6) var(--space-10) var(--space-12);
+  }
+  .shell--desktop .gallery__view-img {
+    max-height: 70vh;
+  }
+}

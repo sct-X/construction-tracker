@@ -142,7 +142,7 @@ test.describe('Shell: navigation and landing per role', () => {
       '/steps/pr-install-windows',
       '/waiting',
       '/items/new',
-      '/items/x',
+      '/items/it-pr-windows',
       '/calls',
       '/shipments',
       '/shipments/sh-park-windows',

@@ -1,0 +1,350 @@
+/*
+  Call list.
+
+  Token plan: concrete page, steel for the pressed person button and the
+  "current row" mark, timber paper for the finish panel (a note before the
+  call ends), hi-vis on "Finish call" only. Type: the act-by date in the
+  condensed face leads every row (the question Dominic asks); everything
+  else is body text.
+
+  Layout concept:
+    desktop                              phone
+    +---------+-----------------------+  +----------------------+
+    | Ringing | Park Rd  unconfirmed  |  | Ringing [Raff][Dom]  |
+    | [Raff]  | 10 Aug  Windows ...   |  | Park Rd  unconfirmed |
+    | [Dom]   | 18 Sep  Plasterer ... |  | 18 Sep  Book pump    |
+    | [Norm]  | Done this call        |  |   [Mark booked]      |
+    | keys    | Seaview St ...        |  |   Date, note, skip   |
+    +---------+-----------------------+  +----------------------+
+
+  What makes it specific: it reads top to bottom as a script, with the
+  answers folding away under "Done this call" as the call goes.
+*/
+.calls__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* ---- who you are ringing ---- */
+.calls__people-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+.calls__people-list {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+  scrollbar-width: none;
+}
+.calls__people-list::-webkit-scrollbar {
+  display: none;
+}
+.calls__person {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
+  min-height: var(--tap);
+  min-width: 6.5em;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  text-align: left;
+  white-space: nowrap;
+  transition: background var(--motion-fast) var(--ease);
+}
+.calls__person:hover {
+  background: var(--concrete-100);
+}
+.calls__person[aria-pressed='true'] {
+  background: var(--steel-700);
+  border-color: var(--steel-700);
+  color: var(--text-on-dark);
+}
+.calls__person-name {
+  font-weight: var(--weight-bold);
+}
+.calls__person-count {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.calls__person[aria-pressed='true'] .calls__person-count {
+  color: var(--steel-200);
+}
+.calls__scope {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  min-height: var(--tap);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.calls__scope input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--steel-700);
+}
+.calls__keys {
+  margin-top: var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.calls__keys kbd {
+  display: inline-block;
+  min-width: 1.4em;
+  padding: 0 4px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  text-align: center;
+  color: var(--text);
+}
+
+/* ---- the script ---- */
+.calls__script {
+  min-width: 0;
+}
+.calls__empty,
+.calls__quiet {
+  color: var(--text-secondary);
+  max-width: var(--measure);
+}
+.calls__empty {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-5);
+}
+.calls__quiet {
+  font-size: var(--text-sm);
+  padding: var(--space-3) 0;
+}
+.calls__job + .calls__job {
+  margin-top: var(--space-8);
+}
+.calls__job-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--concrete-200);
+}
+.calls__job-name {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+}
+.calls__job-name a {
+  color: var(--text);
+  text-decoration: none;
+}
+.calls__job-name a:hover {
+  text-decoration: underline;
+}
+.calls__job-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.calls__job-holding {
+  color: var(--text-muted);
+}
+.calls__items {
+  display: flex;
+  flex-direction: column;
+}
+.calls__items > .callitem:first-child {
+  border-top: 0;
+}
+.calls__done {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  background: var(--concrete-100);
+  border-radius: var(--radius-sm);
+}
+.calls__done-title {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+}
+.calls__done .callitem--folded:first-of-type {
+  border-top: 0;
+}
+.calls__moved {
+  font-weight: var(--weight-medium);
+  color: var(--text);
+}
+
+/* ---- finish call: timber paper, a note before the call ends ---- */
+.calls__finish {
+  margin-top: var(--space-8);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  background: var(--timber-100);
+  border: 1px solid var(--timber-300);
+  border-radius: var(--radius-md);
+}
+.calls__finish-title {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+}
+.calls__finish-lede {
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  max-width: var(--measure);
+}
+.calls__finish-jobs {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+}
+.calls__finish-jobs > li + li {
+  border-top: 1px solid var(--timber-300);
+}
+.calls__tick {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap);
+  cursor: pointer;
+}
+.calls__tick input {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--steel-700);
+}
+.calls__tick-words {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.calls__tick-name {
+  font-weight: var(--weight-bold);
+}
+.calls__tick-note {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.calls__finish-btns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+/* ---- summary ---- */
+.calls__summary {
+  max-width: var(--measure);
+}
+.calls__summary-title {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+  margin-bottom: var(--space-4);
+}
+.calls__summary-list {
+  display: flex;
+  flex-direction: column;
+}
+.calls__summary-job {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3) 0;
+  border-top: var(--hairline);
+}
+.calls__summary-name {
+  font-weight: var(--weight-bold);
+}
+.calls__summary-name a {
+  color: var(--text);
+  text-decoration: none;
+}
+.calls__summary-words {
+  color: var(--text-secondary);
+}
+.calls__summary-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.calls__summary-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+/* ---- phone ---- */
+.calls__finish-foot {
+  margin-top: var(--space-8);
+}
+.calls__finish-foot .btn {
+  width: 100%;
+}
+.shell--phone .calls__finish,
+.shell--phone .calls__summary-foot .btn {
+  width: 100%;
+}
+.shell--phone .callitem--card {
+  padding-top: var(--space-4);
+}
+
+/* ---- desktop: people down the left, the script on the right ---- */
+@media (min-width: 768px) {
+  .shell--desktop .calls__body {
+    display: grid;
+    grid-template-columns: 160px minmax(0, 1fr);
+    gap: var(--space-6);
+    align-items: start;
+  }
+  .shell--desktop .calls__people {
+    position: sticky;
+    top: calc(var(--above) + var(--space-4));
+  }
+  .shell--desktop .calls__people-list {
+    flex-direction: column;
+    overflow: visible;
+  }
+  .shell--desktop .calls__person {
+    width: 100%;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    min-height: var(--control);
+    padding: var(--space-2) var(--space-3);
+  }
+  .shell--desktop .calls__scope {
+    min-height: var(--control);
+  }
+  .calls__job-head {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+}

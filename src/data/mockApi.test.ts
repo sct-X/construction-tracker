@@ -102,6 +102,35 @@ describe('mock API', () => {
     expect(api.getForecast(BEATTY)!.slipDays).toBe(0);
   });
 
+  it('finishing a call confirms every listed job today and logs one entry per job in the call\'s words', () => {
+    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
+    expect(api.getForecast(BEATTY)!.freshness.amber).toBe(true);
+    const before = api.listActivity().length;
+    const result = api.finishCall({
+      personId: 'raff',
+      jobs: [
+        { jobId: PARK_RD, itemsUpdated: 3 },
+        { jobId: SEAVIEW, itemsUpdated: 1 },
+        { jobId: BEATTY, itemsUpdated: 0 },
+      ],
+    });
+    expect(result.jobs.map((j) => j.lastConfirmed)).toEqual([DEFAULT_TODAY, DEFAULT_TODAY, DEFAULT_TODAY]);
+    expect(result.activity.map((a) => a.text)).toEqual([
+      'Dominic rang Raff: 3 items updated on 64-66 Park Rd',
+      'Dominic rang Raff: 1 item updated on 31 Seaview St',
+      'Dominic rang Raff: nothing changed on 26a Beatty St',
+    ]);
+    expect(result.activity.every((a) => a.kind === 'job_confirmed' && a.personId === 'dominic')).toBe(true);
+    expect(api.listActivity().length).toBe(before + 3);
+    expect(api.listActivity({ jobId: BEATTY })[0].text).toBe('Dominic rang Raff: nothing changed on 26a Beatty St');
+    for (const id of [PARK_RD, SEAVIEW, BEATTY]) {
+      const f = api.getForecast(id)!.freshness;
+      expect(f.daysUnconfirmed).toBe(0);
+      expect(f.amber).toBe(false);
+      expect(f.text).toBe('Last confirmed today');
+    }
+  });
+
   it('copies a template into a dated job', () => {
     const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
     const job = api.copyTemplate('tpl-duplex', { name: '1 Test St', startDate: '2026-10-05', weeklyHoldingCost: 1000 });

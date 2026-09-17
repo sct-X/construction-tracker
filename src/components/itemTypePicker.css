@@ -1,0 +1,31 @@
+/* ItemTypePicker: a wrap of tall buttons; the chosen one fills steel. */
+.typepick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.typepick__btn {
+  min-height: var(--tap);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  transition: background var(--motion-fast) var(--ease);
+}
+.typepick__btn:hover {
+  background: var(--concrete-100);
+}
+.typepick__btn--chosen,
+.typepick__btn--chosen:hover {
+  background: var(--steel-700);
+  border-color: var(--steel-700);
+  color: var(--text-on-dark);
+  font-weight: var(--weight-bold);
+}
+@media (min-width: 768px) {
+  .typepick__btn {
+    min-height: var(--control);
+  }
+}

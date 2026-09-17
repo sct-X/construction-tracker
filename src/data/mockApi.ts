@@ -509,6 +509,22 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
       commit();
       return scoped(job);
     },
+    finishCall(input) {
+      const caller = d().people.find((p) => p.id === session.personId);
+      const callee = d().people.find((p) => p.id === input.personId);
+      const jobs: Job[] = [];
+      const activity: ActivityEntry[] = [];
+      for (const { jobId, itemsUpdated } of input.jobs) {
+        const job = requireJob(jobId);
+        job.lastConfirmed = session.today;
+        const changed = itemsUpdated === 0 ? 'nothing changed' : `${itemsUpdated} item${itemsUpdated === 1 ? '' : 's'} updated`;
+        const text = `${caller?.shortName ?? 'Someone'} rang ${callee?.shortName ?? 'someone'}: ${changed} on ${job.name}`;
+        activity.push(log('job_confirmed', text, { jobId: job.id }));
+        jobs.push(job);
+      }
+      commit();
+      return { jobs: scoped(jobs), activity: scoped(activity) };
+    },
     listStages(jobId) {
       if (!visibleJobIds().has(jobId)) return [];
       return scoped(d().stages.filter((s) => s.jobId === jobId).sort((a, b) => a.order - b.order));

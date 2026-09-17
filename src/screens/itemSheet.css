@@ -1,0 +1,237 @@
+/*
+  Item sheet.
+
+  Layout concept: one column of fields under a single figure, the act-by
+  date, which is what the item exists for: "Act by Fri 18 Sep, tomorrow:
+  needed Fri 11 Dec for Plasterboard, minus 12 weeks". Pickers are rows of
+  tall buttons (type, job, owner, status); long lists (steps, trades) are
+  native selects, which are the phone's own pickers. Save is the sheet's one
+  hi-vis button. Derived fields are sentences on a timber-paper note so it is
+  obvious they are worked out, not typed.
+*/
+.sheet__figure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: 2px solid var(--concrete-200);
+}
+.sheet__figure .bignumber__label {
+  max-width: var(--measure);
+}
+.sheet__no-actby {
+  max-width: var(--measure);
+  color: var(--text-secondary);
+}
+
+.sheet__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 44rem;
+}
+.sheet__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5) var(--space-6);
+}
+.sheet__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.sheet__row > .sheet__field {
+  flex: 1 1 16rem;
+}
+.sheet__row > .sheet__field--short {
+  flex: 0 1 12rem;
+}
+.sheet__field label,
+.sheet__label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+}
+.sheet__input {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: var(--text-md);
+}
+.sheet__input:disabled {
+  background: var(--concrete-100);
+  color: var(--text-muted);
+}
+.sheet__textarea {
+  padding: var(--space-3);
+  min-height: 5rem;
+  line-height: var(--leading-body);
+  resize: vertical;
+}
+.sheet__input--date {
+  max-width: 14rem;
+}
+.sheet__waiting {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.sheet__ring {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  font-weight: var(--weight-medium);
+}
+.sheet__picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.sheet__pick {
+  min-height: var(--tap);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  transition: background var(--motion-fast) var(--ease);
+}
+.sheet__pick:hover {
+  background: var(--concrete-100);
+}
+.sheet__pick[aria-pressed='true'] {
+  background: var(--steel-700);
+  border-color: var(--steel-700);
+  color: var(--text-on-dark);
+  font-weight: var(--weight-bold);
+}
+/* Worked-out fields: a sentence on note paper, never an input. */
+.sheet__derived {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--timber-100);
+  color: var(--text);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+.sheet__derived-from {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-regular);
+  color: var(--text-secondary);
+}
+.sheet__needs-signal,
+.sheet__hint {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.sheet__photo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap);
+  color: var(--text);
+}
+.sheet__photo img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: var(--hairline);
+}
+.sheet__problems {
+  max-width: var(--measure);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--amber-bg);
+  color: var(--amber-ink);
+  list-style: none;
+}
+.sheet__problems li + li {
+  margin-top: var(--space-1);
+}
+.sheet__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+}
+.sheet__actions .btn--primary:disabled {
+  background: var(--concrete-100);
+  border-color: var(--line);
+  color: var(--text-muted);
+  filter: none;
+}
+.sheet__saved {
+  color: var(--ok-ink);
+  font-weight: var(--weight-medium);
+}
+.sheet__delete {
+  margin-left: auto;
+  min-height: var(--tap);
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--late-ink);
+  text-decoration: underline;
+}
+.sheet__delete-confirm {
+  margin-left: auto;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+}
+.sheet__history {
+  margin-top: var(--space-10);
+  max-width: 44rem;
+}
+.sheet__h2 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-xl);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--concrete-200);
+  margin-bottom: var(--space-2);
+}
+.sheet__history-list {
+  list-style: none;
+  font-size: var(--text-sm);
+}
+.sheet__history-list li {
+  padding: var(--space-2) 0;
+  border-bottom: var(--hairline);
+}
+.sheet__stamp {
+  color: var(--text-muted);
+}
+.sheet__who {
+  color: var(--text-muted);
+}
+.sheet__quiet {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+@media (min-width: 768px) {
+  .sheet__input,
+  .sheet__pick,
+  .sheet__ring {
+    min-height: var(--control);
+  }
+  .sheet__textarea {
+    min-height: 5rem;
+  }
+}

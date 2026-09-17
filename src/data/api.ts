@@ -192,6 +192,20 @@ export interface CopyTemplateInput {
 
 export type JobPatch = Partial<Omit<Job, 'id' | 'sideId' | 'createdAt' | 'isTemplate'>>;
 
+/** The end of a call-list call: who was rung and, per job worked through, how many items changed. */
+export interface FinishCallInput {
+  /** The person rung (the call list's owner filter, Raff by default). */
+  personId: string;
+  /** Every job ticked "Confirmed today" at the end of the call, with the count of items changed during it. */
+  jobs: { jobId: string; itemsUpdated: number }[];
+}
+
+export interface FinishCallResult {
+  jobs: Job[];
+  /** One entry per job: "Dominic rang Raff: 3 items updated on Park Rd". */
+  activity: ActivityEntry[];
+}
+
 export interface NewStageInput {
   jobId: string;
   name: string;
@@ -272,6 +286,12 @@ export interface TrackerApi {
   updateJob(id: string, patch: JobPatch): Job;
   copyTemplate(templateId: string, input: CopyTemplateInput): Job;
   confirmJob(jobId: string, date?: string): Job;
+  /**
+   * Finish call (UI_PLAN 3.11): stamps every listed job's last confirmed date
+   * with today (rule 7's clock resets) and logs one `job_confirmed` entry per
+   * job in the call's words. Notifies once.
+   */
+  finishCall(input: FinishCallInput): FinishCallResult;
   listStages(jobId: string): Stage[];
   addStage(input: NewStageInput): Stage;
   updateStage(id: string, patch: Partial<Pick<Stage, 'name' | 'status' | 'order'>>): Stage;

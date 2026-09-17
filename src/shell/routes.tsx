@@ -11,7 +11,9 @@ import type { ReactElement } from 'react';
 import { useParams } from 'react-router-dom';
 import type { ScreenKey } from '../data/api';
 import { useQuery } from '../data/context';
+import CallList from '../screens/CallList';
 import Deliveries from '../screens/Deliveries';
+import ItemSheet from '../screens/ItemSheet';
 import JobOverview from '../screens/JobOverview';
 import JobsList from '../screens/JobsList';
 import Monday from '../screens/Monday';
@@ -24,6 +26,7 @@ import ShipmentDetail from '../screens/ShipmentDetail';
 import Shipments from '../screens/Shipments';
 import StepDetail from '../screens/StepDetail';
 import UploadQueue from '../screens/UploadQueue';
+import WaitingOn from '../screens/WaitingOn';
 import WhyItMoved from '../screens/WhyItMoved';
 
 export interface RouteDef {
@@ -54,11 +57,11 @@ export const ROUTES: RouteDef[] = [
   { path: '/jobs/:id/why', screen: 'monday', title: 'Why it moved', stage: 1, element: <WhyItMoved /> },
   { path: '/jobs/:id/program', screen: 'program', title: 'Program', stage: 2, element: <Program /> },
   { path: '/steps/:id', screen: 'step', title: 'Step', stage: 2, element: <StepDetail /> },
-  { path: '/waiting', screen: 'waiting', title: 'Waiting on', stage: 4, element: soon('Waiting on', 4) },
+  { path: '/waiting', screen: 'waiting', title: 'Waiting on', stage: 4, element: <WaitingOn /> },
   { path: '/deliveries', screen: 'deliveries', title: 'Deliveries', stage: 3, element: <Deliveries /> },
-  { path: '/items/new', screen: 'item', title: 'New item', stage: 4, element: soon('New item', 4) },
-  { path: '/items/:id', screen: 'item', title: 'Item', stage: 4, element: soon('Item', 4) },
-  { path: '/calls', screen: 'calls', title: 'Call list', stage: 4, element: soon('Call list', 4) },
+  { path: '/items/new', screen: 'item', title: 'New item', stage: 4, element: <ItemSheet /> },
+  { path: '/items/:id', screen: 'item', title: 'Item', stage: 4, element: <ItemSheet /> },
+  { path: '/calls', screen: 'calls', title: 'Call list', stage: 4, element: <CallList /> },
   { path: '/shipments', screen: 'shipments', title: 'Shipments', stage: 2, element: <Shipments /> },
   { path: '/shipments/:id', screen: 'shipment', title: 'Shipment', stage: 2, element: <ShipmentDetail /> },
   { path: '/jobs/:id/photos', screen: 'photos', title: 'Photos', stage: 3, element: <PhotoGallery /> },

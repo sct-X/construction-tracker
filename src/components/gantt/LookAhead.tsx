@@ -208,10 +208,7 @@ function StepRow({
       step.forecastStart === step.forecastEnd ? DAY[weekday(step.forecastStart)] : `${DAY[weekday(step.forecastStart)]} to ${DAY[weekday(step.forecastEnd)]}`;
   else when = `from ${DAY[weekday(step.forecastStart)]}, ${lengthWords(step.durationDays)}`;
 
-  const bits = [when];
-  if (trade) bits.push(trade);
-  if (step.status === 'done') bits.push('done');
-  else if (step.status === 'in_progress') bits.push('started');
+  const who = [trade, step.status === 'done' ? 'done' : step.status === 'in_progress' ? 'started' : ''].filter(Boolean).join(', ');
 
   return (
     <li>
@@ -223,7 +220,8 @@ function StepRow({
           </span>
           {stage && <span className="lookahead__stage">{stage}</span>}
         </span>
-        <span className="lookahead__line">{bits.join(' · ')}</span>
+        <span className="lookahead__line">{when.charAt(0).toUpperCase() + when.slice(1)}</span>
+        {who && <span className="lookahead__line">{who}</span>}
         <span className="lookahead__line">
           {step.lateDays > 0 ? (
             <StatusText tone="late" testId={`lookahead-late-${step.stepId}`}>

@@ -57,8 +57,15 @@ test.describe('Program: desktop Gantt', () => {
     await expect(page.getByTestId('gantt-planned-pr-install-windows')).toBeAttached();
     await expect(page.getByTestId('gantt-today')).toBeVisible();
 
-    // Hold points carry a glyph and the words, not colour alone.
+    // Hold points carry a glyph and the words, not colour alone; long names wrap rather than clip.
     await expect(page.getByTestId('gantt-row-pr-slab-insp')).toContainText('hold point');
+    const clipped = (await page.evaluate(
+      '(() => { const el = document.querySelector(\'[data-testid="gantt-row-pr-slab-insp"] .gantt__step-name\'); return el.scrollWidth > el.clientWidth + 1; })()',
+    )) as boolean;
+    expect(clipped).toBe(false);
+
+    // No "Edit program" on the phone layout; it is here on the desktop.
+    await expect(page.getByTestId('program-edit')).toBeVisible();
 
     // Stage rows group the steps.
     await expect(page.getByTestId('gantt-stage-pr-st-lockup')).toContainText('Lock-up');
@@ -82,13 +89,10 @@ test.describe('Program: desktop Gantt', () => {
 
   test('a late step says how late in words beside its bar', async ({ page }) => {
     // Move the windows ETA to 16 Nov (flow d) through the shipment screen, then look at the program.
-    // The save button's id is Part A's; accept either spelling while Stage 2 lands.
     await page.goto('#/shipments/sh-park-windows?as=dominic&today=2026-09-17');
     await page.getByTestId('dev-reset').click();
-    const eta = page.getByTestId('shipment-eta-input');
-    test.skip((await eta.count()) === 0, 'shipment detail not built in this build');
-    await eta.fill('2026-11-16');
-    await page.getByTestId('shipment-save-eta').or(page.getByTestId('eta-save')).click();
+    await page.getByTestId('shipment-eta-input').fill('2026-11-16');
+    await page.getByTestId('shipment-save-eta').click();
     await page.goto('#/jobs/park-rd/program?as=dominic&today=2026-09-17');
     await expect(page.getByTestId('gantt-late-pr-install-windows')).toContainText('14 days late');
     await expect(page.getByTestId('gantt-planned-pr-install-windows')).toHaveAttribute('data-moved', 'true');
@@ -97,6 +101,13 @@ test.describe('Program: desktop Gantt', () => {
     await expect(page.getByTestId('gantt-bar-pr-install-windows')).toBeVisible();
     await expect(page.getByTestId('gantt-bar-pr-roof-plumbing')).toHaveCount(0);
     await page.getByTestId('dev-reset').click();
+
+    // Reset leaves nothing late, so "Late only" is empty; back on All the chart is still scrolled to today, not to June.
+    await expect(page.getByTestId('gantt-empty')).toBeVisible();
+    await page.getByTestId('program-view-all').click();
+    await expect(page.getByTestId('gantt-bar-pr-roof-plumbing')).toBeVisible();
+    const scrollLeft = (await page.evaluate("document.querySelector('.gantt__scroll').scrollLeft")) as number;
+    expect(scrollLeft).toBeGreaterThan(0);
   });
 
   test('stage-level jobs draw their placeholder steps as stage bars; design jobs get a note', async ({ page }) => {
@@ -128,7 +139,7 @@ test.describe('Program: phone look-ahead', () => {
 
     // This week: roof plumbing and cladding; next week: stormwater with its unconfirmed plumber.
     await expect(page.getByTestId('lookahead-step-pr-roof-plumbing')).toContainText('Mon to Thu');
-    await expect(page.getByTestId('lookahead-step-pr-cladding')).toContainText('from Wed, 3 wks');
+    await expect(page.getByTestId('lookahead-step-pr-cladding')).toContainText('From Wed, 3 wks');
     await expect(page.getByTestId('lookahead-step-pr-stormwater')).toContainText('not confirmed');
 
     // No Gantt on the phone by default; the whole row is a 56px target.
@@ -141,6 +152,13 @@ test.describe('Program: phone look-ahead', () => {
     await expect(page.getByTestId('stage-band-pr-st-fitout')).toBeInViewport();
     await page.getByTestId('lookahead-step-pr-roof-plumbing').click();
     await expect(page).toHaveURL(/#\/steps\/pr-roof-plumbing$/);
+  });
+
+  test('Dominic on a phone gets the look-ahead and no "Edit program" (the editor is desktop-only)', async ({ page }) => {
+    await page.goto('#/jobs/park-rd/program?as=dominic&today=2026-09-17');
+    await expect(page.getByTestId('lookahead')).toBeVisible();
+    await expect(page.getByTestId('program-edit')).toHaveCount(0);
+    await expect(page.getByTestId('program-full-link')).toBeVisible();
   });
 
   test('Alec sees the program with no money on it', async ({ page }) => {

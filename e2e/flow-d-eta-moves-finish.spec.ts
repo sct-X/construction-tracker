@@ -21,24 +21,24 @@ test.describe('Flow d: the ETA moves the finish', () => {
     await expect(page.getByTestId('shipment-needed-by')).toHaveText('Needed by Mon 2 Nov');
     await expect(page.locator('[data-testid^="shipment-item-it-"]')).toHaveCount(3);
     await expect(page.getByTestId('shipment-item-expected-it-pr-windows')).toContainText('Mon 26 Oct');
-    await expect(page.getByTestId('eta-preview')).toHaveCount(0);
+    await expect(page.getByTestId('shipment-eta-preview')).toHaveCount(0);
 
     // 2. He picks 16 Nov. 3. The impact panel appears before anything is saved.
     await page.getByTestId('shipment-eta-input').fill('2026-11-16');
-    const preview = page.getByTestId('eta-preview');
+    const preview = page.getByTestId('shipment-eta-preview');
     await expect(preview).toContainText('3 linked items would be expected Mon 16 Nov');
     await expect(preview).toContainText('Install windows would start Mon 16 Nov, not Mon 2 Nov');
-    await expect(page.getByTestId('eta-preview-finish')).toContainText('Fri 12 Mar 2027');
-    await expect(page.getByTestId('eta-preview-slip')).toContainText('+14 days');
-    await expect(page.getByTestId('eta-preview-slip')).toContainText('$9,000');
+    await expect(page.getByTestId('shipment-eta-preview-finish')).toContainText('Fri 12 Mar 2027');
+    await expect(page.getByTestId('shipment-eta-preview-slip')).toContainText('+14 days');
+    await expect(page.getByTestId('shipment-eta-preview-slip')).toContainText('$9,000');
     // Nothing saved yet: the hero still says 26 Oct.
     await expect(page.getByTestId('shipment-eta')).toContainText('Mon 26 Oct 2026');
 
     // 4. Save new ETA. 5. The linked items now read 14 days late, expected 16 Nov.
-    await page.getByTestId('eta-save').click();
+    await page.getByTestId('shipment-save-eta').click();
     await expect(page.getByTestId('shipment-eta')).toContainText('Mon 16 Nov 2026');
     await expect(page.getByTestId('shipment-timing')).toContainText('ETA 2 weeks after needed');
-    await expect(page.getByTestId('eta-preview')).toHaveCount(0);
+    await expect(page.getByTestId('shipment-eta-preview')).toHaveCount(0);
     for (const id of ['it-pr-windows', 'it-pr-sliding-doors', 'it-pr-glazing-cert']) {
       await expect(page.getByTestId(`shipment-item-expected-${id}`)).toContainText('Mon 16 Nov');
       await expect(page.getByTestId(`shipment-item-status-${id}`)).toContainText('14 days late');
@@ -78,6 +78,40 @@ test.describe('Flow d: the ETA moves the finish', () => {
     await expect(page.getByTestId('shipment-offer-done')).toHaveCount(0);
     await expect(page.getByTestId('shipment-item-status-it-pr-windows')).toHaveText('Done');
     await page.getByTestId('dev-reset').click();
+  });
+
+  test('Dominic adds a shipment and links and unlinks an item', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'desktop is enough for the add form');
+    await page.goto('#/shipments?as=dominic&today=2026-09-17');
+    await page.getByTestId('shipment-add').click();
+    await page.getByTestId('shipment-add-name').fill('Park Rd external doors');
+    await page.getByTestId('shipment-add-supplier').fill('Door supplier');
+    await page.getByTestId('shipment-add-job-park-rd').click();
+    await page.getByTestId('shipment-add-status-in_production').click();
+    await page.getByTestId('shipment-add-eta').fill('2026-11-20');
+    await page.getByTestId('shipment-add-save').click();
+    await expect(page).toHaveURL(/#\/shipments\/sh-/);
+    await expect(page.getByTestId('shipment-eta')).toContainText('Fri 20 Nov 2026');
+    await expect(page.getByTestId('shipment-status-in_production')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('shipment-timing')).toHaveText('Nothing waiting on it');
+
+    // Link "Order external doors": its expected date now follows the ETA.
+    await page.getByTestId('shipment-link-item-it-pr-external-doors').click();
+    await expect(page.getByTestId('shipment-item-it-pr-external-doors')).toBeVisible();
+    await expect(page.getByTestId('shipment-item-expected-it-pr-external-doors')).toContainText('Fri 20 Nov');
+    await expect(page.getByTestId('shipment-link-item-it-pr-external-doors')).toHaveCount(0);
+    await expect(page.getByTestId('shipment-timing')).not.toHaveText('Nothing waiting on it');
+
+    // Unlink it again: it goes back to the candidates.
+    await page.getByTestId('shipment-unlink-item-it-pr-external-doors').click();
+    await expect(page.getByTestId('shipment-item-it-pr-external-doors')).toHaveCount(0);
+    await expect(page.getByTestId('shipment-link-item-it-pr-external-doors')).toBeVisible();
+
+    // The list now has two shipments.
+    await page.goto('#/shipments');
+    await expect(page.locator('[data-testid^="shipment-row-"]')).toHaveCount(2);
+    await page.getByTestId('dev-reset').click();
+    await expect(page.locator('[data-testid^="shipment-row-"]')).toHaveCount(1);
   });
 
   test('offline, the ETA and status are read-only', async ({ page }) => {

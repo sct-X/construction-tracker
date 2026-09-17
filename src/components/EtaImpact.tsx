@@ -28,7 +28,7 @@ function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
 
-export function EtaImpact({ preview, jobName, testId = 'eta-preview' }: EtaImpactProps) {
+export function EtaImpact({ preview, jobName, testId = 'shipment-eta-preview' }: EtaImpactProps) {
   const { linkedItemIds, movedSteps, finishBefore, finishAfter, deltaDays, costDelta, slipDaysAfter, slipCostAfter } = preview;
   const later = deltaDays > 0;
   const nothingMoves = movedSteps.length === 0 && deltaDays === 0;
@@ -41,19 +41,19 @@ export function EtaImpact({ preview, jobName, testId = 'eta-preview' }: EtaImpac
     <div className={`eta-impact ${later ? 'eta-impact--later' : ''}`} data-testid={testId} aria-live="polite">
       <p className="eta-impact__title">If you save this ETA</p>
       <ol className="eta-impact__chain">
-        <li className="eta-impact__line" data-testid="eta-preview-items">
+        <li className="eta-impact__line" data-testid="shipment-eta-preview-items">
           {linkedItemIds.length === 0
             ? 'No items are linked to this shipment, so nothing else moves.'
             : `${plural(linkedItemIds.length, 'linked item', 'linked items')} would be expected ${formatShort(preview.newEta)}.`}
         </li>
         {first && (
-          <li className="eta-impact__line" data-testid="eta-preview-step">
+          <li className="eta-impact__line" data-testid="shipment-eta-preview-step">
             {first.name} would start {formatShort(first.to)}, not {formatShort(first.from)}
             {rest > 0 ? `, and ${plural(rest, 'step after it moves', 'steps after it move')} with it.` : '.'}
           </li>
         )}
         {nothingMoves && linkedItemIds.length > 0 && (
-          <li className="eta-impact__line" data-testid="eta-preview-step">
+          <li className="eta-impact__line" data-testid="shipment-eta-preview-step">
             No step moves: the items would still arrive before their step needs them.
           </li>
         )}
@@ -64,22 +64,22 @@ export function EtaImpact({ preview, jobName, testId = 'eta-preview' }: EtaImpac
               size="row"
               value={formatLong(finishAfter)}
               tone={later ? 'late' : deltaDays < 0 ? 'ok' : undefined}
-              testId="eta-preview-finish"
+              testId="shipment-eta-preview-finish"
             />
             {deltaDays === 0 ? (
-              <span className="eta-impact__delta eta-impact__delta--muted" data-testid="eta-preview-slip">
+              <span className="eta-impact__delta eta-impact__delta--muted" data-testid="shipment-eta-preview-slip">
                 unchanged
               </span>
             ) : (
               <span className={`eta-impact__delta eta-impact__delta--${slipTone(deltaDays)}`}>
-                (<SlipText days={deltaDays} cost={costDelta} testId="eta-preview-slip" />
+                (<SlipText days={deltaDays} cost={costDelta} testId="shipment-eta-preview-slip" />
                 {finishBefore ? `, was ${formatShort(finishBefore)}` : ''})
               </span>
             )}
           </li>
         )}
         {showSlipAfter && (
-          <li className="eta-impact__line eta-impact__line--quiet" data-testid="eta-preview-since-monday">
+          <li className="eta-impact__line eta-impact__line--quiet" data-testid="shipment-eta-preview-since-monday">
             Slip since Monday would then read <SlipText days={slipDaysAfter} cost={slipCostAfter} />.
           </li>
         )}

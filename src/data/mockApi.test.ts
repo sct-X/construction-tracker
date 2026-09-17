@@ -61,8 +61,35 @@ describe('mock API', () => {
     for (const categoryId of ['sv-pc-slab-plumbing', 'sv-pc-slab-membrane']) {
       api.addPhoto({ jobId: SEAVIEW, stageId: 'sv-st-slab', categoryId, dataUrl: 'data:image/svg+xml;utf8,<svg/>', takenOn: DEFAULT_TODAY });
     }
+    // Photos are in, but the inspection is forecast for Mon 28 Sep: not until then.
+    const early = api.setStepStatus('sv-slab-insp', 'done');
+    expect(early.ok).toBe(false);
+    if (!early.ok) {
+      expect(early.reason).toBe('not_started');
+      expect(early.startsOn).toBe('2026-09-28');
+      expect(early.message).toBe("This step hasn't started yet; it starts Mon 28 Sep.");
+    }
+    api.setSession({ today: '2026-09-28' });
     expect(api.setStepStatus('sv-slab-insp', 'done').ok).toBe(true);
     expect(api.getStep('sv-slab-insp')!.status).toBe('done');
+  });
+
+  it('refuses to finish a step before its forecast start, and allows it from that day', () => {
+    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'raff', today: DEFAULT_TODAY } });
+    // Install windows is planned Mon 2 Nov 2026 with no photo check.
+    const result = api.setStepStatus('pr-install-windows', 'done');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe('not_started');
+      expect(result.missingCategories).toEqual([]);
+      expect(result.message).toBe("This step hasn't started yet; it starts Mon 2 Nov.");
+    }
+    expect(api.getStep('pr-install-windows')!.status).toBe('not_started');
+    expect(api.listActivity({ stepId: 'pr-install-windows' })).toHaveLength(0);
+    // Starting it early is still allowed; only "done" waits for the start.
+    expect(api.setStepStatus('pr-install-windows', 'in_progress').ok).toBe(true);
+    api.setSession({ today: '2026-11-02' });
+    expect(api.setStepStatus('pr-install-windows', 'done').ok).toBe(true);
   });
 
   it('confirming a job resets freshness, and the Monday snapshot saves today\'s forecast', () => {
@@ -110,7 +137,7 @@ describe('photo queue', () => {
     expect(await api.listQueuedPhotos()).toHaveLength(0);
     expect(await api.flushPhotoQueue()).toBe(0); // nothing lands twice
     expect(api.listPhotos(SEAVIEW, { categoryId: 'sv-pc-slab-plumbing' })).toHaveLength(1);
-    api.setSession({ personId: 'raff' });
+    api.setSession({ personId: 'raff', today: '2026-09-28' });
     expect(api.setStepStatus('sv-slab-insp', 'done').ok).toBe(true);
   });
 });

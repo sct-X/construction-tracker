@@ -187,6 +187,11 @@
 .shipment__table th:first-child,
 .shipment__table td:first-child {
   padding-left: 0;
+  width: 100%;
+}
+.shipment__table td:not(:first-child),
+.shipment__table th:not(:first-child) {
+  white-space: nowrap;
 }
 .shipment__item-link {
   font-weight: var(--weight-medium);
@@ -227,6 +232,58 @@
   margin-top: var(--space-1);
   font-size: var(--text-sm);
   color: var(--text-secondary);
+}
+
+/* ---- link and unlink ---- */
+.shipment__subheading {
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  margin-bottom: var(--space-2);
+}
+.shipment__link {
+  margin-top: var(--space-5);
+}
+.shipment__candidates {
+  display: flex;
+  flex-direction: column;
+}
+.shipment__candidate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--tap);
+  padding: var(--space-2) 0;
+  border-top: var(--hairline);
+}
+.shipment__candidate:first-child {
+  border-top: 0;
+}
+.shipment__unlink {
+  min-height: var(--control);
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.shipment__unlink:hover {
+  color: var(--text);
+}
+.shipment__cell-unlink {
+  text-align: right;
+  white-space: nowrap;
+}
+.shipment__list-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.shipment__list-row .shipment__item-card {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* ---- history ---- */

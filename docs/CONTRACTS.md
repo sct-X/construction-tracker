@@ -48,6 +48,12 @@ People: `dominic` (admin), `dom`, `norm` (partners), `raff` (builder), `alec` (s
 - Freshness (rule 7) comes only from the calculator: `getForecast(jobId).freshness` (`amber`, `daysUnconfirmed`, `text`). Screens may reword it ("Unconfirmed 9 days") but never recompute it.
 - Nav test ids: `nav-<name>` (`nav-monday`, `nav-waiting`, `nav-calls`, `nav-jobs`, `nav-today`, `nav-upload`, `nav-shipments`, `nav-activity`, `nav-templates`, `nav-trades`, `nav-people`, `nav-notifications`, `nav-settings`, `nav-job-<id>`); `primary-nav`, `setup-nav`, `side-switcher` / `side-name`, `offline-bar`, `unread-count`.
 
+## Program and Gantt (Stage 2)
+
+- `<Gantt forecast steps today view? dense? onSelectStep? renderBar? />` (`src/components/gantt/Gantt.tsx`) draws the desktop program from `getForecast(jobId)` plus `listSteps(jobId)`. Read-only by default: every bar is a link to `#/steps/:id`. `view` is `'all' | 'lookahead' | 'late'`.
+- Stage 6 (program editor) reuses it rather than forking: `onSelectStep(stepId)` turns each bar into a button that calls back instead of navigating; `renderBar(step, geometry, defaultBar)` replaces what is drawn in a step's track (return your own handles or wrap `defaultBar`). `geometry` is `{ x, width, plannedX?, plannedWidth?, isHoldPoint, pxPerDay, rowHeight }` in px from the track's left edge; the planned outline stays behind whatever you draw and the late text after it. The axis (`timeScale.ts`, `makeTimeScale({ dates, today })`) is calendar days at 5px a day; `scale.x(iso)` and `scale.span(start, end)` convert dates.
+- Phone pieces: `<StagesStrip forecast />` (chips, current stage `aria-current`), `<LookAhead forecast steps items today />` (three weeks plus Later), `<StagesList forecast today />` (bands). Test ids: `gantt`, `gantt-bar-<stepId>`, `gantt-planned-<stepId>` (`data-moved`), `gantt-late-<stepId>`, `gantt-row-<stepId>`, `gantt-stage-<stageId>`, `gantt-today`, `gantt-caption`, `gantt-empty`, `program-view-<all|lookahead|late>`, `program-edit`, `program-full-link`, `lookahead`, `lookahead-week-<1..3>`, `lookahead-step-<stepId>`, `stages-strip`, `stage-chip-<stageId>`, `stage-band-<stageId>`.
+
 ## Money
 
 Fields in `MONEY_FIELDS` (`src/domain/money.ts`): `weeklyHoldingCost`, `slipCost`, `slipSincePlanCost`, `costDelta`, `slipCostAfter`. The data layer deletes them for the site role. Render money through one `<Money value={x} label="..."/>` component that returns `null` when `value === undefined`, label included. Never hide money with CSS, never default it to 0. Format with `formatMoney()` ("$9,000"). Activity and notification text never contains money.
@@ -58,7 +64,7 @@ All dates are `YYYY-MM-DD` strings. Helpers in `src/domain/dates.ts`: `formatLon
 
 ## Test ids
 
-`data-testid` on every primary control and every row, kebab-case, `<screen>-<thing>[-<id>]`: `monday-row-park-rd`, `monday-slip-park-rd`, `item-status-advance`, `upload-category-pc-lockup-windows`, `step-mark-done`, `shipment-eta-input`, `shipment-save-eta`. Flow specs in `e2e/` find things by these ids and by visible text; give both.
+`data-testid` on every primary control and every row, kebab-case, `<screen>-<thing>[-<id>]`: `monday-row-park-rd`, `monday-slip-park-rd`, `item-status-advance`, `upload-category-pc-lockup-windows`, `step-mark-done`, `shipment-eta-input`, `shipment-save-eta`, `shipment-eta-preview`, `shipment-add`. Every id starts with its screen's name, including the shared component's ids inside it (`<EtaImpact>` renders `shipment-eta-preview-finish`, `shipment-eta-preview-slip`). Shipments: `addShipment`, `linkItemToShipment(itemId, shipmentId | null)` and `setShipmentEta` already exist on the API and log activity; the Stage 2 screens use them unchanged. Flow specs in `e2e/` find things by these ids and by visible text; give both.
 
 ## Tokens and styling
 

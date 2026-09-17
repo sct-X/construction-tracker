@@ -7,6 +7,21 @@
 .itemrow__li + .itemrow__li {
   border-top: var(--hairline);
 }
+.itemrow__li--with-action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.itemrow__li--with-action > .itemrow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.itemrow__action {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+}
 .itemrow {
   display: grid;
   grid-template-columns: 5.5em minmax(0, 1fr);

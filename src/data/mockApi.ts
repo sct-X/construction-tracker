@@ -35,6 +35,7 @@ import { forecastJob, holdPointCheck, holdPointRefusalText, previewEtaChange, to
 import {
   addCalendarWeeks,
   formatDayMonth,
+  formatShort,
   lastMonday,
   maxDate,
   nextWorkingDay,
@@ -637,7 +638,20 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
           d().photoCategories.filter((c) => c.jobId === step.jobId),
           d().photos.filter((p) => p.jobId === step.jobId),
         );
-        if (!check.ok) return { ok: false, missingCategories: check.missingCategories, message: holdPointRefusalText(check) };
+        if (!check.ok) return { ok: false, reason: 'hold_point', missingCategories: check.missingCategories, message: holdPointRefusalText(check) };
+      }
+      if (status === 'done') {
+        // A step that has not started yet cannot be finished today.
+        const startsOn = rawForecast(step.jobId)?.steps[step.id]?.forecastStart;
+        if (startsOn && startsOn > session.today) {
+          return {
+            ok: false,
+            reason: 'not_started',
+            missingCategories: [],
+            startsOn,
+            message: `This step hasn't started yet; it starts ${formatShort(startsOn)}.`,
+          };
+        }
       }
       const from = step.status;
       step.status = status;

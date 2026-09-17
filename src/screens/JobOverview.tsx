@@ -48,16 +48,20 @@ export function lateWords(f: JobForecast): { tone: Tone; text: string } {
   return { tone: 'ok', text: 'On plan' };
 }
 
-function stageWords(s: StageForecast): string {
-  if (s.status === 'done') return s.forecastEnd ? `Done ${formatDayMonth(s.forecastEnd)}` : 'Done';
-  if (s.status === 'in_progress') return s.forecastEnd ? `Under way, ends ${formatDayMonth(s.forecastEnd)}` : 'Under way';
-  return s.forecastStart ? `From ${formatDayMonth(s.forecastStart)}` : 'Not started';
+/** The stage's forecast span in words, and its planned span when that differs. */
+function stageWords(s: StageForecast): { when: string; planned?: string } {
+  if (s.status === 'done') return { when: s.forecastEnd ? `Done ${formatDayMonth(s.forecastEnd)}` : 'Done' };
+  const span = s.forecastStart && s.forecastEnd ? `${formatDayMonth(s.forecastStart)} to ${formatDayMonth(s.forecastEnd)}` : undefined;
+  const when = s.status === 'in_progress' ? (s.forecastEnd ? `Under way, ends ${formatDayMonth(s.forecastEnd)}` : 'Under way') : span ?? 'No dates yet';
+  const moved = s.plannedStart && s.plannedEnd && (s.plannedStart !== s.forecastStart || s.plannedEnd !== s.forecastEnd);
+  const planned = moved ? `planned ${formatDayMonth(s.plannedStart!)} to ${formatDayMonth(s.plannedEnd!)}` : undefined;
+  return { when, planned };
 }
 
 export default function JobOverview() {
   const { id = '' } = useParams();
   const api = useApi();
-  const { role, today, offline, personId } = useSession();
+  const { role, today, offline } = useSession();
   const data = useQuery<Data | undefined>(
     (api) => {
       const job = api.getJob(id);
@@ -243,14 +247,20 @@ export default function JobOverview() {
                   {forecast.stages.map((s) => {
                     const current = s.stageId === forecast.currentStageId;
                     return (
-                      <li key={s.stageId} className={current ? 'job__stage job__stage--current' : 'job__stage'}>
+                      <li key={s.stageId} className={current ? 'job__stage job__stage--current' : 'job__stage'} data-testid={`job-stage-${s.stageId}`}>
                         <span className="job__stage-name">{s.name}</span>
-                        <span className="job__stage-when">{stageWords(s)}</span>
-                        {s.isLate && s.status !== 'done' && (
-                          <StatusText tone="late" plain className="job__stage-late">
-                            {s.lateDays} day{s.lateDays === 1 ? '' : 's'} late
-                          </StatusText>
-                        )}
+                        <span className="job__stage-when">
+                          {stageWords(s).when}
+                          {s.isLate && s.status !== 'done' && (
+                            <>
+                              {' '}
+                              <StatusText tone="late" plain className="job__stage-late">
+                                {s.lateDays} day{s.lateDays === 1 ? '' : 's'} late
+                              </StatusText>
+                            </>
+                          )}
+                        </span>
+                        {stageWords(s).planned && <span className="job__stage-planned">{stageWords(s).planned}</span>}
                       </li>
                     );
                   })}
@@ -278,7 +288,7 @@ export default function JobOverview() {
                             key={w.itemId}
                             item={item}
                             forecast={forecast.items[w.itemId]}
-                            ownerName={w.ownerId === personId ? 'you' : nameOf(w.ownerId)}
+                            ownerName={nameOf(w.ownerId)}
                             href={`/items/${w.itemId}`}
                           />
                         );

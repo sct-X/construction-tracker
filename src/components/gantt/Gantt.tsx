@@ -9,7 +9,7 @@
  *
  * Only the chart scrolls sideways: the label column and the axis stay put.
  */
-import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { JobForecast, StepForecast } from '../../domain/forecast';
 import type { Step } from '../../domain/types';
 import { addCalendarDays, formatLong, formatShort } from '../../domain/dates';
@@ -19,6 +19,17 @@ import './gantt.css';
 
 export type GanttView = 'all' | 'lookahead' | 'late';
 
+/** Where a step's bar sits in its track, in px from the track's left edge. Hold points are a diamond centred on `x`. */
+export interface BarGeometry {
+  x: number;
+  width: number;
+  plannedX?: number;
+  plannedWidth?: number;
+  isHoldPoint: boolean;
+  pxPerDay: number;
+  rowHeight: number;
+}
+
 interface Props {
   forecast: JobForecast;
   steps: Step[];
@@ -26,6 +37,18 @@ interface Props {
   view?: GanttView;
   /** Rows are 36px on the desktop; the phone's "full program" gets 44px rows. */
   dense?: boolean;
+  /**
+   * Stage 6 reuse (program editor). When set, a bar is a button that calls
+   * this instead of a link to `#/steps/:id`. Hover and focus still name the
+   * step in the caption.
+   */
+  onSelectStep?: (stepId: string) => void;
+  /**
+   * Stage 6 reuse. Replaces what is drawn in a step's track: return your own
+   * node (handles, a drag ghost) or wrap `defaultBar`. The planned outline is
+   * drawn behind whatever you return, and the late text after it.
+   */
+  renderBar?: (step: StepForecast, geometry: BarGeometry, defaultBar: ReactNode) => ReactNode;
 }
 
 interface StepRow {
@@ -82,7 +105,7 @@ function stepSentence(step: StepForecast, names: Map<string, string>): string {
   return [when + '.', late, waits].filter(Boolean).join(' ');
 }
 
-export function Gantt({ forecast, steps, today, view = 'all', dense }: Props) {
+export function Gantt({ forecast, steps, today, view = 'all', dense, onSelectStep, renderBar }: Props) {
   const horizon = useMemo(() => addCalendarDays(today, 21), [today]);
   const scale: TimeScale = useMemo(() => {
     const dates: string[] = [];
@@ -108,14 +131,17 @@ export function Gantt({ forecast, steps, today, view = 'all', dense }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
 
   // Open with today a quarter of the way in, so this week and the look-ahead are in view.
+  // Runs when the chart (re)appears and when the view changes: an empty "Late
+  // only" unmounts the scroller, so a mount-only effect would leave the next
+  // view at scrollLeft 0. The person's own scrolling wins in between.
+  const empty = rows.length === 0;
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el) return;
     const visible = el.clientWidth - LABEL_W;
     el.scrollLeft = Math.max(0, scale.x(today) - Math.round(visible / 4));
-    // Only on mount: the person's own scrolling wins after that.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [empty, view]);
 
   const rowH = dense ? 44 : 36;
   const bodyH = rows.length * rowH;
@@ -145,7 +171,7 @@ export function Gantt({ forecast, steps, today, view = 'all', dense }: Props) {
   const activeStep = active ? forecast.steps[active] : undefined;
   const todayX = scale.x(today);
 
-  if (rows.length === 0) {
+  if (empty) {
     return (
       <div className="gantt gantt--empty" data-testid="gantt">
         <p data-testid="gantt-empty">{view === 'late' ? 'Nothing is late. Every step is on its planned dates.' : 'Nothing runs in the next three weeks.'}</p>
@@ -205,6 +231,9 @@ export function Gantt({ forecast, steps, today, view = 'all', dense }: Props) {
                   names={names}
                   active={active === row.step.stepId || (activeStep?.waitsFor.includes(row.step.stepId) ?? false)}
                   onActive={setActive}
+                  rowH={rowH}
+                  onSelectStep={onSelectStep}
+                  renderBar={renderBar}
                 />
               ),
             )}
@@ -275,6 +304,9 @@ function StepBarRow({
   names,
   active,
   onActive,
+  rowH,
+  onSelectStep,
+  renderBar,
 }: {
   row: StepRow;
   scale: TimeScale;
@@ -282,6 +314,9 @@ function StepBarRow({
   names: Map<string, string>;
   active: boolean;
   onActive: (id: string | null) => void;
+  rowH: number;
+  onSelectStep?: Props['onSelectStep'];
+  renderBar?: Props['renderBar'];
 }) {
   const { step } = row;
   const hold = step.isHoldPoint;
@@ -303,8 +338,10 @@ function StepBarRow({
             ◇
           </span>
         )}
-        <span className={row.isStageBar ? 'gantt__stage-name' : 'gantt__step-name'}>{row.label}</span>
-        {hold && <span className="gantt__hold-word">hold point</span>}
+        <span className={row.isStageBar ? 'gantt__stage-name' : 'gantt__step-name'}>
+          {row.label}
+          {hold && <span className="gantt__hold-word">hold point</span>}
+        </span>
       </div>
       <div className="gantt__track">
         {px !== undefined && pw !== undefined && (
@@ -316,18 +353,43 @@ function StepBarRow({
             title={`Planned ${formatShort(step.plannedStart!)} to ${formatShort(step.plannedEnd!)}`}
           />
         )}
-        <a
-          href={`#/steps/${step.stepId}`}
-          className={cls}
-          style={hold ? { left: fx + scale.pxPerDay / 2 } : { left: fx, width: fw }}
-          data-testid={`gantt-bar-${step.stepId}`}
-          aria-label={label}
-          title={label}
-          onMouseEnter={() => onActive(step.stepId)}
-          onMouseLeave={() => onActive(null)}
-          onFocus={() => onActive(step.stepId)}
-          onBlur={() => onActive(null)}
-        />
+        {(() => {
+          const barStyle = hold ? { left: fx + scale.pxPerDay / 2 } : { left: fx, width: fw };
+          const handlers = {
+            onMouseEnter: () => onActive(step.stepId),
+            onMouseLeave: () => onActive(null),
+            onFocus: () => onActive(step.stepId),
+            onBlur: () => onActive(null),
+          };
+          const defaultBar = onSelectStep ? (
+            <button
+              type="button"
+              className={cls}
+              style={barStyle}
+              data-testid={`gantt-bar-${step.stepId}`}
+              aria-label={label}
+              title={label}
+              onClick={() => onSelectStep(step.stepId)}
+              {...handlers}
+            />
+          ) : (
+            <a
+              href={`#/steps/${step.stepId}`}
+              className={cls}
+              style={barStyle}
+              data-testid={`gantt-bar-${step.stepId}`}
+              aria-label={label}
+              title={label}
+              {...handlers}
+            />
+          );
+          if (!renderBar) return defaultBar;
+          return renderBar(
+            step,
+            { x: fx, width: fw, plannedX: px, plannedWidth: pw, isHoldPoint: hold, pxPerDay: scale.pxPerDay, rowHeight: rowH },
+            defaultBar,
+          );
+        })()}
         {step.lateDays > 0 && (
           <span className="gantt__late" style={{ left: (hold ? fx + scale.pxPerDay / 2 + 9 : fx + fw) + 8 }} data-testid={`gantt-late-${step.stepId}`}>
             <StatusText tone="late" plain>

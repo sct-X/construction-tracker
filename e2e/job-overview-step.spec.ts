@@ -60,9 +60,20 @@ test.describe('Step detail', () => {
     await expect(page.getByTestId('step-items').locator('li')).toHaveCount(4);
     await expect(page.getByTestId('item-row-it-pr-windows')).toContainText('Windows');
     await expect(page.getByTestId('item-row-it-pr-windows')).toContainText('Expected Mon 26 Oct');
-    await expect(page.getByTestId('item-row-it-pr-windows')).toContainText('Ordered');
+    await expect(page.getByTestId('item-row-it-pr-windows')).toContainText('Ordered or booked');
     await expect(page.getByTestId('item-row-it-pr-window-installer')).toContainText('Act by');
     await expect(page.getByTestId('step-mark-done')).toBeVisible();
+
+    // It starts in November, so "Mark done" today is refused in words (locked decision).
+    await page.getByTestId('step-mark-done').click();
+    await expect(page.getByTestId('step-refusal')).toHaveText("This step hasn't started yet; it starts Mon 2 Nov.");
+    await expect(page.getByTestId('step-status')).toHaveText('Not started');
+  });
+
+  test('Beatty overview lists stages with planned and forecast spans in words', async ({ page }) => {
+    await page.goto('#/jobs/beatty?as=dominic&today=2026-09-17');
+    await expect(page.getByTestId('job-stage-bt-st-tiling')).toContainText('7 days late');
+    await expect(page.getByTestId('job-stage-bt-st-tiling')).toContainText('planned');
   });
 
   test('Seaview slab inspection refuses Mark done and names the two empty categories', async ({ page }) => {

@@ -4,11 +4,14 @@
  *
  * Read-only except status: builder and above mark it started or done. A hold
  * point runs the photo check first; a refusal is shown inline in words
- * naming the empty categories (rule 6), never a silently dead button.
+ * naming the empty categories (rule 6), never a silently dead button. A step
+ * whose forecast start is still ahead cannot be finished either; the API
+ * says so and the sentence is shown the same way.
  * Stage 5 extends the hold-point block (src/components/HoldPointCheck.tsx).
  */
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import type { StepStatusResult } from '../data/api';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { Item, Job, Person, Requirement, Stage, Step } from '../domain/types';
 import type { JobForecast, StepForecast } from '../domain/forecast';
@@ -49,7 +52,7 @@ function lateWords(sf: StepForecast): string {
 export default function StepDetail() {
   const { id = '' } = useParams();
   const api = useApi();
-  const { role, offline, personId } = useSession();
+  const { role, offline } = useSession();
   const data = useQuery<Data | undefined>(
     (api) => {
       const step = api.getStep(id);
@@ -69,22 +72,23 @@ export default function StepDetail() {
     },
     [id],
   );
-  const [refusal, setRefusal] = useState<string | undefined>();
+  const [refusal, setRefusal] = useState<Extract<StepStatusResult, { ok: false }> | undefined>();
   const [queued, setQueued] = useState(0);
 
-  // Photos still in the phone's queue do not count for the hold point; say so.
-  const isHold = data?.step.isHoldPoint ?? false;
-  const jobId = data?.job.id;
+  // Photos still in the phone's queue for this step's required categories do
+  // not count for the hold point yet; say so. Other categories are not counted.
+  const requiredIds = (data?.forecast?.holdPoints.find((h) => h.stepId === id)?.required ?? []).map((r) => r.categoryId).join(',');
   useEffect(() => {
-    if (!isHold || !jobId) return;
+    if (!requiredIds) return;
+    const ids = new Set(requiredIds.split(','));
     let live = true;
     void api.listQueuedPhotos().then((q) => {
-      if (live) setQueued(q.filter((p) => p.jobId === jobId).length);
+      if (live) setQueued(q.filter((p) => ids.has(p.categoryId)).length);
     });
     return () => {
       live = false;
     };
-  }, [api, isHold, jobId, offline]);
+  }, [api, id, requiredIds, offline]);
 
   if (!data) return <NotFound />;
   const { step, job, stage, forecast, steps, items, requirements, people } = data;
@@ -97,7 +101,7 @@ export default function StepDetail() {
 
   const setStatus = (status: Step['status']) => {
     const result = api.setStepStatus(step.id, status);
-    setRefusal(result.ok ? undefined : result.message);
+    setRefusal(result.ok ? undefined : result);
   };
 
   // Done on a hold point needs signal: the server counts the photos.
@@ -172,12 +176,17 @@ export default function StepDetail() {
           {doneNeedsSignal && <span className="step__needs-signal">Needs signal: the photo count is checked on the server.</span>}
         </div>
       )}
+      {refusal && refusal.reason === 'not_started' && (
+        <p className="step__refusal" role="alert" data-testid="step-refusal">
+          {refusal.message}
+        </p>
+      )}
 
       {step.isHoldPoint && check && (
         <section className="step__section" aria-label="Hold point">
           <HoldPointCheck
             check={check}
-            refusal={refusal}
+            refusal={refusal?.reason === 'hold_point' ? refusal.message : undefined}
             queuedCount={queued}
             uploadHref={`/jobs/${job.id}/upload?stage=${step.stageId}`}
             testId="step-holdpoint"
@@ -251,7 +260,7 @@ export default function StepDetail() {
                   key={item.id}
                   item={item}
                   forecast={forecast?.items[item.id]}
-                  ownerName={item.ownerId === personId ? 'you' : nameOf(item.ownerId)}
+                  ownerName={nameOf(item.ownerId)}
                   href={canLink ? `/items/${item.id}` : undefined}
                 />
               ))}

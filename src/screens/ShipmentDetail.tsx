@@ -51,6 +51,10 @@ export default function ShipmentDetail() {
         : [],
     [shipment?.id, forecast],
   );
+  const candidates = useQuery<Item[]>(
+    (api) => (shipment ? api.listItems({ jobId: shipment.jobId, type: 'material' }).filter((i) => !i.shipmentId) : []),
+    [shipment?.jobId],
+  );
   const history = useQuery<ActivityEntry[]>((api) => (shipment ? api.listActivity({ shipmentId: shipment.id }) : []), [shipment?.id]);
   const people = useQuery((api) => new Map(api.listPeople().map((p) => [p.id, p.shortName])), []);
 
@@ -93,6 +97,13 @@ export default function ShipmentDetail() {
     if (!shipment || status === shipment.status) return;
     api.setShipmentStatus(shipment.id, status);
     setOfferDone(status === 'delivered' && openItems.length > 0);
+  }
+
+  function link(itemId: string) {
+    if (shipment) api.linkItemToShipment(itemId, shipment.id);
+  }
+  function unlink(itemId: string) {
+    api.linkItemToShipment(itemId, null);
   }
 
   function markItemsDone() {
@@ -198,10 +209,10 @@ export default function ShipmentDetail() {
           <>
             <EtaImpact preview={preview} jobName={job.name} />
             <div className="shipment__eta-actions">
-              <button type="button" className="btn btn--primary" data-testid="eta-save" onClick={save} disabled={locked}>
+              <button type="button" className="btn btn--primary" data-testid="shipment-save-eta" onClick={save} disabled={locked}>
                 Save new ETA
               </button>
-              <button type="button" className="btn" data-testid="eta-cancel" onClick={() => setDraft(shipment.eta)}>
+              <button type="button" className="btn" data-testid="shipment-cancel-eta" onClick={() => setDraft(shipment.eta)}>
                 Keep {formatDayMonth(shipment.eta)}
               </button>
             </div>
@@ -216,9 +227,29 @@ export default function ShipmentDetail() {
         {rows.length === 0 ? (
           <p className="shipment__empty">No items are linked to this shipment yet.</p>
         ) : layout === 'desktop' ? (
-          <ItemsTable rows={rows} />
+          <ItemsTable rows={rows} onUnlink={locked ? undefined : unlink} />
         ) : (
-          <ItemsList rows={rows} />
+          <ItemsList rows={rows} onUnlink={locked ? undefined : unlink} />
+        )}
+        {canEdit && (
+          <div className="shipment__link" data-testid="shipment-link-items">
+            <h3 className="shipment__subheading">Link an item</h3>
+            {candidates.length === 0 ? (
+              <p className="shipment__empty">Every material to order on this job is already on a shipment.</p>
+            ) : (
+              <ul className="shipment__candidates">
+                {candidates.map((item) => (
+                  <li key={item.id} className="shipment__candidate">
+                    <span className="shipment__candidate-title">{item.title}</span>
+                    <button type="button" className="btn btn--desktop" data-testid={`shipment-link-item-${item.id}`} disabled={locked} onClick={() => link(item.id)}>
+                      Link<span className="sr-only"> {item.title}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {offline && <p className="shipment__signal">Needs signal to link or unlink items.</p>}
+          </div>
         )}
       </section>
 
@@ -255,7 +286,18 @@ function ItemStatus({ row }: { row: LinkedRow }) {
   return <StatusText tone="plain">{ITEM_STATUS_LABELS[item.status]}</StatusText>;
 }
 
-function ItemsTable({ rows }: { rows: LinkedRow[] }) {
+type Unlink = ((itemId: string) => void) | undefined;
+
+function UnlinkButton({ id, onUnlink }: { id: string; onUnlink: Unlink }) {
+  if (!onUnlink) return null;
+  return (
+    <button type="button" className="shipment__unlink" data-testid={`shipment-unlink-item-${id}`} onClick={() => onUnlink(id)}>
+      Unlink
+    </button>
+  );
+}
+
+function ItemsTable({ rows, onUnlink }: { rows: LinkedRow[]; onUnlink: Unlink }) {
   return (
     <table className="shipment__table">
       <thead>
@@ -266,6 +308,11 @@ function ItemsTable({ rows }: { rows: LinkedRow[] }) {
           <th scope="col">Needed by</th>
           <th scope="col">Expected</th>
           <th scope="col">Status</th>
+          {onUnlink && (
+            <th scope="col">
+              <span className="sr-only">Unlink</span>
+            </th>
+          )}
         </tr>
       </thead>
       <tbody>
@@ -290,6 +337,11 @@ function ItemsTable({ rows }: { rows: LinkedRow[] }) {
                 )}
               </span>
             </td>
+            {onUnlink && (
+              <td className="shipment__cell-unlink">
+                <UnlinkButton id={row.item.id} onUnlink={onUnlink} />
+              </td>
+            )}
           </tr>
         ))}
       </tbody>
@@ -297,7 +349,7 @@ function ItemsTable({ rows }: { rows: LinkedRow[] }) {
   );
 }
 
-function ItemsList({ rows }: { rows: LinkedRow[] }) {
+function ItemsList({ rows, onUnlink }: { rows: LinkedRow[]; onUnlink: Unlink }) {
   return (
     <ul className="shipment__list">
       {rows.map((row) => (
@@ -320,6 +372,7 @@ function ItemsList({ rows }: { rows: LinkedRow[] }) {
               {row.item.status !== 'done' && row.forecast?.lateText && <span>{ITEM_STATUS_LABELS[row.item.status]}</span>}
             </div>
           </Link>
+          <UnlinkButton id={row.item.id} onUnlink={onUnlink} />
         </li>
       ))}
     </ul>

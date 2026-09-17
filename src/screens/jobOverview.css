@@ -148,6 +148,16 @@
   align-items: center;
   min-height: 32px;
 }
+/* Phone layout (and always Alec): every link a thumb lands on is 56px. */
+.shell--phone .job__tab,
+.shell--phone .job__more a,
+.shell--phone .job__hp-name {
+  min-height: var(--tap);
+}
+.shell--phone .job__hp-name {
+  display: inline-flex;
+  align-items: center;
+}
 .job__more-sep {
   display: inline-block;
   width: var(--space-4);
@@ -178,12 +188,12 @@
   flex-direction: column;
 }
 .job__stage {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-3);
   align-items: baseline;
-  gap: var(--space-1) var(--space-3);
   min-height: 36px;
-  padding: var(--space-1) 0;
+  padding: var(--space-2) 0;
   border-top: var(--hairline);
   color: var(--text-secondary);
 }
@@ -197,10 +207,23 @@
   font-weight: var(--weight-bold);
 }
 .job__stage-name {
-  flex: 1 1 10em;
+  grid-column: 1;
+  grid-row: 1 / span 2;
 }
 .job__stage-when {
+  grid-column: 2;
   font-size: var(--text-sm);
+  text-align: right;
+  max-width: 14em;
+}
+.job__stage-late {
+  white-space: nowrap;
+}
+.job__stage-planned {
+  grid-column: 2;
+  text-align: right;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 
 /* notes */

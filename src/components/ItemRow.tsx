@@ -7,10 +7,13 @@
  *
  * Dates are words from the calculator (act-by, needed-by, expected, late),
  * never a bare colour: "expected 5 Oct, 7 days late". The row is a link when
- * `href` is given (Alec has no item screen, so his rows are plain).
+ * `href` is given (Alec has no item screen, so his rows are plain). An
+ * optional `action` (a button) sits to the right, outside the link.
  */
 import type { ReactNode } from 'react';
+import { useSession } from '../data/context';
 import type { Item, ItemStatus, ItemType } from '../domain/types';
+import { ITEM_STATUS_LABELS } from '../domain/types';
 import type { ItemForecast } from '../domain/forecast';
 import { formatShort } from '../domain/dates';
 import { StatusText, type Tone } from './StatusText';
@@ -28,20 +31,6 @@ export const ITEM_TYPE_WORDS: Record<ItemType, string> = {
   manual_reminder: 'Reminder',
 };
 
-/** "Ordered" for a material, "Booked" for everything else with a booking. */
-export function itemStatusWords(status: ItemStatus, type: ItemType): string {
-  switch (status) {
-    case 'to_do':
-      return 'To do';
-    case 'booked':
-      return type === 'material' ? 'Ordered' : 'Booked';
-    case 'confirmed':
-      return 'Confirmed';
-    case 'done':
-      return 'Done';
-  }
-}
-
 /** The one date phrase a row shows, and its tone. */
 export function itemWhenWords(f: ItemForecast | undefined, status: ItemStatus): { text: string; tone: Tone } | null {
   if (!f) return null;
@@ -58,19 +47,23 @@ export interface ItemRowProps {
   item: Item;
   /** From `getForecast(jobId).items[item.id]`; without it the row shows no dates. */
   forecast?: ItemForecast;
-  /** The owner's short name ("Raff"). */
+  /** The owner's short name ("Raff"); the current person reads "with you". */
   ownerName?: string;
   /** Link target, e.g. `/items/${item.id}`. Omit for a plain row. */
   href?: string;
   /** Extra words on the right of the title, e.g. the job name on a cross-job list. */
   context?: string;
+  /** A control on the right, outside the link (Stage 4's status advance, Finish call). */
+  action?: ReactNode;
   testId?: string;
 }
 
-export function ItemRow({ item, forecast, ownerName, href, context, testId }: ItemRowProps) {
+export function ItemRow({ item, forecast, ownerName, href, context, action, testId }: ItemRowProps) {
+  const { personId } = useSession();
   const when = itemWhenWords(forecast, item.status);
   const flagged = when?.tone === 'late' || when?.tone === 'amber';
-  const who = [item.waitingOn ? `waiting on ${item.waitingOn}` : '', ownerName ? `with ${ownerName}` : ''].filter(Boolean).join(', ');
+  const owner = item.ownerId && item.ownerId === personId ? 'you' : ownerName;
+  const who = [item.waitingOn ? `waiting on ${item.waitingOn}` : '', owner ? `with ${owner}` : ''].filter(Boolean).join(', ');
   const body = (
     <>
       <span className="itemrow__type">{ITEM_TYPE_WORDS[item.type]}</span>
@@ -87,14 +80,14 @@ export function ItemRow({ item, forecast, ownerName, href, context, testId }: It
             {when.text}
           </StatusText>
         ) : null}
-        <span className="itemrow__status">{itemStatusWords(item.status, item.type)}</span>
+        <span className="itemrow__status">{ITEM_STATUS_LABELS[item.status]}</span>
       </span>
     </>
   );
   const classes = ['itemrow', flagged ? 'itemrow--flagged' : '', href ? 'itemrow--link' : ''].filter(Boolean).join(' ');
   const id = testId ?? `item-row-${item.id}`;
   return (
-    <li className="itemrow__li">
+    <li className={action ? 'itemrow__li itemrow__li--with-action' : 'itemrow__li'}>
       {href ? (
         <a className={classes} href={`#${href}`} data-testid={id}>
           {body}
@@ -104,6 +97,7 @@ export function ItemRow({ item, forecast, ownerName, href, context, testId }: It
           {body}
         </div>
       )}
+      {action ? <span className="itemrow__action">{action}</span> : null}
     </li>
   );
 }

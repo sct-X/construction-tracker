@@ -78,7 +78,12 @@ export interface MondayRow {
 
 export type StepStatusResult =
   | { ok: true; step: Step }
-  | { ok: false; missingCategories: string[]; message: string };
+  /**
+   * Refused. `reason` says why: a hold point with empty required photo
+   * categories (rule 6; `missingCategories` names them) or a step whose
+   * forecast start is after today (`startsOn`). Show `message` as is.
+   */
+  | { ok: false; reason: 'hold_point' | 'not_started'; missingCategories: string[]; startsOn?: string; message: string };
 
 export interface ItemFilter {
   jobId?: string;

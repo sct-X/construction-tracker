@@ -59,6 +59,15 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
+.step__refusal {
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--amber-ink);
+  border-radius: var(--radius-sm);
+  background: var(--amber-bg);
+  color: var(--amber-ink);
+  max-width: var(--measure);
+}
 .step__needs-signal {
   font-size: var(--text-sm);
   color: var(--text-muted);
@@ -101,6 +110,14 @@
   align-items: center;
   min-height: 32px;
   font-weight: var(--weight-medium);
+}
+.shell--phone .step__link {
+  min-height: var(--tap);
+}
+.shell--phone .step .page-header__back {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
 }
 .step__link-when {
   color: var(--text-muted);

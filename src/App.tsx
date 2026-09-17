@@ -4,7 +4,8 @@
  * Placeholder there so nothing 404s. Access is checked by <Guard> against
  * `api.canSee`, and `#/` sends each role to its home (src/shell/Landing).
  */
-import { HashRouter, Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
+import { HashRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { DevBar } from './dev/DevBar';
 import { AppShell } from './shell/AppShell';
 import { Guard } from './shell/Guard';
@@ -13,10 +14,21 @@ import { ROUTES } from './shell/routes';
 import NotFound from './screens/NotFound';
 import SignIn from './screens/SignIn';
 
+/** An in-app route change starts at the top, unless the location carries an anchor (#/jobs/x/program#stage-1). */
+function ScrollToTop() {
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    if (hash) return;
+    window.scrollTo(0, 0);
+  }, [pathname, hash]);
+  return null;
+}
+
 export default function App() {
   return (
     <HashRouter>
       <DevBar />
+      <ScrollToTop />
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<Landing />} />

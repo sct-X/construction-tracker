@@ -50,18 +50,19 @@ export default function Notifications() {
   const layout = useLayout();
   const [params, setParams] = useSearchParams();
   const jobFilter = params.get('job') ?? '';
+  const personFilter = params.get('person') ?? '';
   const data = useQuery<Data>(
     (api) => {
       const showActivity = api.canSee('activity');
       return {
         notifications: api.listNotifications(),
-        activity: showActivity ? api.listActivity({ jobId: jobFilter || undefined, limit: ACTIVITY_LIMIT }) : [],
+        activity: showActivity ? api.listActivity({ jobId: jobFilter || undefined, personId: personFilter || undefined, limit: ACTIVITY_LIMIT }) : [],
         jobs: api.listJobs(),
         people: api.listPeople(),
         showActivity,
       };
     },
-    [jobFilter],
+    [jobFilter, personFilter],
   );
   const { notifications, activity, jobs, people, showActivity } = data;
   const tab = showActivity && params.get('tab') === 'activity' ? 'activity' : 'notifications';
@@ -157,9 +158,28 @@ export default function Notifications() {
           </button>
         ))}
       </div>
+      <div className="notifications__filters" role="group" aria-label="Filter by person">
+        <button type="button" className="notifications__chip" aria-pressed={!personFilter} data-testid="activity-person-all" onClick={() => setParam('person', null)}>
+          Anyone
+        </button>
+        {people.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            className="notifications__chip"
+            aria-pressed={personFilter === p.id}
+            data-testid={`activity-person-${p.id}`}
+            onClick={() => setParam('person', p.id)}
+          >
+            {p.shortName}
+          </button>
+        ))}
+      </div>
       {activity.length === 0 ? (
         <p className="notifications__empty" data-testid="activity-empty">
-          {jobFilter ? `Nothing has happened on ${jobName(jobFilter) ?? 'this job'} yet.` : 'Nothing has happened yet.'}
+          {jobFilter || personFilter
+            ? `Nothing ${personFilter ? `by ${nameOf(personFilter)} ` : ''}${jobFilter ? `on ${jobName(jobFilter) ?? 'this job'} ` : ''}yet.`
+            : 'Nothing has happened yet.'}
         </p>
       ) : (
         <ol className="notifications__days">

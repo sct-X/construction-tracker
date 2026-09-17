@@ -370,6 +370,8 @@
   font-weight: var(--weight-bold);
 }
 .btn--primary:hover {
+  /* stays hi-vis: this rule outranks .btn:hover by source order at equal specificity */
+  background: var(--hivis);
   filter: brightness(0.93);
 }
 @media (min-width: 768px) {

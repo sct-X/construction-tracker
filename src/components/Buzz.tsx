@@ -59,6 +59,7 @@ export function Buzz({ layout = 'phone' }: { layout?: 'phone' | 'desktop' }) {
     if (!seen.current || seen.current.key !== key) {
       // A new person (or side): start from what is already there, buzz for nothing.
       seen.current = { key, ids: new Set(unread.map((n) => n.id)) };
+      setShown(null);
       return;
     }
     const fresh = unread.filter((n) => !seen.current!.ids.has(n.id));

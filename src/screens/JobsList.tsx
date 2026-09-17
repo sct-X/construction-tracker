@@ -48,7 +48,7 @@ function freshnessStatus(f?: JobForecast): { tone: Tone; text: string } | null {
 }
 
 /** "2 outstanding, oldest 23 days"; amber once the oldest has sat more than two weeks. */
-function outstandingStatus(f?: JobForecast): { tone: Tone; text: string } {
+export function outstandingStatus(f?: JobForecast): { tone: Tone; text: string } {
   const c = f?.checklist;
   if (!c || c.outstanding === 0) return { tone: 'muted', text: 'Nothing outstanding' };
   const n = `${c.outstanding} outstanding`;

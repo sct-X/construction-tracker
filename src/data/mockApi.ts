@@ -24,6 +24,7 @@ import type {
   SeedData,
   Shipment,
   Stage,
+  StageStatus,
   Step,
   StepLink,
   StepStatus,
@@ -543,8 +544,14 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
     updateStage(id, patch) {
       const stage = d().stages.find((s) => s.id === id && s.sideId === session.sideId);
       if (!stage) throw new Error(`No stage ${id}`);
+      const from = stage.status;
       Object.assign(stage, patch);
-      log('program_edited', `Updated stage ${stage.name}`, { jobId: stage.jobId });
+      if (patch.status && patch.status !== from) {
+        const words: Record<StageStatus, string> = { not_started: 'reset to not started', in_progress: 'under way', done: 'done' };
+        log('program_edited', `${stage.name} ${words[patch.status]} on ${jobName(stage.jobId)}`, { jobId: stage.jobId, from, to: patch.status });
+      } else {
+        log('program_edited', `Updated stage ${stage.name} on ${jobName(stage.jobId)}`, { jobId: stage.jobId });
+      }
       commit();
       return scoped(stage);
     },
@@ -1328,7 +1335,7 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
           }
         }
       }
-      log('reminders_fired', `Fired ${raised.length} reminder${raised.length === 1 ? '' : 's'} for ${formatDayMonth(today)}`);
+      if (raised.length) log('reminders_fired', `Fired ${raised.length} reminder${raised.length === 1 ? '' : 's'} for ${formatDayMonth(today)}`);
       commit();
       return scoped(raised);
     },

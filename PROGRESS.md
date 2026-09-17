@@ -7,7 +7,7 @@
 - [x] Stage 2: shipments + ETA impact preview, Gantt, look-ahead, step detail, build job overview. Reviewer sign-off: done
 - [x] Stage 3: photo upload + IndexedDB queue, upload queue, gallery, Alec's Today. Reviewer sign-off: done
 - [x] Stage 4: waiting-on list, item sheet, call list. Reviewer sign-off: done
-- [ ] Stage 5: hold-point check, daily notes, design checklist, notifications + activity. Reviewer sign-off: pending
+- [x] Stage 5: hold-point check, daily notes, design checklist, notifications + activity. Reviewer sign-off: done
 - [ ] Stage 6: program editor, templates + new job, trades, people + roles, my settings. Reviewer sign-off: pending
 - [ ] Deployed to GitHub Pages, live URL confirmed
 
@@ -167,6 +167,9 @@
 - 2026-09-18 Stage 5 (holdpoint/notes): `e2e/flow-e-hold-point.spec.ts` runs UI_PLAN flow e as Raff with today 2026-09-28 (reset, then reload so the URL's date applies again): refusal naming both empty sets, the row links with the exact href, upload of one generated PNG per set with Done returning to the step, refusal naming the last set, `holdpoint-ready`, Mark done to Done, the Seaview overview reading "No hold points left", reset; plus a queued case (two photos saved without signal read "2 waiting to send, they don't count yet" on the row, Mark done disabled with "Needs signal", signal back moves the count to 2 photos). `e2e/daily-notes.spec.ts`: Alec on Park Rd on 18 Sep (56px buttons on the phone project, no select, empty save refused, Overcast and Alec and Cladder saved), offline note on Beatty queued with the clock, signal back clears it, Dominic reads both (table and panel on the desktop), Dom reads without a panel, no "$" as Alec, reset. Both projects.
 - 2026-09-18 Stage 5 (holdpoint/notes) screenshot fixes: `.display` sets its own font-size, so the diary dates needed a more specific selector (the desktop table's Day column had blown up to 56px and pushed the panel over the table); the weather row is a wrapping flex row (a five-column grid squeezed "Overcast" out of its chip in the 360px panel); hold-point rows on the desktop are one line (name, queued words, count, link) instead of the phone's two.
 
+- 2026-09-18 Stage 5 (design/notifications) review fixes: notification rows (no "who") now use a one-row template `time | text | new`, so the New tag has its own column at 390 and never sits on the words; the spec asserts the two rects do not overlap. `src/App.tsx` mounts a `ScrollToTop` (scrolls to 0,0 on pathname change, skipped when the location carries an anchor), spec-checked; `.btn--primary:hover` now restates the hi-vis background so it outranks `.btn:hover` by source order, darkened by the existing filter.
+- 2026-09-18 Stage 5 (design/notifications) review fixes: `updateStage` logs "With council done on 59-61 West St" / "under way on" / "reset to not started on" (from, to recorded), the step log's pattern; other stage edits log "Updated stage X on <job>". `fireRemindersDueToday` logs only when it raised something. Buzz: a person or side switch clears any banner on screen; its link and Dismiss are 56px on the phone (44px desktop).
+- 2026-09-18 Stage 5 (design/notifications) review fixes: the checklist hero now comes from the jobs list's exported `outstandingStatus` (JobsList.tsx gained an `export`), so zero reads "Nothing outstanding" everywhere. Offline: stage status buttons stay live (UI_PLAN: status ticks queue) and a clock line under the hero says "No signal: stage ticks wait to send." (`checklist-offline`); the mock still writes straight through, as it does for item and step ticks. The activity feed gained a person filter row (`activity-person-all`, `activity-person-<id>`, `?person=`), spec-checked on Alec's one entry. Full suite on 4202: 196 passed, 10 viewport skips.
 ## Open problems
 
 (none: the four Stage 0 questions were decided by the orchestrator on 2026-09-18, see Decisions A to D)
@@ -178,3 +181,4 @@
 - Stage 2: signed off by reviewer, 2026-09-18, tests 50/50, e2e 111/111 (7 viewport-gated skips, each run in the other project)
 - Stage 3: signed off by reviewer, 2026-09-18, tests 53/53, e2e 133/133 (7 viewport-gated skips, each run in the other project)
 - Stage 4: signed off by reviewer, 2026-09-18, tests 58/58, e2e 168/168 (10 viewport-gated skips: program 3+3 and waiting-item 1+1 run in the other project; flow-c keys and flow-d add form are desktop-only)
+- Stage 5: signed off by reviewer, 2026-09-18, tests 58/58, e2e 196/196 (10 viewport-gated skips, as Stage 4)

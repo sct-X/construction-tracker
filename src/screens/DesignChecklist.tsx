@@ -17,6 +17,8 @@ import type { Item, Job, Person, StageStatus } from '../domain/types';
 import type { JobForecast } from '../domain/forecast';
 import { ItemRow, ItemRowList } from '../components/ItemRow';
 import { StatusText, type Tone } from '../components/StatusText';
+import { ClockGlyph } from '../components/QueueBadge';
+import { outstandingStatus } from './JobsList';
 import { useLayout } from '../shell/AppShell';
 import { PageHeader } from '../shell/PageHeader';
 import NotFound from './NotFound';
@@ -33,16 +35,11 @@ interface Data {
   people: Person[];
 }
 
-/** "2 outstanding, oldest 23 days": the jobs list's words, so the two screens always agree. */
+/** "2 outstanding, oldest 23 days" / "Nothing outstanding": the jobs list's own helper, so the two screens always agree. */
 export function outstandingWords(f?: JobForecast): { count: number; rest: string; tone: Tone } {
-  const c = f?.checklist;
-  if (!c || c.outstanding === 0) return { count: 0, rest: 'outstanding', tone: 'muted' };
-  if (c.oldestDays === null) return { count: c.outstanding, rest: 'outstanding', tone: 'plain' };
-  return {
-    count: c.outstanding,
-    rest: `outstanding, oldest ${c.oldestDays} day${c.oldestDays === 1 ? '' : 's'}`,
-    tone: c.oldestDays > 14 ? 'amber' : 'plain',
-  };
+  const { tone, text } = outstandingStatus(f);
+  const m = /^(\d+) (.*)$/.exec(text);
+  return m ? { count: Number(m[1]), rest: m[2], tone } : { count: 0, rest: text, tone };
 }
 
 /** "outstanding 23 days"; amber once past a fortnight, as the jobs list flags it. */
@@ -70,7 +67,7 @@ function TickBox({ status }: { status: StageStatus }) {
 export default function DesignChecklist() {
   const { id = '' } = useParams();
   const api = useApi();
-  const { role } = useSession();
+  const { role, offline } = useSession();
   const layout = useLayout();
   const data = useQuery<Data | undefined>(
     (api) => {
@@ -155,8 +152,19 @@ export default function DesignChecklist() {
       </nav>
 
       <p className={`checklist__hero checklist__hero--${out.tone}`} data-testid="checklist-outstanding">
-        <span className="checklist__count display">{out.count}</span> <span className="checklist__count-words">{out.rest}</span>
+        {out.count > 0 ? (
+          <>
+            <span className="checklist__count display">{out.count}</span> <span className="checklist__count-words">{out.rest}</span>
+          </>
+        ) : (
+          <span className="checklist__count checklist__count--words display">{out.rest}</span>
+        )}
       </p>
+      {offline && canEdit && (
+        <p className="checklist__offline" data-testid="checklist-offline">
+          <ClockGlyph className="checklist__clock" /> No signal: stage ticks wait to send.
+        </p>
+      )}
 
       <ol className="checklist__stages" aria-label="Stages">
         {stages.map((s) => {

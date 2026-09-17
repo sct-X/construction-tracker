@@ -148,8 +148,9 @@ a.notifications__row:active {
   line-height: var(--leading-body);
   max-width: var(--measure);
 }
-.notifications__row:not(.notifications__row--activity) .notifications__text {
-  grid-area: who / who / text / text;
+/* notification rows have no "who": one row, the New tag in its own column */
+.notifications__row:not(.notifications__row--activity) {
+  grid-template-areas: 'time text new';
 }
 .notifications__new {
   grid-area: new;
@@ -197,7 +198,8 @@ a.notifications__row:active {
     grid-template-columns: 4.5em 5.5em minmax(0, 1fr) auto;
     grid-template-areas: 'time who text new';
   }
-  .notifications__row:not(.notifications__row--activity) .notifications__text {
-    grid-area: who / who / text / text;
+  .notifications__row:not(.notifications__row--activity) {
+    grid-template-columns: 4.5em minmax(0, 1fr) auto;
+    grid-template-areas: 'time text new';
   }
 }

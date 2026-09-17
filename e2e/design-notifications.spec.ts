@@ -41,7 +41,7 @@ test.describe('Design checklist as Dominic', () => {
   test('the other design jobs match their jobs-list words', async ({ page }) => {
     const expected: Record<string, string> = {
       tollbar: '1 outstanding, oldest 8 days',
-      'lower-beach': '0 outstanding',
+      'lower-beach': 'Nothing outstanding',
       'john-st': '1 outstanding, oldest 4 days',
     };
     for (const [id, words] of Object.entries(expected)) {
@@ -90,6 +90,9 @@ test.describe('Notifications, the buzz and the bell as Raff', () => {
     await expect(buzz).toContainText('and 1 more');
     await expect(page.getByTestId('buzz-link')).toHaveAttribute('href', '#/items/it-bt-tiler');
     await expect(page.getByTestId('bell-badge')).toHaveText(/2/);
+    if (test.info().project.name === 'phone') {
+      for (const id of ['buzz-link', 'buzz-dismiss']) expect((await page.getByTestId(id).boundingBox())!.height).toBeGreaterThanOrEqual(56);
+    }
     await page.getByTestId('buzz-dismiss').click();
     await expect(buzz).toHaveCount(0);
 
@@ -101,6 +104,11 @@ test.describe('Notifications, the buzz and the bell as Raff', () => {
     await expect(page.getByTestId('notifications-unread')).toHaveText('2 new');
     await expect(page.getByTestId('notifications-list')).toContainText('Order slab steel at 31 Seaview St is late');
     await expect(page.getByTestId('notifications-list')).toContainText('New');
+    // The New tag never sits on top of the words (390px once put the text across the tag's column).
+    const unreadRow = page.locator('[data-testid^="notification-"][data-read="false"]').first();
+    const tag = await unreadRow.locator('.notifications__new').boundingBox();
+    const words = await unreadRow.locator('.notifications__text').boundingBox();
+    expect(tag && words && (tag.x >= words.x + words.width || tag.y + tag.height <= words.y || words.y + words.height <= tag.y)).toBe(true);
 
     await page.getByTestId('notifications-mark-all').click();
     await expect(page.locator('[data-testid^="notification-"][data-read="false"]')).toHaveCount(0);
@@ -151,13 +159,21 @@ test.describe('Activity feed as Dominic', () => {
 
     await page.getByTestId('activity-filter-all').click();
     await expect(page.locator('[data-testid^="activity-act-"]')).toHaveCount(all);
+
+    // By person: Alec's only seeded entry is the Seaview photos.
+    await page.getByTestId('activity-person-alec').click();
+    await expect(page.getByTestId('activity-person-alec')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('[data-testid^="activity-act-"]')).toHaveCount(1);
+    await expect(page.getByTestId('activity-act-sv-2')).toContainText('Added 4 photos');
+    await page.getByTestId('activity-person-all').click();
+    await expect(page.locator('[data-testid^="activity-act-"]')).toHaveCount(all);
   });
 
   test('a stage change on the checklist lands in the feed on that job', async ({ page }) => {
     await page.goto('#/jobs/west-st?as=dominic&today=2026-09-17');
     await page.getByTestId('checklist-stage-status-west-st-st-2-done').click();
     await page.goto('#/notifications?tab=activity&job=west-st&as=dominic&today=2026-09-17');
-    await expect(page.getByTestId('activity')).toContainText('With council');
+    await expect(page.getByTestId('activity')).toContainText('With council done on 59-61 West St');
     await expect(page.getByTestId('activity')).toContainText('Dominic');
     await reset(page);
   });
@@ -180,5 +196,16 @@ test.describe('Alec', () => {
     await expect(page.getByTestId('bell-badge')).toHaveCount(0);
     expect(await page.locator('body').innerText()).not.toContain('$');
     await reset(page);
+  });
+});
+
+test.describe('Shell', () => {
+  test('an in-app route change starts at the top of the page', async ({ page }) => {
+    await page.goto('#/waiting?owner=me&as=raff&today=2026-09-17');
+    await page.evaluate('window.scrollTo(0, 600)');
+    expect(await page.evaluate('window.scrollY')).toBeGreaterThan(300);
+    await page.getByTestId('nav-notifications').click();
+    await expect(page.getByTestId('notifications')).toBeVisible();
+    expect(await page.evaluate('window.scrollY')).toBe(0);
   });
 });

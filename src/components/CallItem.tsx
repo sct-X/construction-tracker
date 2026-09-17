@@ -7,8 +7,11 @@
  * ("Mark booked", "Mark confirmed", "Mark done"), an inline expected date, a
  * note, and Skip.
  *
- * Desktop draws these as cells of one wide row; the phone stacks them as a
- * card with the primary action at 56px and the rest behind "Date, note, skip".
+ * Desktop draws these as cells of one row (act-by | words | action); the
+ * phone stacks them as a card with the one action at 56px. On both, the
+ * expected date, note and Skip sit behind "Date, note, skip" (the M and N
+ * keys open it). The action is outlined: the screen's hi-vis goes to
+ * Finish call.
  * A handled row folds into the job's "Done this call" strip in a sentence.
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -68,7 +71,6 @@ export function CallItem(props: CallItemProps) {
     if (!next) return;
     if (next.status === 'confirmed') {
       setConfirming(true);
-      if (phone) setMore(true);
       setTimeout(() => confirmRef.current?.focus(), 0);
       return;
     }
@@ -89,11 +91,11 @@ export function CallItem(props: CallItemProps) {
         if (item.status === 'booked') advance();
       },
       expected: () => {
-        if (phone) setMore(true);
+        setMore(true);
         setTimeout(() => expectedRef.current?.focus(), 0);
       },
       note: () => {
-        if (phone) setMore(true);
+        setMore(true);
         setTimeout(() => noteRef.current?.focus(), 0);
       },
       skip: props.onSkip,
@@ -250,7 +252,7 @@ export function CallItem(props: CallItemProps) {
               {dateNote && <span className="callitem__hint">{dateNote}</span>}
             </label>
             <span className="callitem__confirm-btns">
-              <button type="button" className="btn btn--desktop" onClick={confirmNow} data-testid={`call-confirm-${id}`}>
+              <button type="button" className="btn btn--fill btn--desktop" onClick={confirmNow} data-testid={`call-confirm-${id}`}>
                 Confirm
               </button>
               <button type="button" className="callitem__text-btn" onClick={() => setConfirming(false)}>
@@ -259,14 +261,14 @@ export function CallItem(props: CallItemProps) {
             </span>
           </div>
         )}
-        {phone && !confirming && (
+        {!confirming && (
           <button type="button" className="callitem__text-btn callitem__more-toggle" onClick={() => setMore((m) => !m)} aria-expanded={more} data-testid={`call-more-toggle-${id}`}>
             {more ? 'Less' : 'Date, note, skip'}
           </button>
         )}
       </div>
 
-      {(!phone || more) && secondary}
+      {more && secondary}
     </li>
   );
 }

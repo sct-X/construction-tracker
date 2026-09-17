@@ -5,8 +5,8 @@
  * its thumbnail and its state in words: waiting, sending, or failed with
  * the reason. "Send now" sends everything; Retry and Remove act on one.
  *
- * One sentence explains why the screen exists: iPhones send only while the
- * app is open (UI_PLAN section 6).
+ * One line at the foot says the one thing the phone can't show: iPhones send
+ * only while the app is open (UI_PLAN section 6).
  */
 import { Link } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
@@ -26,9 +26,10 @@ interface Group {
   photos: QueuedPhoto[];
 }
 
-function stateWords(p: QueuedPhoto): { tone: 'muted' | 'plain' | 'amber'; text: string } {
+/** One word per photo; the reason for a failure rides on the title. */
+function stateWords(p: QueuedPhoto): { tone: 'muted' | 'plain' | 'amber'; text: string; why?: string } {
   if (p.state === 'sending') return { tone: 'plain', text: 'Sending' };
-  if (p.state === 'failed') return { tone: 'amber', text: p.error === 'No signal' ? "Didn't send, no signal" : `Didn't send: ${p.error ?? 'unknown'}` };
+  if (p.state === 'failed') return { tone: 'amber', text: "Didn't send", why: p.error === 'No signal' ? 'No signal' : p.error };
   return { tone: 'muted', text: 'Waiting' };
 }
 
@@ -82,12 +83,7 @@ export default function UploadQueue() {
   };
   const remove = (id: string) => void api.removeQueuedPhoto(id);
 
-  const meta =
-    total === 0
-      ? "Everything's uploaded."
-      : failed > 0
-        ? `${total} photo${total === 1 ? '' : 's'} waiting to send, ${failed} didn't go`
-        : `${total} photo${total === 1 ? '' : 's'} waiting to send`;
+  const meta = total === 0 ? undefined : failed > 0 ? `${total} photo${total === 1 ? '' : 's'} waiting to send, ${failed} didn't go` : `${total} photo${total === 1 ? '' : 's'} waiting to send`;
 
   return (
     <main className="page queue" data-testid="upload-queue">
@@ -103,12 +99,10 @@ export default function UploadQueue() {
         }
       />
 
-      <p className="queue__why">On an iPhone, photos send only while the app is open, so keep it open until this list is empty.</p>
-
       {signalOff && total > 0 && (
         <p className="queue__note" data-testid="queue-offline-note">
           <ClockGlyph className="queue__note-glyph" />
-          <span>No signal. These are saved on this phone and will send by themselves when you're back in range.</span>
+          <span>No signal. Saved on this phone, they'll send when you're back in range.</span>
         </p>
       )}
 
@@ -116,7 +110,7 @@ export default function UploadQueue() {
         <div className="queue__empty" data-testid="queue-empty">
           <p className="queue__empty-line">Everything's uploaded.</p>
           <Link to={homeJob ? `/jobs/${homeJob}/upload` : '/jobs'} className="btn queue__empty-btn">
-            Upload more photos
+            Add photos
           </Link>
         </div>
       ) : (
@@ -129,28 +123,28 @@ export default function UploadQueue() {
                 {g.photos.length} photo{g.photos.length === 1 ? '' : 's'}
               </span>
             </h2>
-            <ul className="queue__list">
+            <ul className="queue__grid">
               {g.photos.map((p) => {
                 const w = stateWords(p);
                 return (
-                  <li key={p.id} className="queue__item" data-testid={`queue-item-${p.id}`} data-state={p.state}>
-                    <img src={p.thumbDataUrl ?? p.dataUrl} alt="" className="queue__thumb" />
-                    <div className="queue__words">
-                      <span className="queue__taken">Taken {formatShort(p.takenOn)}</span>
+                  <li key={p.id} className="queue__tile" data-testid={`queue-item-${p.id}`} data-state={p.state}>
+                    <img src={p.thumbDataUrl ?? p.dataUrl} alt={`Photo taken ${formatShort(p.takenOn)}`} className="queue__thumb" />
+                    <div className="queue__foot">
                       <StatusText tone={w.tone} plain={w.tone === 'plain'} className="queue__state">
                         {p.state === 'queued' && <ClockGlyph className="queue__state-glyph" />}
                         {w.text}
+                        {w.why && <span className="sr-only">, {w.why}</span>}
                       </StatusText>
-                    </div>
-                    <div className="queue__actions">
-                      {p.state === 'failed' && (
-                        <button type="button" className="btn queue__btn" onClick={() => void retry(p.id)} disabled={signalOff} data-testid={`queue-retry-${p.id}`}>
-                          Retry
+                      <div className="queue__actions">
+                        {p.state === 'failed' && (
+                          <button type="button" className="btn btn--fill btn--small queue__btn" onClick={() => void retry(p.id)} disabled={signalOff} data-testid={`queue-retry-${p.id}`}>
+                            Retry
+                          </button>
+                        )}
+                        <button type="button" className="btn btn--ghost btn--small queue__btn" onClick={() => remove(p.id)} disabled={p.state === 'sending'} data-testid={`queue-remove-${p.id}`}>
+                          Remove
                         </button>
-                      )}
-                      <button type="button" className="btn queue__btn" onClick={() => remove(p.id)} disabled={p.state === 'sending'} data-testid={`queue-remove-${p.id}`}>
-                        Remove
-                      </button>
+                      </div>
                     </div>
                   </li>
                 );
@@ -159,6 +153,7 @@ export default function UploadQueue() {
           </section>
         ))
       )}
+      <p className="queue__why">On an iPhone, photos send only while the app is open.</p>
     </main>
   );
 }

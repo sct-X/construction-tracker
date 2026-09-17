@@ -1,31 +1,46 @@
-/* ItemTypePicker: a wrap of tall buttons; the chosen one fills steel. */
+/* ItemTypePicker: a segmented trough of nine radios; the chosen one fills
+   steel so it reads without colour. Wraps on the desktop, scrolls sideways
+   on the phone. Buttons carry role="radio", so the pressed look is written
+   here rather than borrowed from .seg__btn[aria-pressed]. */
 .typepick {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background: var(--raised);
 }
 .typepick__btn {
-  min-height: var(--tap);
+  min-height: 34px;
   padding: 0 var(--space-3);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-raised);
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
   color: var(--text-secondary);
+  font-size: var(--text-sm);
   font-weight: var(--weight-medium);
-  transition: background var(--motion-fast) var(--ease);
+  white-space: nowrap;
+  transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
 }
 .typepick__btn:hover {
-  background: var(--concrete-100);
+  color: var(--text);
 }
 .typepick__btn--chosen,
 .typepick__btn--chosen:hover {
   background: var(--steel-700);
-  border-color: var(--steel-700);
-  color: var(--text-on-dark);
-  font-weight: var(--weight-bold);
+  color: var(--text);
 }
-@media (min-width: 768px) {
-  .typepick__btn {
-    min-height: var(--control);
-  }
+.shell--phone .typepick {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.shell--phone .typepick::-webkit-scrollbar {
+  display: none;
+}
+.shell--phone .typepick__btn {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 var(--space-4);
 }

@@ -41,10 +41,10 @@ export function StageForm(p: StageFormProps) {
   return (
     <div className="ed" data-testid="editor-panel" data-kind="stage">
       <div>
-        <p className="ed__kicker">
+        <h2 className="ed__title">{stage.name || 'Unnamed stage'}</h2>
+        <p className="ed__sub">
           Stage {index + 1} of {ordered.length}
         </p>
-        <h2 className="ed__title">{stage.name || 'Unnamed stage'}</h2>
       </div>
 
       <div className="ed__field">
@@ -69,7 +69,7 @@ export function StageForm(p: StageFormProps) {
           <div className="ed__section-title">
             <span>{count === 0 ? 'No steps yet' : `${count} step${count === 1 ? '' : 's'}`}</span>
             <button type="button" className="ed__link" disabled={disabled} data-testid="editor-add-step" onClick={p.onAddStep}>
-              Add a step
+              Add step
             </button>
           </div>
           {count > 0 && (

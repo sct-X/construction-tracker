@@ -1,76 +1,97 @@
 /*
   Deliveries (Alec, phone only).
 
-  Layout concept: a week-grouped list like the look-ahead, headings in the
-  condensed face on a 2px concrete rule, one delivery per row with its
-  status in words and one 56px "Mark delivered" button. No cards, no
-  colour without words. The whole screen is one column of rows.
+  A week-grouped list of plates, one per delivery, each reading date first:
+  the expected sentence in the display face ("! Expected Tue 15 Sep, 2 days
+  ago, not marked delivered"), the status word under it as its label, then
+  what it is and where from, then one 56px Mark delivered filling the plate's
+  width. Groups are a title in the display face with the week range beside
+  it; plates do the separating, so there are no rules. No money reaches this
+  screen and no colour is without its words.
 */
 .deliveries__empty {
   font-size: var(--text-lg);
   max-width: var(--measure);
   color: var(--text-secondary);
 }
-.deliveries__group {
-  margin-top: var(--space-6);
-}
-.deliveries__group:first-of-type {
-  margin-top: 0;
+.deliveries__group + .deliveries__group {
+  margin-top: var(--space-10);
 }
 .deliveries__group-title {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
   gap: var(--space-3);
-  padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--concrete-200);
+  margin-bottom: var(--space-3);
   font-family: var(--font-display);
   font-weight: var(--weight-display);
   font-size: var(--text-xl);
   line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
   color: var(--text);
 }
 .deliveries__range {
   font-family: var(--font-ui);
   font-weight: var(--weight-regular);
   font-size: var(--text-sm);
+  letter-spacing: normal;
   color: var(--text-muted);
 }
 .deliveries__list {
   display: flex;
   flex-direction: column;
+  gap: var(--space-2);
 }
 .deliveries__row {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-4);
-  min-height: var(--tap);
-  padding: var(--space-3) 0;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-4);
 }
-.deliveries__row + .deliveries__row {
-  border-top: var(--hairline);
+.deliveries__when {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.deliveries__when .status {
+  display: inline;
+  padding: 0;
+  background: transparent;
+  white-space: normal;
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+}
+.deliveries__when .status--plain {
+  color: var(--text);
+}
+.deliveries__when .status__mark {
+  margin-right: 0.3em;
+}
+.deliveries__status {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }
 .deliveries__main {
-  flex: 1 1 220px;
-  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 .deliveries__head {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-1) var(--space-3);
 }
 .deliveries__title {
   font-size: var(--text-lg);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-medium);
   min-width: 0;
 }
 .deliveries__job {
-  flex-shrink: 0;
   font-size: var(--text-sm);
   color: var(--text-muted);
 }
@@ -82,37 +103,13 @@
 .deliveries__contents {
   color: var(--text-muted);
 }
-.deliveries__when {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-1) var(--space-3);
-  margin-top: var(--space-1);
-}
-.deliveries__when .status {
-  display: inline;
-  white-space: normal;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-}
-.deliveries__when .status__mark {
-  margin-right: 0.35em;
-}
-.deliveries__status {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-}
 .deliveries__mark {
-  flex: 1 0 100%;
-  min-height: var(--tap);
+  width: 100%;
+  margin-top: var(--space-1);
 }
 .deliveries__foot {
   margin-top: var(--space-8);
-  font-size: var(--text-sm);
-  color: var(--text-muted);
 }
-.deliveries__foot a {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--tap);
+.deliveries__foot .btn {
+  margin-left: calc(-1 * var(--space-5));
 }

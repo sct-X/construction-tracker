@@ -88,18 +88,12 @@ export default function Notifications() {
     <section className="notifications__pane" aria-labelledby="notifications-heading" data-testid="notifications-list">
       <div className="notifications__pane-head">
         <h2 id="notifications-heading" className="notifications__heading">
-          For you
+          <span className={layout === 'phone' ? 'sr-only' : undefined}>For you</span>
           <span className="notifications__count" data-testid="notifications-unread">
             {unread ? `${unread} new` : 'Nothing new'}
           </span>
         </h2>
-        <button
-          type="button"
-          className="btn btn--desktop notifications__mark-all"
-          data-testid="notifications-mark-all"
-          disabled={unread === 0}
-          onClick={() => api.markAllNotificationsRead()}
-        >
+        <button type="button" className="btn btn--ghost btn--small notifications__mark-all" data-testid="notifications-mark-all" disabled={unread === 0} onClick={() => api.markAllNotificationsRead()}>
           Mark all read
         </button>
       </div>
@@ -124,7 +118,12 @@ export default function Notifications() {
                     >
                       <span className="notifications__time">{formatTime(n.at)}</span>
                       <span className="notifications__text">{n.text}</span>
-                      {!n.read && <span className="notifications__new">New</span>}
+                      {!n.read && (
+                        <span className="notifications__new">
+                          <span className="notifications__dot" aria-hidden="true" />
+                          New
+                        </span>
+                      )}
                     </a>
                   </li>
                 ))}
@@ -138,7 +137,7 @@ export default function Notifications() {
 
   const activityPane = showActivity ? (
     <section className="notifications__pane" aria-labelledby="activity-heading" data-testid="activity">
-      <h2 id="activity-heading" className="notifications__heading">
+      <h2 id="activity-heading" className={layout === 'phone' ? 'sr-only' : 'notifications__heading'}>
         Activity on {side.name}
       </h2>
       <div className="notifications__filters" role="group" aria-label="Filter by job">
@@ -177,16 +176,14 @@ export default function Notifications() {
       </div>
       {activity.length === 0 ? (
         <p className="notifications__empty" data-testid="activity-empty">
-          {jobFilter || personFilter
-            ? `Nothing ${personFilter ? `by ${nameOf(personFilter)} ` : ''}${jobFilter ? `on ${jobName(jobFilter) ?? 'this job'} ` : ''}yet.`
-            : 'Nothing has happened yet.'}
+          {jobFilter || personFilter ? `Nothing ${personFilter ? `by ${nameOf(personFilter)} ` : ''}${jobFilter ? `on ${jobName(jobFilter) ?? 'this job'} ` : ''}yet.` : 'Nothing yet.'}
         </p>
       ) : (
         <ol className="notifications__days">
           {byDay(activity).map((g) => (
             <li key={g.day} className="notifications__day">
               <h3 className="notifications__day-title">{dayWords(g.day)}</h3>
-              <ol className="notifications__rows">
+              <ol className="notifications__rows notifications__rows--timeline">
                 {g.rows.map((a) => {
                   const job = jobName(a.jobId);
                   return (
@@ -217,17 +214,21 @@ export default function Notifications() {
 
   return (
     <main className="page notifications" data-testid="notifications">
-      <PageHeader title="Notifications" meta={unread ? `${unread} new for you` : 'Nothing new for you'} />
-      {layout === 'phone' && showActivity && (
-        <nav className="notifications__tabs" aria-label="Notifications or activity" data-testid="notifications-tabs">
-          <button type="button" className="notifications__tab" aria-current={tab === 'notifications' ? 'page' : undefined} data-testid="notifications-tab-mine" onClick={() => setParam('tab', null)}>
-            For you
-          </button>
-          <button type="button" className="notifications__tab" aria-current={tab === 'activity' ? 'page' : undefined} data-testid="notifications-tab-activity" onClick={() => setParam('tab', 'activity')}>
-            Activity
-          </button>
-        </nav>
-      )}
+      <PageHeader
+        title="Notifications"
+        actions={
+          layout === 'phone' && showActivity ? (
+            <div className="seg notifications__tabs" role="group" aria-label="Notifications or activity" data-testid="notifications-tabs">
+              <button type="button" className="seg__btn notifications__tab" aria-pressed={tab === 'notifications'} data-testid="notifications-tab-mine" onClick={() => setParam('tab', null)}>
+                For you
+              </button>
+              <button type="button" className="seg__btn notifications__tab" aria-pressed={tab === 'activity'} data-testid="notifications-tab-activity" onClick={() => setParam('tab', 'activity')}>
+                Activity
+              </button>
+            </div>
+          ) : undefined
+        }
+      />
       {layout === 'phone' ? (
         tab === 'activity' ? activityPane : notificationsPane
       ) : (

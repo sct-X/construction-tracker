@@ -1,17 +1,17 @@
 /*
-  NoteEntry: a page of the site diary. The text box sits on timber paper with
-  the day in the condensed face above it, like the top of a diary page; the
-  weather and who-was-on-site are rows of 56px buttons (gloves), the chosen
-  ones filled steel so they read without colour. One hi-vis Save.
+  NoteEntry: a page of the site diary. The day is the hero, in the condensed
+  face; under it one text box on note paper; then the weather and who was on
+  site as rows of 56px chips on the raised tone, the chosen ones filled
+  steel so they read without colour; the day's photos; one hi-vis Save.
 */
 .note-entry {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
-/* one line at 390: the diary page's date, quieter than the screen title */
 .note-entry .note-entry__day {
   font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
   line-height: var(--leading-tight);
   color: var(--text);
 }
@@ -27,13 +27,11 @@
   font-size: var(--text-lg);
   line-height: var(--leading-body);
   resize: vertical;
-}
-.note-entry__text::placeholder {
-  color: var(--text-muted);
+  margin-top: calc(-1 * var(--space-1));
 }
 .note-entry__text:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
+  border-color: var(--hivis);
+  box-shadow: none;
 }
 .note-entry__group {
   display: flex;
@@ -42,16 +40,10 @@
 }
 .note-entry__label {
   font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
   color: var(--text-muted);
 }
-.note-entry__weather {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-.note-entry__weather .note-entry__chip {
-  flex: 1 0 auto;
-}
+.note-entry__weather,
 .note-entry__chips,
 .note-entry__photos {
   display: flex;
@@ -64,53 +56,49 @@
   align-items: center;
   justify-content: center;
   min-height: var(--tap);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--line-strong);
+  padding: 0 var(--space-4);
+  border: 0;
   border-radius: var(--radius-md);
-  background: var(--surface-raised);
+  background: var(--raised);
   color: var(--text);
   font: inherit;
-  font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   line-height: 1.2;
   transition: background var(--motion-fast) var(--ease);
 }
 .note-entry__chip:hover {
-  background: var(--concrete-100);
+  background: var(--lifted);
 }
 .note-entry__chip:focus-visible {
-  outline: none;
   box-shadow: var(--focus-ring);
 }
 .note-entry__chip--chosen,
 .note-entry__chip--chosen:hover {
   background: var(--steel-700);
-  border-color: var(--steel-700);
   color: var(--text-on-dark);
   font-weight: var(--weight-bold);
 }
 .note-entry__chip--more {
-  border-style: dashed;
+  background: transparent;
+  border: 1px solid var(--line-strong);
   color: var(--text-secondary);
+}
+.note-entry__chip--more:hover {
+  background: var(--raised);
 }
 .note-entry__thumb {
   width: 56px;
   height: 56px;
   object-fit: cover;
   border-radius: var(--radius-sm);
-  border: var(--hairline);
+  background: var(--raised);
 }
 .note-entry__add-photo {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--tap);
   padding: 0 var(--space-3);
-  font-weight: var(--weight-medium);
 }
 .note-entry__problem {
   padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--amber-ink);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--amber-bg);
   color: var(--amber-ink);
 }
@@ -121,7 +109,6 @@
 }
 .note-entry__button {
   width: 100%;
-  min-height: 64px;
   font-size: var(--text-lg);
 }
 .note-entry__status {
@@ -129,13 +116,19 @@
   align-items: center;
   gap: var(--space-2);
   color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
 
 /* the desktop side panel: smaller controls, the button its natural width */
 @media (min-width: 768px) {
+  .shell--desktop .note-entry {
+    gap: var(--space-4);
+  }
   .shell--desktop .note-entry__chip,
   .shell--desktop .note-entry__add-photo {
     min-height: var(--control);
+    padding: 0 var(--space-3);
+    font-size: var(--text-sm);
   }
   .shell--desktop .note-entry__button {
     width: auto;
@@ -146,8 +139,5 @@
   }
   .shell--desktop .note-entry__text {
     font-size: var(--text-md);
-  }
-  .shell--desktop .note-entry__weather .note-entry__chip {
-    flex: 0 0 auto;
   }
 }

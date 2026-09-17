@@ -1,24 +1,23 @@
 /*
-  Call list.
+  Call list: a script for a phone call.
 
-  Token plan: concrete page, steel for the pressed person button and the
-  "current row" mark, timber paper for the finish panel (a note before the
-  call ends), hi-vis on "Finish call" only. Type: the act-by date in the
-  condensed face leads every row (the question Dominic asks); everything
-  else is body text.
+  Who you are ringing is a segmented picker (a vertical trough on the
+  desktop, a scrolling row on the phone). Each job is a plate with a readout
+  header: the job name on the left, the forecast finish as the figure on the
+  right with "7 days late" in its words, freshness and holding under the
+  name. Rows (CallItem) read date first with one outlined action each;
+  handled rows fold into a raised "Done this call" strip so the script moves
+  on. Hi-vis is spent once, on Finish call. The finish panel is a note on
+  timber paper.
 
-  Layout concept:
-    desktop                              phone
-    +---------+-----------------------+  +----------------------+
-    | Ringing | Park Rd  unconfirmed  |  | Ringing [Raff][Dom]  |
-    | [Raff]  | 10 Aug  Windows ...   |  | Park Rd  unconfirmed |
-    | [Dom]   | 18 Sep  Plasterer ... |  | 18 Sep  Book pump    |
-    | [Norm]  | Done this call        |  |   [Mark booked]      |
-    | keys    | Seaview St ...        |  |   Date, note, skip   |
-    +---------+-----------------------+  +----------------------+
-
-  What makes it specific: it reads top to bottom as a script, with the
-  answers folding away under "Done this call" as the call goes.
+    desktop                                phone
+    +---------+--------------------------+ +----------------------+
+    | Ringing | Park Rd     Fri 26 Feb   | | [Raff|Dom|Norm|Alec] |
+    | [Raff]  | confirmed   2027         | | Park Rd   Fri 26 Feb |
+    | [Dom]   | Mon 10 Aug  Windows ...  | | Mon 10 Aug  Windows  |
+    | [Norm]  | Done this call           | |   [Mark confirmed]   |
+    | keys    | Seaview St ...           | |   Date, note, skip   |
+    +---------+--------------------------+ +----------------------+
 */
 .calls__body {
   display: flex;
@@ -26,7 +25,7 @@
   gap: var(--space-5);
 }
 
-/* ---- who you are ringing ---- */
+/* ---- who you are ringing: a segmented trough ---- */
 .calls__people-title {
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
@@ -35,9 +34,11 @@
 }
 .calls__people-list {
   display: flex;
-  gap: var(--space-2);
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background: var(--raised);
   overflow-x: auto;
-  padding-bottom: var(--space-1);
   scrollbar-width: none;
 }
 .calls__people-list::-webkit-scrollbar {
@@ -49,33 +50,33 @@
   align-items: flex-start;
   justify-content: center;
   gap: 1px;
-  min-height: var(--tap);
-  min-width: 6.5em;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-raised);
+  min-height: 50px;
+  min-width: 6em;
+  padding: var(--space-1) var(--space-3);
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
   text-align: left;
   white-space: nowrap;
-  transition: background var(--motion-fast) var(--ease);
+  transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
 }
 .calls__person:hover {
-  background: var(--concrete-100);
+  color: var(--text);
 }
 .calls__person[aria-pressed='true'] {
   background: var(--steel-700);
-  border-color: var(--steel-700);
-  color: var(--text-on-dark);
+  color: var(--text);
 }
 .calls__person-name {
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-medium);
 }
 .calls__person-count {
   font-size: var(--text-xs);
   color: var(--text-muted);
 }
 .calls__person[aria-pressed='true'] .calls__person-count {
-  color: var(--steel-200);
+  color: var(--text-secondary);
 }
 .calls__scope {
   display: flex;
@@ -85,27 +86,21 @@
   min-height: var(--tap);
   font-size: var(--text-sm);
   color: var(--text-secondary);
-}
-.calls__scope input {
-  width: 20px;
-  height: 20px;
-  margin: 0;
-  accent-color: var(--hivis);
+  cursor: pointer;
 }
 .calls__keys {
   margin-top: var(--space-4);
   font-size: var(--text-xs);
   color: var(--text-muted);
-  line-height: 1.6;
+  line-height: 1.8;
 }
 .calls__keys kbd {
   display: inline-block;
-  min-width: 1.4em;
+  min-width: 1.5em;
   padding: 0 4px;
   border: 1px solid var(--line-strong);
-  border-bottom-width: 2px;
   border-radius: var(--radius-sm);
-  background: var(--surface-raised);
+  background: var(--raised);
   font-family: inherit;
   font-size: var(--text-xs);
   text-align: center;
@@ -115,6 +110,9 @@
 /* ---- the script ---- */
 .calls__script {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 .calls__empty,
 .calls__quiet {
@@ -123,27 +121,39 @@
 }
 .calls__empty {
   font-size: var(--text-lg);
-  margin-bottom: var(--space-5);
 }
 .calls__quiet {
   font-size: var(--text-sm);
-  padding: var(--space-3) 0;
+  padding: var(--space-2) 0;
 }
-.calls__job + .calls__job {
-  margin-top: var(--space-8);
+
+/* A job is a plate with a readout header. */
+.calls__job {
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  background: var(--plate);
+  border-radius: var(--radius-lg);
 }
 .calls__job-head {
   display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-6);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line-strong);
+}
+.calls__job-words {
+  display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--concrete-200);
+  min-width: 0;
 }
 .calls__job-name {
   font-family: var(--font-display);
   font-weight: var(--weight-display);
   font-size: var(--text-xl);
   line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
 }
 .calls__job-name a {
   color: var(--text);
@@ -151,17 +161,42 @@
 }
 .calls__job-name a:hover {
   text-decoration: underline;
+  text-decoration-color: var(--line-strong);
 }
 .calls__job-facts {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--space-1) var(--space-4);
+  gap: var(--space-1) var(--space-3);
   font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 .calls__job-holding {
   color: var(--text-muted);
+}
+.calls__job-finish {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.calls__job-finish-date {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+  color: var(--text);
+  white-space: nowrap;
+}
+.calls__job-finish--late .calls__job-finish-date,
+.calls__job-finish-late {
+  color: var(--late-ink);
+}
+.calls__job-finish-late {
+  font-weight: var(--weight-medium);
 }
 .calls__items {
   display: flex;
@@ -171,10 +206,10 @@
   border-top: 0;
 }
 .calls__done {
-  margin-top: var(--space-3);
+  margin-top: var(--space-2);
   padding: var(--space-2) var(--space-3) var(--space-1);
-  background: var(--concrete-100);
-  border-radius: var(--radius-sm);
+  background: var(--raised);
+  border-radius: var(--radius-md);
 }
 .calls__done-title {
   font-size: var(--text-xs);
@@ -189,25 +224,19 @@
   color: var(--text);
 }
 
-/* ---- finish call: timber paper, a note before the call ends ---- */
+/* ---- finish call: a note on timber paper before the call ends ---- */
 .calls__finish {
-  margin-top: var(--space-8);
+  margin-top: var(--space-4);
   padding: var(--space-5) var(--space-5) var(--space-4);
   background: var(--timber-100);
-  border: 1px solid var(--timber-300);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
 }
 .calls__finish-title {
   font-family: var(--font-display);
   font-weight: var(--weight-display);
   font-size: var(--text-xl);
   line-height: var(--leading-tight);
-}
-.calls__finish-lede {
-  margin-top: var(--space-1);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  max-width: var(--measure);
+  letter-spacing: var(--tracking-display);
 }
 .calls__finish-jobs {
   margin-top: var(--space-3);
@@ -229,7 +258,6 @@
   height: 24px;
   margin: 0;
   flex-shrink: 0;
-  accent-color: var(--hivis);
 }
 .calls__tick-words {
   display: flex;
@@ -237,7 +265,7 @@
   gap: 1px;
 }
 .calls__tick-name {
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-medium);
 }
 .calls__tick-note {
   font-size: var(--text-sm);
@@ -254,13 +282,17 @@
 /* ---- summary ---- */
 .calls__summary {
   max-width: var(--measure);
+  padding: var(--space-4) var(--space-4) var(--space-5);
+  background: var(--plate);
+  border-radius: var(--radius-lg);
 }
 .calls__summary-title {
   font-family: var(--font-display);
   font-weight: var(--weight-display);
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   line-height: var(--leading-tight);
-  margin-bottom: var(--space-4);
+  letter-spacing: var(--tracking-display);
+  margin-bottom: var(--space-3);
 }
 .calls__summary-list {
   display: flex;
@@ -274,7 +306,7 @@
   border-top: var(--hairline);
 }
 .calls__summary-name {
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-medium);
 }
 .calls__summary-name a {
   color: var(--text);
@@ -301,24 +333,28 @@
 
 /* ---- phone ---- */
 .calls__finish-foot {
-  margin-top: var(--space-8);
+  margin-top: var(--space-4);
 }
 .calls__finish-foot .btn {
   width: 100%;
 }
-.shell--phone .calls__finish,
+.shell--phone .calls__people-list {
+  margin-right: calc(-1 * var(--gutter));
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.shell--phone .calls__person {
+  flex: 0 0 auto;
+}
 .shell--phone .calls__summary-foot .btn {
   width: 100%;
-}
-.shell--phone .callitem--card {
-  padding-top: var(--space-4);
 }
 
 /* ---- desktop: people down the left, the script on the right ---- */
 @media (min-width: 768px) {
   .shell--desktop .calls__body {
     display: grid;
-    grid-template-columns: 160px minmax(0, 1fr);
+    grid-template-columns: 168px minmax(0, 1fr);
     gap: var(--space-6);
     align-items: start;
   }
@@ -335,16 +371,14 @@
     flex-direction: row;
     align-items: baseline;
     justify-content: space-between;
-    min-height: var(--control);
-    padding: var(--space-2) var(--space-3);
+    min-height: 38px;
+    padding: 0 var(--space-3);
   }
   .shell--desktop .calls__scope {
     min-height: var(--control);
   }
-  .calls__job-head {
-    flex-direction: row;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-4);
+  .calls__job {
+    padding: var(--space-4) var(--space-5) var(--space-4);
+    border-radius: var(--radius-md);
   }
 }

@@ -1,10 +1,10 @@
 /**
- * The phone's stages: a strip of chips across the top (the current stage in
- * bold on a concrete wash, never orange) that jump to a vertical list of
- * bands, one per stage, with its dates, its status in words, a thin
- * progress bar and any late step named under it. A Gantt turned ninety
- * degrees and simplified.
+ * The phone's stages: a strip of plate chips across the top (the current
+ * stage a tone up, never orange) that jump to a list of plates, one per
+ * stage, with its dates, its status in words, a thin progress bar and any
+ * late step named under it. A Gantt turned ninety degrees and simplified.
  */
+import { useEffect, useRef } from 'react';
 import type { JobForecast } from '../../domain/forecast';
 import { calendarDaysBetween, formatDayMonth, formatShort } from '../../domain/dates';
 import { StatusText } from '../StatusText';
@@ -36,12 +36,21 @@ function statusWords(stage: JobForecast['stages'][number], today: string): strin
 
 export function StagesStrip({ forecast }: { forecast: JobForecast }) {
   const current = forecast.currentStageId;
+  const strip = useRef<HTMLElement>(null);
   const jump = (id: string) => {
     document.getElementById(`stage-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  // Open with the current stage's chip in view (the strip scrolls, the page does not).
+  useEffect(() => {
+    const el = strip.current;
+    const chip = el?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!el || !chip) return;
+    el.scrollLeft = Math.max(0, chip.offsetLeft - el.clientWidth / 2 + chip.offsetWidth / 2);
+  }, [current]);
+
   return (
-    <nav className="stages-strip" data-testid="stages-strip" aria-label="Stages">
+    <nav className="stages-strip" data-testid="stages-strip" aria-label="Stages" ref={strip}>
       <ul className="stages-strip__list">
         {forecast.stages.map((s) => (
           <li key={s.stageId}>
@@ -67,9 +76,9 @@ export function StagesList({ forecast, today }: Props) {
   return (
     <section className="stages" data-testid="stages" aria-labelledby="stages-heading">
       <h2 id="stages-heading" className="stages__heading">
-        <span>Stages</span>
-        <span className="stages__heading-note">{forecast.stages.length} in order</span>
+        Stages
       </h2>
+      <div className="stages__list">
       {forecast.stages.map((s) => {
         const late = s.stepIds.map((id) => forecast.steps[id]).filter((st) => st && st.lateDays > 0);
         const pct = Math.round(progressOf(s, today) * 100);
@@ -80,6 +89,7 @@ export function StagesList({ forecast, today }: Props) {
             className="stages__band"
             data-testid={`stage-band-${s.stageId}`}
             aria-current={s.stageId === current ? 'true' : undefined}
+            data-status={s.status}
           >
             <div className="stages__top">
               <h3 className="stages__name">{s.name}</h3>
@@ -117,6 +127,7 @@ export function StagesList({ forecast, today }: Props) {
           </article>
         );
       })}
+      </div>
     </section>
   );
 }

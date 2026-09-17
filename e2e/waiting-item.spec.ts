@@ -233,7 +233,8 @@ test.describe('Desktop table', () => {
     await page.goto('#/waiting?as=dominic&today=2026-09-17');
     const table = page.locator('.waiting__table').first();
     await expect(table).toBeVisible();
-    for (const col of ['Item', 'Job', 'Type', 'Waiting on', 'Owner', 'Needed by', 'Act by', 'Lead', 'Expected', 'Status']) {
+    // Seven columns: act-by leads; job, type, owner and lead time sit inside the item, waiting-on and act-by cells (asserted on the row below).
+    for (const col of ['Act by', 'Item', 'Waiting on', 'Needed by', 'Expected', 'Status']) {
       await expect(table.locator('thead')).toContainText(col);
     }
     const row = page.getByTestId('item-row-it-pr-windows');

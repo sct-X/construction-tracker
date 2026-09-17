@@ -1,18 +1,17 @@
 /**
- * The phone program: the next three weeks as a list, grouped by week, with
- * the steps that start or finish in each. Every row says its dates, its
- * trade, planned against forecast in words, and anything it needs that is
- * not confirmed yet. Hold points carry a diamond and the words. Rows are
- * 56px links to the step. Below the three weeks, "Later" names anything
- * late further out, and the rest fold away.
+ * The phone program: the next three weeks as plates, one per week, with the
+ * steps that start or finish in each. A row is the step's name and one line
+ * (its days, its trade, started or done); a late step or an unconfirmed need
+ * adds its words on a wash. Hold points carry a drawn diamond and the words.
+ * Rows are 56px links to the step. Below the three weeks, "Later" names
+ * anything late further out, and the rest fold away.
  */
-import { Fragment } from 'react';
 import type { ItemForecast, JobForecast, StepForecast } from '../../domain/forecast';
 import type { Item, Step } from '../../domain/types';
 import { ITEM_STATUS_LABELS } from '../../domain/types';
 import { addCalendarDays, formatShort, formatWeekRange, lastMonday, weekday } from '../../domain/dates';
 import { StatusText } from '../StatusText';
-import { lateText } from './Gantt';
+import { HoldDiamond, lateText } from './Gantt';
 import './lookahead.css';
 
 interface Props {
@@ -71,7 +70,7 @@ export function LookAhead({ forecast, steps, items, today }: Props) {
   return (
     <section className="lookahead" data-testid="lookahead" aria-label="Three-week look-ahead">
       {weeks.map((w) => (
-        <Fragment key={w.n}>
+        <section key={w.n} className="lookahead__plate">
           <h2 className="lookahead__week" data-testid={`lookahead-week-${w.n}`}>
             <span>{w.title}</span>
             <span className="lookahead__range num">{formatWeekRange(w.from)}</span>
@@ -106,9 +105,10 @@ export function LookAhead({ forecast, steps, items, today }: Props) {
               ))}
             </ul>
           )}
-        </Fragment>
+        </section>
       ))}
 
+      <section className="lookahead__plate">
       <h2 className="lookahead__week" data-testid="lookahead-later">
         <span>Later</span>
         <span className="lookahead__range num">after {formatShort(horizon)}</span>
@@ -142,7 +142,7 @@ export function LookAhead({ forecast, steps, items, today }: Props) {
           {laterRest.length > 0 && (
             <details className="lookahead__more" data-testid="lookahead-more">
               <summary className="lookahead__summary">
-                {laterLate.length > 0 ? `Show the other ${laterRest.length} later steps` : `Show ${laterRest.length} later steps`}
+                {laterLate.length > 0 ? `Show ${laterRest.length} more` : `Show ${laterRest.length} steps`}
               </summary>
               <ul className="lookahead__list">
                 {laterRest.map((s) => (
@@ -166,6 +166,7 @@ export function LookAhead({ forecast, steps, items, today }: Props) {
           )}
         </>
       )}
+      </section>
     </section>
   );
 }
@@ -178,7 +179,7 @@ function needWords(title: string): string {
 function HoldMark() {
   return (
     <span className="lookahead__hold">
-      <span aria-hidden="true">◇</span> Hold point:
+      <HoldDiamond className="lookahead__hold-glyph" /> Hold point:
     </span>
   );
 }
@@ -208,7 +209,7 @@ function StepRow({
       step.forecastStart === step.forecastEnd ? DAY[weekday(step.forecastStart)] : `${DAY[weekday(step.forecastStart)]} to ${DAY[weekday(step.forecastEnd)]}`;
   else when = `from ${DAY[weekday(step.forecastStart)]}, ${lengthWords(step.durationDays)}`;
 
-  const who = [trade, step.status === 'done' ? 'done' : step.status === 'in_progress' ? 'started' : ''].filter(Boolean).join(', ');
+  const line = [when.charAt(0).toUpperCase() + when.slice(1), trade, step.status === 'done' ? 'done' : step.status === 'in_progress' ? 'started' : ''].filter(Boolean).join(', ');
 
   return (
     <li>
@@ -220,17 +221,14 @@ function StepRow({
           </span>
           {stage && <span className="lookahead__stage">{stage}</span>}
         </span>
-        <span className="lookahead__line">{when.charAt(0).toUpperCase() + when.slice(1)}</span>
-        {who && <span className="lookahead__line">{who}</span>}
-        <span className="lookahead__line">
-          {step.lateDays > 0 ? (
+        <span className="lookahead__line">{line}</span>
+        {step.lateDays > 0 && (
+          <span className="lookahead__line">
             <StatusText tone="late" testId={`lookahead-late-${step.stepId}`}>
               planned {formatShort(step.plannedStart ?? step.forecastStart)}, now {formatShort(step.forecastStart)}, {lateText(step.lateDays)}
             </StatusText>
-          ) : (
-            <span className="lookahead__muted">on plan{step.plannedStart ? `, ${formatShort(step.plannedStart)}` : ''}</span>
-          )}
-        </span>
+          </span>
+        )}
         {needs.map((it) => {
           const f = itemForecasts[it.id];
           if (!f?.isLate && it.status === 'confirmed') return null;

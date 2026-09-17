@@ -22,11 +22,11 @@ export function CategoryList({ stageName, categories, hasHoldPoint, disabled, on
       <div className="ed__section-title">
         <span>Photo sets for {stageName}</span>
         <button type="button" className="ed__link" disabled={disabled} data-testid="editor-category-add" onClick={onAdd}>
-          Add a set
+          Add set
         </button>
       </div>
       {categories.length === 0 ? (
-        <p className="ed__empty">No sets yet. Alec can still use General.</p>
+        <p className="ed__empty">No sets yet</p>
       ) : (
         <ul className="ed__list">
           {categories.map((c) => (
@@ -48,7 +48,7 @@ export function CategoryList({ stageName, categories, hasHoldPoint, disabled, on
                     data-testid={`editor-category-required-${c.id}`}
                     onChange={(e) => onChange(c.id, { requiredForHoldPoint: e.target.checked })}
                   />
-                  Required before the hold point
+                  Required for hold point
                 </label>
               </div>
               <button type="button" className="ed__link" disabled={disabled} data-testid={`editor-category-remove-${c.id}`} onClick={() => onRemove(c.id)}>
@@ -59,7 +59,7 @@ export function CategoryList({ stageName, categories, hasHoldPoint, disabled, on
         </ul>
       )}
       {!hasHoldPoint && categories.some((c) => c.requiredForHoldPoint) && (
-        <p className="ed__hint">{stageName} has no hold-point step yet, so "required" holds nothing up until one is ticked.</p>
+        <p className="ed__hint">{stageName} has no hold point yet, so required holds nothing up.</p>
       )}
     </div>
   );

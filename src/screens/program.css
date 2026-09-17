@@ -1,36 +1,33 @@
-/* Program: the Gantt on the desktop, the strip and look-ahead on the phone. */
+/*
+  Program: the Gantt on the desktop, the stages strip and look-ahead on the
+  phone. The job name is the title; the forecast finish is a row-scale
+  readout under it with the late words beside. Views are a segmented pair.
+*/
+.program__finish {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-2);
+}
+.program__finish .status,
+.program__onplan {
+  margin-bottom: 20px; /* sits beside the figure, above its label */
+}
 .program__onplan {
   color: var(--text-muted);
+  font-size: var(--text-sm);
 }
-.program__views {
-  display: inline-flex;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
-  overflow: hidden;
+.program[data-layout='phone'] .page-header__actions {
+  width: 100%;
 }
-.program__view {
-  min-height: var(--control);
-  padding: 0 var(--space-4);
-  border: 0;
-  background: var(--surface-raised);
-  color: var(--text-secondary);
-  font-weight: var(--weight-medium);
-  transition: background var(--motion-fast) var(--ease);
+.program__phone-views {
+  width: 100%;
 }
-.program__view + .program__view {
-  border-left: 1px solid var(--line-strong);
+.program__phone-views .seg__btn {
+  flex: 1 1 0;
 }
-.program__view:hover {
-  background: var(--concrete-100);
-}
-.program__view[aria-pressed='true'] {
-  background: var(--steel-700);
-  color: var(--text-on-dark);
-}
-.program__view:focus-visible {
-  box-shadow: inset var(--focus-ring);
+.program[data-layout='phone'] .gantt {
+  margin: 0 calc(-1 * var(--gutter));
   border-radius: 0;
-}
-.program[data-layout='phone'] .page-header__actions .btn {
-  flex: 1 1 auto;
 }

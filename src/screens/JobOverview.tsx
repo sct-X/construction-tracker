@@ -1,24 +1,24 @@
 /**
  * Build job overview (UI_PLAN 3.4): "how is this job going?" in one screen.
  *
- * The forecast finish is the one big figure. Under it, in words: how far off
- * the plan it is, slip since Monday and what that costs, the holding cost,
- * and how fresh the figures are with a "Confirm program" button beside them.
- * Then the next hold point with its photo sets, the stages in order, the top
- * waiting-on items, and this week's notes. Money draws nothing when absent.
+ * The forecast finish is the hero figure. Under it a readout row: the slip
+ * since Monday (the figure is the link to "why it moved"), the holding cost,
+ * the stage, and how fresh the figures are with the one action, Confirm
+ * program. Then the next hold point with its photo sets, the stage ladder,
+ * and what the job is waiting on as a short list. Money draws nothing when
+ * absent.
  *
- * Alec gets the phone layout with the Today section on top (AlecToday:
- * upload, note, this week, deliveries, the next hold point), then the finish
- * date, the stages and the latest photos; never slip or money (the data
- * layer strips them; nothing here defaults).
+ * Alec gets the phone layout with the Today section on top (AlecToday), then
+ * the finish date at row scale, the stages and the latest photos; never slip
+ * or money (the data layer strips them; nothing here defaults).
  */
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
-import type { DailyNote, Item, Job, Person, Photo } from '../domain/types';
+import type { Item, Job, Person, Photo } from '../domain/types';
 import type { JobForecast, StageForecast } from '../domain/forecast';
 import { topWaitingOn } from '../domain/forecast';
-import { addCalendarDays, formatDayMonth, formatLong, formatShort, relativeDays } from '../domain/dates';
+import { formatDayMonth, formatLong, formatShort, relativeDays } from '../domain/dates';
 import { BigNumber } from '../components/BigNumber';
 import { HoldPointCheck, readinessWords } from '../components/HoldPointCheck';
 import { ItemRow, ItemRowList } from '../components/ItemRow';
@@ -35,7 +35,6 @@ interface Data {
   forecast?: JobForecast;
   items: Item[];
   people: Person[];
-  notes: DailyNote[];
   photoCount: number;
   /** The newest few, for the strip at the foot. */
   latestPhotos: Photo[];
@@ -75,7 +74,6 @@ export default function JobOverview() {
         forecast: api.getForecast(id),
         items: api.listItems({ jobId: id }),
         people: api.listPeople(),
-        notes: api.listDailyNotes(id),
         photoCount: api.listPhotos(id).length,
         latestPhotos: api.listPhotos(id).slice(0, 6),
         stepCount: api.listSteps(id).length,
@@ -86,9 +84,8 @@ export default function JobOverview() {
   const [confirmedNow, setConfirmedNow] = useState(false);
 
   if (!data) return <NotFound />;
-  const { job, forecast, items, people, notes, photoCount, latestPhotos, stepCount } = data;
+  const { job, forecast, items, people, photoCount, latestPhotos, stepCount } = data;
   const site = role === 'site';
-  const canConfirm = !site;
   const nameOf = (pid?: string) => people.find((p) => p.id === pid)?.shortName;
 
   const tabs = site
@@ -113,22 +110,13 @@ export default function JobOverview() {
 
   const waiting = forecast ? topWaitingOn(forecast, items, 5) : [];
   const openCount = items.filter((i) => i.status !== 'done').length;
-  const weekAgo = addCalendarDays(today, -7);
-  const recentNotes = notes.filter((n) => n.date >= weekAgo).slice(0, 3);
   const hp = forecast?.nextHoldPoint;
   const hpStage = hp ? forecast?.stages.find((s) => s.stageId === hp.stageId) : undefined;
+  const slipWhy = forecast?.slipDays === undefined ? 'Slip' : forecast.slipDays === 0 ? 'Nothing moved' : 'Why it moved';
 
   return (
-    <main className="page job" data-testid="job-overview">
-      <PageHeader
-        title={job.name}
-        meta={
-          forecast?.currentStageName
-            ? `${forecast.currentStageName} stage${job.address ? `, ${job.address}` : ''}`
-            : job.address ?? undefined
-        }
-        back={site ? undefined : { to: '/jobs', label: 'Jobs' }}
-      />
+    <main className={site ? 'page job job--site' : 'page job'} data-testid="job-overview">
+      <PageHeader title={job.name} back={site ? undefined : { to: '/jobs', label: 'Jobs' }} />
 
       <nav className="job__tabs" aria-label="Job sections" data-testid="job-tabs">
         {tabs.map((t) => (
@@ -142,7 +130,7 @@ export default function JobOverview() {
 
       {!forecast || stepCount === 0 ? (
         <p className="job__empty" data-testid="job-empty">
-          No program yet. Dominic sets this up in the program editor.
+          No program yet.
         </p>
       ) : (
         <>
@@ -162,81 +150,57 @@ export default function JobOverview() {
             </div>
 
             {!site && (
-              <dl className="job__facts">
-                <div className="job__fact">
-                  <dt>Slip since Monday</dt>
-                  <dd>
-                    <Link to={`/jobs/${id}/why`} className="job__slip-link" data-testid="job-slip">
-                      <SlipText days={forecast.slipDays} cost={forecast.slipCost} className={`job__slip job__slip--${slipTone(forecast.slipDays)}`} />
-                      {forecast.slipDays !== undefined && (
-                        <span className="job__why">{forecast.slipDays === 0 ? 'Nothing moved' : 'Why it moved'}</span>
-                      )}
-                    </Link>
-                  </dd>
-                </div>
+              <div className="job__facts">
+                <Link to={`/jobs/${id}/why`} className="job__slip-link" data-testid="job-slip" title={slipWhy}>
+                  <BigNumber size="row" tone={slipTone(forecast.slipDays)} value={<SlipText days={forecast.slipDays} cost={forecast.slipCost} />} label={forecast.slipDays === undefined ? undefined : 'Slip since Monday'} />
+                  <span className="sr-only">, {slipWhy}</span>
+                </Link>
                 {job.weeklyHoldingCost !== undefined && (
-                  <div className="job__fact">
-                    <dt>Holding cost</dt>
-                    <dd>
-                      <Money value={job.weeklyHoldingCost} suffix="/wk" testId="job-holding" />
-                    </dd>
-                  </div>
+                  <BigNumber size="row" value={<Money value={job.weeklyHoldingCost} suffix="/wk" testId="job-holding" />} label="Holding" />
                 )}
-                <div className="job__fact job__fact--confirm">
-                  <dt>Program</dt>
-                  <dd>
-                    <StatusText tone={forecast.freshness.amber ? 'amber' : 'muted'} testId="job-fresh">
-                      {forecast.freshness.text}
-                    </StatusText>
-                    {canConfirm && (
-                      <span className="job__confirm">
-                        <button
-                          type="button"
-                          className="btn btn--desktop"
-                          onClick={confirm}
-                          disabled={offline}
-                          data-testid="job-confirm"
-                        >
-                          {confirmedNow && forecast.freshness.daysUnconfirmed === 0 ? 'Confirmed' : 'Confirm program'}
-                        </button>
-                        {offline && <span className="job__needs-signal">Needs signal</span>}
-                      </span>
-                    )}
-                  </dd>
+                {forecast.currentStageName && <BigNumber size="row" value={forecast.currentStageName} label="Stage" />}
+                <div className="job__confirm">
+                  <StatusText tone={forecast.freshness.amber ? 'amber' : 'muted'} testId="job-fresh">
+                    {forecast.freshness.text}
+                  </StatusText>
+                  <button type="button" className="btn btn--primary btn--desktop" onClick={confirm} disabled={offline} data-testid="job-confirm">
+                    {confirmedNow && forecast.freshness.daysUnconfirmed === 0 ? 'Confirmed' : 'Confirm program'}
+                  </button>
+                  {offline && <span className="job__needs-signal">Needs signal</span>}
                 </div>
-              </dl>
+              </div>
             )}
           </section>
 
           <div className="job__body">
             <div className="job__col">
               {!site && (
-              <section className="job__section" aria-labelledby="job-hp" data-testid="job-next-holdpoint">
-                <h2 id="job-hp" className="job__section-title">
-                  Next hold point
-                </h2>
-                {hp ? (
-                  <>
-                    <p className="job__hp-line">
-                      <Link to={`/steps/${hp.stepId}`} className="job__hp-name">
-                        {hp.stepName}
-                      </Link>
-                      <span className="job__hp-when">
-                        {formatShort(hp.forecastStart)}, {relativeDays(hp.forecastStart, today)}
-                        {hpStage ? `, ${hpStage.name} stage` : ''}
-                      </span>
-                    </p>
-                    <p className="job__hp-ready">
-                      <StatusText tone={hp.ok ? 'ok' : 'amber'} testId="job-holdpoint-readiness">
-                        {readinessWords(hp)}
-                      </StatusText>
-                    </p>
-                    <HoldPointCheck check={hp} compact />
-                  </>
-                ) : (
-                  <p className="job__quiet">No hold points left on this program.</p>
-                )}
-              </section>
+                <section className="job__section" aria-labelledby="job-hp" data-testid="job-next-holdpoint">
+                  <h2 id="job-hp" className="job__section-title">
+                    Next hold point
+                  </h2>
+                  {hp ? (
+                    <>
+                      <p className="job__hp-line">
+                        <Link to={`/steps/${hp.stepId}`} className="job__hp-name">
+                          {hp.stepName}
+                        </Link>
+                        <span className="job__hp-when">
+                          {formatShort(hp.forecastStart)}, {relativeDays(hp.forecastStart, today)}
+                          {hpStage ? `, ${hpStage.name} stage` : ''}
+                        </span>
+                      </p>
+                      <p className="job__hp-ready">
+                        <StatusText tone={hp.ok ? 'ok' : 'amber'} testId="job-holdpoint-readiness">
+                          {readinessWords(hp)}
+                        </StatusText>
+                      </p>
+                      <HoldPointCheck check={hp} compact />
+                    </>
+                  ) : (
+                    <p className="job__quiet">No hold points left</p>
+                  )}
+                </section>
               )}
 
               <section className="job__section" aria-labelledby="job-stages">
@@ -246,11 +210,17 @@ export default function JobOverview() {
                 <ol className="job__stages">
                   {forecast.stages.map((s) => {
                     const current = s.stageId === forecast.currentStageId;
+                    const words = stageWords(s);
                     return (
-                      <li key={s.stageId} className={current ? 'job__stage job__stage--current' : 'job__stage'} data-testid={`job-stage-${s.stageId}`}>
+                      <li
+                        key={s.stageId}
+                        className={['job__stage', `job__stage--${s.status}`, current ? 'job__stage--current' : ''].filter(Boolean).join(' ')}
+                        data-testid={`job-stage-${s.stageId}`}
+                        aria-current={current ? 'step' : undefined}
+                      >
                         <span className="job__stage-name">{s.name}</span>
                         <span className="job__stage-when">
-                          {stageWords(s).when}
+                          {words.when}
                           {s.isLate && s.status !== 'done' && (
                             <>
                               {' '}
@@ -260,14 +230,11 @@ export default function JobOverview() {
                             </>
                           )}
                         </span>
-                        {stageWords(s).planned && <span className="job__stage-planned">{stageWords(s).planned}</span>}
+                        {words.planned && <span className="job__stage-planned">{words.planned}</span>}
                       </li>
                     );
                   })}
                 </ol>
-                <p className="job__more">
-                  <Link to={`/jobs/${id}/program`}>Open the program</Link>
-                </p>
               </section>
             </div>
 
@@ -278,55 +245,18 @@ export default function JobOverview() {
                     Waiting on
                   </h2>
                   {waiting.length === 0 ? (
-                    <p className="job__quiet">Nothing open on this job.</p>
+                    <p className="job__quiet">Nothing open</p>
                   ) : (
                     <ItemRowList testId="job-waiting-list">
                       {waiting.map((w) => {
                         const item = items.find((i) => i.id === w.itemId)!;
-                        return (
-                          <ItemRow
-                            key={w.itemId}
-                            item={item}
-                            forecast={forecast.items[w.itemId]}
-                            ownerName={nameOf(w.ownerId)}
-                            href={`/items/${w.itemId}`}
-                          />
-                        );
+                        return <ItemRow key={w.itemId} item={item} forecast={forecast.items[w.itemId]} ownerName={nameOf(w.ownerId)} href={`/items/${w.itemId}`} />;
                       })}
                     </ItemRowList>
                   )}
                   <p className="job__more">
                     <Link to={`/waiting?job=${id}`} data-testid="job-waiting-all">
                       All {openCount} open item{openCount === 1 ? '' : 's'}
-                    </Link>
-                  </p>
-                </section>
-
-                <section className="job__section" aria-labelledby="job-notes">
-                  <h2 id="job-notes" className="job__section-title">
-                    Notes this week
-                  </h2>
-                  {recentNotes.length === 0 ? (
-                    <p className="job__quiet">No notes this week.</p>
-                  ) : (
-                    <ul className="job__notes">
-                      {recentNotes.map((n) => (
-                        <li key={n.id} className="job__note">
-                          <span className="job__note-date">
-                            {formatShort(n.date)}, {nameOf(n.authorId) ?? 'site'}
-                          </span>
-                          <span className="job__note-text">{n.text}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <p className="job__more">
-                    <Link to={`/jobs/${id}/notes`}>All notes</Link>
-                    <span className="job__more-sep" aria-hidden="true">
-                      {' '}
-                    </span>
-                    <Link to={`/jobs/${id}/photos`}>
-                      {photoCount} photo{photoCount === 1 ? '' : 's'}
                     </Link>
                   </p>
                 </section>
@@ -341,23 +271,30 @@ export default function JobOverview() {
           Latest photos
         </h2>
         {latestPhotos.length === 0 ? (
-          <p className="job__quiet">No photos yet.</p>
+          <p className="job__quiet">No photos yet</p>
         ) : (
           <ul className="job__photo-strip">
             {latestPhotos.map((p) => (
               <li key={p.id}>
-                <Link to={`/jobs/${id}/photos?photo=${p.id}`} className="job__photo" data-testid={`overview-photo-${p.id}`} aria-label={`${p.caption ?? 'Photo'}, ${formatShort(p.takenOn)}`}>
+                <Link
+                  to={`/jobs/${id}/photos?photo=${p.id}`}
+                  className="job__photo"
+                  data-testid={`overview-photo-${p.id}`}
+                  aria-label={`${p.caption ?? 'Photo'}, ${formatShort(p.takenOn)}`}
+                >
                   <img src={p.dataUrl} alt="" loading="lazy" />
                 </Link>
               </li>
             ))}
           </ul>
         )}
-        <p className="job__more">
-          <Link to={`/jobs/${id}/photos`} data-testid="overview-all-photos">
-            All {photoCount} photo{photoCount === 1 ? '' : 's'}
-          </Link>
-        </p>
+        {photoCount > 0 && (
+          <p className="job__more">
+            <Link to={`/jobs/${id}/photos`} data-testid="overview-all-photos">
+              All {photoCount} photo{photoCount === 1 ? '' : 's'}
+            </Link>
+          </p>
+        )}
       </section>
     </main>
   );

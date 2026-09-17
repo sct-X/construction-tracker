@@ -27,11 +27,7 @@ import { PageHeader } from '../shell/PageHeader';
 import { countWords, plural, type TemplateShape } from './Templates';
 import './newJob.css';
 
-const KIND_WORDS: Record<JobKind, { name: string; sub: string }> = {
-  build: { name: 'Build', sub: 'a program of steps with a forecast finish' },
-  design: { name: 'Design', sub: 'a checklist of stages, no program' },
-};
-const PATH_WORDS: Record<ApprovalPath, string> = { DA: 'DA, through council', CDC: 'CDC, through a certifier' };
+const KIND_WORDS: Record<JobKind, string> = { build: 'Build', design: 'Design' };
 
 /** Stage ids in a `startsFrom` list: the first stage means "from the start". */
 export default function NewJob() {
@@ -90,11 +86,11 @@ export default function NewJob() {
 
   const problems = useMemo(() => {
     const list: string[] = [];
-    if (!name.trim()) list.push('Give it a name, usually the address.');
-    if (kind === 'build' && !template) list.push(templates.some((t) => t.kind === 'build') ? 'Pick a template.' : 'There is no build template yet. Build the duplex template first.');
+    if (!name.trim()) list.push('Give it a name.');
+    if (kind === 'build' && !template) list.push(templates.some((t) => t.kind === 'build') ? 'Pick a template.' : 'No build template yet.');
     if (kind === 'design' && !template && !blankDesign) list.push('Pick a template, or the standard checklist.');
     if (!validStart) list.push('Pick a start date.');
-    if (holding && (Number.isNaN(Number(holding)) || Number(holding) < 0)) list.push('Holding cost is dollars a week, 0 or more.');
+    if (holding && (Number.isNaN(Number(holding)) || Number(holding) < 0)) list.push('Holding cost is 0 or more.');
     return list;
   }, [name, kind, template, blankDesign, validStart, holding, templates]);
   const ready = problems.length === 0 && !offline;
@@ -128,7 +124,7 @@ export default function NewJob() {
 
   return (
     <main className="page newjob" data-testid="newjob">
-      <PageHeader title="New job" back={{ to: '/templates', label: 'Templates' }} meta="Starts from a template. The dates run forward from the day you pick." />
+      <PageHeader title="New job" back={{ to: '/templates', label: 'Templates' }} />
 
       <form
         className="newjob__form"
@@ -139,7 +135,7 @@ export default function NewJob() {
       >
         <div className="newjob__field">
           <label htmlFor="newjob-name">Name</label>
-          <input id="newjob-name" className="newjob__input" value={name} data-testid="newjob-name" placeholder="12 Smith St" autoComplete="off" onChange={(e) => setName(e.target.value)} />
+          <input id="newjob-name" className="input input--desktop" value={name} data-testid="newjob-name" placeholder="12 Smith St" autoComplete="off" onChange={(e) => setName(e.target.value)} />
         </div>
 
         <div className="newjob__field">
@@ -147,9 +143,9 @@ export default function NewJob() {
             Side
           </span>
           {sides.length > 1 ? (
-            <div className="newjob__picker" role="group" aria-labelledby="newjob-side-label">
+            <div className="seg" role="group" aria-labelledby="newjob-side-label">
               {sides.map((s) => (
-                <button key={s.id} type="button" className="newjob__pick" aria-pressed={s.id === sideId} data-testid={`newjob-side-${s.id}`} onClick={() => setSideId(s.id)}>
+                <button key={s.id} type="button" className="seg__btn" aria-pressed={s.id === sideId} data-testid={`newjob-side-${s.id}`} onClick={() => setSideId(s.id)}>
                   {s.name}
                 </button>
               ))}
@@ -157,18 +153,17 @@ export default function NewJob() {
           ) : (
             <span data-testid="newjob-side-name">{side.name}</span>
           )}
-          {sideId !== side.id && <span className="newjob__hint">It will show once you switch to that side.</span>}
+          {sideId !== side.id && <span className="newjob__hint">Shows once you switch to that side.</span>}
         </div>
 
         <div className="newjob__field">
           <span className="newjob__label" id="newjob-kind-label">
             Kind
           </span>
-          <div className="newjob__picker" role="group" aria-labelledby="newjob-kind-label">
+          <div className="seg" role="group" aria-labelledby="newjob-kind-label">
             {(['build', 'design'] as JobKind[]).map((k) => (
-              <button key={k} type="button" className="newjob__pick" aria-pressed={kind === k} data-testid={`newjob-kind-${k}`} onClick={() => pickKind(k)}>
-                {KIND_WORDS[k].name}
-                <span className="newjob__pick-sub">{KIND_WORDS[k].sub}</span>
+              <button key={k} type="button" className="seg__btn" aria-pressed={kind === k} data-testid={`newjob-kind-${k}`} onClick={() => pickKind(k)}>
+                {KIND_WORDS[k]}
               </button>
             ))}
           </div>
@@ -178,10 +173,10 @@ export default function NewJob() {
           <span className="newjob__label" id="newjob-path-label">
             Approval path
           </span>
-          <div className="newjob__picker" role="group" aria-labelledby="newjob-path-label">
+          <div className="seg" role="group" aria-labelledby="newjob-path-label">
             {(['DA', 'CDC'] as ApprovalPath[]).map((p) => (
-              <button key={p} type="button" className="newjob__pick" aria-pressed={path === p} data-testid={`newjob-path-${p}`} onClick={() => setPath(p)}>
-                {PATH_WORDS[p]}
+              <button key={p} type="button" className="seg__btn" aria-pressed={path === p} data-testid={`newjob-path-${p}`} onClick={() => setPath(p)}>
+                {p}
               </button>
             ))}
           </div>
@@ -194,10 +189,9 @@ export default function NewJob() {
               <span className="newjob__money-sign" aria-hidden="true">
                 $
               </span>
-              <input id="newjob-holding" className="newjob__input" type="number" min={0} step={100} inputMode="numeric" value={holding} data-testid="newjob-holding" placeholder="4500" onChange={(e) => setHolding(e.target.value)} />
+              <input id="newjob-holding" className="input input--desktop" type="number" min={0} step={100} inputMode="numeric" value={holding} data-testid="newjob-holding" placeholder="4500" onChange={(e) => setHolding(e.target.value)} />
               <span className="newjob__money-unit">/wk</span>
             </div>
-            <span className="newjob__hint">Interest, rates and the rest of owning the site. Slip is priced against it on Monday.</span>
           </div>
         )}
 
@@ -207,15 +201,15 @@ export default function NewJob() {
           </span>
           {options.length === 0 && kind === 'build' ? (
             <p className="newjob__empty" data-testid="newjob-no-templates">
-              No build templates yet. Build the duplex template first, or <Link to="/templates">save a running job as one</Link>.
+              No build templates yet. <Link to="/templates">Save a running job as one</Link>
             </p>
           ) : (
-            <div className="newjob__picker" role="group" aria-labelledby="newjob-template-label">
+            <div className="seg seg--wrap newjob__templates" role="group" aria-labelledby="newjob-template-label">
               {options.map((t) => (
                 <TemplateOption key={t.id} id={t.id} name={t.name} pressed={t.id === templateId} onPick={pickTemplate} />
               ))}
               {kind === 'design' && (
-                <button type="button" className="newjob__pick" aria-pressed={blankDesign} data-testid="newjob-template-blank" onClick={() => pickTemplate('blank')}>
+                <button type="button" className="seg__btn newjob__pick" aria-pressed={blankDesign} data-testid="newjob-template-blank" onClick={() => pickTemplate('blank')}>
                   Standard {path} checklist
                   <span className="newjob__pick-sub">{path === 'DA' ? 'Design, With council, Approved, Construction certificate' : 'Design, With certifier, Approved'}</span>
                 </button>
@@ -226,9 +220,9 @@ export default function NewJob() {
 
         <div className="newjob__field">
           <label htmlFor="newjob-start">{kind === 'build' ? 'Start on site' : 'Start'}</label>
-          <input id="newjob-start" className="newjob__input newjob__date" type="date" value={startDate} data-testid="newjob-start" onChange={(e) => setStartDate(e.target.value)} />
+          <input id="newjob-start" className="input input--desktop newjob__date" type="date" value={startDate} data-testid="newjob-start" onChange={(e) => setStartDate(e.target.value)} />
           {validStart && preview && preview.startsOn !== startDate && (
-            <span className="newjob__hint">That is a weekend or the shutdown; the first working day is {formatShort(preview.startsOn)}.</span>
+            <span className="newjob__hint">A weekend or the shutdown: work starts {formatShort(preview.startsOn)}.</span>
           )}
         </div>
 
@@ -237,7 +231,6 @@ export default function NewJob() {
             <span className="newjob__label" id="newjob-from-label">
               Starts from
             </span>
-            <span className="newjob__hint">A job already under way starts from the stage it is at now. Earlier stages are marked done.</span>
             <div className="newjob__stages" role="group" aria-labelledby="newjob-from-label">
               {shape.stages.map((s, i) => {
                 const pressed = i === fromIndex;
@@ -270,21 +263,19 @@ export default function NewJob() {
               <>
                 <BigNumber value={formatLong(preview.plannedFinish)} label="Planned finish" testId="newjob-planned-finish-date" />
                 <p className="newjob__finish-words">
-                  {plural(stepsToRun, 'step')} over about {plural(weeks, 'week')} from {formatLong(preview.startsOn)}
-                  {fromIndex > 0 && shape ? `, with ${plural(preview.stagesDone, 'stage')} before ${shape.stages[fromIndex].name} marked done` : ''}. Working days only; the shutdown from 21 Dec to 8 Jan is skipped.
+                  {plural(stepsToRun, 'step')}, about {plural(weeks, 'week')}, from {formatLong(preview.startsOn)}
+                  {fromIndex > 0 && shape ? `, ${plural(preview.stagesDone, 'stage')} before ${shape.stages[fromIndex].name} marked done` : ''}.
                 </p>
-                <p className="newjob__finish-words">The forecast starts equal to the plan. Slip appears after the first Monday.</p>
+                <p className="newjob__finish-words">Slip appears after the first Monday.</p>
               </>
             ) : (
-              <p className="newjob__finish-words">Pick a template and a start date to see the planned finish.</p>
+              <p className="newjob__finish-words">Pick a template and a start date.</p>
             )}
           </div>
         )}
         {kind === 'design' && (
           <div className="newjob__finish" data-testid="newjob-planned-finish">
-            <p className="newjob__finish-words">
-              A design job has no program and no finish date: the checklist starts at {template && shape?.stages[0] ? shape.stages[0].name : 'Design'} and the Monday screen counts what is outstanding.
-            </p>
+            <p className="newjob__finish-words">A design job has no program and no finish date.</p>
           </div>
         )}
 
@@ -302,7 +293,7 @@ export default function NewJob() {
           <Link to="/templates" className="btn btn--desktop" data-testid="newjob-cancel">
             Cancel
           </Link>
-          {offline && <span className="newjob__hint">Needs signal: a new job sets dates.</span>}
+          {offline && <span className="newjob__hint">Needs signal</span>}
         </div>
       </form>
     </main>
@@ -325,7 +316,7 @@ function TemplateOption({ id, name, pressed, onPick }: { id: string; name: strin
     [id],
   );
   return (
-    <button type="button" className="newjob__pick" aria-pressed={pressed} data-testid={`newjob-template-${id}`} onClick={() => onPick(id)}>
+    <button type="button" className="seg__btn newjob__pick" aria-pressed={pressed} data-testid={`newjob-template-${id}`} onClick={() => onPick(id)}>
       {name}
       <span className="newjob__pick-sub">{words}</span>
     </button>

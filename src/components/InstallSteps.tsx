@@ -1,5 +1,5 @@
 /**
- * "Install to your home screen" (UI_PLAN 3.19), in plain words, no pictures.
+ * "Install to your home screen" (UI_PLAN 3.19): a short numbered list, no pictures.
  * Detects the phone from the user agent and opens on that set of steps; the
  * other set is one tap away. When the page is already running from the home
  * screen (`display-mode: standalone`, or Safari's `navigator.standalone`) it
@@ -41,24 +41,13 @@ export function deviceWords(ua: string = typeof navigator === 'undefined' ? '' :
 const STEPS: Record<Exclude<Platform, 'other'>, { name: string; steps: string[]; note: string }> = {
   iphone: {
     name: 'iPhone',
-    steps: [
-      'Open this address in Safari. Other browsers on an iPhone cannot install it.',
-      'Tap Share: the square with an arrow pointing up, at the bottom of the screen.',
-      'Scroll the list and tap "Add to Home Screen".',
-      'Tap "Add" in the top right. The Tracker icon lands on your home screen.',
-      'Open it from that icon from now on. Notifications only work when it is opened this way.',
-    ],
-    note: 'Needs iOS 16.4 or later for notifications.',
+    steps: ['Open this address in Safari.', 'Tap Share (the square with the arrow).', 'Tap "Add to Home Screen".', 'Tap "Add".', 'Open it from the new icon from now on.'],
+    note: 'Notifications need iOS 16.4 or later.',
   },
   android: {
     name: 'Android',
-    steps: [
-      'Open this address in Chrome.',
-      'Tap the three dots in the top right.',
-      'Tap "Add to Home screen" or "Install app", then "Install".',
-      'Open it from the new icon on your home screen from now on.',
-    ],
-    note: 'Some phones show an "Install" bar at the bottom of the screen instead. Tapping that does the same thing.',
+    steps: ['Open this address in Chrome.', 'Tap the three dots, top right.', 'Tap "Add to Home screen", then "Install".', 'Open it from the new icon from now on.'],
+    note: 'An "Install" bar at the foot of the screen does the same.',
   },
 };
 
@@ -77,7 +66,7 @@ export function InstallSteps({ installed, platform, testId = 'settings-install' 
   if (standalone) {
     return (
       <div className="install install--done" data-testid={testId} data-installed="true">
-        <p className="install__done">Installed. You are opening this from your home screen, so this step is done.</p>
+        <p className="install__done">Installed.</p>
       </div>
     );
   }
@@ -85,14 +74,9 @@ export function InstallSteps({ installed, platform, testId = 'settings-install' 
   const set = STEPS[shown];
   return (
     <div className="install" data-testid={testId} data-installed="false">
-      <p className="install__lede">
-        {detected === 'other'
-          ? 'You are in a desktop browser. On a phone, this page gives the steps to put the app on the home screen.'
-          : 'You are in the browser. Put the app on your home screen so it opens like an app and can buzz you.'}
-      </p>
-      <div className="install__switch" role="group" aria-label="Which phone">
+      <div className="seg install__switch" role="group" aria-label="Which phone">
         {(['iphone', 'android'] as const).map((p) => (
-          <button key={p} type="button" className="install__tab" aria-pressed={shown === p} data-testid={`${testId}-${p}`} onClick={() => setShown(p)}>
+          <button key={p} type="button" className="seg__btn install__tab" aria-pressed={shown === p} data-testid={`${testId}-${p}`} onClick={() => setShown(p)}>
             {STEPS[p].name}
           </button>
         ))}

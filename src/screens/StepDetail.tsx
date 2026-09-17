@@ -18,6 +18,7 @@ import { useApi, useQuery, useSession } from '../data/context';
 import type { Item, Job, Person, Requirement, Stage, Step } from '../domain/types';
 import type { JobForecast, StepForecast } from '../domain/forecast';
 import { formatLong, formatShort } from '../domain/dates';
+import { BigNumber } from '../components/BigNumber';
 import { HoldPointCheck } from '../components/HoldPointCheck';
 import { useQueuedPhotos } from '../components/QueueBadge';
 import { ItemRow, ItemRowList } from '../components/ItemRow';
@@ -108,43 +109,47 @@ export default function StepDetail() {
   const doneNeedsSignal = offline && step.isHoldPoint;
 
   const meta = [stage?.name ? `${stage.name} stage` : '', step.isHoldPoint ? 'hold point' : '', step.tradeType ?? ''].filter(Boolean).join(', ');
+  const needsWords = requirements
+    .map((r) => `${r.name}, ${r.kind === 'trade' ? 'book' : 'order'} ${r.leadTimeWeeks} wk ahead`)
+    .join('. ');
 
   return (
     <main className="page step" data-testid="step-detail">
       <PageHeader title={step.name} meta={meta} back={{ to: `/jobs/${job.id}/program`, label: `${job.name} program` }} />
 
       <section className="step__dates" aria-label="Dates">
-        <div className="step__date step__date--forecast">
-          <span className="step__date-label">Forecast</span>
-          <span className="step__date-value display" data-testid="step-forecast">
-            {sf ? span(sf.forecastStart, sf.forecastEnd) : 'No dates yet'}
-          </span>
+        <div className="step__readout">
+          <BigNumber
+            size="row"
+            value={sf ? span(sf.forecastStart, sf.forecastEnd) : 'No dates yet'}
+            label="Forecast"
+            tone={sf && sf.plannedStart && sf.lateDays > 0 ? 'late' : undefined}
+            testId="step-forecast"
+            className="step__figure"
+          />
           {sf && sf.plannedStart && (
             <StatusText tone={sf.lateDays > 0 ? 'late' : sf.lateDays < 0 ? 'ok' : 'muted'} testId="step-late">
               {lateWords(sf)}
             </StatusText>
           )}
         </div>
-        <div className="step__date">
-          <span className="step__date-label">Planned</span>
-          <span className="step__date-value" data-testid="step-planned">
-            {span(step.plannedStart, step.plannedEnd)}
-          </span>
+        <div className="step__readout">
+          <BigNumber size="row" value={span(step.plannedStart, step.plannedEnd)} label="Planned" tone="muted" testId="step-planned" className="step__figure" />
         </div>
-        <div className="step__date">
-          <span className="step__date-label">Duration</span>
-          <span className="step__date-value" data-testid="step-duration">
-            {step.durationDays} working day{step.durationDays === 1 ? '' : 's'}
-          </span>
-        </div>
-        <div className="step__date">
-          <span className="step__date-label">Status</span>
-          <span className="step__date-value" data-testid="step-status">
-            {STATUS_WORDS[step.status]}
-          </span>
-        </div>
+        <dl className="step__facts">
+          <div className="step__fact">
+            <dt>Duration</dt>
+            <dd data-testid="step-duration">
+              {step.durationDays} working day{step.durationDays === 1 ? '' : 's'}
+            </dd>
+          </div>
+          <div className="step__fact">
+            <dt>Status</dt>
+            <dd data-testid="step-status">{STATUS_WORDS[step.status]}</dd>
+          </div>
+        </dl>
       </section>
-      {sf && (
+      {sf && (sf.lateDays !== 0 || /after|because/.test(sf.reason)) && (
         <p className="step__reason" data-testid="step-reason">
           {sf.reason}
         </p>
@@ -173,7 +178,7 @@ export default function StepDetail() {
               Reopen
             </button>
           )}
-          {doneNeedsSignal && <span className="step__needs-signal">Needs signal: the photo count is checked on the server.</span>}
+          {doneNeedsSignal && <span className="step__needs-signal">Needs signal</span>}
         </div>
       )}
       {refusal && refusal.reason === 'not_started' && (
@@ -218,7 +223,7 @@ export default function StepDetail() {
                     ))}
                   </ul>
                 ) : (
-                  <span className="step__quiet">Nothing, it can start on its planned date</span>
+                  <span className="step__quiet">Nothing</span>
                 )}
               </dd>
             </div>
@@ -236,7 +241,7 @@ export default function StepDetail() {
                     ))}
                   </ul>
                 ) : (
-                  <span className="step__quiet">Nothing waits for this step</span>
+                  <span className="step__quiet">Nothing</span>
                 )}
               </dd>
             </div>
@@ -247,15 +252,9 @@ export default function StepDetail() {
           <h2 id="step-needs" className="step__section-title">
             Needs
           </h2>
-          {requirements.length > 0 && (
-            <p className="step__requirements">
-              {requirements
-                .map((r) => `${r.name} (${r.kind === 'trade' ? 'book' : 'order'} ${r.leadTimeWeeks} week${r.leadTimeWeeks === 1 ? '' : 's'} ahead)`)
-                .join(', ')}
-            </p>
-          )}
+          {requirements.length > 0 && <p className="step__requirements">{needsWords}</p>}
           {items.length === 0 ? (
-            <p className="step__quiet">No items on this step.</p>
+            <p className="step__quiet">No items.</p>
           ) : (
             <ItemRowList testId="step-items">
               {items.map((item) => (

@@ -1,25 +1,28 @@
 /*
-  Alec's Today.
+  Alec's Today: a job-site card stack.
 
-  Layout concept: a page of the site diary. The day in words is the largest
-  type on the screen (condensed face, like a site sign); under it one line
-  for the stage. The one hi-vis action, "Add photos", is a full-width 64px
-  bar. Then plain rows, 56px each, under small headings on the 2px concrete
-  rule the rest of the app uses. No cards, no icons but the queue clock.
-  Only Alec sees this, so it is phone-first with no desktop variant.
+  The day in words is the hero (44px, the display face), one line for the
+  stage under it, then the one hi-vis action at 64px. Everything else is a
+  plate: hold point, deliveries, on site this week, today's note. Plates
+  stack 8px apart; hairlines live only between rows inside a plate. Every
+  target is 56px. Only Alec sees this, so it is phone-first with no desktop
+  variant.
 */
 .today {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   margin-bottom: var(--space-8);
 }
 .today__head {
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 .today__date {
   font-size: var(--text-display);
   color: var(--text);
 }
 .today__stage {
-  margin-top: var(--space-1);
+  margin-top: var(--space-2);
   font-size: var(--text-lg);
   color: var(--text-secondary);
 }
@@ -28,6 +31,7 @@
 .today__add {
   width: 100%;
   min-height: 64px;
+  margin-bottom: var(--space-4);
   font-size: var(--text-lg);
 }
 .today__add-badge {
@@ -37,46 +41,20 @@
   min-width: 28px;
   height: 28px;
   padding: 0 var(--space-2);
-  border-radius: 14px;
-  background: var(--steel-700);
-  color: var(--text-on-dark);
+  border-radius: var(--radius-pill);
+  background: var(--hivis-contrast);
+  color: var(--hivis);
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
 }
 
-/* the note line: a 56px link that reads as a diary line */
-.today__note {
+/* plates */
+.today__plate {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-  min-height: var(--tap);
-  margin-top: var(--space-4);
-  padding: var(--space-2) var(--space-4);
-  border: var(--hairline);
-  border-radius: var(--radius-md);
-  background: var(--timber-100);
-  color: var(--text);
-  text-decoration: none;
-}
-.today__note:hover {
-  border-color: var(--line-strong);
-}
-.today__note-label {
-  font-weight: var(--weight-medium);
-}
-.today__note-text {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* sections */
-.today__section {
-  margin-top: var(--space-8);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  background: var(--plate);
+  border-radius: var(--radius-lg);
 }
 .today__title {
   display: flex;
@@ -86,8 +64,6 @@
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--text-muted);
-  padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--concrete-200);
   margin-bottom: var(--space-2);
 }
 .today__range {
@@ -95,59 +71,20 @@
 }
 .today__quiet {
   color: var(--text-muted);
-  padding: var(--space-2) 0;
+  padding: var(--space-2) 0 var(--space-3);
 }
+/* a plate's foot link: a 56px row */
 .today__more {
-  margin-top: var(--space-1);
-  font-size: var(--text-sm);
-}
-.today__more a {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   min-height: var(--tap);
-}
-
-/* steps on site this week */
-.today__steps {
-  display: flex;
-  flex-direction: column;
-}
-.today__steps li + li {
-  border-top: var(--hairline);
-}
-.today__step {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-height: var(--tap);
-  padding: var(--space-3) 0;
-  color: var(--text);
-  text-decoration: none;
-}
-.today__step:active {
-  background: var(--concrete-100);
-}
-.today__step-name {
-  font-size: var(--text-lg);
-  font-weight: var(--weight-bold);
-}
-.today__hold {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--text);
-}
-.today__step-when {
+  margin-bottom: calc(-1 * var(--space-2));
   font-size: var(--text-sm);
   color: var(--text-secondary);
 }
-.today__step-late {
-  align-self: flex-start;
-}
-
-/* deliveries reuse the Deliveries rows; the list has no mark buttons here */
-.today__deliveries {
-  display: flex;
-  flex-direction: column;
+.today__more:hover {
+  color: var(--text);
 }
 
 /* hold point */
@@ -162,8 +99,13 @@
   align-items: center;
   min-height: var(--tap);
   font-size: var(--text-lg);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-medium);
   color: var(--text);
+  text-decoration: none;
+}
+.today__hp-name:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
 }
 .today__hp-when {
   color: var(--text-secondary);
@@ -174,10 +116,80 @@
 .today .holdpoint__upload {
   width: 100%;
   min-height: var(--tap);
+  margin-bottom: var(--space-2);
+}
+.today .holdpoint__row {
+  border-top-color: var(--line);
 }
 
-/* With Today on the page the day is the hero; the finish date under it drops
-   to row scale so the screen has one big thing, not two. */
-.today ~ .job__hero .bignumber--hero .bignumber__value {
-  font-size: var(--text-2xl);
+/* deliveries reuse the Deliveries rows; the list has no mark buttons here */
+.today__deliveries {
+  display: flex;
+  flex-direction: column;
+}
+
+/* steps on site this week */
+.today__steps {
+  display: flex;
+  flex-direction: column;
+}
+.today__steps li + li {
+  border-top: var(--hairline);
+}
+.today__step {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--tap);
+  padding: var(--space-2) 0;
+  color: var(--text);
+  text-decoration: none;
+}
+.today__step:active {
+  color: var(--text-secondary);
+}
+.today__step-name {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+}
+.today__hold {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+}
+.today__step-when {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.today__step-late {
+  align-self: flex-start;
+  margin-top: var(--space-1);
+}
+
+/* today's note: a plate that is one 56px link */
+.today__note {
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: var(--tap);
+  padding-bottom: var(--space-4);
+  color: var(--text);
+  text-decoration: none;
+  transition: background var(--motion-fast) var(--ease);
+}
+.today__note:active {
+  background: var(--raised);
+}
+.today__note .today__title {
+  margin-bottom: 0;
+}
+.today__note-label {
+  font-weight: var(--weight-medium);
+}
+.today__note-text {
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

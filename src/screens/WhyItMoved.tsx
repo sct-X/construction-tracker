@@ -58,8 +58,12 @@ export default function WhyItMoved() {
         <h1 className="why__title">Why it moved</h1>
         <p className="why__job">{job.name}</p>
         <p className="why__empty" data-testid="why-design">
-          Design jobs have no forecast finish, so nothing here moves. Open the{' '}
-          <Link to={`/jobs/${job.id}`}>checklist</Link> instead.
+          A design job has no finish to forecast.
+        </p>
+        <p>
+          <Link to={`/jobs/${job.id}`} className="btn btn--desktop">
+            Checklist
+          </Link>
         </p>
       </main>
     );
@@ -76,6 +80,12 @@ export default function WhyItMoved() {
       : forecast.snapshotDate
         ? `Monday's forecast (${formatDayMonth(forecast.snapshotDate)})`
         : "Monday's forecast";
+  const slipLabel =
+    slipDays === undefined
+      ? undefined
+      : baselineFinish
+        ? `${since === 'plan' ? 'The plan' : baselineWords} said ${formatDayMonth(baselineFinish)}`
+        : `Since ${baselineWords}`;
 
   const setSince = (next: 'monday' | 'plan') => {
     const p = new URLSearchParams(params);
@@ -98,29 +108,20 @@ export default function WhyItMoved() {
         </div>
         <div className="why__since" role="group" aria-label="Compared with">
           <span className="why__since-label">Compared with</span>
-          <button type="button" className="why__since-button" aria-pressed={since === 'monday'} data-testid="why-since-monday" onClick={() => setSince('monday')}>
-            Monday's forecast
-          </button>
-          <button type="button" className="why__since-button" aria-pressed={since === 'plan'} data-testid="why-since-plan" onClick={() => setSince('plan')}>
-            the original plan
-          </button>
+          <span className="seg">
+            <button type="button" className="seg__btn" aria-pressed={since === 'monday'} data-testid="why-since-monday" onClick={() => setSince('monday')}>
+              Monday's forecast
+            </button>
+            <button type="button" className="seg__btn" aria-pressed={since === 'plan'} data-testid="why-since-plan" onClick={() => setSince('plan')}>
+              the original plan
+            </button>
+          </span>
         </div>
       </header>
 
       <section className="why__figures" aria-label="Finish and slip">
         <BigNumber value={forecast.forecastFinish ? formatLong(forecast.forecastFinish) : 'No dates yet'} label="Forecast finish" testId="why-finish" />
-        <BigNumber
-          value={<SlipText days={slipDays} cost={slipCost} />}
-          tone={slipTone(slipDays)}
-          label={
-            slipDays === undefined
-              ? undefined
-              : baselineFinish
-                ? `since ${baselineWords}, which said ${formatDayMonth(baselineFinish)}`
-                : `since ${baselineWords}`
-          }
-          testId="why-slip"
-        />
+        <BigNumber size="row" value={<SlipText days={slipDays} cost={slipCost} />} tone={slipTone(slipDays)} label={slipLabel} testId="why-slip" />
       </section>
 
       {entries.length === 0 ? (
@@ -130,16 +131,16 @@ export default function WhyItMoved() {
         </p>
       ) : (
         <section className="why__chain-wrap" aria-labelledby="why-chain-title">
-          <h2 className="why__chain-title" id="why-chain-title">
-            The chain, in order
-          </h2>
-          <p className="why__baseline" data-testid="why-baseline">
-            {chainBaseline === 'snapshot'
-              ? `Each step against Monday's forecast${forecast.snapshotDate ? ` (${formatDayMonth(forecast.snapshotDate)})` : ''}.`
-              : since === 'plan'
-                ? 'Each step against its planned dates.'
-                : "Monday's forecast for this job saved only the finish date, so each step is read against its planned dates; the last line gives the slip since Monday."}
-          </p>
+          <div className="why__chain-head">
+            <h2 className="why__chain-title" id="why-chain-title">
+              The chain
+            </h2>
+            <p className="why__baseline" data-testid="why-baseline">
+              {chainBaseline === 'snapshot'
+                ? `Steps against Monday's forecast${forecast.snapshotDate ? ` (${formatDayMonth(forecast.snapshotDate)})` : ''}`
+                : 'Steps against their planned dates'}
+            </p>
+          </div>
           <ol className="why__chain">
             {entries.map((e, i) => (
               <li key={`${e.kind}-${e.refId ?? i}-${i}`} className={`why__entry why__entry--${e.kind}`} data-testid={`why-entry-${i + 1}`}>
@@ -151,9 +152,7 @@ export default function WhyItMoved() {
                   <EntryText entry={e} jobId={job.id} />
                 </span>
                 <span className={`why__delta num ${e.deltaDays > 0 ? 'why__delta--late' : e.deltaDays < 0 ? 'why__delta--ok' : ''}`}>
-                  {e.deltaDays > 0 ? `+${e.deltaDays}` : e.deltaDays}
-                  {' '}
-                  {Math.abs(e.deltaDays) === 1 ? 'day' : 'days'}
+                  {e.deltaDays > 0 ? `+${e.deltaDays}` : e.deltaDays} {Math.abs(e.deltaDays) === 1 ? 'day' : 'days'}
                 </span>
               </li>
             ))}

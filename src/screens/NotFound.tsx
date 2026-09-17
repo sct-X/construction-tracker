@@ -1,11 +1,14 @@
-import { PageHeader } from '../shell/PageHeader';
+import './plainPage.css';
 
 export default function NotFound() {
   return (
-    <main className="page" data-testid="not-found">
-      <PageHeader title="Not found" meta="There is nothing at this address." />
-      <p className="page__lede">
-        <a href="#/">Go to your home screen</a>
+    <main className="plain" data-testid="not-found">
+      <h1 className="plain__title">Not found</h1>
+      <p className="plain__line">Nothing at this address.</p>
+      <p className="plain__action">
+        <a className="btn btn--desktop" href="#/">
+          Home
+        </a>
       </p>
     </main>
   );

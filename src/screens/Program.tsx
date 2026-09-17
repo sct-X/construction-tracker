@@ -11,6 +11,7 @@
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useSession } from '../data/context';
 import { formatLong } from '../domain/dates';
+import { BigNumber } from '../components/BigNumber';
 import { Gantt, lateText, type GanttView } from '../components/gantt/Gantt';
 import { LookAhead } from '../components/gantt/LookAhead';
 import { StagesList, StagesStrip } from '../components/gantt/StagesStrip';
@@ -41,13 +42,12 @@ export default function Program() {
   if (job.kind === 'design') {
     return (
       <main className="page program" data-testid="program">
-        <PageHeader title={job.name} meta="Program" back={{ to: `/jobs/${job.id}`, label: `Back to ${job.name}` }} />
+        <PageHeader title={job.name} meta="Program" back={{ to: `/jobs/${job.id}`, label: job.name }} />
         <p className="page__lede" data-testid="program-design-note">
-          {job.name} is a design job, so it has no steps and no program. Its stages are a checklist:{' '}
+          {job.name} is a design job: no program, a checklist.{' '}
           <Link to={`/jobs/${job.id}`} data-testid="program-checklist-link">
-            open the checklist
+            Open the checklist
           </Link>
-          .
         </p>
       </main>
     );
@@ -64,21 +64,17 @@ export default function Program() {
     setParams(next, { replace: true });
   };
 
+  // The finish is the screen's figure: a row-scale readout under the job name, never larger than the title.
   const finish = forecast?.forecastFinish;
   const meta = finish ? (
-    <>
-      Forecast finish <span className="num">{formatLong(finish)}</span>
+    <span className="program__finish">
+      <BigNumber size="row" value={formatLong(finish)} label="Forecast finish" tone={forecast.lateDays > 0 ? 'late' : undefined} />
       {forecast.lateDays > 0 ? (
-        <>
-          {' '}
-          <StatusText tone="late" plain>
-            {lateText(forecast.lateDays)}
-          </StatusText>
-        </>
+        <StatusText tone="late">{lateText(forecast.lateDays)}</StatusText>
       ) : (
-        <span className="program__onplan">, on plan</span>
+        <span className="program__onplan">on plan</span>
       )}
-    </>
+    </span>
   ) : (
     'Program'
   );
@@ -89,12 +85,12 @@ export default function Program() {
   const actions = hasProgram ? (
     <>
       {showGantt && layout === 'desktop' && (
-        <div className="program__views" role="group" aria-label="Show">
+        <span className="seg" role="group" aria-label="Show">
           {VIEWS.map((v) => (
             <button
               key={v.key}
               type="button"
-              className="program__view"
+              className="seg__btn"
               aria-pressed={ganttView === v.key}
               data-testid={`program-view-${v.key}`}
               onClick={() => setView(v.key === 'all' ? null : v.key)}
@@ -102,18 +98,18 @@ export default function Program() {
               {v.label}
             </button>
           ))}
-        </div>
+        </span>
       )}
-      {layout === 'phone' &&
-        (showGantt ? (
-          <button type="button" className="btn" data-testid="program-lookahead-link" onClick={() => setView(null)}>
+      {layout === 'phone' && (
+        <span className="seg program__phone-views" role="group" aria-label="Show">
+          <button type="button" className="seg__btn" aria-pressed={!showGantt} data-testid="program-lookahead-link" onClick={() => setView(null)}>
             Look-ahead
           </button>
-        ) : (
-          <button type="button" className="btn" data-testid="program-full-link" onClick={() => setView('gantt')}>
+          <button type="button" className="seg__btn" aria-pressed={showGantt} data-testid="program-full-link" onClick={() => setView('gantt')}>
             Full program
           </button>
-        ))}
+        </span>
+      )}
       {canEdit && layout === 'desktop' && (
         <Link to={`/jobs/${job.id}/edit`} className="btn btn--desktop" data-testid="program-edit">
           Edit program
@@ -124,11 +120,11 @@ export default function Program() {
 
   return (
     <main className="page program" data-testid="program" data-layout={layout}>
-      <PageHeader title={job.name} meta={meta} actions={actions} back={{ to: `/jobs/${job.id}`, label: `Back to ${job.name}` }} />
+      <PageHeader title={job.name} meta={meta} actions={actions} back={{ to: `/jobs/${job.id}`, label: job.name }} />
 
       {!hasProgram || !forecast ? (
         <p className="page__lede" data-testid="program-empty">
-          No program yet. Dominic sets this up in the program editor.
+          No program yet.
         </p>
       ) : showGantt ? (
         <Gantt forecast={forecast} steps={steps} today={today} view={ganttView} dense={layout === 'phone'} />

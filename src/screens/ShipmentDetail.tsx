@@ -2,8 +2,8 @@
  * Shipment detail (UI_PLAN 3.13, flow d): the one place an ETA is changed,
  * showing what the change does before it is saved.
  *
- * The ETA is the screen's one big figure. Status is four buttons in a row
- * (never a dropdown). The ETA editor is a date field; as soon as the draft
+ * The ETA is the screen's one big figure. Status is a segmented trough of
+ * four (never a dropdown). The ETA editor is a date field; as soon as the draft
  * differs from the saved ETA, the impact panel (<EtaImpact>) appears with the
  * items, the first step and the job's finish in words, and "Save new ETA"
  * applies it through api.setShipmentEta, which logs the activity entry that
@@ -150,7 +150,7 @@ export default function ShipmentDetail() {
         <h2 id="shipment-status-heading" className="shipment__heading">
           Status
         </h2>
-        <div className="shipment__status-strip" role="group" aria-label="Shipment status">
+        <div className="seg shipment__status-strip" role="group" aria-label="Shipment status">
           {SHIPMENT_STATUS_ORDER.map((s, i) => {
             const current = s === shipment.status;
             const passed = SHIPMENT_STATUS_ORDER.indexOf(shipment.status) > i;
@@ -158,24 +158,23 @@ export default function ShipmentDetail() {
               <button
                 key={s}
                 type="button"
-                className={['shipment__status-btn', current ? 'shipment__status-btn--current' : '', passed ? 'shipment__status-btn--passed' : ''].join(' ')}
+                className={['seg__btn', 'shipment__status-btn', passed ? 'shipment__status-btn--passed' : ''].filter(Boolean).join(' ')}
                 aria-pressed={current}
                 disabled={locked}
                 data-testid={`shipment-status-${s}`}
                 onClick={() => setStatus(s)}
               >
-                <span className="shipment__status-dot" aria-hidden="true" />
                 {SHIPMENT_STATUS_LABELS[s]}
               </button>
             );
           })}
         </div>
-        {offline && <p className="shipment__signal">Needs signal to change the status.</p>}
+        {offline && <p className="shipment__signal">Needs signal</p>}
         {offerDone && (
           <div className="shipment__offer" data-testid="shipment-offer-done">
             <p>Mark the {openItems.length === 1 ? '1 linked item' : `${openItems.length} linked items`} done?</p>
             <div className="shipment__offer-actions">
-              <button type="button" className="btn btn--primary btn--desktop" data-testid="shipment-mark-items-done" onClick={markItemsDone}>
+              <button type="button" className="btn btn--fill btn--desktop" data-testid="shipment-mark-items-done" onClick={markItemsDone}>
                 Mark {openItems.length === 1 ? 'it' : 'them'} done
               </button>
               <button type="button" className="btn btn--desktop" data-testid="shipment-offer-dismiss" onClick={() => setOfferDone(false)}>
@@ -188,15 +187,15 @@ export default function ShipmentDetail() {
 
       <section className="shipment__eta" aria-labelledby="shipment-eta-heading">
         <h2 id="shipment-eta-heading" className="shipment__heading">
-          Change the ETA
+          New ETA
         </h2>
         <div className="shipment__eta-row">
-          <label className="shipment__eta-label" htmlFor="shipment-eta-input">
+          <label className="sr-only" htmlFor="shipment-eta-input">
             New ETA
           </label>
           <input
             id="shipment-eta-input"
-            className="shipment__eta-input num"
+            className="input num shipment__eta-input"
             type="date"
             value={draft}
             disabled={locked}
@@ -225,7 +224,7 @@ export default function ShipmentDetail() {
           {rows.length === 1 ? '1 linked item' : `${rows.length} linked items`}
         </h2>
         {rows.length === 0 ? (
-          <p className="shipment__empty">No items are linked to this shipment yet.</p>
+          <p className="shipment__empty">No items linked yet.</p>
         ) : layout === 'desktop' ? (
           <ItemsTable rows={rows} onUnlink={locked ? undefined : unlink} />
         ) : (
@@ -235,7 +234,7 @@ export default function ShipmentDetail() {
           <div className="shipment__link" data-testid="shipment-link-items">
             <h3 className="shipment__subheading">Link an item</h3>
             {candidates.length === 0 ? (
-              <p className="shipment__empty">Every material to order on this job is already on a shipment.</p>
+              <p className="shipment__empty">Every material on this job is already on a shipment.</p>
             ) : (
               <ul className="shipment__candidates">
                 {candidates.map((item) => (
@@ -248,7 +247,7 @@ export default function ShipmentDetail() {
                 ))}
               </ul>
             )}
-            {offline && <p className="shipment__signal">Needs signal to link or unlink items.</p>}
+            {offline && <p className="shipment__signal">Needs signal</p>}
           </div>
         )}
       </section>
@@ -258,7 +257,7 @@ export default function ShipmentDetail() {
           History
         </h2>
         {history.length === 0 ? (
-          <p className="shipment__empty">Nothing recorded yet.</p>
+          <p className="shipment__empty">Nothing yet.</p>
         ) : (
           <ol className="shipment__history-list" data-testid="shipment-history">
             {history.map((a) => (
@@ -291,7 +290,7 @@ type Unlink = ((itemId: string) => void) | undefined;
 function UnlinkButton({ id, onUnlink }: { id: string; onUnlink: Unlink }) {
   if (!onUnlink) return null;
   return (
-    <button type="button" className="shipment__unlink" data-testid={`shipment-unlink-item-${id}`} onClick={() => onUnlink(id)}>
+    <button type="button" className="btn btn--ghost btn--desktop shipment__unlink" data-testid={`shipment-unlink-item-${id}`} onClick={() => onUnlink(id)}>
       Unlink
     </button>
   );
@@ -299,7 +298,7 @@ function UnlinkButton({ id, onUnlink }: { id: string; onUnlink: Unlink }) {
 
 function ItemsTable({ rows, onUnlink }: { rows: LinkedRow[]; onUnlink: Unlink }) {
   return (
-    <table className="shipment__table">
+    <table className="table shipment__table">
       <thead>
         <tr>
           <th scope="col">Item</th>

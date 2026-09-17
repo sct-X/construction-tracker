@@ -3,17 +3,18 @@
  * list of everything that can hold a job up, built for Raff to tick off with
  * a thumb between calls. `#/waiting?owner=me` is his home.
  *
- *   3  Overdue                       <- the one loud thing on the screen
- *      act-by date passed
- *   Material  Windows                        Park Rd
- *             waiting on Hangzhou Glazing Co, with you
- *             Expected Mon 26 Oct  Ordered or booked
- *   ! Act by Mon 10 Aug, 5 weeks ago            [Mark confirmed]
+ *   [Mine | Anyone]  [All jobs | Park Rd | ...]  [All types | ...]
  *
- *   This week  14-20 Sep                     2
- *   Next week  21-27 Sep                     1
- *   Later                                   12
- *   Done (9)                             show
+ *   9  Overdue                        <- a plate: the one loud thing
+ *   ! Act by Mon 10 Aug, 5 weeks ago      Ordered or booked
+ *   Windows  Park Rd                      Material
+ *   waiting on Hangzhou Glazing Co, with you
+ *   Call  Set date                        [Mark confirmed]
+ *
+ *   2  This week  14-20 Sep
+ *   1  Next week  21-27 Sep
+ *   18 Later                              hide
+ *   11 Done                               show
  *
  * Groups are by act-by date (the reminder date): Overdue is act-by passed or
  * the item already late; then this week, next week, later; done items sit
@@ -95,7 +96,7 @@ function groupTitle(key: GroupKey, today: string): { title: string; sub?: string
   const monday = lastMonday(today);
   switch (key) {
     case 'overdue':
-      return { title: 'Overdue', sub: 'act-by passed, or late' };
+      return { title: 'Overdue' };
     case 'this-week':
       return { title: 'This week', sub: formatWeekRange(monday) };
     case 'next-week':
@@ -192,14 +193,14 @@ export default function WaitingOn() {
       : `${openCount} to act on${overdueCount ? `, ${overdueCount} overdue` : ''}${jobFilter ? ` on ${jobFilter.name}` : ''}`;
 
   const chip = (key: string, label: string, pressed: boolean, onClick: () => void) => (
-    <button key={key} type="button" className="waiting__chip" aria-pressed={pressed} onClick={onClick} data-testid={`waiting-filter-${key}`}>
+    <button key={key} type="button" className="seg__btn" aria-pressed={pressed} onClick={onClick} data-testid={`waiting-filter-${key}`}>
       {label}
     </button>
   );
 
   const filters = (
     <div className="waiting__filters" data-testid="waiting-filters">
-      <div className="waiting__chips" role="group" aria-label="Owner">
+      <div className="seg waiting__seg" role="group" aria-label="Owner">
         {chip('mine', 'Mine', ownerParam === 'me', () => setParam('owner', ownerParam === 'me' ? null : 'me'))}
         {chip('anyone', 'Anyone', !ownerParam, () => setParam('owner', null))}
         {role !== 'builder' &&
@@ -207,18 +208,18 @@ export default function WaitingOn() {
             .filter((p) => p.id !== personId)
             .map((p) => chip(`owner-${p.id}`, p.shortName, ownerParam === p.id, () => setParam('owner', ownerParam === p.id ? null : p.id)))}
       </div>
-      <div className="waiting__chips" role="group" aria-label="Job">
+      <div className="seg waiting__seg" role="group" aria-label="Job">
         {chip('all-jobs', 'All jobs', !jobParam, () => setParam('job', null))}
         {jobs.map((j) => chip(`job-${j.id}`, j.name, jobParam === j.id, () => setParam('job', jobParam === j.id ? null : j.id)))}
       </div>
-      <div className="waiting__chips" role="group" aria-label="Type">
+      <div className="seg waiting__seg" role="group" aria-label="Type">
         {chip('all-types', 'All types', !typeParam, () => setParam('type', null))}
         {typeOrder.map((t) => chip(`type-${t}`, ITEM_TYPE_LABELS[t], typeParam === t, () => setParam('type', typeParam === t ? null : t)))}
       </div>
     </div>
   );
 
-  /** The row's controls: Call (a tel: link when the trade has a number), Set date, and the one status button. */
+  /** The row's controls: the one filled status button, with Call (a tel: link when the trade has a number) and Set date as quiet text beside it. */
   const actionsFor = (r: Row): ReactNode => {
     const next = nextStatus(r.item);
     if (!next) return null;
@@ -238,10 +239,10 @@ export default function WaitingOn() {
             onChange={(e) => setDating({ id: r.item.id, value: e.target.value })}
             data-testid={`item-date-input-${r.item.id}`}
           />
-          <button type="button" className="waiting__advance" onClick={saveDate} data-testid={`item-date-save-${r.item.id}`}>
+          <button type="button" className="btn btn--fill btn--desktop waiting__advance" onClick={saveDate} data-testid={`item-date-save-${r.item.id}`}>
             Save date
           </button>
-          <button type="button" className="waiting__quiet-btn" onClick={() => setDating(null)} data-testid={`item-date-cancel-${r.item.id}`}>
+          <button type="button" className="btn btn--ghost btn--desktop waiting__quiet-btn" onClick={() => setDating(null)} data-testid={`item-date-cancel-${r.item.id}`}>
             Cancel
           </button>
         </span>
@@ -253,7 +254,7 @@ export default function WaitingOn() {
           <span className="waiting__act-more">
             {trade?.phone && (
               <a
-                className="waiting__call"
+                className="btn btn--ghost btn--desktop waiting__call"
                 href={`tel:${trade.phone.replace(/\s+/g, '')}`}
                 data-testid={`item-call-${r.item.id}`}
                 title={`${trade.name}, ${trade.phone}`}
@@ -267,7 +268,7 @@ export default function WaitingOn() {
               ) : (
                 <button
                   type="button"
-                  className="waiting__quiet-btn"
+                  className="btn btn--ghost btn--desktop waiting__quiet-btn"
                   onClick={() => setDating({ id: r.item.id, value: r.item.expectedDate ?? '' })}
                   data-testid={`item-set-date-${r.item.id}`}
                 >
@@ -276,7 +277,7 @@ export default function WaitingOn() {
               ))}
           </span>
         )}
-        <button type="button" className="waiting__advance" onClick={() => advance(r.item)} data-testid={`item-advance-${r.item.id}`}>
+        <button type="button" className="btn btn--fill btn--desktop waiting__advance" onClick={() => advance(r.item)} data-testid={`item-advance-${r.item.id}`}>
           {next.label}
         </button>
       </span>
@@ -310,31 +311,33 @@ export default function WaitingOn() {
           {groups.map(({ key, rows }) => {
             if (rows.length === 0 && key !== 'done') return null;
             const t = groupTitle(key, today);
-            if (key === 'done') {
+            const list = (withAction: boolean) => (
+              <ItemRowList>
+                {rows.map((r) => (
+                  <ItemRow
+                    key={r.item.id}
+                    item={r.item}
+                    forecast={r.f}
+                    ownerName={nameOf(r.item.ownerId)}
+                    href={`/items/${r.item.id}`}
+                    context={jobFilter ? undefined : r.job?.name}
+                    when={withAction ? rowWhenWords(r.item, r.f, today) : undefined}
+                    action={withAction ? actionsFor(r) : undefined}
+                  />
+                ))}
+              </ItemRowList>
+            );
+            // Later and Done can fold away; Done starts folded, Later starts open.
+            if (key === 'done' || key === 'later') {
               return (
-                <details key={key} className="waiting__group waiting__group--done" data-testid="waiting-group-done">
+                <details key={key} open={key === 'later'} className={`waiting__group waiting__group--${key} waiting__group--folded`} data-testid={`waiting-group-${key}`}>
                   <summary className="waiting__group-head">
                     <span className="waiting__group-count">{rows.length}</span>
-                    <span className="waiting__group-title">Done</span>
+                    <span className="waiting__group-title">{t.title}</span>
                     <span className="waiting__group-toggle waiting__group-toggle--closed">show</span>
                     <span className="waiting__group-toggle waiting__group-toggle--open">hide</span>
                   </summary>
-                  {rows.length === 0 ? (
-                    <p className="waiting__quiet">Nothing done yet.</p>
-                  ) : (
-                    <ItemRowList>
-                      {rows.map((r) => (
-                        <ItemRow
-                          key={r.item.id}
-                          item={r.item}
-                          forecast={r.f}
-                          ownerName={nameOf(r.item.ownerId)}
-                          href={`/items/${r.item.id}`}
-                          context={jobFilter ? undefined : r.job?.name}
-                        />
-                      ))}
-                    </ItemRowList>
-                  )}
+                  {rows.length === 0 ? <p className="waiting__quiet">Nothing done yet.</p> : list(key === 'later')}
                 </details>
               );
             }
@@ -345,20 +348,7 @@ export default function WaitingOn() {
                   <span className="waiting__group-title">{t.title}</span>
                   {t.sub && <span className="waiting__group-sub">{t.sub}</span>}
                 </h2>
-                <ItemRowList>
-                  {rows.map((r) => (
-                    <ItemRow
-                      key={r.item.id}
-                      item={r.item}
-                      forecast={r.f}
-                      ownerName={nameOf(r.item.ownerId)}
-                      href={`/items/${r.item.id}`}
-                      context={jobFilter ? undefined : r.job?.name}
-                      when={rowWhenWords(r.item, r.f, today)}
-                      action={actionsFor(r)}
-                    />
-                  ))}
-                </ItemRowList>
+                {list(true)}
               </section>
             );
           })}
@@ -368,17 +358,13 @@ export default function WaitingOn() {
           {openCount === 0 && emptyWords}
           {openCount > 0 && (
             <div className="waiting__scroll">
-              <table className="waiting__table">
+              <table className="table waiting__table">
                 <thead>
                   <tr>
-                    <th scope="col">Item</th>
-                    <th scope="col">Job</th>
-                    <th scope="col">Type</th>
-                    <th scope="col">Waiting on</th>
-                    <th scope="col">Owner</th>
-                    <th scope="col">Needed by</th>
                     <th scope="col">Act by</th>
-                    <th scope="col">Lead</th>
+                    <th scope="col">Item</th>
+                    <th scope="col">Waiting on</th>
+                    <th scope="col">Needed by</th>
                     <th scope="col">Expected</th>
                     <th scope="col">Status</th>
                     <th scope="col">
@@ -393,7 +379,7 @@ export default function WaitingOn() {
                     return (
                       <tbody key={key} className={`waiting__tgroup waiting__tgroup--${key}`} data-testid={`waiting-group-${key}`}>
                         <tr className="waiting__grouprow">
-                          <th scope="rowgroup" colSpan={11}>
+                          <th scope="rowgroup" colSpan={7}>
                             <span className="waiting__group-count">{rows.length}</span>
                             <span className="waiting__group-title">{t.title}</span>
                             {t.sub && <span className="waiting__group-sub">{t.sub}</span>}
@@ -418,7 +404,7 @@ export default function WaitingOn() {
             {groups[4].rows.length === 0 ? (
               <p className="waiting__quiet">Nothing done yet.</p>
             ) : (
-              <table className="waiting__table">
+              <table className="table waiting__table">
                 <tbody>
                   {groups[4].rows.map((r) => (
                     <TableRow key={r.item.id} row={r} today={today} ownerName={nameOf(r.item.ownerId)} action={null} />
@@ -446,48 +432,52 @@ function TableRow({ row, today, ownerName, action }: { row: Row; today: string; 
   const actPassed = open && !!f?.actBy && f.actBy < today && item.status !== 'confirmed';
   const late = f?.isLate ? itemWhenWords(f, item.status) : null;
   const lead = f?.leadTimeWeeks ?? item.leadTimeWeeks ?? 0;
+  const owner = item.ownerId === personId ? 'you' : ownerName;
+  const who = [item.waitingOn, owner ? `with ${owner}` : ''].filter(Boolean).join(', ');
+  // The act-by column reads date first: the figure, then how far off it is and the lead that set it.
+  const actAgo = open && item.status !== 'confirmed' && f?.actBy ? agoWords(f.actBy, today) : '';
+  const actUnder = [actAgo, lead ? `${lead} wk lead` : ''].filter(Boolean);
   return (
     <tr className="waiting__row" data-testid={`item-row-${item.id}`} onClick={onRowClick}>
+      <td className="waiting__cell-act num">
+        {f?.actBy ? (
+          <>
+            <span className={`waiting__actby${actPassed ? ' waiting__actby--amber' : ''}${!open ? ' waiting__actby--quiet' : ''}`}>
+              {actPassed ? <span className="waiting__mark" aria-hidden="true">!</span> : null}
+              {formatShort(f.actBy)}
+            </span>
+            {actUnder.map((w) => (
+              <span key={w} className={`waiting__cell-ago${actPassed ? ' waiting__cell-ago--amber' : ''}`}>
+                {w}
+              </span>
+            ))}
+          </>
+        ) : (
+          <span className="waiting__actby waiting__actby--none">No date</span>
+        )}
+      </td>
       <th scope="row" className="waiting__cell-item">
         <Link to={`/items/${item.id}`} className="waiting__title">
           {item.title}
         </Link>
+        <span className="waiting__under">
+          {ITEM_TYPE_WORDS[item.type]}
+          {job ? `, ${job.name}` : ''}
+        </span>
       </th>
-      <td>{job?.name}</td>
-      <td>{ITEM_TYPE_WORDS[item.type]}</td>
-      <td className="waiting__cell-wrap">{item.waitingOn}</td>
-      <td className="waiting__cell-nowrap">{item.ownerId === personId ? 'you' : ownerName}</td>
+      <td className="waiting__cell-wrap">{who}</td>
       <td className="num">{f?.neededBy ? formatShort(f.neededBy) : ''}</td>
-      <td className="num">
-        {f?.actBy ? (
-          <>
-            {actPassed ? (
-              <StatusText tone="amber" className="waiting__actby">
-                {formatShort(f.actBy)}
-              </StatusText>
-            ) : (
-              formatShort(f.actBy)
-            )}
-            {open && item.status !== 'confirmed' && (
-              <span className={`waiting__cell-ago${actPassed ? ' waiting__cell-ago--amber' : ''}`}>{agoWords(f.actBy, today)}</span>
-            )}
-          </>
-        ) : (
-          <span className="waiting__actby--none">No date</span>
-        )}
-      </td>
-      <td className="num">{lead ? `${lead} wk` : ''}</td>
       <td className="num">
         {late && f ? (
           <>
-            <StatusText tone="late" className="waiting__actby">
+            <StatusText tone="late" className="waiting__chip">
               {f.expected ? formatShort(f.expected) : 'No date'}
             </StatusText>
             <span className="waiting__cell-ago waiting__cell-ago--late">{f.expected ? f.lateText : `needed ${formatShort(f.neededBy!)}, ${f.lateText}`}</span>
           </>
         ) : f?.expected && item.status === 'confirmed' && f.expected < today ? (
           <>
-            <StatusText tone="amber" className="waiting__actby">
+            <StatusText tone="amber" className="waiting__chip">
               {formatShort(f.expected)}
             </StatusText>
             <span className="waiting__cell-ago waiting__cell-ago--amber">{agoWords(f.expected, today)}</span>
@@ -498,7 +488,9 @@ function TableRow({ row, today, ownerName, action }: { row: Row; today: string; 
           ''
         )}
       </td>
-      <td data-testid={`item-status-word-${item.id}`}>{ITEM_STATUS_LABELS[item.status]}</td>
+      <td className="waiting__cell-status" data-testid={`item-status-word-${item.id}`}>
+        {ITEM_STATUS_LABELS[item.status]}
+      </td>
       <td className="waiting__cell-action">{action}</td>
     </tr>
   );

@@ -59,8 +59,8 @@ export function StepForm(p: StepFormProps) {
   return (
     <div className="ed" data-testid="editor-panel" data-kind={whole ? 'stage-step' : 'step'}>
       <div>
-        <p className="ed__kicker">{whole ? 'Whole stage' : `Step in ${stage?.name ?? 'the program'}`}</p>
         <h2 className="ed__title">{(whole ? stage?.name : step.name) || 'Unnamed step'}</h2>
+        <p className="ed__sub">{whole ? 'Whole stage' : (stage?.name ?? 'Step')}</p>
       </div>
 
       <div className="ed__field">
@@ -126,16 +126,16 @@ export function StepForm(p: StepFormProps) {
           )}
         </div>
       ) : (
-        <p className="ed__hint">{days(step.durationDays)}. Templates carry no dates; a new job runs them forward from its start.</p>
+        <p className="ed__hint">{days(step.durationDays)}</p>
       )}
 
       <label className="ed__check">
         <input type="checkbox" checked={step.isHoldPoint} disabled={disabled} data-testid="editor-holdpoint" onChange={(e) => p.onChange({ isHoldPoint: e.target.checked })} />
-        Hold point: the certifier inspects before work goes on
+        Hold point
       </label>
 
       <div className="ed__field">
-        <label htmlFor="editor-trade">Trade on site, for the look-ahead</label>
+        <label htmlFor="editor-trade">Trade</label>
         <input id="editor-trade" className="ed__input" value={step.tradeType ?? ''} placeholder="Roof plumber" disabled={disabled} data-testid="editor-trade" onChange={(e) => p.onChange({ tradeType: e.target.value || undefined })} />
       </div>
 

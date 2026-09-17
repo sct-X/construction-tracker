@@ -12,8 +12,10 @@
  * Park Rd" per job, and shows what changed.
  *
  * Desktop: people down the left, the script on the right, keys B C M N S on
- * the current row. Phone: people as a row of chips, rows as cards with one
- * 56px action each.
+ * the current row. Phone: people as a row of segments, rows as cards with
+ * one 56px action each. Each job is a plate with a readout header: the
+ * forecast finish as the figure, freshness and holding beside the name.
+ * Finish call is the screen's one hi-vis button.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -354,11 +356,11 @@ export default function CallList() {
           </ul>
           <label className="calls__scope">
             <input type="checkbox" checked={everything} onChange={(e) => setParam('scope', e.target.checked ? 'all' : null)} data-testid="calls-scope" />
-            <span>Every open item, not just this fortnight's</span>
+            <span>All open items</span>
           </label>
           {!phone && !summary && (
             <p className="calls__keys" data-testid="calls-keys">
-              Keys on the marked row: <kbd>B</kbd> booked, <kbd>C</kbd> confirmed, <kbd>M</kbd> move date, <kbd>N</kbd> note, <kbd>S</kbd> skip.
+              Keys: <kbd>B</kbd> booked, <kbd>C</kbd> confirmed, <kbd>M</kbd> date, <kbd>N</kbd> note, <kbd>S</kbd> skip
             </p>
           )}
         </aside>
@@ -392,13 +394,13 @@ export default function CallList() {
                   Start another call
                 </button>
                 <Link to="/monday" className="calls__summary-link">
-                  Monday screen
+                  Monday
                 </Link>
               </p>
             </section>
           ) : !person ? (
             <p className="calls__empty" data-testid="calls-empty">
-              Nobody else is on this side yet, so there is nobody to ring.
+              Nobody else on this side yet.
             </p>
           ) : (
             <>
@@ -414,23 +416,26 @@ export default function CallList() {
                 return (
                   <section key={g.job.id} className="calls__job" aria-labelledby={`calls-job-title-${g.job.id}`} data-testid={`calls-job-${g.job.id}`}>
                     <header className="calls__job-head">
-                      <h2 id={`calls-job-title-${g.job.id}`} className="calls__job-name">
-                        <Link to={`/jobs/${g.job.id}`}>{g.job.name}</Link>
-                      </h2>
-                      <p className="calls__job-facts">
-                        {fresh && (
-                          <StatusText tone={fresh.tone} plain={fresh.tone === 'muted'} testId={`calls-fresh-${g.job.id}`}>
-                            {fresh.text}
-                          </StatusText>
-                        )}
-                        {g.forecast?.forecastFinish && (
-                          <span className="calls__job-finish" data-testid={`calls-finish-${g.job.id}`}>
-                            Finish <span className="num">{formatLong(g.forecast.forecastFinish)}</span>
-                            {g.forecast.isLate ? `, ${g.forecast.lateDays} days late` : ''}
-                          </span>
-                        )}
-                        <Money value={g.job.weeklyHoldingCost} label="Holding" suffix="/wk" className="calls__job-holding" testId={`calls-holding-${g.job.id}`} />
-                      </p>
+                      <div className="calls__job-words">
+                        <h2 id={`calls-job-title-${g.job.id}`} className="calls__job-name">
+                          <Link to={`/jobs/${g.job.id}`}>{g.job.name}</Link>
+                        </h2>
+                        <p className="calls__job-facts">
+                          {fresh && (
+                            <StatusText tone={fresh.tone} plain={fresh.tone === 'muted'} testId={`calls-fresh-${g.job.id}`}>
+                              {fresh.text}
+                            </StatusText>
+                          )}
+                          <Money value={g.job.weeklyHoldingCost} label="Holding" suffix="/wk" className="calls__job-holding" testId={`calls-holding-${g.job.id}`} />
+                        </p>
+                      </div>
+                      {g.forecast?.forecastFinish && (
+                        <p className={`calls__job-finish${g.forecast.isLate ? ' calls__job-finish--late' : ''}`} data-testid={`calls-finish-${g.job.id}`}>
+                          <span className="calls__job-finish-label">Finish </span>
+                          <span className="calls__job-finish-date num">{formatLong(g.forecast.forecastFinish)}</span>
+                          {g.forecast.isLate ? <span className="calls__job-finish-late">, {g.forecast.lateDays} days late</span> : null}
+                        </p>
+                      )}
                     </header>
                     {g.items.length === 0 && done.length === 0 ? (
                       <p className="calls__quiet" data-testid={`calls-nothing-${g.job.id}`}>
@@ -503,7 +508,6 @@ export default function CallList() {
                   <h2 id="calls-finish-title" className="calls__finish-title">
                     Finish the call with {person.shortName}
                   </h2>
-                  <p className="calls__finish-lede">Tick each job {person.shortName} confirmed is on track. Its program counts as checked today.</p>
                   <ul className="calls__finish-jobs">
                     {groups.map((g) => {
                       const n = touched(g.job.id);

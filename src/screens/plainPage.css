@@ -1,0 +1,32 @@
+/*
+  The one-line screens: Sign in, Not found, no access. A title, one line,
+  one action. No hairline, no plate: the ground and the words are enough.
+*/
+.plain {
+  max-width: var(--content-max);
+  padding: var(--space-5) var(--gutter) var(--space-16);
+}
+.plain__title {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+  color: var(--text);
+}
+.plain__line {
+  max-width: var(--measure);
+  margin-top: var(--space-3);
+  color: var(--text-secondary);
+}
+.plain__action {
+  margin-top: var(--space-6);
+}
+@media (min-width: 768px) {
+  .plain {
+    padding-top: var(--space-8);
+  }
+  .plain__title {
+    font-size: var(--text-3xl);
+  }
+}

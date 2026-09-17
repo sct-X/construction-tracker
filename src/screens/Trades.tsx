@@ -123,7 +123,7 @@ export default function Trades() {
       <PageHeader title="Trades" meta={`${count} on ${side.name}`} actions={addButton} />
       {offline && canEditTrades(role) && (
         <p className="trades__offline" data-testid="trades-offline">
-          Needs signal. You can ring anyone from here, but adding or changing a trade waits until you are back in range.
+          Needs signal. Ringing works; adding or changing a trade waits.
         </p>
       )}
       {adding && <TradeForm types={types} onDone={() => setAdding(false)} />}
@@ -155,7 +155,7 @@ interface ListProps {
 
 function TradeTable({ rows, canEdit, editingId, setEditingId, types }: ListProps) {
   return (
-    <table className="trades__table">
+    <table className="table trades__table">
       <thead>
         <tr>
           <th scope="col">Trade</th>
@@ -230,7 +230,7 @@ function TradeCards({ rows, canEdit, editingId, setEditingId, types }: ListProps
                   {jobsWords(jobs)}
                 </span>
                 {canEdit && (
-                  <button type="button" className="trades__edit-link" data-testid={`trade-edit-${trade.id}`} onClick={() => setEditingId(trade.id)}>
+                  <button type="button" className="btn btn--ghost btn--small trades__edit-link" data-testid={`trade-edit-${trade.id}`} onClick={() => setEditingId(trade.id)}>
                     Edit
                   </button>
                 )}
@@ -291,7 +291,7 @@ function TradeForm({ trade, types, onDone, onDeleted }: { trade?: Trade; types: 
       <h2 className="trades__form-title">{trade ? `Change ${trade.name}` : 'New trade'}</h2>
       <div className="trades__field">
         <label htmlFor={`${prefix}trade-name`}>Business or person</label>
-        <input id={`${prefix}trade-name`} className="trades__input" value={name} data-testid="trade-name" onChange={(e) => setName(e.target.value)} placeholder="Baxter Plumbing" />
+        <input id={`${prefix}trade-name`} className="input input--desktop trades__input" value={name} data-testid="trade-name" onChange={(e) => setName(e.target.value)} placeholder="Baxter Plumbing" />
       </div>
       <div className="trades__field">
         <span className="trades__field-label" id={`${prefix}trade-type-label`}>
@@ -318,12 +318,12 @@ function TradeForm({ trade, types, onDone, onDeleted }: { trade?: Trade; types: 
           </button>
         </div>
         {otherOpen && (
-          <input className="trades__input" value={other} data-testid="trade-type-other-text" aria-label="Trade type" onChange={(e) => setOther(e.target.value)} placeholder="Scaffolder" />
+          <input className="input input--desktop trades__input" value={other} data-testid="trade-type-other-text" aria-label="Trade type" onChange={(e) => setOther(e.target.value)} placeholder="Scaffolder" />
         )}
       </div>
       <div className="trades__field">
         <label htmlFor={`${prefix}trade-phone`}>Phone</label>
-        <input id={`${prefix}trade-phone`} className="trades__input num" type="tel" inputMode="tel" value={phone} data-testid="trade-phone" onChange={(e) => setPhone(e.target.value)} placeholder="0411 200 300" />
+        <input id={`${prefix}trade-phone`} className="input input--desktop trades__input num" type="tel" inputMode="tel" value={phone} data-testid="trade-phone" onChange={(e) => setPhone(e.target.value)} placeholder="0411 200 300" />
       </div>
       <div className="trades__form-actions">
         <button type="submit" className="btn btn--primary" data-testid="trade-save" disabled={!ready}>
@@ -340,10 +340,10 @@ function TradeForm({ trade, types, onDone, onDeleted }: { trade?: Trade; types: 
       </div>
       {canDelete && confirmDelete && (
         <div className="trades__confirm" data-testid={`trade-delete-words-${trade.id}`}>
-          <p>Delete {trade.name}? Items waiting on them keep their words but lose the number.</p>
+          <p>Delete {trade.name}? Items waiting on them keep their words, lose the number.</p>
           <div className="trades__form-actions">
             <button type="button" className="btn trades__delete" data-testid={`trade-delete-confirm-${trade.id}`} onClick={remove}>
-              Yes, delete {trade.name}
+              Delete {trade.name}
             </button>
             <button type="button" className="btn" data-testid={`trade-delete-keep-${trade.id}`} onClick={() => setConfirmDelete(false)}>
               Keep
@@ -420,7 +420,7 @@ export function TradeDetail() {
         </h2>
         {items.length === 0 ? (
           <p className="trades__muted" data-testid="trade-detail-empty">
-            No open items are waiting on {trade.name}.
+            Nothing open.
           </p>
         ) : (
           <ul className="trades__item-list" data-testid="trade-detail-items">

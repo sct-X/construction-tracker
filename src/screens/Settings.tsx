@@ -27,10 +27,10 @@ import './settings.css';
 export type PermissionState = 'unsupported' | 'default' | 'granted' | 'denied';
 
 export const PREF_WORDS: Record<NotificationPrefKey, { label: string; detail: string }> = {
-  reminders: { label: 'Reminders', detail: 'When one of your items reaches its act-by date, or goes past it.' },
-  hold_points: { label: 'Hold points', detail: 'A week before an inspection, with which photo sets are still empty.' },
-  eta_changes: { label: 'ETA changes', detail: 'When a shipment your items are waiting on moves.' },
-  unconfirmed_jobs: { label: 'Unconfirmed jobs', detail: 'When a job has gone more than a week without anyone confirming it.' },
+  reminders: { label: 'Reminders', detail: 'Your items at their act-by date' },
+  hold_points: { label: 'Hold points', detail: 'A week before an inspection' },
+  eta_changes: { label: 'ETA changes', detail: 'A shipment your items wait on moves' },
+  unconfirmed_jobs: { label: 'Unconfirmed jobs', detail: 'A job over a week unconfirmed' },
 };
 
 /** Which preferences a role can receive; the site and builder roles never get "unconfirmed jobs". */
@@ -50,7 +50,7 @@ export function permissionWords(state: PermissionState, platform: Platform): { t
   if (platform === 'other') {
     if (state === 'granted') return { text: 'Allowed in this browser.', canAsk: true };
     return {
-      text: `Notifications aren't set up on a desktop browser in this prototype. Open the app on your phone and allow them there.${state === 'denied' ? ' This browser also has them blocked.' : ''}`,
+      text: `Notifications aren't set up on a desktop browser in this prototype. Allow them on your phone.${state === 'denied' ? ' This browser has them blocked too.' : ''}`,
       canAsk: false,
     };
   }
@@ -62,18 +62,15 @@ export function permissionWords(state: PermissionState, platform: Platform): { t
       return {
         text:
           platform === 'android'
-            ? 'Blocked on this phone. To unblock: hold the Tracker icon, tap App info, then Notifications, and turn them on. Then come back here.'
-            : 'Blocked on this phone. To unblock: open Settings, tap Notifications, find Tracker and turn Allow Notifications on. Then come back here.',
+            ? 'Blocked on this phone. To unblock: hold the Tracker icon, tap App info, then Notifications, and turn them on.'
+            : 'Blocked on this phone. To unblock: Settings, Notifications, Tracker, Allow Notifications.',
         canAsk: false,
       };
     case 'default':
-      return { text: 'Not asked yet. Tap the button and the phone will ask you.', canAsk: true };
+      return { text: 'Not asked yet.', canAsk: true };
     case 'unsupported':
       return {
-        text:
-          platform === 'iphone'
-            ? 'This browser cannot ask yet. On an iPhone, notifications only work once the app is on the home screen and opened from there (iOS 16.4 or later).'
-            : 'This browser cannot show notifications.',
+        text: platform === 'iphone' ? "This browser can't ask yet. Open the app from the home screen (iOS 16.4 or later)." : "This browser can't show notifications.",
         canAsk: false,
       };
   }
@@ -172,24 +169,26 @@ export default function Settings() {
         <h2 id="settings-who-title" className="settings__title">
           You
         </h2>
-        <p className="settings__who" data-testid="settings-who">
-          <span className="settings__who-name">{person.name}</span>
-          <span className="settings__who-role">
-            {ROLE_LABELS[role]} on {side.name}
-            {otherSides.length > 0 && `. Also on ${otherSides.map((s) => s.name).join(' and ')}`}.
-          </span>
-          {person.phone && <span className="settings__who-phone">{person.phone}</span>}
-        </p>
-        <button type="button" className="btn btn--desktop settings__signout" data-testid="settings-sign-out" onClick={signOut}>
-          Sign out
-        </button>
+        <div className="settings__plate settings__you">
+          <p className="settings__who" data-testid="settings-who">
+            <span className="settings__who-name">{person.name}</span>
+            <span className="settings__who-role">
+              {ROLE_LABELS[role]} on {side.name}
+              {otherSides.length > 0 && `. Also on ${otherSides.map((s) => s.name).join(' and ')}`}.
+            </span>
+            {person.phone && <span className="settings__who-phone">{person.phone}</span>}
+          </p>
+          <button type="button" className="btn btn--desktop settings__signout" data-testid="settings-sign-out" onClick={signOut}>
+            Sign out
+          </button>
+        </div>
       </section>
 
       <section className="settings__section" aria-labelledby="settings-setup-title">
         <h2 id="settings-setup-title" className="settings__title">
           Phone setup
         </h2>
-        <ol className="settings__steps" data-testid="settings-steps">
+        <ol className="settings__steps settings__plate" data-testid="settings-steps">
           <li className="settings__step" data-done={homeDone}>
             <span className="settings__step-n" aria-hidden="true">
               1
@@ -197,7 +196,7 @@ export default function Settings() {
             <div className="settings__step-body">
               <span className="settings__step-name">Added to the home screen</span>
               <span className="settings__step-state" data-testid="settings-step-home">
-                {standalone ? 'Done. You are opening it from the home screen.' : homeDone ? 'Recorded as done, but this tab is in the browser. The steps are below.' : 'Not yet. The steps are below.'}
+                {standalone ? 'Done.' : homeDone ? 'Done on the phone. This tab is a browser.' : 'Not yet. Steps below.'}
               </span>
             </div>
           </li>
@@ -210,14 +209,12 @@ export default function Settings() {
               <span className="settings__step-state" data-testid="settings-permission-state">
                 {permWords.text}
               </span>
-              <button type="button" className="btn btn--primary settings__allow" data-testid="settings-allow-notifications" disabled={asking || !permWords.canAsk || (permission === 'granted' && !!thisPhone)} onClick={allow}>
+              <button type="button" className="btn btn--primary btn--desktop settings__allow" data-testid="settings-allow-notifications" disabled={asking || !permWords.canAsk || (permission === 'granted' && !!thisPhone)} onClick={allow}>
                 {permission === 'granted' && thisPhone ? 'Notifications are allowed' : asking ? 'Asking the phone' : permission === 'granted' ? 'Record this phone' : 'Allow notifications'}
               </button>
               <span className="settings__push-note" data-testid="settings-push-note">
-                {thisPhone
-                  ? `This phone (${thisPhone.device}) is recorded against your name. `
-                  : ''}
-                There is no push server in this prototype, so nothing buzzes your phone yet. Reminders show in the app's own list for now, and the real server will use the phones recorded here.
+                {thisPhone ? `This phone (${thisPhone.device}) is recorded against your name. ` : ''}
+                There's no push server in this prototype: reminders show in the app's own list.
               </span>
             </div>
           </li>
@@ -228,10 +225,10 @@ export default function Settings() {
             <div className="settings__step-body">
               <span className="settings__step-name">Test buzz received</span>
               <span className="settings__step-state" data-testid="settings-step-buzz">
-                {buzzed ? 'Sent. It is in your notifications list, under the bell.' : buzzDone ? 'Received before.' : 'Not yet.'}
+                {buzzed ? 'Sent. Under the bell.' : buzzDone ? 'Received.' : 'Not yet.'}
               </span>
-              <button type="button" className="btn settings__buzz" data-testid="settings-test-buzz" onClick={testBuzz}>
-                Send me a test buzz
+              <button type="button" className="btn btn--desktop settings__buzz" data-testid="settings-test-buzz" onClick={testBuzz}>
+                Send a test buzz
               </button>
             </div>
           </li>
@@ -242,7 +239,7 @@ export default function Settings() {
         <h2 id="settings-prefs-title" className="settings__title">
           What to tell me about
         </h2>
-        <ul className="settings__prefs">
+        <ul className="settings__prefs settings__plate">
           {prefsFor(role).map((key) => (
             <li key={key} className="settings__pref">
               <div className="settings__pref-words">
@@ -258,7 +255,7 @@ export default function Settings() {
                 data-testid={`settings-pref-${key}`}
                 onClick={() => api.setNotificationPref(key, !prefs[key])}
               >
-                {prefs[key] ? 'On' : 'Off'}
+                <span className="settings__toggle-knob">{prefs[key] ? 'On' : 'Off'}</span>
               </button>
             </li>
           ))}
@@ -269,42 +266,46 @@ export default function Settings() {
         <h2 id="settings-install-title" className="settings__title">
           Install to your home screen
         </h2>
-        <InstallSteps />
+        <div className="settings__plate">
+          <InstallSteps />
+        </div>
       </section>
 
       <section className="settings__section" aria-labelledby="settings-phone-title">
         <h2 id="settings-phone-title" className="settings__title">
           This phone
         </h2>
-        <p className="settings__version" data-testid="settings-version">
-          Prototype, sample data version {SEED_VERSION}. Everything is saved on this phone only.
-        </p>
-        <p className="settings__version" data-testid="settings-last-sync">
-          {lastSync ? `Last change saved ${formatStamp(lastSync)}.` : 'Nothing changed on this phone yet.'}
-        </p>
-        {resetStep === 'idle' && (
-          <button type="button" className="btn" data-testid="settings-reset" onClick={() => setResetStep('confirm')}>
-            Reset this phone
-          </button>
-        )}
-        {resetStep === 'confirm' && (
-          <div className="settings__confirm" data-testid="settings-reset-words">
-            <p>This throws away every change saved on this phone, including queued photos, and puts the sample data back. Nothing on anyone else's phone changes.</p>
-            <div className="settings__confirm-actions">
-              <button type="button" className="btn settings__danger" data-testid="settings-reset-confirm" onClick={reset}>
-                Yes, reset this phone
-              </button>
-              <button type="button" className="btn" data-testid="settings-reset-keep" onClick={() => setResetStep('idle')}>
-                Keep everything
-              </button>
-            </div>
-          </div>
-        )}
-        {resetStep === 'done' && (
-          <p className="settings__done" data-testid="settings-reset-done">
-            Reset done. The sample data is back and the photo queue is empty.
+        <div className="settings__plate settings__phone">
+          <p className="settings__version" data-testid="settings-version">
+            Sample data v{SEED_VERSION}, saved on this phone only.
           </p>
-        )}
+          <p className="settings__version" data-testid="settings-last-sync">
+            {lastSync ? `Last change saved ${formatStamp(lastSync)}.` : 'Nothing changed yet.'}
+          </p>
+          {resetStep === 'idle' && (
+            <button type="button" className="btn btn--desktop settings__reset" data-testid="settings-reset" onClick={() => setResetStep('confirm')}>
+              Reset this phone
+            </button>
+          )}
+          {resetStep === 'confirm' && (
+            <div className="settings__confirm" data-testid="settings-reset-words">
+              <p>Throws away every change on this phone, queued photos included, and puts the sample data back.</p>
+              <div className="settings__confirm-actions">
+                <button type="button" className="btn btn--desktop settings__danger" data-testid="settings-reset-confirm" onClick={reset}>
+                  Reset this phone
+                </button>
+                <button type="button" className="btn btn--desktop" data-testid="settings-reset-keep" onClick={() => setResetStep('idle')}>
+                  Keep everything
+                </button>
+              </div>
+            </div>
+          )}
+          {resetStep === 'done' && (
+            <p className="settings__done" data-testid="settings-reset-done">
+              Reset done. Sample data is back.
+            </p>
+          )}
+        </div>
       </section>
     </main>
   );

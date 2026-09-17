@@ -3,21 +3,21 @@
  * `#/items/:id` edits; `#/items/new?job=<id>&step=<id>` adds.
  *
  *   Book plasterer                     Park Rd, Trade to book
- *   Act by Fri 18 Sep, tomorrow        <- the sheet's one figure
- *   needed Fri 11 Dec from Plasterboard, minus 12 weeks
+ *   Act by Fri 18 Sep                  <- the sheet's one hero figure
+ *   tomorrow: needed Fri 11 Dec for Plasterboard, minus 12 weeks
  *
  *   Title      [Book plasterer                 ]
- *   Type       [Trade to book] [Material to order] ...
- *   Job        [Park Rd] [Seaview St] ...
+ *   Type       [Trade to book|Material to order|...]   segmented troughs
+ *   Job        [Park Rd|Seaview St|...]
  *   Step       [Plasterboard, starts Fri 11 Dec  v]
  *   Waiting on [Gyprock Bros (plasterer)  v] or [free text]   Ring 0412 ...
- *   Owner      [Dominic] [Dom] [Norm] [Raff] [Alec]
+ *   Owner      [Dominic|Dom|Norm|Raff|Alec]
  *   Lead time  [12] weeks
  *   Needed by  Fri 11 Dec, from the step         (or a date when no step)
  *   Expected   [date]  or  Comes from shipment: Park Rd windows
- *   Status     [To do] [Ordered or booked] [Confirmed] [Done]
+ *   Status     [To do|Ordered or booked|Confirmed|Done]
  *   Notes      [                                ]
- *   [Save]  [Cancel]                              Delete
+ *   [Save]  [Undo]                                Delete
  *   History
  *
  * Every field is a control, so reading and editing are the same screen; Save
@@ -239,7 +239,7 @@ export default function ItemSheet() {
 
   const actByFigure = actBy ? (
     <BigNumber
-      size="row"
+      size="hero"
       value={`Act by ${formatShort(actBy)}`}
       label={
         draft.status === 'done'
@@ -250,14 +250,17 @@ export default function ItemSheet() {
       testId="item-act-by"
     />
   ) : (
-    <p className="sheet__no-actby" data-testid="item-act-by">
-      {isBuild && !step
-        ? 'No act-by date yet. Pick a step or set a needed-by date and it works itself out.'
-        : 'No act-by date yet. Set a needed-by date and it works itself out.'}
-    </p>
+    <BigNumber size="hero" value="No act-by yet" label={isBuild && !step ? 'Pick a step or set a needed-by date' : 'Set a needed-by date'} tone="muted" testId="item-act-by" />
   );
 
   const backTo = draft.jobId ? `/waiting?job=${draft.jobId}` : '/waiting';
+
+  /** A row of pressed buttons in a segmented trough. */
+  const pick = (key: string, label: string, pressed: boolean, onClick: () => void) => (
+    <button key={key} type="button" className="seg__btn" aria-pressed={pressed} onClick={onClick} data-testid={key}>
+      {label}
+    </button>
+  );
 
   return (
     <main className="page sheet" data-testid="item-sheet">
@@ -284,52 +287,40 @@ export default function ItemSheet() {
           save();
         }}
       >
-        <div className="sheet__field">
-          <label htmlFor="item-title">Title</label>
-          <input
-            id="item-title"
-            className="sheet__input"
-            value={draft.title}
-            onChange={(e) => set('title', e.target.value)}
-            placeholder="Book plasterer"
-            data-testid="item-title"
-          />
+        <div className="field">
+          <label className="field__label" htmlFor="item-title">
+            Title
+          </label>
+          <input id="item-title" className="input" value={draft.title} onChange={(e) => set('title', e.target.value)} placeholder="Book plasterer" data-testid="item-title" />
         </div>
 
-        <div className="sheet__field">
-          <span className="sheet__label" id="item-type-label">
+        <div className="field">
+          <span className="field__label" id="item-type-label">
             Type
           </span>
           <ItemTypePicker value={draft.type} onChange={(t) => set('type', t)} />
         </div>
 
-        <div className="sheet__field">
-          <span className="sheet__label" id="item-job-label">
+        <div className="field">
+          <span className="field__label" id="item-job-label">
             Job
           </span>
-          <div className="sheet__picker" role="group" aria-labelledby="item-job-label">
-            {jobs.map((j) => (
-              <button
-                key={j.id}
-                type="button"
-                className="sheet__pick"
-                aria-pressed={j.id === draft.jobId}
-                onClick={() => {
-                  set('jobId', j.id);
-                  set('stepId', '');
-                }}
-                data-testid={`item-job-${j.id}`}
-              >
-                {j.name}
-              </button>
-            ))}
+          <div className="seg sheet__seg" role="group" aria-labelledby="item-job-label">
+            {jobs.map((j) =>
+              pick(`item-job-${j.id}`, j.name, j.id === draft.jobId, () => {
+                set('jobId', j.id);
+                set('stepId', '');
+              }),
+            )}
           </div>
         </div>
 
         {isBuild && (
-          <div className="sheet__field">
-            <label htmlFor="item-step">Step it is for (optional)</label>
-            <select id="item-step" className="sheet__input" value={draft.stepId} onChange={(e) => set('stepId', e.target.value)} data-testid="item-step">
+          <div className="field">
+            <label className="field__label" htmlFor="item-step">
+              Step
+            </label>
+            <select id="item-step" className="sheet__select" value={draft.stepId} onChange={(e) => set('stepId', e.target.value)} data-testid="item-step">
               <option value="">No step</option>
               {steps.map((s) => {
                 const f = forecast?.steps[s.id];
@@ -344,12 +335,14 @@ export default function ItemSheet() {
           </div>
         )}
 
-        <div className="sheet__field">
-          <label htmlFor="item-trade">Waiting on</label>
+        <div className="field">
+          <label className="field__label" htmlFor="item-trade">
+            Waiting on
+          </label>
           <div className="sheet__waiting">
             <select
               id="item-trade"
-              className="sheet__input"
+              className="sheet__select"
               value={draft.tradeId}
               onChange={(e) => {
                 const t = trades.find((x) => x.id === e.target.value);
@@ -358,7 +351,7 @@ export default function ItemSheet() {
               }}
               data-testid="item-trade"
             >
-              <option value="">Someone else (type below)</option>
+              <option value="">Someone else</option>
               {trades.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name} ({t.type}){t.phone ? `, ${t.phone}` : ''}
@@ -367,7 +360,7 @@ export default function ItemSheet() {
             </select>
             {!trade && (
               <input
-                className="sheet__input"
+                className="input"
                 value={draft.waitingOn}
                 onChange={(e) => set('waitingOn', e.target.value)}
                 placeholder="Council, a supplier, Dom"
@@ -376,39 +369,30 @@ export default function ItemSheet() {
               />
             )}
             {trade?.phone && (
-              <a className="sheet__ring" href={`tel:${trade.phone.replace(/\s+/g, '')}`} data-testid="item-ring">
+              <a className="btn btn--ghost btn--desktop sheet__ring" href={`tel:${trade.phone.replace(/\s+/g, '')}`} data-testid="item-ring">
                 Ring {trade.name}, {trade.phone}
               </a>
             )}
           </div>
         </div>
 
-        <div className="sheet__field">
-          <span className="sheet__label" id="item-owner-label">
+        <div className="field">
+          <span className="field__label" id="item-owner-label">
             Owner
           </span>
-          <div className="sheet__picker" role="group" aria-labelledby="item-owner-label">
-            {people.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className="sheet__pick"
-                aria-pressed={p.id === draft.ownerId}
-                onClick={() => set('ownerId', p.id)}
-                data-testid={`item-owner-${p.id}`}
-              >
-                {p.id === personId ? `${p.shortName} (you)` : p.shortName}
-              </button>
-            ))}
+          <div className="seg sheet__seg" role="group" aria-labelledby="item-owner-label">
+            {people.map((p) => pick(`item-owner-${p.id}`, p.id === personId ? `${p.shortName} (you)` : p.shortName, p.id === draft.ownerId, () => set('ownerId', p.id)))}
           </div>
         </div>
 
         <div className="sheet__row">
-          <div className="sheet__field sheet__field--short">
-            <label htmlFor="item-lead-time">Lead time, weeks</label>
+          <div className="field sheet__field--short">
+            <label className="field__label" htmlFor="item-lead-time">
+              Lead time, weeks
+            </label>
             <input
               id="item-lead-time"
-              className="sheet__input num"
+              className="input num"
               inputMode="numeric"
               value={draft.leadTimeWeeks}
               onChange={(e) => set('leadTimeWeeks', e.target.value)}
@@ -417,10 +401,10 @@ export default function ItemSheet() {
             />
           </div>
 
-          <div className="sheet__field">
+          <div className="field">
             {step ? (
               <>
-                <span className="sheet__label">Needed by</span>
+                <span className="field__label">Needed by</span>
                 <p className="sheet__derived" data-testid="item-needed-by">
                   {neededBy ? formatLong(neededBy) : 'No date yet'}
                   <span className="sheet__derived-from">from step {step.name}</span>
@@ -428,10 +412,12 @@ export default function ItemSheet() {
               </>
             ) : (
               <>
-                <label htmlFor="item-needed-by">Needed by</label>
+                <label className="field__label" htmlFor="item-needed-by">
+                  Needed by
+                </label>
                 <input
                   id="item-needed-by"
-                  className="sheet__input num"
+                  className="input num"
                   type="date"
                   value={draft.neededBy}
                   onChange={(e) => set('neededBy', e.target.value)}
@@ -444,10 +430,10 @@ export default function ItemSheet() {
           </div>
         </div>
 
-        <div className="sheet__field">
+        <div className="field">
           {shipment ? (
             <>
-              <span className="sheet__label">Expected</span>
+              <span className="field__label">Expected</span>
               <p className="sheet__derived" data-testid="item-expected">
                 {expectedFromShipment ? formatLong(expectedFromShipment) : 'No ETA yet'}
                 <span className="sheet__derived-from">
@@ -460,10 +446,12 @@ export default function ItemSheet() {
             </>
           ) : (
             <>
-              <label htmlFor="item-expected">Expected (optional)</label>
+              <label className="field__label" htmlFor="item-expected">
+                Expected
+              </label>
               <input
                 id="item-expected"
-                className="sheet__input num sheet__input--date"
+                className="input num sheet__input--date"
                 type="date"
                 value={draft.expectedDate}
                 onChange={(e) => set('expectedDate', e.target.value)}
@@ -475,65 +463,51 @@ export default function ItemSheet() {
           )}
         </div>
 
-        <div className="sheet__field">
-          <span className="sheet__label" id="item-status-label">
+        <div className="field">
+          <span className="field__label" id="item-status-label">
             Status
           </span>
-          <div className="sheet__picker" role="group" aria-labelledby="item-status-label">
-            {ITEM_STATUS_ORDER.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className="sheet__pick"
-                aria-pressed={s === draft.status}
-                onClick={() => set('status', s)}
-                data-testid={`item-status-${s}`}
-              >
-                {ITEM_STATUS_LABELS[s]}
-              </button>
-            ))}
+          <div className="seg sheet__seg" role="group" aria-labelledby="item-status-label">
+            {ITEM_STATUS_ORDER.map((st) => pick(`item-status-${st}`, ITEM_STATUS_LABELS[st], st === draft.status, () => set('status', st)))}
           </div>
         </div>
 
         {(draft.status === 'confirmed' || draft.status === 'done') && (
-          <div className="sheet__field sheet__field--short">
-            <label htmlFor="item-confirmed">Confirmed on</label>
+          <div className="field sheet__field--short">
+            <label className="field__label" htmlFor="item-confirmed">
+              Confirmed on
+            </label>
             <input
               id="item-confirmed"
-              className="sheet__input num sheet__input--date"
+              className="input num sheet__input--date"
               type="date"
               value={draft.confirmedDate}
               onChange={(e) => set('confirmedDate', e.target.value)}
               disabled={dateLocked}
               data-testid="item-confirmed"
             />
-            {!draft.confirmedDate && <span className="sheet__hint">Blank means today, {formatShort(today)}.</span>}
+            {!draft.confirmedDate && <span className="sheet__hint">Blank means today</span>}
           </div>
         )}
 
-        <div className="sheet__field">
-          <label htmlFor="item-notes">Notes</label>
-          <textarea
-            id="item-notes"
-            className="sheet__input sheet__textarea"
-            rows={3}
-            value={draft.notes}
-            onChange={(e) => set('notes', e.target.value)}
-            data-testid="item-notes"
-          />
+        <div className="field">
+          <label className="field__label" htmlFor="item-notes">
+            Notes
+          </label>
+          <textarea id="item-notes" className="input sheet__textarea" rows={3} value={draft.notes} onChange={(e) => set('notes', e.target.value)} data-testid="item-notes" />
         </div>
 
         {(photo || draft.type === 'defect') && (
-          <div className="sheet__field">
-            <span className="sheet__label">Photo{draft.type === 'defect' ? ' of the defect (optional)' : ''}</span>
+          <div className="field">
+            <span className="field__label">Photo</span>
             {photo ? (
               <span className="sheet__photo-row">
                 <Link to={`/jobs/${photo.jobId}/photos?photo=${photo.id}`} className="sheet__photo" data-testid="item-photo-link">
                   <img src={photo.dataUrl} alt={`Photo taken ${formatDayMonth(photo.takenOn)}`} />
-                  <span>Taken {formatShort(photo.takenOn)}, open in the gallery</span>
+                  <span>Taken {formatShort(photo.takenOn)}</span>
                 </Link>
-                <button type="button" className="sheet__quiet-btn" onClick={() => set('photoId', '')} data-testid="item-photo-clear">
-                  Use a different photo
+                <button type="button" className="btn btn--ghost btn--desktop" onClick={() => set('photoId', '')} data-testid="item-photo-clear">
+                  Change photo
                 </button>
               </span>
             ) : (
@@ -541,20 +515,14 @@ export default function ItemSheet() {
                 {jobPhotos.length > 0 && (
                   <span className="sheet__photo-grid" role="group" aria-label="Pick a photo">
                     {jobPhotos.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        className="sheet__photo-thumb"
-                        onClick={() => set('photoId', p.id)}
-                        data-testid={`item-photo-pick-${p.id}`}
-                      >
+                      <button key={p.id} type="button" className="sheet__photo-thumb" onClick={() => set('photoId', p.id)} data-testid={`item-photo-pick-${p.id}`}>
                         <img src={p.dataUrl} alt={`Photo taken ${formatDayMonth(p.takenOn)}`} />
                       </button>
                     ))}
                   </span>
                 )}
                 {draft.jobId && (
-                  <Link to={`/jobs/${draft.jobId}/upload${item ? `?item=${item.id}` : ''}`} className="sheet__ring" data-testid="item-photo-take">
+                  <Link to={`/jobs/${draft.jobId}/upload${item ? `?item=${item.id}` : ''}`} className="btn btn--desktop" data-testid="item-photo-take">
                     Take a photo
                   </Link>
                 )}
@@ -576,7 +544,7 @@ export default function ItemSheet() {
             {isNew ? `Add to ${job?.name ?? 'the job'}` : 'Save'}
           </button>
           <button type="button" className="btn" onClick={cancel} data-testid="item-cancel">
-            {isNew ? 'Cancel' : dirty ? 'Undo changes' : 'Back to the list'}
+            {isNew ? 'Cancel' : dirty ? 'Undo' : 'Back'}
           </button>
           {saved && !dirty && (
             <span className="sheet__saved" role="status" data-testid="item-saved">
@@ -584,8 +552,8 @@ export default function ItemSheet() {
             </span>
           )}
           {canDelete && !confirmDelete && (
-            <button type="button" className="sheet__delete" onClick={() => setConfirmDelete(true)} data-testid="item-delete">
-              Delete item
+            <button type="button" className="btn btn--ghost sheet__delete" onClick={() => setConfirmDelete(true)} data-testid="item-delete">
+              Delete
             </button>
           )}
           {canDelete && confirmDelete && (

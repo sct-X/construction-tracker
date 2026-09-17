@@ -1,21 +1,19 @@
 /**
  * Alec's Today (UI_PLAN 3.4, the site half): the site hand's page for one
- * build job, laid out like a page of the site diary.
+ * build job, a stack of plates read with gloves on.
  *
- *   Thursday 17 September
- *   Lock-up stage, week 2 of 12
- *   [      Add photos  (3)     ]   <- the screen's one hi-vis action, 64px; the queue count is its badge
- *   Write today's note              <- Stage 5's screen; a 56px link here
- *   On site this week      14-20 Sep
- *     Cladding    Wed to Wed, 3 wks, Coastal Cladding
- *   Deliveries this week
- *     Cladding    Expected Tue 15 Sep, 2 days ago, not marked delivered
- *   Next hold point
- *     Stormwater inspection   Mon 12 Oct, in 25 days
- *     0 of 1 required photo sets uploaded   [Add photos now]
+ *   Thursday 17 September            <- the day is the hero
+ *   Lock-up stage, week 3 of 12
+ *   [        Add photos (3)        ]  <- the one hi-vis action, 64px; the queue count is its badge
+ *   Next hold point   Stormwater inspection, Mon 12 Oct, in 25 days
+ *                     0 of 1 required photo sets uploaded ... Add photos now
+ *   Deliveries        Cladding, Expected Tue 15 Sep, 2 days ago, not marked delivered
+ *   On site this week Roof plumbing, Mon to Thu, Roof plumber
+ *   Today's note      Rain till 10. Cladding continued after.
  *
  * Never a price, never a design job: the data layer strips both before this
- * component sees anything, and nothing here defaults a money field.
+ * component sees anything, and nothing here defaults a money field. Every
+ * target is 56px.
  */
 import { Link } from 'react-router-dom';
 import { useQuery, useSession } from '../data/context';
@@ -117,24 +115,60 @@ export default function AlecToday({ jobId }: { jobId: string }) {
         )}
       </a>
 
-      <Link to={`/jobs/${jobId}/notes`} className="today__note" data-testid="today-note">
-        {todayNote ? (
+      <section className="today__plate" aria-labelledby="today-hp-title" data-testid="today-holdpoint">
+        <h3 id="today-hp-title" className="today__title">
+          Next hold point
+        </h3>
+        {hp ? (
           <>
-            <span className="today__note-label">Today's note</span>
-            <span className="today__note-text">{todayNote.text}</span>
+            <p className="today__hp-line">
+              <Link to={`/steps/${hp.stepId}`} className="today__hp-name" data-testid="today-holdpoint-name">
+                {hp.stepName}
+              </Link>
+              <span className="today__hp-when" data-testid="today-holdpoint-when">
+                {formatShort(hp.forecastStart)}, {relativeDays(hp.forecastStart, today)}
+                {hpStage ? `, ${hpStage.name} stage` : ''}
+              </span>
+            </p>
+            <p className="today__hp-ready">
+              <StatusText tone={hp.ok ? 'ok' : 'amber'} testId="today-holdpoint-readiness">
+                {readinessWords(hp)}
+              </StatusText>
+            </p>
+            <HoldPointCheck check={hp} compact canComplete={false} queuedCount={hpQueued} uploadHref={`/jobs/${jobId}/upload?stage=${hp.stageId}`} />
           </>
         ) : (
-          <span className="today__note-label">Write today's note</span>
+          <p className="today__quiet">No hold points left</p>
         )}
-      </Link>
+      </section>
 
-      <section className="today__section" aria-labelledby="today-week-title" data-testid="today-week">
+      <section className="today__plate" aria-labelledby="today-deliveries-title" data-testid="today-deliveries">
+        <h3 id="today-deliveries-title" className="today__title">
+          Deliveries this week
+        </h3>
+        {thisWeek.length === 0 ? (
+          <p className="today__quiet">Nothing expected</p>
+        ) : (
+          thisWeek.map((g) => (
+            <ul key={g.key} className="today__deliveries">
+              {g.rows.map((d) => (
+                <DeliveryRow key={d.id} delivery={d} today={today} />
+              ))}
+            </ul>
+          ))
+        )}
+        <Link to="/deliveries" className="today__more" data-testid="today-deliveries-link">
+          All deliveries
+        </Link>
+      </section>
+
+      <section className="today__plate" aria-labelledby="today-week-title" data-testid="today-week">
         <h3 id="today-week-title" className="today__title">
           <span>On site this week</span>
           <span className="today__range num">{formatWeekRange(monday)}</span>
         </h3>
         {onSite.length === 0 ? (
-          <p className="today__quiet">Nothing starts or finishes this week.</p>
+          <p className="today__quiet">Nothing on site this week</p>
         ) : (
           <ul className="today__steps">
             {onSite.map((s) => {
@@ -163,61 +197,21 @@ export default function AlecToday({ jobId }: { jobId: string }) {
             })}
           </ul>
         )}
-        <p className="today__more">
-          <Link to={`/jobs/${jobId}/program`} data-testid="today-program-link">
-            Next three weeks
-          </Link>
-        </p>
+        <Link to={`/jobs/${jobId}/program`} className="today__more" data-testid="today-program-link">
+          Next three weeks
+        </Link>
       </section>
 
-      <section className="today__section" aria-labelledby="today-deliveries-title" data-testid="today-deliveries">
-        <h3 id="today-deliveries-title" className="today__title">
-          <span>Deliveries this week</span>
-        </h3>
-        {thisWeek.length === 0 ? (
-          <p className="today__quiet">Nothing expected this week.</p>
-        ) : (
-          thisWeek.map((g) => (
-            <ul key={g.key} className="today__deliveries">
-              {g.rows.map((d) => (
-                <DeliveryRow key={d.id} delivery={d} today={today} />
-              ))}
-            </ul>
-          ))
-        )}
-        <p className="today__more">
-          <Link to="/deliveries" data-testid="today-deliveries-link">
-            All deliveries
-          </Link>
-        </p>
-      </section>
-
-      <section className="today__section" aria-labelledby="today-hp-title" data-testid="today-holdpoint">
-        <h3 id="today-hp-title" className="today__title">
-          <span>Next hold point</span>
-        </h3>
-        {hp ? (
+      <Link to={`/jobs/${jobId}/notes`} className="today__plate today__note" data-testid="today-note">
+        {todayNote ? (
           <>
-            <p className="today__hp-line">
-              <Link to={`/steps/${hp.stepId}`} className="today__hp-name" data-testid="today-holdpoint-name">
-                {hp.stepName}
-              </Link>
-              <span className="today__hp-when" data-testid="today-holdpoint-when">
-                {formatShort(hp.forecastStart)}, {relativeDays(hp.forecastStart, today)}
-                {hpStage ? `, ${hpStage.name} stage` : ''}
-              </span>
-            </p>
-            <p className="today__hp-ready">
-              <StatusText tone={hp.ok ? 'ok' : 'amber'} testId="today-holdpoint-readiness">
-                {readinessWords(hp)}
-              </StatusText>
-            </p>
-            <HoldPointCheck check={hp} compact canComplete={false} queuedCount={hpQueued} uploadHref={`/jobs/${jobId}/upload?stage=${hp.stageId}`} />
+            <span className="today__title">Today's note</span>
+            <span className="today__note-text">{todayNote.text}</span>
           </>
         ) : (
-          <p className="today__quiet">No hold points left on this program.</p>
+          <span className="today__note-label">Write today's note</span>
         )}
-      </section>
+      </Link>
     </section>
   );
 }

@@ -1,19 +1,20 @@
 /*
   Build job overview.
 
-  Layout concept: one big finish date with its words beside it, a row of
-  facts under it (slip, holding, freshness with the confirm button), then
-  two columns on the desktop: hold point and stages on the left, waiting-on
-  and notes on the right. One column on the phone. Sections are separated
-  by a 2px concrete rule with a small heading, the same rule the jobs list
-  uses, not by cards.
+  The finish date is the hero figure (44px phone, 60px desktop) with its late
+  words beside it. Under it a readout row of row-scale figures: slip, holding,
+  stage, then the freshness words and the one hi-vis action. The body is two
+  columns on the desktop (hold point and the stage ladder; what the job is
+  waiting on), one column of plates on the phone. Sections separate by tone
+  and space, never by a rule; hairlines live inside the lists only.
 */
+
+/* Tabs: the shell's tab-bar idiom, text with a 2px rule under the current one */
 .job__tabs {
   display: flex;
   gap: var(--space-1);
   overflow-x: auto;
-  margin: calc(-1 * var(--space-2)) 0 var(--space-6);
-  border-bottom: var(--hairline);
+  margin: calc(-1 * var(--space-3)) 0 var(--space-8);
 }
 .job__tab {
   flex-shrink: 0;
@@ -21,152 +22,88 @@
   align-items: center;
   min-height: 44px;
   padding: 0 var(--space-3);
-  margin-bottom: -1px;
   border-bottom: 2px solid transparent;
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   text-decoration: none;
+  transition: color var(--motion-fast) var(--ease);
 }
 .job__tab:hover {
   color: var(--text);
 }
 .job__tab[aria-current='page'] {
   color: var(--text);
-  font-weight: var(--weight-bold);
   border-bottom-color: var(--text);
 }
-
-.job__empty {
-  font-size: var(--text-lg);
-  max-width: var(--measure);
+.shell--phone .job__tab {
+  min-height: var(--tap);
 }
+
+.job__empty,
 .job__quiet {
   color: var(--text-muted);
 }
 
-/* latest photos: a strip of square thumbnails linking into the gallery */
-.job__photos {
-  margin-top: var(--space-8);
-}
-.job__photo-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-2);
-}
-.job__photo {
-  display: block;
-  aspect-ratio: 1;
-  border: var(--hairline);
-  border-radius: var(--radius-sm);
-  background: var(--concrete-100);
-  overflow: hidden;
-}
-.job__photo:hover {
-  border-color: var(--line-strong);
-}
-.job__photo img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-@media (min-width: 768px) {
-  .shell--desktop .job__photo-strip {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    max-width: 720px;
-  }
-}
-
-/* ---- hero ---- */
+/* ---- hero: the finish, then the readout row ---- */
 .job__hero {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
-  padding-bottom: var(--space-6);
-  margin-bottom: var(--space-6);
-  border-bottom: 2px solid var(--concrete-200);
+  gap: var(--space-6);
+  margin-bottom: var(--space-12);
 }
 .job__finish {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-3) var(--space-4);
 }
 .job__facts {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4) var(--space-8);
-}
-.job__fact dt {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  margin-bottom: 2px;
-}
-.job__fact dd {
-  margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2) var(--space-3);
-  font-size: var(--text-lg);
+  align-items: flex-end;
+  gap: var(--space-5) var(--space-10);
 }
 .job__slip-link {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2);
-  color: var(--text);
+  display: inline-block;
+  color: inherit;
   text-decoration: none;
+  border-radius: var(--radius-sm);
 }
-.job__slip {
-  font-family: var(--font-display);
-  font-weight: var(--weight-display);
-  font-size: var(--text-2xl);
-  line-height: var(--leading-tight);
-}
-.job__why {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
+.job__slip-link:hover .bignumber__value {
   text-decoration: underline;
-}
-.job__slip-link:hover .job__why {
-  color: var(--text);
-}
-.job__fact--confirm dd {
-  gap: var(--space-2) var(--space-4);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+  text-decoration-color: var(--line-strong);
 }
 .job__confirm {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3) var(--space-4);
+  padding-bottom: 2px; /* sits on the labels' baseline row */
 }
 .job__needs-signal {
   font-size: var(--text-sm);
   color: var(--text-muted);
-}
-.job__confirm .btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 /* ---- body ---- */
 .job__body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-8);
+  gap: var(--space-10);
 }
 .job__col {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--space-10);
   min-width: 0;
 }
 .job__section-title {
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--text-muted);
-  padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--concrete-200);
   margin-bottom: var(--space-3);
 }
 .job__more {
@@ -178,8 +115,6 @@
   align-items: center;
   min-height: 32px;
 }
-/* Phone layout (and always Alec): every link a thumb lands on is 56px. */
-.shell--phone .job__tab,
 .shell--phone .job__more a,
 .shell--phone .job__hp-name {
   min-height: var(--tap);
@@ -187,10 +122,6 @@
 .shell--phone .job__hp-name {
   display: inline-flex;
   align-items: center;
-}
-.job__more-sep {
-  display: inline-block;
-  width: var(--space-4);
 }
 
 /* hold point */
@@ -202,8 +133,13 @@
 }
 .job__hp-name {
   font-size: var(--text-lg);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-medium);
   color: var(--text);
+  text-decoration: none;
+}
+.job__hp-name:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
 }
 .job__hp-when {
   color: var(--text-secondary);
@@ -212,7 +148,7 @@
   margin: var(--space-2) 0 var(--space-3);
 }
 
-/* stages */
+/* the stage ladder */
 .job__stages {
   display: flex;
   flex-direction: column;
@@ -220,9 +156,9 @@
 .job__stage {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  column-gap: var(--space-3);
+  column-gap: var(--space-4);
   align-items: baseline;
-  min-height: 36px;
+  min-height: 40px;
   padding: var(--space-2) 0;
   border-top: var(--hairline);
   color: var(--text-secondary);
@@ -230,11 +166,15 @@
 .job__stage:first-child {
   border-top: 0;
 }
+.job__stage--done {
+  color: var(--text-muted);
+}
 .job__stage--current {
   color: var(--text);
 }
 .job__stage--current .job__stage-name {
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-medium);
+  color: var(--text);
 }
 .job__stage-name {
   grid-column: 1;
@@ -244,7 +184,7 @@
   grid-column: 2;
   font-size: var(--text-sm);
   text-align: right;
-  max-width: 14em;
+  max-width: 16em;
 }
 .job__stage-late {
   white-space: nowrap;
@@ -256,40 +196,88 @@
   color: var(--text-muted);
 }
 
-/* notes */
-.job__notes {
-  display: flex;
-  flex-direction: column;
+/* latest photos: a strip of square thumbnails into the gallery */
+.job__photos {
+  margin-top: var(--space-12);
 }
-.job__note {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-2) 0;
-  border-top: var(--hairline);
+.job__photo-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
 }
-.job__note:first-child {
-  border-top: 0;
+.job__photo {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  background: var(--plate);
+  overflow: hidden;
 }
-.job__note-date {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
+.job__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity var(--motion-fast) var(--ease);
 }
-.job__note-text {
-  max-width: var(--measure);
+.job__photo:hover img {
+  opacity: 0.85;
+}
+
+/* ---- Alec: Today leads, the finish drops to row scale ---- */
+.job--site .job__hero {
+  margin-bottom: var(--space-8);
+}
+.job--site .bignumber--hero .bignumber__value {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-display);
+}
+
+/* ---- phone: sections are plates ---- */
+@media (max-width: 767.98px) {
+  .job__hero {
+    gap: var(--space-5);
+    margin-bottom: var(--space-8);
+  }
+  .job__facts {
+    gap: var(--space-4) var(--space-8);
+  }
+  .job__confirm {
+    width: 100%;
+  }
+  .job__confirm .btn {
+    flex: 1 1 auto;
+  }
+  .job__body,
+  .job__col {
+    gap: var(--space-3);
+  }
+  .job__section {
+    padding: var(--space-4) var(--space-4) var(--space-5);
+    background: var(--plate);
+    border-radius: var(--radius-lg);
+  }
+  .job__section-title {
+    margin-bottom: var(--space-2);
+  }
+  .job__photos {
+    margin-top: var(--space-3);
+  }
+  .job__photo {
+    background: var(--raised);
+  }
+  .job__section .itemrow--link:hover {
+    background: var(--raised);
+    box-shadow: 0 0 0 var(--space-2) var(--raised);
+  }
 }
 
 @media (min-width: 768px) {
-  .job__hero {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: var(--space-6) var(--space-10);
-  }
-  /* two columns on the desktop shell only; Alec's phone column stays one */
   .shell--desktop .job__body {
     grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
-    gap: var(--space-10);
+    gap: var(--space-12);
+  }
+  .shell--desktop .job__photo-strip {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    max-width: 720px;
   }
 }

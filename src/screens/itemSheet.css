@@ -1,76 +1,60 @@
 /*
   Item sheet.
 
-  Layout concept: one column of fields under a single figure, the act-by
-  date, which is what the item exists for: "Act by Fri 18 Sep, tomorrow:
-  needed Fri 11 Dec for Plasterboard, minus 12 weeks". Pickers are rows of
-  tall buttons (type, job, owner, status); long lists (steps, trades) are
-  native selects, which are the phone's own pickers. Save is the sheet's one
-  hi-vis button. Derived fields are sentences on a timber-paper note so it is
-  obvious they are worked out, not typed.
+  One hero figure, the act-by date, in the display face at hero size with
+  its derivation as the label under it ("5 weeks ago: needed Mon 2 Nov for
+  Install windows, minus 12 weeks"). Under it a single column of fields on
+  the base primitives: .field, .input, and the segmented trough for every
+  short list (type, job, owner, status); long lists (steps, trades) are
+  native selects. Worked-out fields sit on note paper so it is obvious they
+  are derived, not typed. Save is the sheet's one hi-vis button. No
+  paragraphs: validation is a short list on an amber wash.
 */
 .sheet__figure {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-2);
-  margin-bottom: var(--space-6);
-  padding-bottom: var(--space-4);
-  border-bottom: 2px solid var(--concrete-200);
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
 }
 .sheet__figure .bignumber__label {
   max-width: var(--measure);
-}
-.sheet__no-actby {
-  max-width: var(--measure);
+  margin-top: var(--space-1);
+  font-size: var(--text-md);
   color: var(--text-secondary);
 }
 
 .sheet__form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-6);
   max-width: 44rem;
 }
 .sheet__row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-5) var(--space-6);
+  gap: var(--space-6);
 }
-.sheet__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+.sheet__row > .field {
+  flex: 1 1 16rem;
   min-width: 0;
 }
-.sheet__row > .sheet__field {
-  flex: 1 1 16rem;
-}
-.sheet__row > .sheet__field--short {
+.sheet__row > .sheet__field--short,
+.sheet__field--short {
   flex: 0 1 12rem;
 }
-.sheet__field label,
-.sheet__label {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--text-secondary);
-}
-.sheet__input {
+.sheet__select {
   width: 100%;
   min-height: var(--tap);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
-  color: var(--text);
-  font-size: var(--text-md);
+  padding-left: var(--space-4);
+  border-radius: var(--radius-md);
 }
-.sheet__input:disabled {
-  background: var(--concrete-100);
-  color: var(--text-muted);
+.sheet__select:focus-visible {
+  border-color: var(--hivis);
+  box-shadow: none;
 }
 .sheet__textarea {
-  padding: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   min-height: 5rem;
   line-height: var(--leading-body);
   resize: vertical;
@@ -85,42 +69,40 @@
 }
 .sheet__ring {
   align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--tap);
-  font-weight: var(--weight-medium);
+  margin-left: calc(-1 * var(--space-5));
 }
-.sheet__picker {
-  display: flex;
+/* Segmented troughs wrap on the desktop and scroll sideways on the phone,
+   running off the right edge so a cut button says there is more. */
+.sheet__seg {
+  align-self: flex-start;
+  max-width: 100%;
   flex-wrap: wrap;
-  gap: var(--space-2);
 }
-.sheet__pick {
-  min-height: var(--tap);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-raised);
-  color: var(--text-secondary);
-  font-weight: var(--weight-medium);
-  transition: background var(--motion-fast) var(--ease);
+.shell--phone .sheet__seg,
+.shell--phone .sheet__form .typepick {
+  align-self: stretch;
+  max-width: none;
+  margin-right: calc(-1 * var(--gutter));
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
-.sheet__pick:hover {
-  background: var(--concrete-100);
+.shell--phone .sheet__seg::-webkit-scrollbar {
+  display: none;
 }
-.sheet__pick[aria-pressed='true'] {
-  background: var(--steel-700);
-  border-color: var(--steel-700);
-  color: var(--text-on-dark);
-  font-weight: var(--weight-bold);
+.shell--phone .sheet__seg .seg__btn {
+  flex: 0 0 auto;
 }
-/* Worked-out fields: a sentence on note paper, never an input. */
+/* Worked-out fields: a figure on note paper, never an input. */
 .sheet__derived {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  align-self: flex-start;
   padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--timber-100);
   color: var(--text);
   font-weight: var(--weight-medium);
@@ -142,13 +124,17 @@
   gap: var(--space-3);
   min-height: var(--tap);
   color: var(--text);
+  text-decoration: none;
+}
+.sheet__photo:hover span {
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
 }
 .sheet__photo img {
   width: 72px;
   height: 72px;
   object-fit: cover;
   border-radius: var(--radius-sm);
-  border: var(--hairline);
 }
 .sheet__photo-row,
 .sheet__photo-pick {
@@ -177,18 +163,11 @@
   object-fit: cover;
   display: block;
 }
-.sheet__quiet-btn {
-  min-height: var(--tap);
-  padding: 0 var(--space-2);
-  border: 0;
-  background: transparent;
-  color: var(--text-secondary);
-  text-decoration: underline;
-}
 .sheet__problems {
+  align-self: flex-start;
   max-width: var(--measure);
   padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--amber-bg);
   color: var(--amber-ink);
   list-style: none;
@@ -203,24 +182,16 @@
   gap: var(--space-3);
   padding-top: var(--space-2);
 }
-.sheet__actions .btn--primary:disabled {
-  background: var(--concrete-100);
-  border-color: var(--line);
-  color: var(--text-muted);
-  filter: none;
-}
 .sheet__saved {
   color: var(--ok-ink);
   font-weight: var(--weight-medium);
 }
 .sheet__delete {
   margin-left: auto;
-  min-height: var(--tap);
-  padding: 0 var(--space-2);
-  border: 0;
-  background: transparent;
   color: var(--late-ink);
-  text-decoration: underline;
+}
+.sheet__delete:hover {
+  color: var(--late-ink);
 }
 .sheet__delete-confirm {
   margin-left: auto;
@@ -231,24 +202,22 @@
   color: var(--text-secondary);
 }
 .sheet__history {
-  margin-top: var(--space-10);
+  margin-top: var(--space-12);
   max-width: 44rem;
 }
 .sheet__h2 {
-  font-family: var(--font-display);
-  font-weight: var(--weight-display);
-  font-size: var(--text-xl);
-  padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--concrete-200);
-  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
 }
 .sheet__history-list {
   list-style: none;
   font-size: var(--text-sm);
 }
 .sheet__history-list li {
-  padding: var(--space-2) 0;
-  border-bottom: var(--hairline);
+  padding: var(--space-3) 0;
+  border-top: var(--hairline);
 }
 .sheet__stamp {
   color: var(--text-muted);
@@ -261,12 +230,22 @@
   font-size: var(--text-sm);
 }
 @media (min-width: 768px) {
-  .sheet__input,
-  .sheet__pick,
-  .sheet__ring {
+  .sheet__form .input,
+  .sheet__select {
     min-height: var(--control);
   }
-  .sheet__textarea {
+  .sheet__textarea.input {
     min-height: 5rem;
+  }
+}
+@media (max-width: 767.98px) {
+  .sheet__actions .btn--primary,
+  .sheet__actions > .btn:nth-child(2) {
+    flex: 1 1 auto;
+  }
+  .sheet__delete,
+  .sheet__delete-confirm {
+    margin-left: 0;
+    flex-basis: 100%;
   }
 }

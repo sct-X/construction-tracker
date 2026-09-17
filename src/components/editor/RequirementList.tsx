@@ -23,13 +23,13 @@ export function RequirementList({ requirements, disabled, onAdd, onChange, onRem
   return (
     <div className="ed__section" data-testid="editor-requirements">
       <div className="ed__section-title">
-        <span>Needs, with lead time in weeks</span>
+        <span>Needs</span>
         <button type="button" className="ed__link" disabled={disabled} data-testid="editor-requirement-add" onClick={onAdd}>
-          Add a need
+          Add need
         </button>
       </div>
       {requirements.length === 0 ? (
-        <p className="ed__empty">Nothing to book or order first.</p>
+        <p className="ed__empty">Nothing to book or order</p>
       ) : (
         <ul className="ed__list">
           {requirements.map((r) => (
@@ -59,18 +59,21 @@ export function RequirementList({ requirements, disabled, onAdd, onChange, onRem
                 data-testid={`editor-requirement-name-${r.id}`}
                 onChange={(e) => onChange(r.id, { name: e.target.value, tradeType: r.kind === 'trade' ? e.target.value : r.tradeType })}
               />
-              <input
-                className="ed__input"
-                type="number"
-                min={0}
-                step={1}
-                inputMode="numeric"
-                aria-label="Lead time, weeks"
-                value={r.leadTimeWeeks}
-                disabled={disabled}
-                data-testid={`editor-requirement-lead-${r.id}`}
-                onChange={(e) => onChange(r.id, { leadTimeWeeks: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
-              />
+              <span className="ed__unit-field">
+                <input
+                  className="ed__input"
+                  type="number"
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
+                  aria-label="Lead time, weeks"
+                  value={r.leadTimeWeeks}
+                  disabled={disabled}
+                  data-testid={`editor-requirement-lead-${r.id}`}
+                  onChange={(e) => onChange(r.id, { leadTimeWeeks: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
+                />
+                <span className="ed__unit">wk</span>
+              </span>
               <button type="button" className="ed__link" disabled={disabled} data-testid={`editor-requirement-remove-${r.id}`} onClick={() => onRemove(r.id)}>
                 Remove
               </button>

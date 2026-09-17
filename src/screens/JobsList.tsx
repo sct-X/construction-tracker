@@ -1,28 +1,25 @@
 /**
- * Jobs list (UI_PLAN 3.3): every job on this side, builds then design.
- * Desktop: a table. Phone: one card per job, the whole card a 56px+ target.
- * The forecast finish is the number; late, slip and freshness are words
- * with a wash behind them (StatusText), never colour alone. Money draws
- * nothing when the field is absent, so Alec's list looks finished.
+ * Jobs list (UI_PLAN 3.3): a calm index of every job on this side, builds
+ * then design. One row per job: name, stage, the forecast finish as the
+ * figure, and one status line. Desktop: a readout table like Monday's.
+ * Phone: one plate per job. Money draws nothing when the field is absent,
+ * so Alec's list looks finished rather than censored.
  */
 import { Link, useNavigate } from 'react-router-dom';
+import type { MouseEvent } from 'react';
 import { useQuery, useSession } from '../data/context';
 import type { Job } from '../domain/types';
 import type { JobForecast } from '../domain/forecast';
-import { formatDayMonthYear } from '../domain/dates';
+import { formatLong } from '../domain/dates';
+import { BigNumber } from '../components/BigNumber';
 import { Money } from '../components/Money';
 import { StatusText, type Tone } from '../components/StatusText';
-import { PageHeader } from '../shell/PageHeader';
 import { useLayout } from '../shell/AppShell';
 import './jobsList.css';
 
 interface Row {
   job: Job;
   forecast?: JobForecast;
-}
-
-function HoldingCost({ value }: { value?: number }) {
-  return <Money value={value} suffix="/wk" className="jobs__money" />;
 }
 
 function finishStatus(f?: JobForecast): { tone: Tone; text: string } | null {
@@ -58,39 +55,37 @@ export function outstandingStatus(f?: JobForecast): { tone: Tone; text: string }
 }
 
 export default function JobsList() {
-  const { role, side } = useSession();
+  const { role } = useSession();
   const layout = useLayout();
   const rows = useQuery<Row[]>((api) => api.listJobs().map((job) => ({ job, forecast: api.getForecast(job.id) })), []);
   const builds = rows.filter((r) => r.job.kind === 'build');
   const designs = rows.filter((r) => r.job.kind === 'design');
   const canAdd = role === 'admin' || role === 'partner';
-  const showMoney = builds.some((r) => r.job.weeklyHoldingCost !== undefined);
-
-  const newJob = canAdd ? (
-    <Link to="/jobs/new" className="btn btn--primary btn--desktop" data-testid="jobs-new">
-      New job
-    </Link>
-  ) : undefined;
-
-  const count = rows.length === 1 ? '1 job' : `${rows.length} jobs`;
+  const desktop = layout === 'desktop';
 
   return (
-    <main className="page jobs" data-testid="jobs-list">
-      <PageHeader title="Jobs" meta={`${count} on ${side.name}`} actions={newJob} />
+    <main className="jobs" data-testid="jobs-list">
+      <header className="jobs__head">
+        <h1 className="jobs__title">Jobs</h1>
+        {canAdd && (
+          <Link to="/jobs/new" className="btn btn--primary btn--desktop" data-testid="jobs-new">
+            New job
+          </Link>
+        )}
+      </header>
 
       {rows.length === 0 ? (
-        <div className="jobs__empty" data-testid="jobs-empty">
-          <p>No jobs on this side yet.</p>
-          {canAdd && <p className="jobs__empty-hint">Start one from a template and it will show up here.</p>}
-        </div>
+        <p className="jobs__empty" data-testid="jobs-empty">
+          No jobs on this side yet.
+        </p>
       ) : (
         <>
           {builds.length > 0 && (
             <section className="jobs__group" aria-labelledby="jobs-build">
               <h2 id="jobs-build" className="jobs__group-title">
-                Build
+                Builds
               </h2>
-              {layout === 'desktop' ? <BuildTable rows={builds} showMoney={showMoney} /> : <BuildCards rows={builds} />}
+              {desktop ? <BuildTable rows={builds} /> : <BuildCards rows={builds} />}
             </section>
           )}
           {designs.length > 0 && (
@@ -98,7 +93,7 @@ export default function JobsList() {
               <h2 id="jobs-design" className="jobs__group-title">
                 Design
               </h2>
-              {layout === 'desktop' ? <DesignTable rows={designs} /> : <DesignCards rows={designs} />}
+              {desktop ? <DesignTable rows={designs} /> : <DesignCards rows={designs} />}
             </section>
           )}
         </>
@@ -107,173 +102,164 @@ export default function JobsList() {
   );
 }
 
-// ---- desktop tables ----
+// ---- cells shared by the table and the plates ----
 
-function useRowNav() {
+/** The row is a pointer convenience; the name link keeps its own target for the keyboard. */
+function useOpenJob() {
   const navigate = useNavigate();
-  return (id: string) => navigate(`/jobs/${id}`);
+  return (id: string) => (e: MouseEvent<HTMLElement>) => {
+    if ((e.target as HTMLElement).closest('a, button')) return;
+    navigate(`/jobs/${id}`);
+  };
 }
 
-function BuildTable({ rows, showMoney }: { rows: Row[]; showMoney: boolean }) {
-  const go = useRowNav();
+function JobName({ job }: { job: Job }) {
   return (
-    <table className="jobs__table">
+    <Link to={`/jobs/${job.id}`} className="jobs__name" data-testid={`job-link-${job.id}`}>
+      {job.name}
+    </Link>
+  );
+}
+
+function FinishCell({ forecast }: { forecast?: JobForecast }) {
+  const fin = finishStatus(forecast);
+  if (!forecast?.forecastFinish) return <BigNumber size="row" value="No dates yet" label="Forecast finish" tone="muted" />;
+  return (
+    <span className="jobs__finish">
+      <BigNumber size="row" value={formatLong(forecast.forecastFinish)} label="Forecast finish" tone={fin?.tone === 'late' ? 'late' : undefined} />
+      {fin && (
+        <StatusText tone={fin.tone} plain={fin.tone === 'ok'}>
+          {fin.text}
+        </StatusText>
+      )}
+    </span>
+  );
+}
+
+/** One line: slip this week, then how fresh the figures are. */
+function BuildStatus({ forecast }: { forecast?: JobForecast }) {
+  const slip = slipStatus(forecast);
+  const fresh = freshnessStatus(forecast);
+  return (
+    <span className="jobs__status">
+      <StatusText tone={slip.tone}>{slip.text}</StatusText>
+      {fresh && <StatusText tone={fresh.tone}>{fresh.text}</StatusText>}
+    </span>
+  );
+}
+
+function DesignStatus({ forecast }: { forecast?: JobForecast }) {
+  const out = outstandingStatus(forecast);
+  const fresh = freshnessStatus(forecast);
+  return (
+    <span className="jobs__status">
+      <StatusText tone={out.tone}>{out.text}</StatusText>
+      {fresh && <StatusText tone={fresh.tone}>{fresh.text}</StatusText>}
+    </span>
+  );
+}
+
+// ---- desktop tables ----
+
+function BuildTable({ rows }: { rows: Row[] }) {
+  const open = useOpenJob();
+  return (
+    <table className="table table--rows jobs__table jobs__table--builds">
       <thead>
         <tr>
           <th scope="col">Job</th>
           <th scope="col">Stage</th>
           <th scope="col">Forecast finish</th>
-          <th scope="col">Slip</th>
-          {showMoney && <th scope="col">Holding cost</th>}
-          <th scope="col">Last confirmed</th>
+          <th scope="col">Status</th>
         </tr>
       </thead>
       <tbody>
-        {rows.map(({ job, forecast }) => {
-          const fin = finishStatus(forecast);
-          const slip = slipStatus(forecast);
-          const fresh = freshnessStatus(forecast);
-          return (
-            <tr key={job.id} className="jobs__row" data-testid={`job-row-${job.id}`} onClick={() => go(job.id)}>
-              <td className="jobs__cell-name">
-                <Link to={`/jobs/${job.id}`} className="jobs__name" data-testid={`job-link-${job.id}`} onClick={(e) => e.stopPropagation()}>
-                  {job.name}
-                </Link>
-              </td>
-              <td className="jobs__cell-stage">{forecast?.currentStageName ?? 'No program yet'}</td>
-              <td>
-                {forecast?.forecastFinish ? (
-                  <div className="jobs__finish-stack">
-                    <span className="jobs__finish num">{formatDayMonthYear(forecast.forecastFinish)}</span>
-                    {fin && (
-                      <StatusText tone={fin.tone} plain={fin.tone === 'ok'}>
-                        {fin.text}
-                      </StatusText>
-                    )}
-                  </div>
-                ) : (
-                  <span className="jobs__muted">No program yet</span>
-                )}
-              </td>
-              <td>
-                <StatusText tone={slip.tone}>{slip.text}</StatusText>
-              </td>
-              {showMoney && (
-                <td className="jobs__cell-money">
-                  <HoldingCost value={job.weeklyHoldingCost} />
-                </td>
-              )}
-              <td>{fresh && <StatusText tone={fresh.tone}>{fresh.text}</StatusText>}</td>
-            </tr>
-          );
-        })}
+        {rows.map(({ job, forecast }) => (
+          <tr key={job.id} className="jobs__row" data-testid={`job-row-${job.id}`} onClick={open(job.id)}>
+            <th scope="row" className="jobs__cell-job">
+              <JobName job={job} />
+              <Money value={job.weeklyHoldingCost} suffix="/wk" className="jobs__money" />
+            </th>
+            <td className="jobs__cell-stage">{forecast?.currentStageName ?? 'No program yet'}</td>
+            <td className="jobs__cell-finish">
+              <FinishCell forecast={forecast} />
+            </td>
+            <td className="jobs__cell-status">
+              <BuildStatus forecast={forecast} />
+            </td>
+          </tr>
+        ))}
       </tbody>
     </table>
   );
 }
 
 function DesignTable({ rows }: { rows: Row[] }) {
-  const go = useRowNav();
+  const open = useOpenJob();
   return (
-    <table className="jobs__table">
+    <table className="table table--rows jobs__table jobs__table--design">
       <thead>
         <tr>
           <th scope="col">Job</th>
           <th scope="col">Stage</th>
-          <th scope="col">Outstanding</th>
-          <th scope="col">Last confirmed</th>
+          <th scope="col">Status</th>
         </tr>
       </thead>
       <tbody>
-        {rows.map(({ job, forecast }) => {
-          const fresh = freshnessStatus(forecast);
-          const out = outstandingStatus(forecast);
-          return (
-            <tr key={job.id} className="jobs__row" data-testid={`job-row-${job.id}`} onClick={() => go(job.id)}>
-              <td className="jobs__cell-name">
-                <Link to={`/jobs/${job.id}`} className="jobs__name" data-testid={`job-link-${job.id}`} onClick={(e) => e.stopPropagation()}>
-                  {job.name}
-                </Link>
-                <span className="jobs__path">{job.path}</span>
-              </td>
-              <td className="jobs__cell-stage">{forecast?.currentStageName ?? 'Done'}</td>
-              <td>
-                <StatusText tone={out.tone}>{out.text}</StatusText>
-              </td>
-              <td>{fresh && <StatusText tone={fresh.tone}>{fresh.text}</StatusText>}</td>
-            </tr>
-          );
-        })}
+        {rows.map(({ job, forecast }) => (
+          <tr key={job.id} className="jobs__row" data-testid={`job-row-${job.id}`} onClick={open(job.id)}>
+            <th scope="row" className="jobs__cell-job">
+              <JobName job={job} />
+              {job.path && <span className="jobs__path">{job.path}</span>}
+            </th>
+            <td className="jobs__cell-stage">{forecast?.currentStageName ?? 'Done'}</td>
+            <td className="jobs__cell-status">
+              <DesignStatus forecast={forecast} />
+            </td>
+          </tr>
+        ))}
       </tbody>
     </table>
   );
 }
 
-// ---- phone cards ----
+// ---- phone plates ----
 
 function BuildCards({ rows }: { rows: Row[] }) {
+  const open = useOpenJob();
   return (
     <ul className="jobs__cards">
-      {rows.map(({ job, forecast }) => {
-        const fin = finishStatus(forecast);
-        const slip = slipStatus(forecast);
-        const fresh = freshnessStatus(forecast);
-        return (
-          <li key={job.id}>
-            <Link to={`/jobs/${job.id}`} className="jobs__card" data-testid={`job-row-${job.id}`}>
-              <div className="jobs__card-top">
-                <span className="jobs__name">{job.name}</span>
-                {forecast?.forecastFinish && <span className="jobs__finish num">{formatDayMonthYear(forecast.forecastFinish)}</span>}
-              </div>
-              <div className="jobs__card-mid">
-                <span className="jobs__stage">{forecast?.currentStageName ?? 'No program yet'}</span>
-                <HoldingCost value={job.weeklyHoldingCost} />
-              </div>
-              <div className="jobs__card-status">
-                {fin && <StatusText tone={fin.tone}>{fin.text}</StatusText>}
-                <StatusText tone={slip.tone}>{slip.text}</StatusText>
-              </div>
-              {fresh && (
-                <div className="jobs__card-fresh">
-                  <StatusText tone={fresh.tone}>{fresh.text}</StatusText>
-                </div>
-              )}
-            </Link>
-          </li>
-        );
-      })}
+      {rows.map(({ job, forecast }) => (
+        <li key={job.id} className="jobs__card" data-testid={`job-row-${job.id}`} onClick={open(job.id)}>
+          <div className="jobs__card-head">
+            <JobName job={job} />
+            <span className="jobs__stage">{forecast?.currentStageName ?? 'No program yet'}</span>
+          </div>
+          <FinishCell forecast={forecast} />
+          <Money value={job.weeklyHoldingCost} label="Holding" suffix="/wk" className="jobs__money" />
+          <BuildStatus forecast={forecast} />
+        </li>
+      ))}
     </ul>
   );
 }
 
 function DesignCards({ rows }: { rows: Row[] }) {
+  const open = useOpenJob();
   return (
     <ul className="jobs__cards">
-      {rows.map(({ job, forecast }) => {
-        const fresh = freshnessStatus(forecast);
-        const out = outstandingStatus(forecast);
-        return (
-          <li key={job.id}>
-            <Link to={`/jobs/${job.id}`} className="jobs__card" data-testid={`job-row-${job.id}`}>
-              <div className="jobs__card-top">
-                <span className="jobs__name">{job.name}</span>
-                <span className="jobs__path">{job.path}</span>
-              </div>
-              <div className="jobs__card-mid">
-                <span className="jobs__stage">{forecast?.currentStageName ?? 'Done'}</span>
-              </div>
-              <div className="jobs__card-status">
-                <StatusText tone={out.tone}>{out.text}</StatusText>
-              </div>
-              {fresh && (
-                <div className="jobs__card-fresh">
-                  <StatusText tone={fresh.tone}>{fresh.text}</StatusText>
-                </div>
-              )}
-            </Link>
-          </li>
-        );
-      })}
+      {rows.map(({ job, forecast }) => (
+        <li key={job.id} className="jobs__card jobs__card--design" data-testid={`job-row-${job.id}`} onClick={open(job.id)}>
+          <div className="jobs__card-head">
+            <JobName job={job} />
+            <span className="jobs__stage">
+              {forecast?.currentStageName ?? 'Done'}
+              {job.path ? `, ${job.path}` : ''}
+            </span>
+          </div>
+          <DesignStatus forecast={forecast} />
+        </li>
+      ))}
     </ul>
   );
 }

@@ -1,42 +1,49 @@
 /*
   Why it moved.
 
-  Layout concept: one big finish date and its slip at the top, then the chain
-  as a numbered list (numbered because it is a sequence: cause, step, stage,
-  finish). Each line is a sentence from the calculator with the delta set
-  apart on the right so the eye can run down the column of "+7 days".
+  The finish date is the hero; the slip sits beside it at row scale with the
+  baseline it is measured from. Then the chain: a short numbered list on a
+  plate (numbered because it is a sequence: cause, step, stage, finish),
+  each line a sentence from the calculator with its delta set apart on the
+  right so the eye can run down the column of "+7 days".
 */
 .why {
   max-width: 760px;
   margin: 0 auto;
-  padding: var(--space-6) var(--gutter) var(--space-12);
+  padding: var(--space-5) var(--gutter) var(--space-16);
 }
 .why__back {
   font-size: var(--text-sm);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-2);
 }
 .why__back a {
-  min-height: var(--control);
   display: inline-flex;
   align-items: center;
+  min-height: var(--control);
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.why__back a:hover {
+  color: var(--text);
 }
 .why__head {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: var(--space-3) var(--space-6);
-  margin-bottom: var(--space-6);
+  gap: var(--space-4) var(--space-6);
+  margin-bottom: var(--space-8);
 }
 .why__title {
   font-family: var(--font-display);
   font-weight: var(--weight-display);
   font-size: var(--text-xl);
   line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
 }
 .why__job {
   margin-top: var(--space-1);
-  font-size: var(--text-lg);
+  font-size: var(--text-md);
   color: var(--text-secondary);
 }
 .why__job a {
@@ -45,82 +52,65 @@
 }
 .why__job a:hover {
   text-decoration: underline;
+  text-decoration-color: var(--line-strong);
 }
 .why__since {
   display: inline-flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   font-size: var(--text-sm);
 }
 .why__since-label {
   color: var(--text-muted);
-  margin-right: var(--space-1);
-}
-.why__since-button {
-  min-height: var(--control);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-secondary);
-  transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
-}
-.why__since-button:hover {
-  background: var(--concrete-100);
-}
-.why__since-button[aria-pressed='true'] {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--text-on-dark);
-}
-@media (max-width: 767.98px) {
-  .why__since-label {
-    flex-basis: 100%;
-  }
-  .why__since-button {
-    min-height: var(--tap);
-    padding: 0 var(--space-4);
-  }
 }
 
 /* Figures ------------------------------------------------------------------- */
 .why__figures {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-end;
   gap: var(--space-4) var(--space-10);
-  padding: var(--space-5) 0;
-  border-top: 1px solid var(--line-strong);
-  border-bottom: var(--hairline);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-10);
 }
 .why__figures .bignumber__label {
   max-width: 28ch;
 }
 
 /* The chain ----------------------------------------------------------------- */
+.why__chain-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  margin-bottom: var(--space-3);
+}
 .why__chain-title {
-  font-size: var(--text-md);
+  font-size: var(--text-sm);
   font-weight: var(--weight-medium);
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 .why__baseline {
-  margin: var(--space-1) 0 var(--space-4);
   font-size: var(--text-sm);
   color: var(--text-muted);
-  max-width: var(--measure);
 }
 .why__chain {
   display: flex;
   flex-direction: column;
+  padding: var(--space-1) var(--space-5);
+  background: var(--plate);
+  border-radius: var(--radius-lg);
 }
 .why__entry {
   display: grid;
-  grid-template-columns: 2ch 5.5em 1fr auto;
-  column-gap: var(--space-3);
+  grid-template-columns: 2ch 5em minmax(0, 1fr) auto;
+  column-gap: var(--space-4);
   align-items: baseline;
-  padding: var(--space-3) 0;
-  border-bottom: var(--hairline);
+  padding: var(--space-4) 0;
+  border-top: var(--hairline);
+}
+.why__entry:first-child {
+  border-top: 0;
 }
 .why__n {
   color: var(--text-muted);
@@ -134,9 +124,6 @@
 .why__entry--cause .why__kind {
   color: var(--text);
   font-weight: var(--weight-medium);
-}
-.why__entry--finish {
-  border-bottom: 1px solid var(--line-strong);
 }
 .why__entry--finish .why__text {
   font-weight: var(--weight-medium);
@@ -157,6 +144,7 @@
   font-family: var(--font-display);
   font-weight: var(--weight-display);
   font-size: var(--text-xl);
+  line-height: var(--leading-tight);
   white-space: nowrap;
   color: var(--text-secondary);
 }
@@ -166,13 +154,40 @@
 .why__delta--ok {
   color: var(--ok-ink);
 }
+.why__empty {
+  padding: var(--space-4) 0;
+  color: var(--text-secondary);
+  max-width: var(--measure);
+}
+
 @media (max-width: 767.98px) {
+  .why {
+    padding-top: var(--space-4);
+  }
+  .why__head {
+    margin-bottom: var(--space-6);
+  }
+  .why__since {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .why__figures {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+    margin-bottom: var(--space-8);
+  }
+  .why__chain {
+    padding: var(--space-1) var(--space-4);
+  }
   .why__entry {
-    grid-template-columns: 2ch 1fr auto;
+    grid-template-columns: 2ch minmax(0, 1fr) auto;
     grid-template-areas:
       'n kind delta'
       'n text text';
+    column-gap: var(--space-3);
     row-gap: 2px;
+    padding: var(--space-3) 0;
   }
   .why__n {
     grid-area: n;
@@ -186,9 +201,4 @@
   .why__delta {
     grid-area: delta;
   }
-}
-.why__empty {
-  padding: var(--space-6) 0;
-  color: var(--text-secondary);
-  max-width: var(--measure);
 }

@@ -1,20 +1,27 @@
-/* Look-ahead: week headings on a rule, 56px rows that are links to the step. */
+/* Look-ahead: one plate per week, a display-face heading, 56px rows that are links to the step. */
+.lookahead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.lookahead__plate {
+  padding: var(--space-4) var(--space-4) var(--space-2);
+  background: var(--plate);
+  border-radius: var(--radius-lg);
+}
 .lookahead__week {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-top: var(--space-6);
   padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--concrete-200);
   font-family: var(--font-display);
   font-weight: var(--weight-display);
   font-size: var(--text-xl);
   line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
   color: var(--text);
-}
-.lookahead__week:first-child {
-  margin-top: 0;
 }
 .lookahead__range {
   font-family: var(--font-ui);
@@ -23,7 +30,7 @@
   color: var(--text-muted);
 }
 .lookahead__nothing {
-  padding: var(--space-3) 0;
+  padding: var(--space-2) 0 var(--space-3);
   color: var(--text-muted);
 }
 .lookahead__list li + li {
@@ -32,14 +39,16 @@
 .lookahead__row {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 2px;
   min-height: var(--tap);
   padding: var(--space-3) 0;
   color: var(--text);
   text-decoration: none;
+  transition: background var(--motion-fast) var(--ease);
 }
 .lookahead__row:active {
-  background: var(--concrete-100);
+  background: var(--raised);
 }
 .lookahead__top {
   display: flex;
@@ -48,14 +57,20 @@
   gap: var(--space-3);
 }
 .lookahead__name {
-  font-weight: var(--weight-bold);
-  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-md);
 }
 .lookahead__hold {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 4px;
   color: var(--text);
   font-weight: var(--weight-medium);
   font-size: var(--text-sm);
-  margin-right: 4px;
+}
+.lookahead__hold-glyph {
+  color: var(--text);
 }
 .lookahead__stage {
   flex-shrink: 0;
@@ -70,15 +85,18 @@
   color: var(--text-muted);
 }
 .lookahead__more {
-  margin-top: var(--space-2);
+  margin-top: var(--space-1);
 }
 .lookahead__summary {
   display: flex;
   align-items: center;
   min-height: var(--tap);
-  color: var(--link);
+  color: var(--text-secondary);
   font-weight: var(--weight-medium);
   cursor: pointer;
+}
+.lookahead__summary:hover {
+  color: var(--text);
 }
 /* Sentences on a wash wrap on a narrow phone; the mark stays on the first line. */
 .lookahead__line .status,

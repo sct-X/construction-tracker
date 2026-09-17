@@ -1,108 +1,99 @@
 /*
-  Notifications and activity: a site diary. Days are headings, rows are
-  time, who, words, with the time in tabular figures down a fixed column so
-  the eye can run down it. Unread rows are bold with the word "New"; nothing
-  here is red. Desktop: two columns side by side with a hairline between.
+  Notifications and activity: a quiet list and a timeline.
+
+  Days are muted titles; rows are the time in tabular figures down a fixed
+  column, then the words. An unread row is brighter and carries a dot with
+  the word "New" in its own column, never on top of the words. Activity runs
+  down a rail: a dot per entry on a hairline, who in the text colour, the
+  words in secondary, the job as a quiet link. Desktop: two columns on the
+  ground with a hairline between. Nothing here is red or orange.
 */
 .notifications__tabs {
-  display: flex;
-  margin: calc(-1 * var(--space-2)) 0 var(--space-5);
-  border-bottom: var(--hairline);
+  align-self: center;
 }
 .notifications__tab {
   flex: 1 1 0;
-  min-height: var(--tap);
-  border: 0;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-weight: var(--weight-medium);
-}
-.notifications__tab[aria-current='page'] {
-  color: var(--text);
-  font-weight: var(--weight-bold);
-  border-bottom-color: var(--text);
 }
 
 .notifications__pane-head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  flex-wrap: wrap;
+  min-height: 36px;
+  margin-bottom: var(--space-2);
 }
 .notifications__heading {
   display: flex;
   align-items: baseline;
-  gap: var(--space-3);
-  font-size: var(--text-lg);
-  font-weight: var(--weight-bold);
-  color: var(--text);
-  padding-bottom: var(--space-2);
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+}
+.notifications__pane > .notifications__heading {
+  align-items: center;
+  min-height: 36px;
+  margin-bottom: var(--space-2);
 }
 .notifications__count {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-regular);
   color: var(--text-muted);
 }
 .notifications__mark-all {
-  margin-bottom: var(--space-2);
+  margin-right: calc(-1 * var(--space-3));
 }
 .notifications__empty {
-  padding: var(--space-4) 0;
-  color: var(--text-muted);
-  border-top: 2px solid var(--concrete-200);
+  padding: var(--space-3) 0;
+  color: var(--text-secondary);
 }
 
-/* filters: buttons, pressed one filled steel */
+/* filters: chips on the raised tone, the pressed one filled steel */
 .notifications__filters {
   display: flex;
   gap: var(--space-2);
   overflow-x: auto;
   scrollbar-width: none;
-  margin: 0 calc(-1 * var(--gutter)) var(--space-3);
+  margin: 0 calc(-1 * var(--gutter)) var(--space-2);
   padding: 2px var(--gutter);
 }
 .notifications__filters::-webkit-scrollbar {
   display: none;
 }
+.notifications__filters + .notifications__days,
+.notifications__filters + .notifications__empty {
+  margin-top: var(--space-4);
+}
 .notifications__chip {
   flex: 0 0 auto;
   min-height: 44px;
   padding: 0 var(--space-3);
-  border: 1px solid var(--line-strong);
+  border: 0;
   border-radius: var(--radius-md);
-  background: var(--surface-raised);
+  background: var(--raised);
   color: var(--text-secondary);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   white-space: nowrap;
-  transition: background var(--motion-fast) var(--ease);
+  transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
 }
 .notifications__chip:hover {
-  background: var(--concrete-100);
+  background: var(--lifted);
+  color: var(--text);
 }
 .notifications__chip[aria-pressed='true'] {
   background: var(--steel-700);
-  border-color: var(--steel-700);
   color: var(--text-on-dark);
-  font-weight: var(--weight-bold);
 }
 
 /* days and rows */
-.notifications__days {
-  list-style: none;
-  border-top: 2px solid var(--concrete-200);
+.notifications__day + .notifications__day {
+  margin-top: var(--space-5);
 }
 .notifications__day-title {
-  padding: var(--space-3) 0 var(--space-1);
+  padding-bottom: var(--space-1);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--text-muted);
-}
-.notifications__rows {
-  list-style: none;
 }
 .notifications__row {
   display: grid;
@@ -119,14 +110,12 @@
   color: var(--text-secondary);
   text-decoration: none;
 }
-.notifications__row--activity {
-  color: var(--text);
-}
 a.notifications__row:hover .notifications__text {
   text-decoration: underline;
+  text-decoration-color: var(--line-strong);
 }
 a.notifications__row:active {
-  background: var(--concrete-100);
+  background: var(--plate);
 }
 .notifications__row--unread {
   color: var(--text);
@@ -136,37 +125,78 @@ a.notifications__row:active {
   grid-area: time;
   font-size: var(--text-sm);
   color: var(--text-muted);
+  font-weight: var(--weight-regular);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .notifications__who {
   grid-area: who;
-  font-weight: var(--weight-bold);
+  color: var(--text);
+  font-weight: var(--weight-medium);
 }
 .notifications__text {
   grid-area: text;
   line-height: var(--leading-body);
   max-width: var(--measure);
 }
-/* notification rows have no "who": one row, the New tag in its own column */
+/* notification rows have no "who": one row, New in its own column */
 .notifications__row:not(.notifications__row--activity) {
   grid-template-areas: 'time text new';
 }
 .notifications__new {
   grid-area: new;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   align-self: start;
-  padding: 1px var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--steel-700);
-  color: var(--text-on-dark);
   font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.notifications__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--text);
 }
 .notifications__job {
   display: block;
   margin-top: 2px;
   font-size: var(--text-sm);
   color: var(--text-muted);
+  text-decoration-color: var(--line);
+}
+
+/* the activity rail: a hairline down the left with a dot per entry */
+.notifications__rows--timeline {
+  position: relative;
+  padding-left: var(--space-5);
+}
+.notifications__rows--timeline::before {
+  content: '';
+  position: absolute;
+  top: var(--space-2);
+  bottom: var(--space-2);
+  left: 3px;
+  width: 1px;
+  background: var(--line-strong);
+}
+.notifications__rows--timeline .notifications__row {
+  position: relative;
+  border-top: 0;
+  padding: var(--space-2) 0 var(--space-3);
+  min-height: 0;
+}
+.notifications__rows--timeline .notifications__row::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--space-5));
+  top: calc(var(--space-2) + 0.45em);
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--text-muted);
 }
 
 /* desktop: two columns */
@@ -187,11 +217,11 @@ a.notifications__row:active {
   .notifications__filters {
     flex-wrap: wrap;
     overflow: visible;
-    margin: 0 0 var(--space-3);
+    margin: 0 0 var(--space-2);
     padding: 0;
   }
   .notifications__chip {
-    min-height: 36px;
+    min-height: 34px;
   }
   .notifications__row {
     min-height: 0;

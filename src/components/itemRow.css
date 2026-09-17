@@ -99,6 +99,9 @@
   .itemrow__side {
     grid-column: 3;
     justify-content: flex-end;
-    max-width: 15em;
+  }
+  /* the date phrase stays on one line; the title column yields instead */
+  .itemrow__when {
+    white-space: nowrap;
   }
 }

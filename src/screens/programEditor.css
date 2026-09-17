@@ -1,14 +1,13 @@
 /*
   Program editor.
 
-  Layout concept: the chart is the workbench. A row of numbered stage chips
-  runs above it (the order is the sequence, so the number means something),
-  the Gantt fills the left, and the form for whatever is picked sits in a
-  sticky panel on the right. Under it all, a dark steel footer like a site
-  sign keeps the forecast finish in view, before and after, with Save in
-  hi-vis: the one place on the screen a hand should land. Everything else is
-  hairlines and the surface tone. The picked bar gets a hi-vis ring on the
-  chart, the only other orange on the page.
+  The chart is the workbench and the one calm panel beside it is the form
+  for whatever is picked. A row of numbered stage chips runs above the chart
+  (the order is the sequence, so the number means something). Under it all,
+  a footer on a lifted plate keeps the forecast finish in view as a readout,
+  now and after these edits, with Save in hi-vis: the one place on the
+  screen a hand should land. The picked bar gets a hi-vis ring on the chart,
+  the only other orange on the page.
 */
 .editor__offline {
   margin-bottom: var(--space-4);
@@ -33,20 +32,20 @@
   gap: var(--space-2);
   min-height: var(--control);
   padding: 0 var(--space-3) 0 var(--space-2);
-  border: 1px solid var(--line-strong);
+  border: 0;
   border-radius: var(--radius-md);
-  background: var(--surface-raised);
-  color: var(--text);
+  background: var(--plate);
+  color: var(--text-secondary);
   font-weight: var(--weight-medium);
-  transition: background var(--motion-fast) var(--ease);
+  transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
 }
 .editor__stage:hover {
-  background: var(--concrete-100);
+  background: var(--raised);
+  color: var(--text);
 }
 .editor__stage[aria-pressed='true'] {
   background: var(--steel-700);
-  border-color: var(--steel-700);
-  color: var(--text-on-dark);
+  color: var(--text);
 }
 .editor__stage-n {
   display: inline-flex;
@@ -56,31 +55,30 @@
   height: 22px;
   padding: 0 4px;
   border-radius: var(--radius-sm);
-  background: var(--concrete-100);
+  background: var(--raised);
   color: var(--text-secondary);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-sm);
 }
 .editor__stage[aria-pressed='true'] .editor__stage-n {
   background: var(--steel-500);
-  color: var(--text-on-dark);
+  color: var(--text);
 }
 .editor__stage--add {
-  border-style: dashed;
-  color: var(--text-secondary);
+  background: transparent;
   padding-left: var(--space-3);
 }
 .editor__stage--add:disabled {
   color: var(--text-muted);
   cursor: default;
-  background: var(--surface-raised);
+  background: transparent;
 }
 
 /* ---- chart and panel ---- */
-/* Under 1400px the chart takes the full width (the label column is 292px, so
-   the timeline needs the room) and the panel sits under it; the page scrolls
-   and the finish footer stays pinned. From 1400px the panel moves beside the
-   chart. Nothing is capped but the chart's own scroll box. */
+/* Under 1400px the chart takes the full width and the panel sits under it;
+   the page scrolls and the finish footer stays pinned. From 1400px the panel
+   moves beside the chart. Nothing is capped but the chart's own scroll box. */
 .editor__cols {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -94,12 +92,10 @@
   min-width: 0;
 }
 .editor__panel {
-  /* a form, not a banner: under the chart it keeps a form's width */
-  max-width: 680px;
+  max-width: 680px; /* a form, not a banner: under the chart it keeps a form's width */
   padding: var(--space-5);
-  border: var(--hairline);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
+  border-radius: var(--radius-md);
+  background: var(--plate);
   scroll-margin-top: var(--space-4);
 }
 @media (min-width: 1400px) {
@@ -129,14 +125,13 @@
 .editor__tree {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-6);
 }
 .editor__tree-title {
+  margin-bottom: var(--space-2);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--text-muted);
-  padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--concrete-200);
 }
 .editor__tree-list {
   display: flex;
@@ -151,6 +146,7 @@
   padding: 0 var(--space-3);
   border: 0;
   border-top: var(--hairline);
+  border-radius: 0;
   background: none;
   color: var(--text);
   text-align: left;
@@ -160,11 +156,14 @@
   border-top: 0;
 }
 .editor__tree-step:hover {
-  background: var(--concrete-100);
+  background: var(--plate);
 }
 .editor__tree-step[aria-pressed='true'] {
-  background: var(--steel-100);
-  box-shadow: inset 3px 0 0 var(--hivis);
+  background: var(--steel-700);
+  border-radius: var(--radius-sm);
+}
+.editor__tree-step:focus-visible {
+  box-shadow: inset var(--focus-ring);
 }
 .editor__tree-hold {
   color: var(--text-muted);
@@ -175,10 +174,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ---- the footer: finish before and after, Save ---- */
+/* ---- the footer: the finish readout, Save ---- */
 .editor__foot {
   position: sticky;
-  bottom: 0;
+  bottom: var(--space-3);
   z-index: 3;
   display: flex;
   flex-wrap: wrap;
@@ -188,42 +187,28 @@
   margin-top: var(--space-6);
   padding: var(--space-3) var(--space-5);
   border-radius: var(--radius-md);
-  background: var(--steel-700);
-  color: var(--text-on-dark);
+  background: var(--lifted);
+  box-shadow: var(--shadow-float);
 }
 .editor__finish {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2) var(--space-3);
+  align-items: flex-end;
+  gap: var(--space-2) var(--space-6);
   min-height: var(--control);
 }
-.editor__finish-label {
-  font-size: var(--text-sm);
-  color: var(--steel-200);
-}
-.editor .editor__finish-date {
-  font-size: var(--text-xl);
-  color: var(--text-on-dark);
-}
-.editor .editor__finish-date--was {
-  color: var(--steel-200);
+.editor__finish-was .bignumber__value {
   text-decoration: line-through;
   text-decoration-thickness: 2px;
-  text-decoration-color: var(--steel-500);
-}
-.editor__finish-arrow {
-  font-size: var(--text-xl);
-  color: var(--steel-200);
+  text-decoration-color: var(--line-strong);
 }
 .editor__finish-note {
-  color: var(--steel-200);
+  color: var(--text-secondary);
+  margin-bottom: 20px; /* beside the figures, above their labels */
 }
-/* On the dark bar the words carry the meaning ("+7 days, $4,500"); the semantic inks are for light washes. */
 .editor__finish-note .sliptext,
 .editor__finish-note .money {
-  color: var(--text-on-dark);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-medium);
 }
 .editor__foot-actions {
   display: flex;
@@ -232,23 +217,11 @@
 }
 .editor__changes {
   font-size: var(--text-sm);
-  color: var(--steel-200);
-}
-.editor__cancel {
-  background: transparent;
-  border-color: var(--steel-500);
-  color: var(--text-on-dark);
-}
-.editor__cancel:hover {
-  background: var(--steel-900);
+  color: var(--text-muted);
 }
 .editor__cancel:disabled,
 .editor__foot .btn--primary:disabled {
-  opacity: 0.55;
   cursor: default;
-}
-.editor__foot .btn--primary:disabled:hover {
-  filter: none;
 }
 
 /* ---- phone ---- */

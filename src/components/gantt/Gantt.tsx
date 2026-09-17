@@ -1,11 +1,12 @@
 /**
  * The desktop program: rows grouped by stage, one bar per step, laid over a
- * calendar-day axis (timeScale.ts). The forecast bar is solid steel; where the
- * step was planned stays behind it as a timber outline, so slip is visible
- * without reading a date. Late steps say so in words beside the bar. Hold
- * points are a diamond plus the words "hold point". Step links are drawn as
- * thin elbows and named ("waits for X") on hover and focus. Nothing drags;
- * a bar is a link to the step.
+ * calendar-day axis (timeScale.ts). The chart is a dark instrument face: the
+ * forecast bar is light steel, where the step was planned stays behind it as
+ * a thin timber ghost, so slip is visible without reading a date. Late steps
+ * say so in words beside the bar. Hold points are a diamond plus the words
+ * "hold point". Step links are drawn as thin elbows and named ("Waits for X")
+ * in the caption on hover and focus. Nothing drags; a bar is a link to the
+ * step.
  *
  * Only the chart scrolls sideways: the label column and the axis stay put.
  */
@@ -67,7 +68,17 @@ interface StageRow {
 }
 type Row = StepRow | StageRow;
 
-const LABEL_W = 292;
+const LABEL_W = 248;
+const LABEL_W_DENSE = 164;
+
+/** The hold-point mark: a drawn diamond, one stroke weight with the rest of the app's icons. */
+export function HoldDiamond({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+      <path d="M6 1 11 6 6 11 1 6Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 export function lateText(days: number): string {
   return `${days} day${days === 1 ? '' : 's'} late`;
@@ -130,20 +141,30 @@ export function Gantt({ forecast, steps, today, view = 'all', dense, onSelectSte
   const [active, setActive] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
 
-  // Open with today a quarter of the way in, so this week and the look-ahead are in view.
-  // Runs when the chart (re)appears and when the view changes: an empty "Late
-  // only" unmounts the scroller, so a mount-only effect would leave the next
-  // view at scrollLeft 0. The person's own scrolling wins in between.
+  // Open with today a quarter of the way in, so this week and the look-ahead
+  // are in view, and scrolled down to the stage that is running, so the first
+  // viewport shows the work rather than the rows that are done. Runs when the
+  // chart (re)appears and when the view changes: an empty "Late only" unmounts
+  // the scroller, so a mount-only effect would leave the next view at
+  // scrollLeft 0. The person's own scrolling wins in between.
   const empty = rows.length === 0;
+  const labelW = dense ? LABEL_W_DENSE : LABEL_W;
+  const rowH = dense ? 44 : 36;
+  const firstLive = rows.findIndex((r) => r.kind === 'step' && r.step.forecastEnd >= today);
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    const visible = el.clientWidth - LABEL_W;
+    const visible = el.clientWidth - labelW;
     el.scrollLeft = Math.max(0, scale.x(today) - Math.round(visible / 4));
+    if (firstLive > 0) {
+      // Start at the stage row above the first step still to finish.
+      let top = firstLive;
+      while (top > 0 && rows[top].kind !== 'stage') top -= 1;
+      el.scrollTop = Math.max(0, top * rowH);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empty, view]);
 
-  const rowH = dense ? 44 : 36;
   const bodyH = rows.length * rowH;
 
   // Elbows from the end of every "waits for" step to the start of the waiting one.
@@ -174,15 +195,15 @@ export function Gantt({ forecast, steps, today, view = 'all', dense, onSelectSte
   if (empty) {
     return (
       <div className="gantt gantt--empty" data-testid="gantt">
-        <p data-testid="gantt-empty">{view === 'late' ? 'Nothing is late. Every step is on its planned dates.' : 'Nothing runs in the next three weeks.'}</p>
+        <p data-testid="gantt-empty">{view === 'late' ? 'Nothing is late.' : 'Nothing in the next three weeks.'}</p>
       </div>
     );
   }
 
   return (
-    <figure className="gantt" data-testid="gantt" data-view={view} style={{ '--gantt-row': `${rowH}px`, '--gantt-label': `${LABEL_W}px` } as CSSProperties}>
+    <figure className={dense ? 'gantt gantt--dense' : 'gantt'} data-testid="gantt" data-view={view} style={{ '--gantt-row': `${rowH}px`, '--gantt-label': `${labelW}px` } as CSSProperties}>
       <div className="gantt__scroll" ref={scroller}>
-        <div className="gantt__inner" style={{ width: LABEL_W + scale.width }}>
+        <div className="gantt__inner" style={{ width: labelW + scale.width }}>
           <div className="gantt__head">
             <div className="gantt__corner" />
             <div className="gantt__axis" style={{ width: scale.width }}>
@@ -208,7 +229,7 @@ export function Gantt({ forecast, steps, today, view = 'all', dense, onSelectSte
           </div>
 
           <div className="gantt__body" style={{ height: bodyH }}>
-            <div className="gantt__under" style={{ left: LABEL_W, width: scale.width }} aria-hidden="true">
+            <div className="gantt__under" style={{ left: labelW, width: scale.width }} aria-hidden="true">
               {scale.weeks.map((w) => (
                 <span key={w.date} className="gantt__gridline" style={{ left: w.x }} />
               ))}
@@ -238,13 +259,13 @@ export function Gantt({ forecast, steps, today, view = 'all', dense, onSelectSte
               ),
             )}
 
-            <svg className="gantt__links" style={{ left: LABEL_W, width: scale.width, height: bodyH }} aria-hidden="true">
+            <svg className="gantt__links" style={{ left: labelW, width: scale.width, height: bodyH }} aria-hidden="true">
               {links.map((l) => (
                 <path key={l.key} d={l.d} className={active && (l.from === active || l.to === active) ? 'gantt__link gantt__link--active' : 'gantt__link'} />
               ))}
             </svg>
 
-            <span className="gantt__today" style={{ left: LABEL_W + todayX }} data-testid="gantt-today" aria-hidden="true" />
+            <span className="gantt__today" style={{ left: labelW + todayX }} data-testid="gantt-today" aria-hidden="true" />
           </div>
         </div>
       </div>
@@ -255,12 +276,24 @@ export function Gantt({ forecast, steps, today, view = 'all', dense, onSelectSte
             <strong>{activeStep.name}.</strong> {stepSentence(activeStep, names)}
           </>
         ) : (
-          <>
-            <span className="gantt__key gantt__key--bar" aria-hidden="true" /> forecast
-            <span className="gantt__key gantt__key--planned" aria-hidden="true" /> where it was planned
-            <span className="gantt__key gantt__key--hold" aria-hidden="true" /> hold point
-            <span className="gantt__key gantt__key--today" aria-hidden="true" /> today. Point at a bar to see what it waits for.
-          </>
+          <span className="gantt__legend">
+            <span className="gantt__legend-item">
+              <span className="gantt__key gantt__key--bar" aria-hidden="true" />
+              Forecast
+            </span>
+            <span className="gantt__legend-item">
+              <span className="gantt__key gantt__key--planned" aria-hidden="true" />
+              Planned
+            </span>
+            <span className="gantt__legend-item">
+              <HoldDiamond className="gantt__key gantt__key--hold" />
+              Hold point
+            </span>
+            <span className="gantt__legend-item">
+              <span className="gantt__key gantt__key--today" aria-hidden="true" />
+              Today
+            </span>
+          </span>
         )}
       </figcaption>
     </figure>
@@ -333,11 +366,7 @@ function StepBarRow({
   return (
     <div className={rowCls} style={{ top }} data-testid={`gantt-row-${step.stepId}`}>
       <div className="gantt__label">
-        {hold && (
-          <span className="gantt__hold-glyph" aria-hidden="true">
-            ◇
-          </span>
-        )}
+        {hold && <HoldDiamond className="gantt__hold-glyph" />}
         <span className={row.isStageBar ? 'gantt__stage-name' : 'gantt__step-name'}>
           {row.label}
           {hold && <span className="gantt__hold-word">hold point</span>}

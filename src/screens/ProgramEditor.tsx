@@ -28,6 +28,7 @@ import { StageForm } from '../components/editor/StageForm';
 import { StepForm } from '../components/editor/StepForm';
 import { applyProgramDraft, diffProgram, draftId, isDraftId, makeStage, makeStep, readProgram, withPlannedEnd } from '../components/editor/programDraft';
 import { Gantt } from '../components/gantt/Gantt';
+import { BigNumber } from '../components/BigNumber';
 import { SlipText } from '../components/SlipText';
 import { PageHeader } from '../shell/PageHeader';
 import { useLayout } from '../shell/AppShell';
@@ -78,13 +79,12 @@ export default function ProgramEditor() {
   if (layout === 'phone') {
     return (
       <main className="page editor editor--phone" data-testid="editor" data-layout="phone">
-        <PageHeader title={job.name} meta="Program editor" back={{ to: `/jobs/${job.id}/program`, label: `Back to the program` }} />
+        <PageHeader title={job.name} meta="Program editor" back={{ to: `/jobs/${job.id}/program`, label: 'Program' }} />
         <p className="page__lede" data-testid="editor-phone">
-          Edit the program on a desktop. On a phone you can{' '}
+          Edit the program on a desktop.{' '}
           <Link to={`/jobs/${job.id}/program`} data-testid="editor-program-link">
-            read the program
-          </Link>{' '}
-          but not change it: the chart needs the room, and the finish date deserves a proper look before it moves.
+            Read the program
+          </Link>
         </p>
       </main>
     );
@@ -228,12 +228,12 @@ export default function ProgramEditor() {
       <PageHeader
         title={job.name}
         meta={job.isTemplate ? 'Template editor' : design ? 'Checklist editor' : 'Program editor'}
-        back={{ to: job.isTemplate ? '/templates' : `/jobs/${job.id}/program`, label: job.isTemplate ? 'Back to templates' : 'Back to the program' }}
+        back={{ to: job.isTemplate ? '/templates' : `/jobs/${job.id}/program`, label: job.isTemplate ? 'Templates' : 'Program' }}
       />
 
       {offline && (
         <p className="editor__offline" data-testid="editor-offline">
-          No signal: the editor is read-only until you're back in range. Changing dates blind would surprise whoever else is looking.
+          No signal. Read-only until it returns.
         </p>
       )}
 
@@ -252,7 +252,7 @@ export default function ProgramEditor() {
           </button>
         ))}
         <button type="button" className="editor__stage editor__stage--add" disabled={disabled} data-testid="editor-add-stage" onClick={addStage}>
-          Add a stage
+          Add stage
         </button>
       </div>
 
@@ -321,15 +321,8 @@ export default function ProgramEditor() {
             />
           ) : (
             <div className="ed" data-testid="editor-panel" data-kind="none">
-              <h2 className="ed__title">Nothing picked yet</h2>
-              <p className="editor__help">
-                {design
-                  ? 'Pick a stage above to rename it, move it or delete it. Add a stage at the end of the row.'
-                  : job.isTemplate
-                    ? 'Pick a step from the list to change its length, what it waits for and what it needs, or a stage above to add a step or set its photo sets.'
-                    : 'Pick a bar on the chart to change its length, dates, what it waits for and what it needs, or a stage above to add a step or set its photo sets.'}
-              </p>
-              {!design && <p className="editor__help">The chart redraws as you go. Nothing is saved until you press Save.</p>}
+              <h2 className="ed__title">Nothing picked</h2>
+              <p className="editor__help">{design ? 'Pick a stage above.' : job.isTemplate ? 'Pick a step from the list, or a stage above.' : 'Pick a bar on the chart, or a stage above.'}</p>
             </div>
           )}
         </aside>
@@ -338,30 +331,19 @@ export default function ProgramEditor() {
       <footer className="editor__foot" data-testid="editor-foot">
         <div className="editor__finish" data-testid="editor-preview-finish" aria-live="polite">
           {preview && finishBefore && finishAfter ? (
-            <>
-              <span className="editor__finish-label">Finish</span>
-              {delta === 0 ? (
-                <>
-                  <span className="editor__finish-date display">{formatLong(finishAfter)}</span>
-                  <span className="editor__finish-note">{dirty ? 'unchanged by these edits' : 'as saved'}</span>
-                </>
-              ) : (
-                <>
-                  <span className="editor__finish-date editor__finish-date--was display">{formatLong(finishBefore)}</span>
-                  <span className="editor__finish-arrow" aria-label="to">
-                    →
-                  </span>
-                  <span className="editor__finish-date display">{formatLong(finishAfter)}</span>
-                  <span className="editor__finish-note">
-                    <SlipText days={delta} cost={preview.costDelta} testId="editor-preview-slip" />
-                  </span>
-                </>
-              )}
-            </>
+            delta === 0 ? (
+              <BigNumber size="row" value={formatLong(finishAfter)} label={dirty ? 'Finish, unchanged' : 'Finish'} />
+            ) : (
+              <>
+                <BigNumber size="row" value={formatLong(finishBefore)} label="Finish now" tone="muted" className="editor__finish-was" />
+                <BigNumber size="row" value={formatLong(finishAfter)} label="After these edits" tone={delta > 0 ? 'late' : 'ok'} />
+                <span className="editor__finish-note">
+                  <SlipText days={delta} cost={preview.costDelta} testId="editor-preview-slip" />
+                </span>
+              </>
+            )
           ) : (
-            <span className="editor__finish-note">
-              {design ? 'A design job has no finish to forecast: its stages are a checklist.' : 'Templates carry no dates, so there is no finish to preview.'}
-            </span>
+            <span className="editor__finish-note">{design ? 'A design job has no finish to forecast.' : 'No dates on a template.'}</span>
           )}
         </div>
         <div className="editor__foot-actions">

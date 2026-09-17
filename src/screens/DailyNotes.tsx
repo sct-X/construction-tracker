@@ -14,7 +14,6 @@ import { Link, useParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { DailyNote } from '../domain/types';
 import { addCalendarDays, agoWords, formatShort, formatWeekRange, lastMonday } from '../domain/dates';
-import { dateInWords } from './AlecToday';
 import { NoteEntry, weatherLabel, type NoteDraft } from '../components/NoteEntry';
 import { ClockGlyph, noSignal } from '../components/QueueBadge';
 import { useLayout } from '../shell/AppShell';
@@ -132,10 +131,10 @@ export default function DailyNotes() {
     saved.queued ? (
       <span className="notes__queued" data-testid="note-queued">
         <ClockGlyph />
-        Saved on this phone, waiting to send. It goes when you're back in range.
+        Saved on this phone, waiting to send.
       </span>
     ) : (
-      <span data-testid="note-saved">Saved{saved.id === savedId ? '' : ` ${agoWords(saved.date, today)}`}. You can change it until the end of the day.</span>
+      <span data-testid="note-saved">Saved{saved.id === savedId ? '' : ` ${agoWords(saved.date, today)}`}.</span>
     )
   ) : undefined;
 
@@ -151,7 +150,6 @@ export default function DailyNotes() {
       photoHref={photoHref}
       onSave={save}
       status={status}
-      heading={layout === 'phone'}
     />
   ) : null;
 
@@ -208,7 +206,7 @@ export default function DailyNotes() {
             No notes yet. One line a day is plenty.
           </p>
         ) : (
-          <table className="notes__table">
+          <table className="table notes__table">
             <thead>
               <tr>
                 <th scope="col">Day</th>
@@ -278,9 +276,6 @@ export default function DailyNotes() {
           {list}
           {entry && (
             <aside className="notes__panel" aria-label="Today" data-testid="note-today">
-              <h2 className="notes__panel-title">
-                Today, <span className="display">{dateInWords(today)}</span>
-              </h2>
               {entry}
             </aside>
           )}

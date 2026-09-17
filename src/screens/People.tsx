@@ -19,10 +19,10 @@ import './people.css';
 export const ROLES: Role[] = ['admin', 'partner', 'builder', 'site'];
 
 export const ROLE_WORDS: Record<Role, string> = {
-  admin: 'Sets up jobs, trades and people. Sees everything.',
-  partner: 'The Monday screen, the money and every job.',
-  builder: 'His own items, the programs, photos and notes. Sees money.',
-  site: 'Today, photos and deliveries for one job. Never sees prices: the data sent to a site phone has no money in it.',
+  admin: 'Setup and everything else.',
+  partner: 'Monday, the money, every job.',
+  builder: 'Own items, programs, photos, notes. Sees money.',
+  site: 'Today, photos and deliveries for one job. Never sees prices.',
 };
 
 /** Screen 19's three ticks, in words, for the people list. */
@@ -38,9 +38,7 @@ export function setupWords(p: Person): string {
 /** Why a change is refused, or null when it is allowed. The acting admin can never take admin off themselves. */
 export function roleChangeRefusal(actingPersonId: string, target: Person, current: Role | undefined, next: Role | null): string | null {
   if (target.id !== actingPersonId || current !== 'admin' || next === 'admin') return null;
-  return next === null
-    ? `You can't remove yourself from this side while you're its admin. Ask another admin to do it.`
-    : `You can't take admin off yourself. Make someone else admin first, then they can change your role.`;
+  return next === null ? `You can't remove yourself while you're this side's admin. Ask another admin.` : `You can't take admin off yourself. Make someone else admin first.`;
 }
 
 export default function People() {
@@ -74,7 +72,7 @@ export default function People() {
       <PageHeader title="People and roles" meta={`${count} on ${side.name}`} actions={addButton} />
       {offline && (
         <p className="people__offline" data-testid="people-offline">
-          Needs signal. Roles and people can be read here, but changing them waits until you are back in range.
+          Needs signal. Changes wait until it returns.
         </p>
       )}
       {adding && (
@@ -100,9 +98,7 @@ export default function People() {
       ) : (
         <PeopleCards people={people} roleOf={roleOf} setRole={setRole} sideName={side.name} disabled={offline} />
       )}
-      {sides.length > 1 && (
-        <p className="people__note">Roles are per side. Switch side at the top to set who does what on {sides.filter((s) => s.id !== side.id).map((s) => s.name).join(' and ')}.</p>
-      )}
+      {sides.length > 1 && <p className="people__note">Roles are per side. Switch side at the top for {sides.filter((s) => s.id !== side.id).map((s) => s.name).join(' and ')}.</p>}
       <section className="people__roles" aria-labelledby="people-roles-title">
         <h2 id="people-roles-title" className="people__roles-title">
           What each role sees
@@ -131,9 +127,9 @@ interface ListProps {
 
 function RoleButtons({ person, role, setRole, disabled }: { person: Person; role: Role | undefined; setRole: ListProps['setRole']; disabled: boolean }) {
   return (
-    <div className="people__picker" role="group" aria-label={`${person.shortName}'s role`}>
+    <div className="seg people__picker" role="group" aria-label={`${person.shortName}'s role`}>
       {ROLES.map((r) => (
-        <button key={r} type="button" className="people__pick" aria-pressed={role === r} disabled={disabled} data-testid={`person-role-${person.id}-${r}`} onClick={() => setRole(person, r)}>
+        <button key={r} type="button" className="seg__btn people__pick" aria-pressed={role === r} disabled={disabled} data-testid={`person-role-${person.id}-${r}`} onClick={() => setRole(person, r)}>
           {ROLE_LABELS[r]}
         </button>
       ))}
@@ -143,15 +139,22 @@ function RoleButtons({ person, role, setRole, disabled }: { person: Person; role
 
 function RemoveButton({ person, setRole, sideName, disabled }: { person: Person; setRole: ListProps['setRole']; sideName: string; disabled: boolean }) {
   return (
-    <button type="button" className="people__remove" data-testid={`person-remove-${person.id}`} disabled={disabled} onClick={() => setRole(person, null)}>
-      {disabled ? 'Needs signal' : `Remove from ${sideName}`}
+    <button
+      type="button"
+      className="btn btn--ghost btn--small people__remove"
+      data-testid={`person-remove-${person.id}`}
+      disabled={disabled}
+      aria-label={disabled ? 'Needs signal' : `Remove ${person.shortName} from ${sideName}`}
+      onClick={() => setRole(person, null)}
+    >
+      {disabled ? 'Needs signal' : 'Remove'}
     </button>
   );
 }
 
 function PeopleTable({ people, roleOf, setRole, sideName, disabled }: ListProps) {
   return (
-    <table className="people__table">
+    <table className="table people__table">
       <thead>
         <tr>
           <th scope="col">Person</th>
@@ -231,7 +234,7 @@ function AddPerson({ onDone }: { onDone: (words: string) => void }) {
     });
     api.setMembership(person.id, sideId, role);
     const sideName = sides.find((s) => s.id === sideId)?.name ?? sideId;
-    onDone(sideId === side.id ? `Added ${person.shortName} as ${ROLE_LABELS[role].toLowerCase()} on ${sideName}.` : `Added ${person.shortName} as ${ROLE_LABELS[role].toLowerCase()} on ${sideName}. Switch side at the top to see them there.`);
+    onDone(`Added ${person.shortName} as ${ROLE_LABELS[role].toLowerCase()} on ${sideName}.${sideId === side.id ? '' : ' Switch side at the top to see them.'}`);
   }
 
   return (
@@ -239,19 +242,19 @@ function AddPerson({ onDone }: { onDone: (words: string) => void }) {
       <h2 className="people__form-title">New person</h2>
       <div className="people__field">
         <label htmlFor="person-add-name">Name</label>
-        <input id="person-add-name" className="people__input" value={name} data-testid="person-add-name" onChange={(e) => setName(e.target.value)} placeholder="Jo Nguyen" />
+        <input id="person-add-name" className="input input--desktop people__input" value={name} data-testid="person-add-name" onChange={(e) => setName(e.target.value)} placeholder="Jo Nguyen" />
       </div>
       <div className="people__field">
-        <label htmlFor="person-add-phone">Phone (optional)</label>
-        <input id="person-add-phone" className="people__input" type="tel" inputMode="tel" value={phone} data-testid="person-add-phone" onChange={(e) => setPhone(e.target.value)} placeholder="0400 000 000" />
+        <label htmlFor="person-add-phone">Phone</label>
+        <input id="person-add-phone" className="input input--desktop people__input" type="tel" inputMode="tel" value={phone} data-testid="person-add-phone" onChange={(e) => setPhone(e.target.value)} placeholder="0400 000 000" />
       </div>
       <div className="people__field">
         <span className="people__field-label" id="person-add-role-label">
           Role
         </span>
-        <div className="people__picker" role="group" aria-labelledby="person-add-role-label">
+        <div className="seg people__picker" role="group" aria-labelledby="person-add-role-label">
           {ROLES.map((r) => (
-            <button key={r} type="button" className="people__pick" aria-pressed={r === role} data-testid={`person-add-role-${r}`} onClick={() => setRole(r)}>
+            <button key={r} type="button" className="seg__btn people__pick" aria-pressed={r === role} data-testid={`person-add-role-${r}`} onClick={() => setRole(r)}>
               {ROLE_LABELS[r]}
             </button>
           ))}
@@ -263,9 +266,9 @@ function AddPerson({ onDone }: { onDone: (words: string) => void }) {
           <span className="people__field-label" id="person-add-side-label">
             Side
           </span>
-          <div className="people__picker" role="group" aria-labelledby="person-add-side-label">
+          <div className="seg people__picker" role="group" aria-labelledby="person-add-side-label">
             {sides.map((s) => (
-              <button key={s.id} type="button" className="people__pick" aria-pressed={s.id === sideId} data-testid={`person-add-side-${s.id}`} onClick={() => setSideId(s.id)}>
+              <button key={s.id} type="button" className="seg__btn people__pick" aria-pressed={s.id === sideId} data-testid={`person-add-side-${s.id}`} onClick={() => setSideId(s.id)}>
                 {s.name}
               </button>
             ))}

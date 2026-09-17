@@ -264,16 +264,7 @@ export default function PhotoUpload() {
 
   return (
     <main className="page upload" data-testid="photo-upload">
-      <PageHeader
-        title="Upload photos"
-        meta={stage ? `${stage.name} stage${stage.id === currentStageId ? ' now' : ''}` : undefined}
-        back={{ to: jobHref, label: returnTo?.startsWith('/steps/') ? 'Back to the step' : returnTo?.includes('/notes') ? 'Back to the notes' : job.name }}
-        actions={
-          <Link to="/jobs" className="upload__change-job">
-            Different job
-          </Link>
-        }
-      />
+      <PageHeader title="Upload photos" back={{ to: jobHref, label: returnTo?.startsWith('/steps/') ? 'Back to the step' : returnTo?.includes('/notes') ? 'Back to the notes' : job.name }} />
 
       <section className="upload__block" aria-labelledby="upload-stage-h">
         <h2 id="upload-stage-h" className="upload__label">
@@ -307,7 +298,7 @@ export default function PhotoUpload() {
         </h2>
         {stageCategories.own.length === 0 && (
           <p className="upload__quiet" data-testid="upload-no-categories">
-            Dominic hasn't set up photo categories for {stage?.name ?? 'this stage'} yet. File these under General for now.
+            Dominic hasn't set up photo categories for {stage?.name ?? 'this stage'} yet. Use General.
           </p>
         )}
         <CategoryPicker
@@ -320,10 +311,7 @@ export default function PhotoUpload() {
         />
       </section>
 
-      <section className="upload__block" aria-labelledby="upload-photos-h">
-        <h2 id="upload-photos-h" className="upload__label">
-          Photos
-        </h2>
+      <section className={phase === 'held' || phase === 'sent' ? 'upload__block upload__block--empty' : 'upload__block'} aria-label="Photos">
         <input
           ref={rollInput}
           type="file"
@@ -348,16 +336,18 @@ export default function PhotoUpload() {
             tabIndex={-1}
           />
         )}
-        <div className="upload__choose">
-          <button type="button" className="btn upload__choose-btn" onClick={() => rollInput.current?.click()} data-testid="upload-choose">
-            {layout === 'phone' ? 'Choose from camera roll' : 'Choose photos'}
-          </button>
-          {layout === 'phone' && (
-            <button type="button" className="btn upload__choose-btn" onClick={() => cameraInput.current?.click()} data-testid="upload-take">
-              Take a photo
+        {phase !== 'held' && phase !== 'sent' && (
+          <div className="upload__choose">
+            <button type="button" className="btn upload__choose-btn" onClick={() => rollInput.current?.click()} data-testid="upload-choose">
+              {layout === 'phone' ? 'Choose from camera roll' : 'Choose photos'}
             </button>
-          )}
-        </div>
+            {layout === 'phone' && (
+              <button type="button" className="btn upload__choose-btn" onClick={() => cameraInput.current?.click()} data-testid="upload-take">
+                Take a photo
+              </button>
+            )}
+          </div>
+        )}
 
         {n > 0 && (
           <ul className="upload__grid" aria-label={`${plural(n, 'photo')} chosen`} data-testid="upload-previews">
@@ -377,7 +367,7 @@ export default function PhotoUpload() {
       <section className="upload__send" aria-live="polite">
         {problem && (
           <p className="upload__problem" role="alert" data-testid="upload-problem">
-            {problem} Your photos are still here. Try again.
+            {problem} Your photos are still here.
           </p>
         )}
 
@@ -393,7 +383,7 @@ export default function PhotoUpload() {
               Sending <span className="display upload__figure">{Math.min(sentCount + 1, batchSize)}</span> of {batchSize}
             </p>
             <div className="upload__bar" aria-hidden="true">
-              <div className="upload__bar-fill" style={{ width: `${batchSize ? (sentCount / batchSize) * 100 : 0}%` }} />
+              <div className="upload__bar-fill" style={{ transform: `scaleX(${batchSize ? sentCount / batchSize : 0})` }} />
             </div>
           </div>
         )}
@@ -409,7 +399,7 @@ export default function PhotoUpload() {
 
         {showFailed && (
           <p className="upload__problem" role="alert" data-testid="upload-failed">
-            {plural(batchFailed, 'photo')} didn't send. <Link to="/queue">Open the upload queue</Link> to retry or remove them.
+            {plural(batchFailed, 'photo')} didn't send. <Link to="/queue">Retry from the queue</Link>.
           </p>
         )}
 
@@ -427,7 +417,6 @@ export default function PhotoUpload() {
               </p>
             )}
             {phase === 'pick' && n > 0 && !category && <p className="upload__hint">Pick a category first.</p>}
-            {phase === 'pick' && n === 0 && <p className="upload__hint">Choose the photos to upload.</p>}
             <button type="button" className="btn btn--primary upload__submit" onClick={() => void upload()} disabled={!canUpload} data-testid="upload-submit">
               {n > 0 ? `Upload ${plural(n, 'photo')}` : 'Upload photos'}
             </button>
@@ -442,11 +431,16 @@ export default function PhotoUpload() {
             <button type="button" className="btn upload__more" onClick={() => rollInput.current?.click()} data-testid="upload-more">
               Add more photos
             </button>
+            {layout === 'phone' && (
+              <button type="button" className="btn upload__more" onClick={() => cameraInput.current?.click()} data-testid="upload-take">
+                Take a photo
+              </button>
+            )}
           </div>
         )}
         {phase === 'held' && signalOff && (
           <p className="upload__hint">
-            <Link to="/queue">See what's waiting to send</Link>
+            <Link to="/queue">What's waiting to send</Link>
           </p>
         )}
       </section>

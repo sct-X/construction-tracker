@@ -1,20 +1,12 @@
 /*
-  New job (UI_PLAN 3.21). Token plan for this screen:
-    colours   the shared set. Pickers are steel when pressed; the planned
-              finish sits on timber paper (a note read before the job is
-              made, the same paper as the ETA impact panel); hi-vis on
-              Create alone.
-    type      the planned finish is the screen's one hero figure in the
-              condensed face; labels are small sentence-case words above
-              each control; nothing else is large.
-    layout    a single column at 560px, fields in the order Dominic says
-              them out loud: what it's called, whose it is, what kind, how
-              it's approved, what it costs a week, which program, when it
-              starts and where it's up to. The finish is derived and drawn
-              last, right above the button that makes it real.
-    principle every picker is a row of buttons (never a dropdown), the date
-              is the one typed thing that is a date, and the finish updates
-              live so the form answers "when will it be done" before Create.
+  New job (UI_PLAN 3.21).
+
+  A single column at 560px, fields in the order Dominic says them out loud:
+  what it's called, whose it is, what kind, how it's approved, what it costs
+  a week, which program, when it starts and where it's up to. Every picker
+  is a segmented control (never a dropdown); the date is the one typed thing
+  that is a date. The planned finish is the screen's hero figure, derived
+  live and drawn last, right above the one hi-vis button that makes it real.
 */
 
 .newjob__form {
@@ -23,8 +15,12 @@
 .newjob__field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  margin-bottom: var(--space-4);
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+.newjob__field > .input {
+  align-self: stretch;
 }
 .newjob__field > label,
 .newjob__label {
@@ -36,20 +32,6 @@
   font-size: var(--text-sm);
   color: var(--text-muted);
 }
-.newjob__input {
-  min-height: var(--tap);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
-  font-size: var(--text-md);
-  color: var(--text);
-  width: 100%;
-}
-.newjob__input:disabled {
-  background: var(--concrete-100);
-  color: var(--text-muted);
-}
 .newjob__money {
   display: flex;
   align-items: stretch;
@@ -59,21 +41,21 @@
 .newjob__money-unit {
   display: inline-flex;
   align-items: center;
-  padding: 0 var(--space-2);
+  padding: 0 var(--space-3);
   border: 1px solid var(--line-strong);
-  background: var(--concrete-100);
+  background: var(--plate);
   color: var(--text-secondary);
   font-size: var(--text-sm);
 }
 .newjob__money-sign {
   border-right: 0;
-  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
 }
 .newjob__money-unit {
   border-left: 0;
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
-.newjob__money .newjob__input {
+.newjob__money .input {
   border-radius: 0;
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -81,42 +63,34 @@
 .newjob__date {
   max-width: 14em;
 }
-.newjob__picker {
-  display: flex;
+.seg--wrap {
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: 2px;
 }
-.newjob__pick {
-  min-height: var(--tap);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-raised);
-  color: var(--text-secondary);
-  font-weight: var(--weight-medium);
+.newjob__templates .seg__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
   text-align: left;
-  transition: background var(--motion-fast) var(--ease);
-}
-.newjob__pick:hover {
-  background: var(--concrete-100);
-}
-.newjob__pick[aria-pressed='true'] {
-  background: var(--steel-700);
-  border-color: var(--steel-700);
-  color: var(--text-on-dark);
-  font-weight: var(--weight-bold);
 }
 .newjob__pick-sub {
   display: block;
   font-size: var(--text-xs);
   font-weight: var(--weight-regular);
-  opacity: 0.85;
+  color: var(--text-muted);
+}
+.seg__btn[aria-pressed='true'] .newjob__pick-sub {
+  color: var(--text-secondary);
 }
 /* the stage ladder: a numbered column, so "starts from" reads as a place in the sequence */
 .newjob__stages {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  align-self: stretch;
 }
 .newjob__stage {
   display: grid;
@@ -124,35 +98,37 @@
   align-items: center;
   gap: var(--space-2);
   min-height: 44px;
-  padding: 0 var(--space-3) 0 var(--space-2);
-  border: 1px solid var(--line);
+  padding: 0 var(--space-3) 0 var(--space-3);
+  border: 0;
   border-radius: var(--radius-sm);
-  background: var(--surface-raised);
+  background: var(--plate);
   color: var(--text-secondary);
   text-align: left;
   font-weight: var(--weight-medium);
+  transition: background var(--motion-fast) var(--ease);
 }
 .newjob__stage:hover {
-  background: var(--concrete-100);
+  background: var(--raised);
 }
 .newjob__stage[aria-pressed='true'] {
-  border-color: var(--steel-700);
-  background: var(--steel-100);
+  background: var(--steel-700);
   color: var(--text);
-  font-weight: var(--weight-bold);
 }
 .newjob__stage[data-done='true'] {
   color: var(--text-muted);
   text-decoration: line-through;
-  text-decoration-color: var(--concrete-400);
+  text-decoration-color: var(--line-strong);
 }
 .newjob__stage-num {
   font-family: var(--font-display);
   font-weight: var(--weight-display);
   font-size: var(--text-lg);
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
   text-decoration: none;
+}
+.newjob__stage[aria-pressed='true'] .newjob__stage-num {
+  color: var(--text);
 }
 .newjob__stage-words {
   font-size: var(--text-xs);
@@ -160,26 +136,26 @@
   color: var(--text-muted);
   text-decoration: none;
 }
+.newjob__stage[aria-pressed='true'] .newjob__stage-words {
+  color: var(--text-secondary);
+}
 .shell--phone .newjob__stage {
   min-height: var(--tap);
 }
 
-/* the planned finish: a note on timber paper, read before the job is made */
+/* the planned finish: the hero figure, on the ground with room around it */
 .newjob__finish {
-  margin: var(--space-6) 0 var(--space-4);
-  padding: var(--space-4);
-  border: 1px solid var(--timber-300);
-  border-radius: var(--radius-md);
-  background: var(--timber-100);
+  margin: var(--space-10) 0 var(--space-8);
 }
 .newjob__finish-words {
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
   max-width: var(--measure);
 }
 .newjob__finish-words + .newjob__finish-words {
   margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 }
 .newjob__actions {
   display: flex;
@@ -188,22 +164,18 @@
   gap: var(--space-3);
 }
 .newjob__problems {
-  margin: 0 0 var(--space-3);
+  margin: 0 0 var(--space-4);
   padding: 0;
   list-style: none;
   color: var(--amber-ink);
   font-size: var(--text-sm);
 }
 .newjob__empty {
-  padding: var(--space-3) 0;
+  padding: var(--space-2) 0;
   color: var(--text-secondary);
 }
 
 @media (min-width: 768px) {
-  .newjob__input,
-  .newjob__pick {
-    min-height: var(--control);
-  }
   .newjob__stage {
     min-height: 36px;
   }

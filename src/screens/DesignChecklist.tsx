@@ -19,7 +19,6 @@ import { ItemRow, ItemRowList } from '../components/ItemRow';
 import { StatusText, type Tone } from '../components/StatusText';
 import { ClockGlyph } from '../components/QueueBadge';
 import { outstandingStatus } from './JobsList';
-import { useLayout } from '../shell/AppShell';
 import { PageHeader } from '../shell/PageHeader';
 import NotFound from './NotFound';
 import './designChecklist.css';
@@ -68,7 +67,6 @@ export default function DesignChecklist() {
   const { id = '' } = useParams();
   const api = useApi();
   const { role, offline } = useSession();
-  const layout = useLayout();
   const data = useQuery<Data | undefined>(
     (api) => {
       const job = api.getJob(id);
@@ -127,16 +125,11 @@ export default function DesignChecklist() {
           <span className="checklist__meta">
             <span data-testid="checklist-path">{pathWords(job)}</span>
             {checklist?.currentStageName ? <span data-testid="checklist-current">Now: {checklist.currentStageName.toLowerCase()}</span> : <span>Every stage done</span>}
-            {freshness && (
-              <StatusText tone={freshness.amber ? 'amber' : 'muted'} testId="checklist-fresh">
-                {freshness.amber && freshness.lastConfirmed ? `Unconfirmed ${freshness.daysUnconfirmed} days` : freshness.text}
-              </StatusText>
-            )}
           </span>
         }
         actions={
           role !== 'site' ? (
-            <Link to={`/items/new?job=${job.id}`} className="btn btn--desktop" data-testid="checklist-add">
+            <Link to={`/items/new?job=${job.id}`} className="btn btn--primary btn--desktop" data-testid="checklist-add">
               Add item
             </Link>
           ) : undefined
@@ -151,18 +144,25 @@ export default function DesignChecklist() {
         ))}
       </nav>
 
-      <p className={`checklist__hero checklist__hero--${out.tone}`} data-testid="checklist-outstanding">
-        {out.count > 0 ? (
-          <>
-            <span className="checklist__count display">{out.count}</span> <span className="checklist__count-words">{out.rest}</span>
-          </>
-        ) : (
-          <span className="checklist__count checklist__count--words display">{out.rest}</span>
+      <section className="checklist__hero" aria-label="Outstanding">
+        <p className={`checklist__outstanding checklist__outstanding--${out.tone}`} data-testid="checklist-outstanding">
+          {out.count > 0 ? (
+            <>
+              <span className="checklist__count display">{out.count}</span> <span className="checklist__count-words">{out.rest}</span>
+            </>
+          ) : (
+            <span className="checklist__count checklist__count--words display">{out.rest}</span>
+          )}
+        </p>
+        {freshness && (
+          <StatusText tone={freshness.amber ? 'amber' : 'muted'} testId="checklist-fresh">
+            {freshness.amber && freshness.lastConfirmed ? `Unconfirmed ${freshness.daysUnconfirmed} days` : freshness.text}
+          </StatusText>
         )}
-      </p>
+      </section>
       {offline && canEdit && (
         <p className="checklist__offline" data-testid="checklist-offline">
-          <ClockGlyph className="checklist__clock" /> No signal: stage ticks wait to send.
+          <ClockGlyph className="checklist__clock" /> No signal: stage ticks wait to send
         </p>
       )}
 
@@ -182,12 +182,12 @@ export default function DesignChecklist() {
                 <TickBox status={s.status} />
                 <span className="checklist__name">{s.name}</span>
                 {canEdit ? (
-                  <div className="checklist__status" role="group" aria-label={`${s.name}: status`}>
+                  <div className="seg checklist__status" role="group" aria-label={`${s.name}: status`}>
                     {STAGE_STATUS_ORDER.map((st) => (
                       <button
                         key={st}
                         type="button"
-                        className={`checklist__status-btn${layout === 'desktop' ? ' checklist__status-btn--desktop' : ''}`}
+                        className="seg__btn"
                         aria-pressed={s.status === st}
                         data-testid={`checklist-stage-status-${s.stageId}-${st}`}
                         onClick={() => s.status !== st && setStatus(s.stageId, st)}
@@ -227,9 +227,7 @@ export default function DesignChecklist() {
 
       {done.length > 0 && (
         <details className="checklist__done" data-testid="checklist-done">
-          <summary className="checklist__done-summary">
-            Done ({done.length})
-          </summary>
+          <summary className="checklist__done-summary">Done ({done.length})</summary>
           {itemList(done, true)}
         </details>
       )}

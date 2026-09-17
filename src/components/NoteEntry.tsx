@@ -50,7 +50,7 @@ export interface NoteEntryProps {
   /** Where "Add a photo" goes (the upload screen, coming back here). */
   photoHref: string;
   onSave: (draft: NoteDraft) => void;
-  /** Words under the button after a save: "Saved." or the queued sentence. */
+  /** Words under the button after a save: "Saved." or the queued words. */
   status?: ReactNode;
   /** The whole day in words as the heading; off in the desktop panel where the panel has its own. */
   heading?: boolean;
@@ -77,7 +77,7 @@ export function NoteEntry({ date, existing, people, jobTrades, otherTrades, toda
 
   const save = () => {
     if (!text.trim()) {
-      setProblem('Write a line first, even a short one.');
+      setProblem('Write a line first.');
       return;
     }
     setProblem(null);
@@ -101,7 +101,7 @@ export function NoteEntry({ date, existing, people, jobTrades, otherTrades, toda
         className="note-entry__text"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="What happened on site today? Who came, what arrived, what held things up."
+        placeholder="What happened on site today?"
         rows={4}
         data-testid="note-text"
       />

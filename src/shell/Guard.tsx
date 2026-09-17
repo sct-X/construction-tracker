@@ -6,16 +6,18 @@
 import type { ReactNode } from 'react';
 import { useApi } from '../data/context';
 import type { ScreenKey } from '../data/api';
-import { PageHeader } from './PageHeader';
+import '../screens/plainPage.css';
 
 export function Guard({ screen, children }: { screen?: ScreenKey; children: ReactNode }) {
   const api = useApi();
   if (!screen || api.canSee(screen)) return <>{children}</>;
   return (
-    <main className="page" data-testid="no-access">
-      <PageHeader title="You don't have access to this" />
-      <p className="page__lede">
-        <a href="#/">Home</a>
+    <main className="plain" data-testid="no-access">
+      <h1 className="plain__title">You don't have access to this</h1>
+      <p className="plain__action">
+        <a className="btn btn--desktop" href="#/">
+          Home
+        </a>
       </p>
     </main>
   );

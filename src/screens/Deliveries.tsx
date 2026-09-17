@@ -5,8 +5,10 @@
  * no money (the data layer never gives the site role a price).
  *
  *   Late
+ *     ! Expected Tue 15 Sep, 2 days ago, not marked delivered   <- a plate: date first
+ *     Confirmed
  *     Cladding, from Weathertex            Park Rd
- *     Expected Tue 15 Sep, 2 days ago, not marked delivered   [Mark delivered]
+ *     [ Mark delivered ]
  *   This week  14-20 Sep
  *   Next week  21-27 Sep
  *   Later
@@ -205,7 +207,15 @@ export function DeliveryRow({
 }) {
   const when = deliveryWhen(d, today);
   return (
-    <li className="deliveries__row" data-testid={`delivery-${d.id}`}>
+    <li className="deliveries__row plate" data-testid={`delivery-${d.id}`}>
+      <p className="deliveries__when">
+        <StatusText tone={when.tone} plain={when.tone === 'plain'}>
+          {when.text}
+        </StatusText>
+        <span className="deliveries__status" data-testid={`delivery-status-${d.id}`}>
+          {d.status}
+        </span>
+      </p>
       <div className="deliveries__main">
         <p className="deliveries__head">
           <span className="deliveries__title">{d.title}</span>
@@ -213,17 +223,9 @@ export function DeliveryRow({
         </p>
         {d.from && <p className="deliveries__from">from {d.from}</p>}
         {d.contents.length > 0 && <p className="deliveries__contents">{d.contents.join(', ')}</p>}
-        <p className="deliveries__when">
-          <StatusText tone={when.tone} plain={when.tone === 'plain'}>
-            {when.text}
-          </StatusText>
-          <span className="deliveries__status" data-testid={`delivery-status-${d.id}`}>
-            {d.status}
-          </span>
-        </p>
       </div>
       {onMark && !d.delivered && (
-        <button type="button" className="btn deliveries__mark" onClick={() => onMark(d)} data-testid={`delivery-mark-${d.id}`}>
+        <button type="button" className="btn btn--fill deliveries__mark" onClick={() => onMark(d)} data-testid={`delivery-mark-${d.id}`}>
           Mark delivered
         </button>
       )}
@@ -269,14 +271,13 @@ export default function Deliveries() {
           </section>
         ))
       )}
-      <p className="deliveries__foot">
-        Arrivals also go in the day's note.{' '}
-        {jobs[0] && (
-          <Link to={`/jobs/${jobs[0].id}/notes`} data-testid="deliveries-notes-link">
+      {jobs[0] && (
+        <p className="deliveries__foot">
+          <Link to={`/jobs/${jobs[0].id}/notes`} className="btn btn--ghost" data-testid="deliveries-notes-link">
             Write today's note
           </Link>
-        )}
-      </p>
+        </p>
+      )}
     </main>
   );
 }

@@ -86,33 +86,30 @@ export default function Templates() {
         title="Templates and new job"
         meta={`${plural(templates.length, 'template')} on ${side.name}`}
         actions={
-          <Link to="/jobs/new" className="btn btn--primary btn--desktop" data-testid="templates-new-job">
-            New job
-          </Link>
+          <>
+            {isAdmin && (
+              <>
+                <button type="button" className="btn btn--desktop" data-testid="template-new" aria-pressed={form === 'new'} onClick={() => setForm(form === 'new' ? 'none' : 'new')}>
+                  New template
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--desktop"
+                  data-testid="template-save-from-job"
+                  aria-pressed={form === 'from-job'}
+                  disabled={jobs.length === 0}
+                  onClick={() => setForm(form === 'from-job' ? 'none' : 'from-job')}
+                >
+                  Save job as template
+                </button>
+              </>
+            )}
+            <Link to="/jobs/new" className={form === 'none' ? 'btn btn--primary btn--desktop' : 'btn btn--desktop'} data-testid="templates-new-job">
+              New job
+            </Link>
+          </>
         }
       />
-      <p className="templates__intro">
-        A template is a program with no dates: stages, steps and how long each takes, what each step waits for and needs, and the photo sets
-        an inspection wants. Starting a job from one copies all of that and runs the dates forward from the day you pick.
-      </p>
-
-      {isAdmin && (
-        <div className="templates__form-actions" style={{ marginTop: 0, marginBottom: 'var(--space-5)' }}>
-          <button type="button" className="btn btn--desktop" data-testid="template-new" aria-pressed={form === 'new'} onClick={() => setForm(form === 'new' ? 'none' : 'new')}>
-            New template
-          </button>
-          <button
-            type="button"
-            className="btn btn--desktop"
-            data-testid="template-save-from-job"
-            aria-pressed={form === 'from-job'}
-            disabled={jobs.length === 0}
-            onClick={() => setForm(form === 'from-job' ? 'none' : 'from-job')}
-          >
-            Save this job as a template
-          </button>
-        </div>
-      )}
 
       {form === 'new' && (
         <NewTemplateForm
@@ -135,10 +132,9 @@ export default function Templates() {
       )}
 
       {templates.length === 0 ? (
-        <div className="templates__empty" data-testid="templates-empty">
-          <p>No templates yet. Build the duplex template first.</p>
-          {isAdmin && <p>Or save a job that is running well: its program becomes the template, dates left behind.</p>}
-        </div>
+        <p className="templates__empty" data-testid="templates-empty">
+          No templates yet.
+        </p>
       ) : (
         <ul className="templates__list">
           {templates.map((t) => (
@@ -167,8 +163,13 @@ function TemplateRow({ template }: { template: Job }) {
         </p>
         {shape.stages.length > 0 && (
           <ol className="templates__sequence" aria-label="Stages in order">
-            {shape.stages.map((s) => (
-              <li key={s.id}>{s.name}</li>
+            {shape.stages.map((s, i) => (
+              <li key={s.id}>
+                <span className="templates__seq-n" aria-hidden="true">
+                  {i + 1}
+                </span>
+                {s.name}
+              </li>
             ))}
           </ol>
         )}
@@ -202,15 +203,15 @@ function NewTemplateForm({ onDone }: { onDone: (id?: string) => void }) {
       <h2 className="templates__form-title">New template</h2>
       <div className="templates__field">
         <label htmlFor="template-new-name">Name</label>
-        <input id="template-new-name" className="templates__input" value={name} data-testid="template-new-name" onChange={(e) => setName(e.target.value)} placeholder="Townhouse pair" />
+        <input id="template-new-name" className="input input--desktop" value={name} data-testid="template-new-name" onChange={(e) => setName(e.target.value)} placeholder="Townhouse pair" />
       </div>
       <div className="templates__field">
         <span className="templates__field-label" id="template-new-kind-label">
           Kind
         </span>
-        <div className="templates__picker" role="group" aria-labelledby="template-new-kind-label">
+        <div className="seg" role="group" aria-labelledby="template-new-kind-label">
           {(['build', 'design'] as JobKind[]).map((k) => (
-            <button key={k} type="button" className="templates__pick" aria-pressed={kind === k} data-testid={`template-new-kind-${k}`} onClick={() => setKind(k)}>
+            <button key={k} type="button" className="seg__btn" aria-pressed={kind === k} data-testid={`template-new-kind-${k}`} onClick={() => setKind(k)}>
               {KIND_WORDS[k]}
             </button>
           ))}
@@ -220,24 +221,20 @@ function NewTemplateForm({ onDone }: { onDone: (id?: string) => void }) {
         <span className="templates__field-label" id="template-new-path-label">
           Approval path
         </span>
-        <div className="templates__picker" role="group" aria-labelledby="template-new-path-label">
+        <div className="seg" role="group" aria-labelledby="template-new-path-label">
           {(['DA', 'CDC'] as ApprovalPath[]).map((p) => (
-            <button key={p} type="button" className="templates__pick" aria-pressed={path === p} data-testid={`template-new-path-${p}`} onClick={() => setPath(p)}>
+            <button key={p} type="button" className="seg__btn" aria-pressed={path === p} data-testid={`template-new-path-${p}`} onClick={() => setPath(p)}>
               {p}
             </button>
           ))}
         </div>
       </div>
-      <p className="templates__note">
-        {kind === 'design'
-          ? `A design template starts with the standard ${path} checklist stages. Add stages on the next screen.`
-          : 'A build template starts empty apart from a General photo set. Add stages and steps on the next screen, or open a finished job and save it as a template instead.'}
-      </p>
+      <p className="templates__note">{kind === 'design' ? `Starts with the standard ${path} checklist.` : 'Starts empty.'}</p>
       <div className="templates__form-actions">
-        <button type="submit" className="btn btn--primary" data-testid="template-new-save" disabled={!ready}>
+        <button type="submit" className="btn btn--primary btn--desktop" data-testid="template-new-save" disabled={!ready}>
           Create template
         </button>
-        <button type="button" className="btn" data-testid="template-new-cancel" onClick={() => onDone()}>
+        <button type="button" className="btn btn--desktop" data-testid="template-new-cancel" onClick={() => onDone()}>
           Cancel
         </button>
       </div>
@@ -266,9 +263,9 @@ function SaveFromJobForm({ jobs, offline, onDone, onSave }: { jobs: Job[]; offli
         <span className="templates__field-label" id="template-from-job-label">
           Which job
         </span>
-        <div className="templates__picker" role="group" aria-labelledby="template-from-job-label">
+        <div className="seg seg--wrap" role="group" aria-labelledby="template-from-job-label">
           {jobs.map((j) => (
-            <button key={j.id} type="button" className="templates__pick" aria-pressed={j.id === jobId} data-testid={`template-from-job-${j.id}`} onClick={() => setJobId(j.id)}>
+            <button key={j.id} type="button" className="seg__btn" aria-pressed={j.id === jobId} data-testid={`template-from-job-${j.id}`} onClick={() => setJobId(j.id)}>
               {j.name}
             </button>
           ))}
@@ -276,17 +273,17 @@ function SaveFromJobForm({ jobs, offline, onDone, onSave }: { jobs: Job[]; offli
       </div>
       <div className="templates__field">
         <label htmlFor="template-from-job-name">Template name</label>
-        <input id="template-from-job-name" className="templates__input" value={name} data-testid="template-from-job-name" placeholder={suggested} onChange={(e) => setName(e.target.value)} />
+        <input id="template-from-job-name" className="input input--desktop" value={name} data-testid="template-from-job-name" placeholder={suggested} onChange={(e) => setName(e.target.value)} />
       </div>
       <p className="templates__note">
-        Copies the stages, steps, links, needs and photo sets. Dates, ticks, items, photos and notes stay with the job.
+        Copies the program. Dates and items stay with the job.
         {offline ? ' Needs signal.' : ''}
       </p>
       <div className="templates__form-actions">
-        <button type="submit" className="btn btn--primary" data-testid="template-from-job-save" disabled={!ready}>
+        <button type="submit" className="btn btn--primary btn--desktop" data-testid="template-from-job-save" disabled={!ready}>
           Save as template
         </button>
-        <button type="button" className="btn" data-testid="template-from-job-cancel" onClick={onDone}>
+        <button type="button" className="btn btn--desktop" data-testid="template-from-job-cancel" onClick={onDone}>
           Cancel
         </button>
       </div>
@@ -322,7 +319,7 @@ export function TemplateDetail() {
       <PageHeader
         title={template.name}
         back={{ to: '/templates', label: 'Templates' }}
-        meta={`${KIND_WORDS[template.kind]} template${template.path ? `, ${template.path}` : ''}. ${countWords(template, shape)}. No dates.`}
+        meta={`${KIND_WORDS[template.kind]}${template.path ? `, ${template.path}` : ''}. ${countWords(template, shape)}.`}
         actions={
           <div className="template__meta-actions">
             <Link to={`/jobs/new?template=${template.id}`} className="btn btn--primary btn--desktop" data-testid="template-use">
@@ -330,7 +327,7 @@ export function TemplateDetail() {
             </Link>
             {template.kind === 'build' && layout === 'desktop' && (
               <Link to={`/jobs/${template.id}/edit`} className="btn btn--desktop" data-testid="template-editor">
-                Open in the program editor
+                Program editor
               </Link>
             )}
           </div>
@@ -338,16 +335,13 @@ export function TemplateDetail() {
       />
       {role === 'admin' && offline && (
         <p className="template__offline" data-testid="template-offline">
-          No signal: durations and links need signal, so this template is read-only for now.
+          No signal. Read-only until it returns.
         </p>
-      )}
-      {template.kind === 'design' && (
-        <p className="templates__intro">A design template is a checklist: stages only, ticked by hand on the job. No steps, no Gantt.</p>
       )}
 
       {shape.stages.length === 0 && (
         <p className="template__empty" data-testid="template-empty">
-          No stages yet. Add the first one below.
+          No stages yet.
         </p>
       )}
 
@@ -372,7 +366,6 @@ export function TemplateDetail() {
         <section className="template__stage" aria-label="Job-wide photo sets">
           <div className="template__stage-head">
             <span className="template__stage-name">Any stage</span>
-            <span className="template__stage-words">photo sets that are not tied to a stage</span>
           </div>
           <Categories categories={shape.categories.filter((c) => c.stageId === null)} jobId={template.id} stageId={null} canEdit={canEdit} holdPoint={false} />
         </section>
@@ -393,7 +386,7 @@ export function TemplateDetail() {
           <label htmlFor="template-add-stage-name" className="templates__field-label">
             Add a stage
           </label>
-          <input id="template-add-stage-name" className="templates__input" value={newStage} data-testid="template-add-stage-name" placeholder="Landscaping" onChange={(e) => setNewStage(e.target.value)} />
+          <input id="template-add-stage-name" className="input input--desktop template__add-stage-input" value={newStage} data-testid="template-add-stage-name" placeholder="Landscaping" onChange={(e) => setNewStage(e.target.value)} />
           <button type="submit" className="btn btn--desktop" data-testid="template-add-stage-save" disabled={!newStage.trim()}>
             Add stage
           </button>
@@ -496,7 +489,7 @@ function StageSection({ index, stage, template, steps, allSteps, stepName, links
                 setAdding({ name: '', days: 5 });
               }}
             >
-              <input type="text" className="templates__input" aria-label="New step" placeholder="Add a step" value={adding.name} data-testid={`template-add-step-name-${stage.id}`} onChange={(e) => setAdding({ ...adding, name: e.target.value })} />
+              <input type="text" className="input input--desktop" aria-label="New step" placeholder="Add a step" value={adding.name} data-testid={`template-add-step-name-${stage.id}`} onChange={(e) => setAdding({ ...adding, name: e.target.value })} />
               <span className="template__days">
                 <input type="number" min={1} aria-label="Working days" value={adding.days} data-testid={`template-add-step-days-${stage.id}`} onChange={(e) => setAdding({ ...adding, days: Number(e.target.value) })} />
                 <span className="template__days-unit">days</span>
@@ -591,7 +584,7 @@ function StepRow({ step, allSteps, stepName, links, requirements, canEdit }: { s
         </span>
         <span data-testid={`template-step-needs-${step.id}`}>
           <span className="template__phone-label">Needs </span>
-          {requirements.length === 0 && !canEdit && <span className="template__stage-words">nothing to book or order</span>}
+          {requirements.length === 0 && !canEdit && <span className="template__stage-words">nothing</span>}
           {requirements.map((r) => (
             <span key={r.id} className="template__chip template__chip--need" title={`${REQ_KINDS[r.kind]}, ${plural(r.leadTimeWeeks, 'week')} lead`}>
               {r.name}, {r.leadTimeWeeks} wk
@@ -651,15 +644,13 @@ function StepRow({ step, allSteps, stepName, links, requirements, canEdit }: { s
   );
 }
 
-function Categories({ categories, jobId, stageId, canEdit, holdPoint }: { categories: PhotoCategory[]; jobId: string; stageId: string | null; canEdit: boolean; holdPoint: boolean }) {
+function Categories({ categories, jobId, stageId, canEdit }: { categories: PhotoCategory[]; jobId: string; stageId: string | null; canEdit: boolean; holdPoint: boolean }) {
   const api = useApi();
   const [name, setName] = useState('');
   if (categories.length === 0 && !canEdit) return null;
   return (
     <div className="template__cats" data-testid={`template-cats-${stageId ?? 'general'}`}>
-      <p className="template__cats-title">
-        Photo sets{holdPoint ? ', ticked ones must have a photo before the hold point' : stageId ? '' : ''}
-      </p>
+      <p className="template__cats-title">Photo sets</p>
       {categories.length > 0 && (
         <ul>
           {categories.map((c) => (
@@ -668,7 +659,7 @@ function Categories({ categories, jobId, stageId, canEdit, holdPoint }: { catego
               {stageId && (
                 <label>
                   <input type="checkbox" checked={c.requiredForHoldPoint} disabled={!canEdit} onChange={(e) => api.updatePhotoCategory(c.id, { requiredForHoldPoint: e.target.checked })} />
-                  required
+                  required for hold point
                 </label>
               )}
               {canEdit && (

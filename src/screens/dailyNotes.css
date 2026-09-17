@@ -1,21 +1,21 @@
 /*
-  Daily notes.
+  Daily notes: the site diary.
 
-  Layout concept: the site diary. On the phone, today's page is on top (the
-  NoteEntry: a timber-paper text box under the day in the condensed face),
-  then earlier days as plain rows under week headings on the 2px concrete
-  rule. On the desktop the same days are a table with a week row per group
-  and the entry in a side panel on the right, so Dominic can read a fortnight
-  and add today's line without leaving the page. No cards, no icons but the
-  queue clock beside its words.
+  Phone: today's page on top (the NoteEntry, the date as the hero), then the
+  earlier days as plates under muted week titles, each day's date in the
+  condensed face with who wrote it beside it. Desktop: the same days as a
+  hairline table with the entry in a plate on the right, so Dominic reads a
+  fortnight and adds today's line without leaving the page. The one icon is
+  the queue clock beside its words.
 */
+.notes .page-header__title {
+  font-size: var(--text-xl); /* a step below the day, which is the hero here */
+}
 .notes__today {
-  padding-bottom: var(--space-6);
-  margin-bottom: var(--space-6);
-  border-bottom: 2px solid var(--concrete-200);
+  margin-bottom: var(--space-12);
 }
 .notes__empty {
-  color: var(--text-muted);
+  color: var(--text-secondary);
   max-width: var(--measure);
 }
 .notes__queued {
@@ -25,27 +25,25 @@
   color: var(--text-secondary);
 }
 
-/* ---- phone: rows under week headings ---- */
+/* ---- phone: plates under week titles ---- */
 .notes__week + .notes__week {
-  margin-top: var(--space-6);
+  margin-top: var(--space-8);
 }
 .notes__week-title {
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--text-muted);
-  padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--concrete-200);
+  margin-bottom: var(--space-3);
 }
 .notes__days {
   display: flex;
   flex-direction: column;
+  gap: var(--space-2);
 }
 .notes__day {
-  padding: var(--space-3) 0;
-  border-top: var(--hairline);
-}
-.notes__day:first-child {
-  border-top: 0;
+  padding: var(--space-4) var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--plate);
 }
 .notes__day-head {
   display: flex;
@@ -54,30 +52,32 @@
   gap: var(--space-1) var(--space-2);
 }
 .notes .notes__day-date {
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   line-height: 1;
   color: var(--text);
 }
 .notes__day-who {
-  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }
 .notes__day-queued {
   margin-left: auto;
   font-size: var(--text-sm);
 }
 .notes__day-cond {
-  margin-top: var(--space-1);
+  margin-top: var(--space-2);
   font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 .notes__day-text {
-  margin-top: var(--space-1);
+  margin-top: var(--space-2);
   max-width: var(--measure);
 }
 .notes__day-photos {
   display: inline-flex;
   align-items: center;
-  min-height: var(--tap);
+  min-height: 44px;
+  font-size: var(--text-sm);
   font-weight: var(--weight-medium);
 }
 
@@ -90,44 +90,28 @@
 }
 .notes__panel {
   padding: var(--space-5);
-  border: var(--hairline);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-}
-.notes__panel-title {
-  font-size: var(--text-md);
-  font-weight: var(--weight-medium);
-  color: var(--text-secondary);
-  margin-bottom: var(--space-4);
-}
-.notes .notes__panel-title .display {
-  font-size: var(--text-xl);
-  color: var(--text);
+  border-radius: var(--radius-md);
+  background: var(--plate);
 }
 .notes__table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.notes__table th,
-.notes__table td {
-  padding: var(--space-3) var(--space-3);
-  text-align: left;
-  vertical-align: top;
-  border-top: var(--hairline);
-}
-.notes__table thead th {
-  border-top: 0;
-  border-bottom: 2px solid var(--concrete-200);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--text-muted);
+  font-size: var(--text-md);
 }
 .notes__table .notes__week-row th {
-  padding-top: var(--space-5);
-  border-top: 0;
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-2);
+  border-bottom: 0;
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--text-muted);
+}
+.notes__table tbody:first-of-type .notes__week-row th {
+  padding-top: var(--space-2);
+}
+.notes__table tbody tr:hover {
+  background: transparent;
+}
+.notes__table td {
+  color: var(--text-secondary);
 }
 .notes__cell-day {
   white-space: nowrap;
@@ -135,14 +119,16 @@
 }
 .notes__cell-day .notes__day-date {
   display: block;
+  font-size: var(--text-lg);
 }
 .notes__cell-day .notes__day-queued {
   display: flex;
   margin: var(--space-1) 0 0;
 }
-.notes__cell-text {
-  width: 55%;
+.notes__table .notes__cell-text {
+  width: 50%;
   max-width: var(--measure);
+  color: var(--text);
 }
 @media (min-width: 768px) {
   .notes--desktop .notes__cols {

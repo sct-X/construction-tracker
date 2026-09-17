@@ -1,28 +1,38 @@
 /*
-  Gantt: the chart scrolls sideways inside its own box; the page never does.
-  Label column sticky on the left, axis sticky on top. Forecast bars are steel,
-  the planned position is a timber outline behind them, today is the one
-  hi-vis line on the screen, the shutdown is a hatched band.
+  Gantt: the visual signature of the app on the desktop.
+
+  A dark chart ground (the well) under a plate label column and axis. The
+  forecast bars are light steel so they read crisply on the dark; a step
+  that has run is dimmer, one under way is brightest. Where a step was
+  planned stays behind its bar as a thin timber ghost. Today is the one
+  hi-vis line on the screen. The shutdown is a faint hatch. Stage rows are a
+  tonal step up from the ground with a lifted band across their span. Hold
+  points are drawn diamonds with the words beside them.
+
+  The chart scrolls sideways inside its own box; the page never does. The
+  label column is sticky on the left, the axis sticky on top. No borders
+  around the figure: the regions separate by tone.
 */
 .gantt {
   --gantt-row: 36px;
-  --gantt-label: 292px;
+  --gantt-label: 248px;
+  --gantt-bar-inset: 10px;
   margin: 0;
   min-width: 0;
   max-width: 100%;
-  border: var(--hairline);
   border-radius: var(--radius-md);
-  background: var(--surface);
+  background: var(--well);
+  overflow: hidden;
 }
 .gantt--empty {
   padding: var(--space-8) var(--space-5);
+  background: var(--plate);
   color: var(--text-secondary);
 }
 .gantt__scroll {
   overflow: auto;
-  max-height: calc(100dvh - var(--above, 0px) - 240px);
+  max-height: calc(100dvh - var(--above, 0px) - 280px);
   min-height: 320px;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
   overscroll-behavior-x: contain;
 }
 .gantt__inner {
@@ -36,7 +46,7 @@
   z-index: 4;
   display: flex;
   height: 44px;
-  background: var(--surface);
+  background: var(--plate);
   border-bottom: 1px solid var(--line-strong);
 }
 .gantt__corner {
@@ -44,7 +54,7 @@
   left: 0;
   z-index: 5;
   flex: 0 0 var(--gantt-label);
-  background: var(--surface);
+  background: var(--plate);
   border-right: var(--hairline);
 }
 .gantt__axis {
@@ -62,9 +72,11 @@
   height: 22px;
   padding-left: 6px;
   border-left: var(--hairline);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-sm);
   line-height: 22px;
+  letter-spacing: 0.01em;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -84,17 +96,19 @@
   top: 0;
   bottom: 0;
   background: var(--hivis-100);
+  opacity: 0.6;
 }
 .gantt__today-label {
   position: absolute;
   top: 0;
   transform: translateX(-50%);
-  padding: 0 4px;
+  padding: 0 5px;
   font-size: var(--text-xs);
   font-weight: var(--weight-bold);
   line-height: 22px;
   color: var(--hivis-ink);
-  background: var(--surface);
+  background: var(--hivis-100);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 
 /* ---- body ---- */
@@ -111,24 +125,23 @@
   top: 0;
   bottom: 0;
   width: 1px;
-  background: var(--concrete-100);
+  background: var(--plate);
 }
 .gantt__shutdown {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: repeating-linear-gradient(135deg, var(--concrete-100) 0 4px, transparent 4px 9px);
-  border-left: 1px dashed var(--line-strong);
-  border-right: 1px dashed var(--line-strong);
+  background: repeating-linear-gradient(135deg, var(--raised) 0 1px, transparent 1px 7px);
 }
 .gantt__shutdown-label {
   position: absolute;
-  top: 6px;
-  left: 4px;
-  padding: 0 4px;
+  top: 8px;
+  left: 6px;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
   font-size: var(--text-xs);
   color: var(--text-muted);
-  background: var(--surface);
+  background: var(--well);
   white-space: nowrap;
 }
 .gantt__row {
@@ -137,13 +150,14 @@
   right: 0;
   display: flex;
   height: var(--gantt-row);
-  border-bottom: 1px solid var(--concrete-100);
+  border-bottom: 1px solid var(--plate);
 }
 .gantt__row--stage {
-  background: var(--concrete-050);
+  background: var(--plate);
+  border-bottom-color: var(--raised);
 }
 .gantt__row--active {
-  background: var(--concrete-100);
+  background: var(--plate);
 }
 .gantt__label {
   position: sticky;
@@ -152,35 +166,44 @@
   flex: 0 0 var(--gantt-label);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   min-width: 0;
   padding: 0 var(--space-3) 0 var(--space-4);
-  background: var(--surface);
+  background: var(--plate);
   border-right: var(--hairline);
   font-size: var(--text-sm);
   line-height: 1.15;
+  transition: background var(--motion-fast) var(--ease);
 }
 .gantt__row--stage .gantt__label {
-  background: var(--concrete-050);
+  background: var(--raised);
 }
 .gantt__row--active .gantt__label {
-  background: var(--concrete-100);
+  background: var(--raised);
 }
 .gantt__row--step:not(.gantt__row--stagebar) .gantt__label {
-  padding-left: var(--space-8);
+  padding-left: var(--space-6);
 }
 .gantt__stage-name {
-  font-weight: var(--weight-bold);
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-md);
+  letter-spacing: 0.005em;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .gantt__step-name {
+  min-width: 0;
   color: var(--text-secondary);
+}
+.gantt__row--active .gantt__step-name {
+  color: var(--text);
 }
 .gantt__hold-glyph {
   flex-shrink: 0;
   color: var(--text);
-  font-size: 15px;
-  line-height: 1;
 }
 .gantt__hold-word {
   margin-left: 6px;
@@ -188,35 +211,42 @@
   color: var(--text-muted);
   white-space: nowrap;
 }
-.gantt__bar {
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-}
 .gantt__track {
   position: relative;
   flex: 0 0 auto;
   width: calc(100% - var(--gantt-label));
 }
 
-/* stage bands */
+/* the phone's full program: a narrow label column, smaller words */
+.gantt--dense .gantt__label {
+  font-size: var(--text-xs);
+  padding-left: var(--space-3);
+}
+.gantt--dense .gantt__row--step:not(.gantt__row--stagebar) .gantt__label {
+  padding-left: var(--space-4);
+}
+.gantt--dense .gantt__stage-name {
+  font-size: var(--text-sm);
+}
+
+/* stage bands: a lifted step across the stage's span */
 .gantt__band {
   position: absolute;
-  top: 10px;
-  height: calc(var(--gantt-row) - 20px);
-  background: var(--steel-100);
-  border: 1px solid var(--steel-200);
+  top: calc(var(--gantt-bar-inset) + 2px);
+  height: calc(var(--gantt-row) - var(--gantt-bar-inset) * 2 - 4px);
+  background: var(--lifted);
   border-radius: 2px;
 }
 
-/* the planned position: a timber outline left behind */
+/* the planned position: a thin timber ghost left behind */
 .gantt__planned {
   position: absolute;
-  top: 9px;
-  height: calc(var(--gantt-row) - 18px);
-  border: 1.5px solid var(--timber-500);
+  top: var(--gantt-bar-inset);
+  height: calc(var(--gantt-row) - var(--gantt-bar-inset) * 2);
+  border: 1px solid var(--timber-500);
   border-radius: 2px;
-  background: var(--timber-100);
+  background: transparent;
+  opacity: 0.9;
 }
 .gantt__planned--hold {
   width: 12px;
@@ -226,23 +256,25 @@
   border-radius: 1px;
 }
 
-/* the forecast bar */
+/* the forecast bar: light steel, crisp on the dark */
 .gantt__bar {
   position: absolute;
-  top: 9px;
-  height: calc(var(--gantt-row) - 18px);
+  top: var(--gantt-bar-inset);
+  height: calc(var(--gantt-row) - var(--gantt-bar-inset) * 2);
   min-width: 3px;
+  border: 0;
+  padding: 0;
   border-radius: 2px;
-  background: var(--steel-700);
+  background: var(--concrete-800);
+  cursor: pointer;
   text-decoration: none;
   transition: background var(--motion-fast) var(--ease);
 }
 .gantt__bar--done {
-  background: var(--steel-200);
-  border: 1px solid var(--steel-500);
+  background: var(--steel-500);
 }
 .gantt__bar--in_progress {
-  background: var(--steel-500);
+  background: var(--text);
 }
 .gantt__bar--hold {
   width: 14px;
@@ -254,14 +286,14 @@
 }
 .gantt__bar:hover,
 .gantt__bar--active {
-  background: var(--steel-900);
+  background: var(--text);
 }
 .gantt__bar--done:hover,
 .gantt__bar--done.gantt__bar--active {
-  background: var(--steel-500);
+  background: var(--concrete-600);
 }
 .gantt__bar:focus-visible {
-  box-shadow: var(--focus-ring);
+  box-shadow: 0 0 0 2px var(--well), 0 0 0 4px var(--hivis);
   border-radius: 2px;
 }
 .gantt__late {
@@ -274,7 +306,7 @@
   font-size: var(--text-xs);
 }
 
-/* step links: thin elbows behind the bars, darker when a bar is pointed at */
+/* step links: thin elbows behind the bars, brighter when a bar is pointed at */
 .gantt__links {
   position: absolute;
   top: 0;
@@ -283,12 +315,14 @@
 }
 .gantt__link {
   fill: none;
-  stroke: var(--steel-200);
+  stroke: var(--steel-500);
   stroke-width: 1;
+  opacity: 0.7;
 }
 .gantt__link--active {
-  stroke: var(--steel-700);
+  stroke: var(--concrete-800);
   stroke-width: 1.5;
+  opacity: 1;
 }
 
 /* today: the one hi-vis line */
@@ -306,35 +340,43 @@
 .gantt__caption {
   min-height: 40px;
   padding: var(--space-2) var(--space-4);
-  border-top: var(--hairline);
+  background: var(--plate);
   font-size: var(--text-sm);
   color: var(--text-secondary);
   line-height: 24px;
 }
+.gantt__caption strong {
+  color: var(--text);
+  font-weight: var(--weight-medium);
+}
+.gantt__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-5);
+  color: var(--text-muted);
+}
+.gantt__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
 .gantt__key {
   display: inline-block;
-  vertical-align: middle;
   width: 18px;
-  height: 10px;
-  margin: 0 6px 0 14px;
+  height: 8px;
   border-radius: 2px;
 }
-.gantt__key:first-child {
-  margin-left: 0;
-}
 .gantt__key--bar {
-  background: var(--steel-700);
+  background: var(--concrete-800);
 }
 .gantt__key--planned {
-  border: 1.5px solid var(--timber-500);
-  background: var(--timber-100);
+  border: 1px solid var(--timber-500);
+  background: transparent;
 }
 .gantt__key--hold {
-  width: 10px;
-  height: 10px;
-  background: var(--steel-700);
-  transform: rotate(45deg);
-  border-radius: 1px;
+  width: 12px;
+  height: 12px;
+  color: var(--concrete-800);
 }
 .gantt__key--today {
   width: 2px;

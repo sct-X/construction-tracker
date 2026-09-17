@@ -21,7 +21,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
-import { useQueuedPhotos } from '../components/QueueBadge';
+import { ClockGlyph, useQueuedPhotos } from '../components/QueueBadge';
 import type { Photo, PhotoCategory } from '../domain/types';
 import { formatLong, formatShort, formatTime } from '../domain/dates';
 import { StatusText } from '../components/StatusText';
@@ -145,7 +145,7 @@ export default function PhotoGallery() {
         }
       />
 
-      <div className="gallery__filters" role="group" aria-label="Show photos from">
+      <div className="gallery__filters" role="group" aria-label="Stage">
         {chip('all', 'All stages', stageFilter === 'all', () => setParam('stage', null), 'gallery-filter-all')}
         {groups.map((g) => chip(g.id, g.name, stageFilter === g.id, () => setParam('stage', g.id), `gallery-filter-${g.id}`))}
       </div>
@@ -159,7 +159,7 @@ export default function PhotoGallery() {
           )}
           {layout === 'desktop' && (
             <label className="gallery__sort">
-              <span>Sort</span>
+              <span className="sr-only">Sort</span>
               <select value={sort} onChange={(e) => setParam('sort', e.target.value === 'oldest' ? 'oldest' : null)} data-testid="gallery-sort">
                 <option value="newest">Newest first</option>
                 <option value="oldest">Oldest first</option>
@@ -171,7 +171,7 @@ export default function PhotoGallery() {
 
       {photos.length === 0 && queued.length === 0 && (
         <p className="gallery__empty" data-testid="gallery-empty">
-          No photos on {job.name} yet. The first ones go under the stage and category they belong to.
+          No photos on {job.name} yet.
         </p>
       )}
 
@@ -230,7 +230,7 @@ export default function PhotoGallery() {
                           <div className="gallery__thumb gallery__thumb--queued" data-testid={`gallery-queued-${q.id}`}>
                             <img src={q.dataUrl} alt="" loading="lazy" />
                             <span className="gallery__queued-words">
-                              <span aria-hidden="true">◷ </span>
+                              <ClockGlyph className="gallery__queued-glyph" />
                               waiting to send
                             </span>
                           </div>
@@ -349,7 +349,7 @@ function PhotoView({
       {canEdit && (
         <div className="gallery__view-actions">
           {moveTargets.length > 0 && (
-            <div className="gallery__move" role="group" aria-label="Move to another category">
+            <div className="gallery__move" role="group" aria-label="Move to">
               <span className="gallery__move-label">Move to</span>
               {moveTargets.map((c) => (
                 <button key={c.id} type="button" className="btn btn--desktop" onClick={() => onMove(c.id)} data-testid={`gallery-move-${c.id}`}>

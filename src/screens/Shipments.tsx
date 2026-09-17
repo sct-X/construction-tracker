@@ -120,43 +120,49 @@ function AddShipment({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <form className="shipments__add" data-testid="shipment-add-form" onSubmit={submit}>
+    <form className="shipments__add plate" data-testid="shipment-add-form" onSubmit={submit}>
       <h2 className="shipments__add-title">New shipment</h2>
-      <div className="shipments__field">
-        <label htmlFor="shipment-add-name">What is coming</label>
-        <input id="shipment-add-name" className="shipments__input" value={name} data-testid="shipment-add-name" onChange={(e) => setName(e.target.value)} placeholder="Park Rd windows" />
+      <div className="field">
+        <label className="field__label" htmlFor="shipment-add-name">
+          Name
+        </label>
+        <input id="shipment-add-name" className="input" value={name} data-testid="shipment-add-name" onChange={(e) => setName(e.target.value)} placeholder="Park Rd windows" />
       </div>
-      <div className="shipments__field">
-        <label htmlFor="shipment-add-supplier">Supplier (optional)</label>
-        <input id="shipment-add-supplier" className="shipments__input" value={supplier} data-testid="shipment-add-supplier" onChange={(e) => setSupplier(e.target.value)} />
+      <div className="field">
+        <label className="field__label" htmlFor="shipment-add-supplier">
+          Supplier
+        </label>
+        <input id="shipment-add-supplier" className="input" value={supplier} data-testid="shipment-add-supplier" onChange={(e) => setSupplier(e.target.value)} />
       </div>
-      <div className="shipments__field">
-        <span className="shipments__field-label" id="shipment-add-job-label">
+      <div className="field">
+        <span className="field__label" id="shipment-add-job-label">
           Job
         </span>
-        <div className="shipments__picker" role="group" aria-labelledby="shipment-add-job-label">
+        <div className="seg shipments__seg" role="group" aria-labelledby="shipment-add-job-label">
           {jobs.map((j) => (
-            <button key={j.id} type="button" className="shipments__pick" aria-pressed={j.id === jobId} data-testid={`shipment-add-job-${j.id}`} onClick={() => setJobId(j.id)}>
+            <button key={j.id} type="button" className="seg__btn" aria-pressed={j.id === jobId} data-testid={`shipment-add-job-${j.id}`} onClick={() => setJobId(j.id)}>
               {j.name}
             </button>
           ))}
         </div>
       </div>
-      <div className="shipments__field">
-        <span className="shipments__field-label" id="shipment-add-status-label">
+      <div className="field">
+        <span className="field__label" id="shipment-add-status-label">
           Status
         </span>
-        <div className="shipments__picker" role="group" aria-labelledby="shipment-add-status-label">
+        <div className="seg shipments__seg" role="group" aria-labelledby="shipment-add-status-label">
           {SHIPMENT_STATUS_ORDER.map((s) => (
-            <button key={s} type="button" className="shipments__pick" aria-pressed={s === status} data-testid={`shipment-add-status-${s}`} onClick={() => setStatus(s)}>
+            <button key={s} type="button" className="seg__btn" aria-pressed={s === status} data-testid={`shipment-add-status-${s}`} onClick={() => setStatus(s)}>
               {SHIPMENT_STATUS_LABELS[s]}
             </button>
           ))}
         </div>
       </div>
-      <div className="shipments__field">
-        <label htmlFor="shipment-add-eta">ETA</label>
-        <input id="shipment-add-eta" className="shipments__input num" type="date" value={eta} data-testid="shipment-add-eta" onChange={(e) => setEta(e.target.value)} />
+      <div className="field">
+        <label className="field__label" htmlFor="shipment-add-eta">
+          ETA
+        </label>
+        <input id="shipment-add-eta" className="input num shipments__date" type="date" value={eta} data-testid="shipment-add-eta" onChange={(e) => setEta(e.target.value)} />
       </div>
       <div className="shipments__add-actions">
         <button type="submit" className="btn btn--primary" data-testid="shipment-add-save" disabled={!ready}>
@@ -187,7 +193,7 @@ function ShipmentTable({ rows }: { rows: ShipmentRow[] }) {
   const go = useRowNav();
   const showMoney = rows.some((r) => r.job?.weeklyHoldingCost !== undefined);
   return (
-    <table className="shipments__table">
+    <table className="table table--rows shipments__table">
       <thead>
         <tr>
           <th scope="col">Shipment</th>
@@ -196,7 +202,7 @@ function ShipmentTable({ rows }: { rows: ShipmentRow[] }) {
           <th scope="col">ETA</th>
           <th scope="col">Needed by</th>
           <th scope="col">Items</th>
-          {showMoney && <th scope="col">A week late costs</th>}
+          {showMoney && <th scope="col">A week late</th>}
         </tr>
       </thead>
       <tbody>
@@ -248,26 +254,30 @@ function ShipmentCards({ rows }: { rows: ShipmentRow[] }) {
         const t = timing(shipment.eta, neededBy);
         return (
           <li key={shipment.id}>
-            <Link to={`/shipments/${shipment.id}`} className="shipments__card" data-testid={`shipment-row-${shipment.id}`}>
+            <Link to={`/shipments/${shipment.id}`} className="shipments__card plate" data-testid={`shipment-row-${shipment.id}`}>
               <div className="shipments__card-top">
                 <span className="shipments__name">{shipment.name}</span>
+                <span className="shipments__card-status-word" data-testid={`shipment-status-text-${shipment.id}`}>
+                  {SHIPMENT_STATUS_LABELS[shipment.status]}
+                </span>
+              </div>
+              <div className="shipments__eta-stack">
                 <span className="shipments__eta num" data-testid={`shipment-eta-${shipment.id}`}>
                   {formatDayMonthYear(shipment.eta)}
                 </span>
+                <span className="shipments__eta-words">
+                  <StatusText tone={t.tone} plain={t.tone === 'ok'} testId={`shipment-timing-${shipment.id}`}>
+                    {t.text}
+                  </StatusText>
+                  {neededBy && <span className="shipments__needed">needed {formatShort(neededBy)}</span>}
+                </span>
               </div>
               <div className="shipments__card-mid">
-                <span data-testid={`shipment-status-text-${shipment.id}`}>{SHIPMENT_STATUS_LABELS[shipment.status]}</span>
                 <span data-testid={`shipment-items-${shipment.id}`}>
                   {itemsWords(items.length)} for {job?.name ?? 'no job'}
                 </span>
+                <Money value={job?.weeklyHoldingCost} label="A week late" className="shipments__card-money" />
               </div>
-              <div className="shipments__card-status">
-                <StatusText tone={t.tone} testId={`shipment-timing-${shipment.id}`}>
-                  {t.text}
-                </StatusText>
-                {neededBy && <span className="shipments__needed">needed {formatShort(neededBy)}</span>}
-              </div>
-              <Money value={job?.weeklyHoldingCost} label="A week late costs" className="shipments__card-money" />
             </Link>
           </li>
         );

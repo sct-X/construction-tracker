@@ -1,30 +1,32 @@
 /*
   Program editor pieces: the step form, the stage form, the link picker, the
-  needs list and the photo-set list. Desktop only (the phone gets a sentence),
-  so controls sit at the 40px desktop height. The panel is a form on the
-  surface tone with hairline dividers between its sections, so it reads like
-  the step sheet, not a card. Derived facts (planned end, forecast dates) sit
-  on timber paper, the app's "worked out, not typed" treatment.
+  needs list and the photo-set list. Desktop only (the phone gets a
+  sentence), so controls sit at the 40px desktop height. The panel is a
+  form on the plate with hairline dividers between its sections. Derived
+  facts (planned end, forecast dates) sit on timber paper, the app's
+  "worked out, not typed" treatment.
 */
 .ed {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 .ed__title {
   font-family: var(--font-display);
   font-weight: var(--weight-display);
   font-size: var(--text-xl);
   line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
   color: var(--text);
   overflow-wrap: anywhere;
 }
-.ed__kicker {
+.ed__sub {
+  margin-top: var(--space-1);
   font-size: var(--text-sm);
   color: var(--text-muted);
 }
 .ed__section {
-  padding-top: var(--space-4);
+  padding-top: var(--space-5);
   border-top: var(--hairline);
   display: flex;
   flex-direction: column;
@@ -42,7 +44,7 @@
 .ed__field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-width: 0;
 }
 .ed__field > label,
@@ -68,17 +70,29 @@
   padding: 0 var(--space-3);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
-  background: var(--surface-raised);
+  background: var(--raised);
   color: var(--text);
   font-size: var(--text-md);
   font-variant-numeric: tabular-nums;
 }
+.ed__input:focus-visible {
+  border-color: var(--hivis);
+  box-shadow: none;
+}
 .ed__input:disabled {
-  background: var(--concrete-100);
-  color: var(--text-muted);
+  opacity: 0.5;
 }
 .ed__input--num {
   max-width: 7.5rem;
+}
+.ed__unit-field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.ed__unit {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 .ed__check {
   display: flex;
@@ -94,6 +108,7 @@
   accent-color: var(--hivis);
 }
 .ed__check--quiet {
+  min-height: 32px;
   font-weight: var(--weight-regular);
   font-size: var(--text-sm);
   color: var(--text-secondary);
@@ -105,11 +120,12 @@
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   background: var(--timber-100);
-  color: var(--text);
+  color: var(--text-secondary);
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
 }
 .ed__derived strong {
+  color: var(--text);
   font-weight: var(--weight-medium);
 }
 .ed__hint {
@@ -140,7 +156,10 @@
   border-top: 0;
 }
 .ed__item--need {
-  grid-template-columns: 6.5rem minmax(0, 1fr) 4.5rem auto;
+  grid-template-columns: 6.5rem minmax(0, 1fr) auto auto;
+}
+.ed__item--need .ed__unit-field .ed__input {
+  width: 4rem;
 }
 .ed__item-name {
   font-weight: var(--weight-medium);
@@ -156,16 +175,19 @@
   min-height: 32px;
   padding: 0 var(--space-2);
   border: 0;
+  border-radius: var(--radius-sm);
   background: none;
   color: var(--text);
   font-weight: var(--weight-medium);
   text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
   cursor: pointer;
-  border-radius: var(--radius-sm);
+  transition: background var(--motion-fast) var(--ease);
 }
 .ed__link:hover {
-  background: var(--concrete-100);
+  background: var(--raised);
+  text-decoration-color: currentColor;
 }
 .ed__link:disabled {
   color: var(--text-muted);
@@ -173,12 +195,12 @@
   cursor: default;
   background: none;
 }
-.ed__link--danger {
-  color: var(--late-ink);
-}
 .ed__empty {
   font-size: var(--text-sm);
   color: var(--text-muted);
+}
+.ed__section > .btn {
+  align-self: flex-start;
 }
 .ed__actions {
   display: flex;
@@ -189,10 +211,10 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-3);
-  border: 1px solid var(--late-ink);
+  padding: var(--space-4);
   border-radius: var(--radius-md);
-  background: var(--surface-raised);
+  background: var(--raised);
+  color: var(--text);
 }
 .ed__confirm p {
   line-height: var(--leading-body);
@@ -203,4 +225,5 @@
 }
 .btn--danger:hover {
   background: var(--late-bg);
+  border-color: var(--late-ink);
 }

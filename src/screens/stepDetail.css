@@ -1,50 +1,54 @@
 /*
   Step detail.
 
-  Layout concept: the forecast span is the one big figure, with planned,
-  duration and status as small facts beside it; one calculator sentence
-  says why. Actions sit under the dates. The hold-point check comes before
-  the order of work and the items, because it is the thing that stops a tick.
+  The dates are a two-figure readout: forecast (with the late words beside
+  it) and planned, in the display face at row scale, with duration and
+  status as small facts under them. One calculator sentence says why, only
+  when there is a why. Actions sit under the dates. The hold-point check
+  comes before the order of work and the items, because it is the thing
+  that stops a tick.
 */
 .step__dates {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
-  gap: var(--space-4) var(--space-8);
-  padding-bottom: var(--space-4);
-  border-bottom: 2px solid var(--concrete-200);
+  align-items: flex-start;
+  gap: var(--space-5) var(--space-10);
 }
-.step__date {
+.step__readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2) var(--space-3);
+}
+.step__readout .status {
+  margin-bottom: 20px; /* beside the figure, above its label */
+}
+.step__figure .bignumber__value {
+  white-space: normal;
+}
+.step__facts {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-8);
+  margin: 0;
+}
+.step__fact {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.step__date--forecast {
-  flex-basis: 100%;
-}
-.step__date-label {
+.step__fact dt {
   font-size: var(--text-sm);
   color: var(--text-muted);
 }
-.step__date-value {
-  font-size: var(--text-lg);
+.step__fact dd {
+  margin: 0;
+  font-size: var(--text-md);
   color: var(--text);
 }
-.step__date--forecast .step__date-value {
-  font-size: var(--text-2xl);
-  line-height: var(--leading-tight);
-}
-.step__date--forecast {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2) var(--space-3);
-}
-.step__date--forecast .step__date-label {
-  flex-basis: 100%;
-}
 .step__reason {
-  margin-top: var(--space-3);
+  margin-top: var(--space-5);
   max-width: var(--measure);
   color: var(--text-secondary);
 }
@@ -53,16 +57,11 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2) var(--space-3);
-  margin-top: var(--space-4);
-}
-.step__actions .btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+  margin-top: var(--space-6);
 }
 .step__refusal {
   margin-top: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--amber-ink);
   border-radius: var(--radius-sm);
   background: var(--amber-bg);
   color: var(--amber-ink);
@@ -73,16 +72,14 @@
   color: var(--text-muted);
 }
 .step__section {
-  margin-top: var(--space-8);
+  margin-top: var(--space-12);
   min-width: 0;
 }
 .step__section-title {
+  margin-bottom: var(--space-3);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--text-muted);
-  padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--concrete-200);
-  margin-bottom: var(--space-3);
 }
 .step__quiet {
   color: var(--text-muted);
@@ -90,7 +87,7 @@
 .step__links {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 .step__link-group dd {
   margin: 0;
@@ -119,27 +116,18 @@
   font-size: var(--text-sm);
 }
 .step__requirements {
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
   color: var(--text-secondary);
   font-size: var(--text-sm);
   max-width: var(--measure);
 }
 @media (min-width: 768px) {
-  .step__date--forecast {
-    flex-basis: auto;
-    flex-direction: column;
-    align-items: flex-start;
-    margin-right: var(--space-4);
-  }
-  .step__date--forecast .step__date-value {
-    font-size: 2.25rem;
-  }
-  .step__date--forecast .step__date-label {
-    flex-basis: auto;
-  }
   .step__cols {
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
     gap: var(--space-10);
+  }
+  .step__section {
+    margin-top: var(--space-10);
   }
 }

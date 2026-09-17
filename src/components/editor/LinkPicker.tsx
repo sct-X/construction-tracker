@@ -48,7 +48,7 @@ export function LinkPicker({ step, steps, stages, links, disabled, onAdd, onRemo
         <span>Waits for</span>
       </div>
       {mine.length === 0 ? (
-        <p className="ed__empty">Nothing. It starts on its planned date, or when its needs arrive.</p>
+        <p className="ed__empty">Nothing</p>
       ) : (
         <ul className="ed__list">
           {mine.map((l) => (
@@ -66,7 +66,7 @@ export function LinkPicker({ step, steps, stages, links, disabled, onAdd, onRemo
       )}
       <div className="ed__row">
         <div className="ed__field">
-          <label htmlFor="editor-waits-pick">Add a step it waits for</label>
+          <label htmlFor="editor-waits-pick">Also waits for</label>
           <select
             id="editor-waits-pick"
             className="ed__input"
@@ -91,7 +91,7 @@ export function LinkPicker({ step, steps, stages, links, disabled, onAdd, onRemo
           </select>
         </div>
         <button type="button" className="btn btn--desktop" disabled={disabled || !pick} data-testid="editor-waits-add" onClick={add}>
-          Add link
+          Add
         </button>
       </div>
       {refusal && (

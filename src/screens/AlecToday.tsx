@@ -4,7 +4,7 @@
  *
  *   Thursday 17 September
  *   Lock-up stage, week 2 of 12
- *   [        Add photos        ]   <- the screen's one hi-vis action, 64px
+ *   [      Add photos  (3)     ]   <- the screen's one hi-vis action, 64px; the queue count is its badge
  *   Write today's note              <- Stage 5's screen; a 56px link here
  *   On site this week      14-20 Sep
  *     Cladding    Wed to Wed, 3 wks, Coastal Cladding
@@ -24,7 +24,7 @@ import { addCalendarDays, formatShort, formatWeekRange, lastMonday, relativeDays
 import { HoldPointCheck, readinessWords } from '../components/HoldPointCheck';
 import { StatusText } from '../components/StatusText';
 import { DeliveryRow, collectDeliveries, groupDeliveries } from './Deliveries';
-import { useQueuedPhotos } from './PhotoGallery';
+import { useQueuedPhotos } from '../components/QueueBadge';
 import './alecToday.css';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -68,7 +68,7 @@ export default function AlecToday({ jobId }: { jobId: string }) {
     },
     [jobId, today],
   );
-  const queuedPhotos = useQueuedPhotos(jobId);
+  const queuedPhotos = useQueuedPhotos().filter((p) => p.jobId === jobId);
   const queued = queuedPhotos.length;
   if (!data) return null;
   const { forecast, steps, notes, deliveries } = data;
@@ -109,18 +109,13 @@ export default function AlecToday({ jobId }: { jobId: string }) {
 
       <a className="btn btn--primary today__add" href={`#${uploadHref}`} data-testid="today-add-photos">
         Add photos
-      </a>
-      {queued > 0 && (
-        <p className="today__queued" data-testid="today-queued">
-          <span className="today__clock" aria-hidden="true">
-            ◷
+        {queued > 0 && (
+          <span className="today__add-badge" data-testid="today-add-badge">
+            {queued}
+            <span className="sr-only"> waiting to send</span>
           </span>
-          {queued} photo{queued === 1 ? '' : 's'} waiting to send.{' '}
-          <Link to="/queue" data-testid="today-queue-link">
-            See the queue
-          </Link>
-        </p>
-      )}
+        )}
+      </a>
 
       <Link to={`/jobs/${jobId}/notes`} className="today__note" data-testid="today-note">
         {todayNote ? (
@@ -217,7 +212,7 @@ export default function AlecToday({ jobId }: { jobId: string }) {
                 {readinessWords(hp)}
               </StatusText>
             </p>
-            <HoldPointCheck check={hp} compact queuedCount={hpQueued} uploadHref={`/jobs/${jobId}/upload?stage=${hp.stageId}`} />
+            <HoldPointCheck check={hp} compact canComplete={false} queuedCount={hpQueued} uploadHref={`/jobs/${jobId}/upload?stage=${hp.stageId}`} />
           </>
         ) : (
           <p className="today__quiet">No hold points left on this program.</p>

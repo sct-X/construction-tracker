@@ -14,6 +14,7 @@
  * "4 photos"); the wash only agrees with them.
  */
 import type { HoldPointCheck as Check } from '../domain/forecast';
+import { useSession } from '../data/context';
 import { StatusText } from './StatusText';
 import './holdPointCheck.css';
 
@@ -34,10 +35,14 @@ export interface HoldPointCheckProps {
   uploadHref?: string;
   /** A compact list without the heading, for the overview. */
   compact?: boolean;
+  /** Whether the reader can mark the step done. Defaults to "not the site role". */
+  canComplete?: boolean;
   testId?: string;
 }
 
-export function HoldPointCheck({ check, refusal, queuedCount = 0, uploadHref, compact, testId }: HoldPointCheckProps) {
+export function HoldPointCheck({ check, refusal, queuedCount = 0, uploadHref, compact, canComplete, testId }: HoldPointCheckProps) {
+  const { role } = useSession();
+  const mayTick = canComplete ?? role !== 'site';
   return (
     <div className={compact ? 'holdpoint holdpoint--compact' : 'holdpoint'} data-testid={testId}>
       {!compact && (
@@ -70,7 +75,7 @@ export function HoldPointCheck({ check, refusal, queuedCount = 0, uploadHref, co
       )}
       {queuedCount > 0 && (
         <p className="holdpoint__queued" data-testid="holdpoint-queued">
-          {queuedCount} photo{queuedCount === 1 ? ' is' : 's are'} waiting to upload. You can tick this off once they've sent.
+          {queuedCount} photo{queuedCount === 1 ? ' is' : 's are'} waiting to upload. {mayTick ? "You can tick this off once they've sent." : "They count once they've sent."}
         </p>
       )}
       {uploadHref && !check.ok && (

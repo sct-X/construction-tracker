@@ -17,6 +17,8 @@ export type QueuedPhotoState = 'queued' | 'sending' | 'failed';
 
 export interface QueuedPhoto {
   id: string;
+  /** The side the photo is filed on, fixed at queue time so a later side switch cannot move it. */
+  sideId?: string;
   jobId: string;
   stageId: string | null;
   categoryId: string;
@@ -49,7 +51,9 @@ export interface PhotoQueue {
   subscribe(listener: QueueListener): () => void;
   /**
    * Sends every queued or failed photo through `upload`, one at a time, in
-   * order. Stops at the first failure (marked failed, kept, attempts + 1).
+   * order. A failure marks the photo failed (kept, attempts + 1); the loop
+   * stops if `canSend()` has turned false, otherwise it carries on with the
+   * next photo. An entry removed while an earlier one was sending is skipped.
    * Does nothing when `canSend()` is false. A flush already running is
    * returned rather than started again. Returns how many were sent.
    */
@@ -84,8 +88,11 @@ async function flushWith(
   // A photo left "sending" by a closed app is sent again: nothing was removed, so nothing landed.
   const all = sortQueued(await queue.list());
   let sent = 0;
-  for (const photo of all) {
+  for (const listed of all) {
     if (!canSend()) break;
+    // Re-read: a Remove tapped while an earlier photo was sending must win.
+    const photo = await queue.get(listed.id);
+    if (!photo) continue;
     await queue.update(photo.id, { state: 'sending', error: undefined });
     try {
       await upload({ ...photo, state: 'sending' });
@@ -97,7 +104,9 @@ async function flushWith(
         error: err instanceof Error ? err.message : String(err),
         attempts: (photo.attempts ?? 0) + 1,
       });
-      break;
+      // Signal gone: stop, the rest wait. Anything else is this photo's own
+      // problem (a missing job, a bad file): carry on with the next one.
+      if (!canSend()) break;
     }
   }
   return sent;

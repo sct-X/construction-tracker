@@ -7,6 +7,9 @@
  *    references, and precache shell + assets + manifest + icons.
  *  - navigation requests: network first, fall back to the cached shell.
  *  - hashed assets (/assets/): cache first, then network (and cache it).
+ *  - cache lookups ignore Vary: vite preview answers with `Vary: Origin`,
+ *    and a <script crossorigin> request would otherwise miss its own
+ *    precached response, so the shell opened offline with no JS.
  *  - everything else same-origin: network, fall back to cache.
  */
 const VERSION = 'ct-shell-v1';
@@ -66,14 +69,14 @@ self.addEventListener('fetch', (event) => {
           if (res.ok) (await caches.open(VERSION)).put(SHELL_URL, res.clone());
           return res;
         })
-        .catch(async () => (await caches.match(SHELL_URL)) || Response.error()),
+        .catch(async () => (await caches.match(SHELL_URL, { ignoreVary: true })) || Response.error()),
     );
     return;
   }
 
   if (url.pathname.includes('/assets/')) {
     event.respondWith(
-      caches.match(req).then(
+      caches.match(req, { ignoreVary: true }).then(
         (hit) =>
           hit ||
           fetch(req).then(async (res) => {
@@ -91,6 +94,6 @@ self.addEventListener('fetch', (event) => {
         if (res.ok) (await caches.open(VERSION)).put(req, res.clone());
         return res;
       })
-      .catch(async () => (await caches.match(req)) || Response.error()),
+      .catch(async () => (await caches.match(req, { ignoreVary: true })) || Response.error()),
   );
 });

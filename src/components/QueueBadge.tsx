@@ -15,16 +15,28 @@ import { useApi, useSession } from '../data/context';
 import { sharedPhotoQueue, sortQueued, type QueuedPhoto } from '../data/photoQueue';
 import './queueBadge.css';
 
-/** The phone's queue, oldest first, refreshed on every queue or api change. */
-export function useQueuedPhotos(): QueuedPhoto[] {
+/** How many failed sends are retried by themselves before the queue waits for a Retry tap. */
+export const MAX_AUTO_ATTEMPTS = 5;
+
+/**
+ * The phone's queue, oldest first, refreshed on every queue or api change.
+ * Pass a job id to get that job's photos only. The one hook for every
+ * screen that reads the queue (gallery, Today, upload, queue, badge).
+ */
+export function useQueuedPhotos(jobId?: string): QueuedPhoto[] {
   const api = useApi();
   const [list, setList] = useState<QueuedPhoto[]>([]);
   useEffect(() => {
     let live = true;
     const refresh = () => {
-      void api.listQueuedPhotos().then((q) => {
-        if (live) setList(sortQueued(q));
-      });
+      api
+        .listQueuedPhotos()
+        .then((q) => {
+          if (live) setList(sortQueued(jobId ? q.filter((p) => p.jobId === jobId) : q));
+        })
+        .catch(() => {
+          if (live) setList([]);
+        });
     };
     refresh();
     const offQueue = sharedPhotoQueue().subscribe(refresh);
@@ -34,7 +46,7 @@ export function useQueuedPhotos(): QueuedPhoto[] {
       offQueue();
       offApi();
     };
-  }, [api]);
+  }, [api, jobId]);
   return list;
 }
 
@@ -66,8 +78,9 @@ function useQueueFlusher(queued: QueuedPhoto[]) {
     return () => window.removeEventListener('online', go);
   }, [api]);
 
-  // A failed send is tried again after a wait that grows with each failure.
-  const failed = queued.find((p) => p.state === 'failed');
+  // A failed send is tried again after a wait that grows with each failure,
+  // up to MAX_AUTO_ATTEMPTS; after that the queue screen's Retry re-arms it.
+  const failed = queued.find((p) => p.state === 'failed' && (p.attempts ?? 0) < MAX_AUTO_ATTEMPTS);
   const failedId = failed?.id;
   const attempts = failed?.attempts ?? 0;
   useEffect(() => {

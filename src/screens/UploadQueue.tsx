@@ -77,7 +77,7 @@ export default function UploadQueue() {
 
   const sendNow = () => void api.flushPhotoQueue();
   const retry = async (id: string) => {
-    await sharedPhotoQueue().update(id, { state: 'queued', error: undefined });
+    await sharedPhotoQueue().update(id, { state: 'queued', error: undefined, attempts: 0 });
     void api.flushPhotoQueue();
   };
   const remove = (id: string) => void api.removeQueuedPhoto(id);

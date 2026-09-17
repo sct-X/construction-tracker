@@ -189,6 +189,7 @@ export default function StepDetail() {
             refusal={refusal?.reason === 'hold_point' ? refusal.message : undefined}
             queuedCount={queued}
             uploadHref={`/jobs/${job.id}/upload?stage=${step.stageId}`}
+            canComplete={canTick}
             testId="step-holdpoint"
           />
         </section>

@@ -306,6 +306,11 @@
   margin-bottom: var(--space-2);
   font-size: var(--text-sm);
 }
+.shell--phone .page-header__back {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+}
 .page-header__row {
   display: flex;
   flex-wrap: wrap;

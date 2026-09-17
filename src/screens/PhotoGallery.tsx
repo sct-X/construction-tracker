@@ -20,8 +20,8 @@
  */
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import type { QueuedPhoto } from '../data/api';
 import { useApi, useQuery, useSession } from '../data/context';
+import { useQueuedPhotos } from '../components/QueueBadge';
 import type { Photo, PhotoCategory } from '../domain/types';
 import { formatLong, formatShort, formatTime } from '../domain/dates';
 import { StatusText } from '../components/StatusText';
@@ -29,28 +29,6 @@ import NotFound from './NotFound';
 import { PageHeader } from '../shell/PageHeader';
 import { useLayout } from '../shell/AppShell';
 import './photoGallery.css';
-
-/** Photos for one job still in the phone's queue; re-read whenever the api notifies. */
-export function useQueuedPhotos(jobId: string): QueuedPhoto[] {
-  const api = useApi();
-  const [queued, setQueued] = useState<QueuedPhoto[]>([]);
-  useEffect(() => {
-    let live = true;
-    const read = () => {
-      api
-        .listQueuedPhotos()
-        .then((q) => live && setQueued(q.filter((p) => p.jobId === jobId)))
-        .catch(() => live && setQueued([]));
-    };
-    read();
-    const off = api.subscribe(read);
-    return () => {
-      live = false;
-      off();
-    };
-  }, [api, jobId]);
-  return queued;
-}
 
 const GENERAL = 'general';
 
@@ -98,7 +76,8 @@ export default function PhotoGallery() {
     },
     [id],
   );
-  const queued = useQueuedPhotos(id);
+  const allQueued = useQueuedPhotos();
+  const queued = allQueued.filter((p) => p.jobId === id);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (!data) return <NotFound />;

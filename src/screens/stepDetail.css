@@ -114,11 +114,6 @@
 .shell--phone .step__link {
   min-height: var(--tap);
 }
-.shell--phone .step .page-header__back {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--tap);
-}
 .step__link-when {
   color: var(--text-muted);
   font-size: var(--text-sm);

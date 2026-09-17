@@ -244,7 +244,12 @@ export default function PhotoUpload() {
 
   const n = picked.length;
   const canUpload = n > 0 && !!category && phase !== 'saving' && phase !== 'sending';
-  const heldCount = batch.filter((qid) => queued.some((p) => p.id === qid)).length;
+  const heldCount = stillQueued;
+  const batchFailed = batch.filter((qid) => queued.some((p) => p.id === qid && p.state === 'failed')).length;
+  // Signal back while the held note is up: the queue is sending, say so instead.
+  const showSending = phase === 'sending' || (phase === 'held' && !signalOff && stillQueued > batchFailed);
+  const showFailed = phase === 'held' && !showSending && batchFailed > 0 && !signalOff;
+  const showHeld = phase === 'held' && !showSending && !showFailed;
   const jobHref = `/jobs/${job.id}`;
 
   return (
@@ -372,7 +377,7 @@ export default function PhotoUpload() {
           </p>
         )}
 
-        {phase === 'sending' && (
+        {showSending && (
           <div className="upload__progress" data-testid="upload-progress">
             <p className="upload__line">
               Sending <span className="display upload__figure">{Math.min(sentCount + 1, batchSize)}</span> of {batchSize}
@@ -383,12 +388,18 @@ export default function PhotoUpload() {
           </div>
         )}
 
-        {phase === 'held' && (
+        {showHeld && (
           <p className="upload__note" data-testid="upload-offline-note">
             <ClockGlyph className="upload__note-glyph" />
             <span>
               No signal: {plural(heldCount, 'photo')} saved on this phone, they'll send when you're back in range.
             </span>
+          </p>
+        )}
+
+        {showFailed && (
+          <p className="upload__problem" role="alert" data-testid="upload-failed">
+            {plural(batchFailed, 'photo')} didn't send. <Link to="/queue">Open the upload queue</Link> to retry or remove them.
           </p>
         )}
 

@@ -262,11 +262,11 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
     return d().jobs.find((j) => j.id === jobId)?.name ?? jobId;
   }
 
-  function insertPhoto(input: NewPhotoInput, uploadedById: string): Photo {
+  function insertPhoto(input: NewPhotoInput, uploadedById: string, sideId: string = session.sideId): Photo {
     requireJob(input.jobId);
     const photo: Photo = {
       id: newId('ph'),
-      sideId: session.sideId,
+      sideId,
       jobId: input.jobId,
       stageId: input.stageId,
       categoryId: input.categoryId,
@@ -1007,6 +1007,7 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
     },
     async queuePhoto(input) {
       const q = await queue.enqueue({
+        sideId: session.sideId,
         jobId: input.jobId,
         stageId: input.stageId,
         categoryId: input.categoryId,
@@ -1030,7 +1031,7 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
       const sent = await queue.flush(
         (photo: QueuedPhoto) => {
           if (session.offline) throw new Error('No signal');
-          insertPhoto(photo, photo.uploadedById);
+          insertPhoto(photo, photo.uploadedById, photo.sideId ?? session.sideId);
           persist();
         },
         () => !session.offline,

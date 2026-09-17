@@ -3,6 +3,9 @@
   max-width: 640px;
 }
 .upload__change-job {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
   font-size: var(--text-sm);
   align-self: center;
 }

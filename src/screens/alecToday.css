@@ -30,14 +30,18 @@
   min-height: 64px;
   font-size: var(--text-lg);
 }
-.today__queued {
-  margin-top: var(--space-2);
+.today__add-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 var(--space-2);
+  border-radius: 14px;
+  background: var(--ink);
+  color: var(--text-on-dark);
   font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
-.today__clock {
-  margin-right: var(--space-1);
-  color: var(--amber-ink);
+  font-variant-numeric: tabular-nums;
 }
 
 /* the note line: a 56px link that reads as a diary line */

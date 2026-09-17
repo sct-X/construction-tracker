@@ -145,7 +145,7 @@
   padding: 0 var(--space-2);
   border: 0;
   background: none;
-  color: var(--primary);
+  color: var(--link);
   text-decoration: underline;
   text-underline-offset: 2px;
   font-weight: var(--weight-medium);

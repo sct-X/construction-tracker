@@ -1,9 +1,9 @@
-/* StatusText: words first, wash second. */
+/* StatusText: words first, a tinted wash second. Reads the same in greyscale. */
 .status {
   display: inline-flex;
   align-items: baseline;
   gap: 0.35em;
-  padding: 1px var(--space-2);
+  padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);

@@ -198,7 +198,7 @@
   font-weight: var(--weight-display);
   font-size: var(--text-2xl);
   line-height: 1;
-  color: var(--steel-500);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
   min-width: 1.4em;
 }
@@ -331,7 +331,7 @@
   color: var(--late-ink);
 }
 .template__x--add {
-  color: var(--steel-500);
+  color: var(--text-secondary);
   font-weight: var(--weight-medium);
   white-space: nowrap;
 }
@@ -348,7 +348,7 @@ select.template__inline-add {
   border-radius: var(--radius-sm);
   background: var(--surface-raised);
   font-size: var(--text-sm);
-  color: var(--steel-500);
+  color: var(--text-secondary);
 }
 .template__inline-add {
   display: inline-flex;

@@ -90,7 +90,7 @@
   width: 20px;
   height: 20px;
   margin: 0;
-  accent-color: var(--steel-700);
+  accent-color: var(--hivis);
 }
 .calls__keys {
   margin-top: var(--space-4);
@@ -229,7 +229,7 @@
   height: 24px;
   margin: 0;
   flex-shrink: 0;
-  accent-color: var(--steel-700);
+  accent-color: var(--hivis);
 }
 .calls__tick-words {
   display: flex;

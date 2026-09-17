@@ -116,7 +116,7 @@
 .gallery__tag {
   font-weight: var(--weight-regular);
   font-size: var(--text-sm);
-  color: var(--steel-500);
+  color: var(--text-secondary);
 }
 .gallery__upload-here {
   min-height: var(--tap);

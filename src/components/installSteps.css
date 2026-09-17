@@ -51,7 +51,7 @@
   font-family: var(--font-display);
   font-weight: var(--weight-display);
   font-size: var(--text-xl);
-  color: var(--steel-500);
+  color: var(--text-secondary);
 }
 .install__note {
   margin-top: var(--space-3);

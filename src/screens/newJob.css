@@ -150,7 +150,7 @@
   font-family: var(--font-display);
   font-weight: var(--weight-display);
   font-size: var(--text-lg);
-  color: var(--steel-500);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
   text-decoration: none;
 }

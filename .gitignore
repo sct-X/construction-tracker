@@ -5,3 +5,6 @@ playwright-report
 .DS_Store
 *.local
 *.tsbuildinfo
+
+# impeccable engine binary (14 MB), reinstall with: npx impeccable install -y --providers=claude-code --project --no-hooks
+.claude/skills/impeccable/scripts/bin/

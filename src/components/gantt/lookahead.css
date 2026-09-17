@@ -52,7 +52,7 @@
   font-size: var(--text-lg);
 }
 .lookahead__hold {
-  color: var(--steel-700);
+  color: var(--text);
   font-weight: var(--weight-medium);
   font-size: var(--text-sm);
   margin-right: 4px;
@@ -76,7 +76,7 @@
   display: flex;
   align-items: center;
   min-height: var(--tap);
-  color: var(--primary);
+  color: var(--link);
   font-weight: var(--weight-medium);
   cursor: pointer;
 }

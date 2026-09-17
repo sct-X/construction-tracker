@@ -1,19 +1,21 @@
 /*
-  Monday screen.
+  Monday screen: the readout.
 
-  Layout concept: a ledger, not a dashboard. Each build is one row where the
-  forecast finish is set as a big condensed date and the slip beside it is the
-  only coloured figure on the row; everything else (holding cost, the three
-  waiting-on lines, freshness) is 14px and quiet. Design jobs are a second,
-  plainer ledger underneath. Hairlines carry the structure; nothing floats.
+  Each build is one row of an instrument face: the forecast finish and the
+  slip are the readout digits (32px on the desktop, 30px on the phone), set
+  in the display face; the job name, holding cost, three waiting-on lines and
+  the freshness words are the quiet engraving around them. On the desktop the
+  rows sit on the ground with hairlines between them and lift to the plate
+  tone on hover; on the phone each job is a plate. Design jobs are a second,
+  plainer readout underneath.
 
-  The one bold thing: the column of finish dates. Orange appears nowhere here
-  except the focus ring, because nothing on this screen is a thumb's target.
+  Orange appears nowhere here except the focus ring: nothing on this screen
+  is a thumb's target.
 */
 .monday {
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: var(--space-6) var(--gutter) var(--space-12);
+  padding: var(--space-5) var(--gutter) var(--space-16);
 }
 
 /* Header ------------------------------------------------------------------ */
@@ -22,69 +24,40 @@
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: var(--space-3) var(--space-6);
+  gap: var(--space-4) var(--space-6);
   margin-bottom: var(--space-6);
 }
 .monday__title {
   font-family: var(--font-display);
   font-weight: var(--weight-display);
-  font-size: var(--text-xl); /* below the row figures: numbers lead */
+  font-size: var(--text-xl); /* a step below the row figures: numbers lead */
   line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
 }
 .monday__week {
   margin-top: var(--space-1);
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 }
 .monday__since {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   font-size: var(--text-sm);
 }
 .monday__since-label {
   color: var(--text-muted);
-  margin-right: var(--space-1);
-}
-.monday__since-button {
-  min-height: var(--control);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-secondary);
-  transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
-}
-.monday__since-button:hover {
-  background: var(--concrete-100);
-}
-.monday__since-button[aria-pressed='true'] {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--text-on-dark);
-}
-@media (max-width: 767.98px) {
-  .monday__since {
-    flex-wrap: wrap;
-  }
-  .monday__since-label {
-    flex-basis: 100%;
-  }
-  .monday__since-button {
-    min-height: var(--tap);
-    padding: 0 var(--space-4);
-  }
 }
 
 /* Groups ------------------------------------------------------------------ */
 .monday__group + .monday__group {
-  margin-top: var(--space-10);
+  margin-top: var(--space-12);
 }
 .monday__group-title {
-  font-size: var(--text-md);
+  font-size: var(--text-sm);
   font-weight: var(--weight-medium);
-  color: var(--text-secondary);
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--line-strong);
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
 }
 .monday__empty {
   padding: var(--space-8) 0;
@@ -100,6 +73,7 @@
 }
 .monday__job:hover {
   text-decoration: underline;
+  text-decoration-color: var(--line-strong);
 }
 .monday__stage {
   display: block;
@@ -111,12 +85,13 @@
   display: inline-block;
   color: inherit;
   text-decoration: none;
+  border-radius: var(--radius-sm);
 }
-.monday__slip-link:hover .bignumber__label {
+.monday__slip-link:hover .bignumber__value {
   text-decoration: underline;
-}
-.monday__slip-link .bignumber__label {
-  color: var(--primary);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+  text-decoration-color: var(--line-strong);
 }
 .monday__quiet {
   color: var(--text-muted);
@@ -125,7 +100,7 @@
 .monday__waiting {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   font-size: var(--text-sm);
 }
 .monday__item-link {
@@ -139,6 +114,7 @@
 }
 .monday__item-link:hover .monday__item-title {
   text-decoration: underline;
+  text-decoration-color: var(--line-strong);
 }
 .monday__item--late .monday__item-link {
   color: var(--late-ink);
@@ -163,10 +139,11 @@
   white-space: normal;
 }
 .monday__with-you {
-  padding: 0 var(--space-2);
-  border: 1px solid var(--timber-300);
-  border-radius: var(--radius-sm);
-  background: var(--timber-100);
+  align-self: start;
+  margin-top: 1px;
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--raised);
   color: var(--text-secondary);
   font-size: var(--text-xs);
   line-height: 1.6;
@@ -178,96 +155,94 @@
 }
 
 /* Desktop table ------------------------------------------------------------ */
-.monday__table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-}
 .monday__table th,
 .monday__table td {
-  text-align: left;
-  vertical-align: top;
-  padding: var(--space-4) var(--space-3);
-  border-bottom: var(--hairline);
-}
-.monday__table th:first-child,
-.monday__table td:first-child {
-  padding-left: 0;
-}
-.monday__table th:last-child,
-.monday__table td:last-child {
-  padding-right: 0;
+  padding-top: var(--space-5);
+  padding-bottom: var(--space-5);
 }
 .monday__table thead th {
   padding-top: var(--space-2);
   padding-bottom: var(--space-2);
-  font-weight: var(--weight-regular);
-  color: var(--text-muted);
-  border-bottom: var(--hairline);
 }
-.monday__table tbody th {
-  font-weight: var(--weight-medium);
+.monday__table th:first-child,
+.monday__table td:first-child {
+  padding-left: var(--space-3);
 }
-.monday__row {
-  cursor: pointer;
+.monday__table th:last-child,
+.monday__table td:last-child {
+  padding-right: var(--space-3);
 }
-.monday__table tbody tr:hover {
-  background: var(--surface);
+.monday__table tbody tr {
+  transition: background var(--motion-fast) var(--ease);
 }
-/* The header row already names the columns: the in-cell labels stay for the phone. */
+/* The header row already names the columns: the in-cell labels are for the phone. */
 .monday__table .bignumber__label {
   display: none;
 }
-.monday__table .monday__slip-link .bignumber__label {
-  display: inline;
-  font-size: var(--text-xs);
+.monday__table--builds {
+  table-layout: fixed;
 }
-.monday__table thead th {
-  white-space: nowrap;
+.monday__table--builds th:nth-child(1) {
+  width: 16%;
+}
+.monday__table--builds th:nth-child(2),
+.monday__table--builds th:nth-child(3) {
+  width: 22%;
+}
+.monday__table--builds th:nth-child(5) {
+  width: 14%;
 }
 .monday__table--builds .monday__cell-job {
-  width: 1%; /* shrink to the name; the waiting-on column takes the room */
-  white-space: nowrap;
+  padding-right: var(--space-4);
+}
+.monday__holding {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
 }
 .monday__table--builds .monday__cell-finish,
 .monday__table--builds .monday__cell-slip {
   white-space: nowrap;
-  width: 1%; /* shrink to the figure */
+  padding-right: var(--space-4);
 }
-.monday__table--builds .monday__cell-holding {
-  white-space: nowrap;
-  width: 1%;
-  color: var(--text-secondary);
-}
-.monday__table--builds .monday__cell-waiting {
-  width: auto;
-}
+.monday__table--builds .monday__cell-waiting,
 .monday__table--builds .monday__cell-fresh {
-  width: 12%;
+  padding-top: calc(var(--space-5) + 6px);
 }
 .monday__table--design .monday__cell-job {
-  width: 18%;
+  width: 22%;
 }
 .monday__table--design .monday__cell-stage {
   width: 18%;
   color: var(--text-secondary);
 }
 .monday__table--design .monday__cell-outstanding {
-  color: var(--text-secondary);
+  color: var(--text);
+}
+.monday__outstanding-detail {
+  display: block;
+  color: var(--text-muted);
 }
 
 /* Phone cards ---------------------------------------------------------------- */
 .monday__cards {
   display: flex;
   flex-direction: column;
+  gap: var(--space-2);
 }
 .monday__card {
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4) 0 var(--space-5);
-  border-bottom: var(--hairline);
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-4) var(--space-5);
+  background: var(--plate);
+  border-radius: var(--radius-lg);
+  transition: background var(--motion-fast) var(--ease);
+}
+.monday__card:active {
+  background: var(--raised);
 }
 .monday__card-head {
   display: flex;
@@ -278,11 +253,12 @@
 .monday__card-figures {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-6);
+  gap: var(--space-3) var(--space-8);
 }
 .monday__card > .money {
   font-size: var(--text-sm);
   color: var(--text-secondary);
+  margin-top: calc(-1 * var(--space-2));
 }
 .monday__card .monday__waiting {
   gap: var(--space-1);
@@ -296,5 +272,22 @@
 }
 .monday__outstanding {
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--text);
+}
+
+@media (max-width: 767.98px) {
+  .monday {
+    padding-top: var(--space-4);
+  }
+  .monday__head {
+    gap: var(--space-3);
+  }
+  .monday__since {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .monday__card-figures {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
 }

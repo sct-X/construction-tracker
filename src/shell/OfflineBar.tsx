@@ -1,7 +1,7 @@
 /**
- * "No signal" is a thin calm bar under the header: amber wash, one sentence,
- * no modal, no red. Shows the time the saved copy dates from, captured when
- * the signal dropped.
+ * "No signal" is a thin calm bar under the header: amber wash, one short
+ * line, no modal, no red. Shows the time the saved copy dates from, captured
+ * when the signal dropped.
  */
 import { useEffect, useRef } from 'react';
 import { useSession } from '../data/context';
@@ -24,7 +24,8 @@ export function OfflineBar() {
   const at = since.current ?? clock(new Date());
   return (
     <div className="offline-bar" data-testid="offline-bar" role="status">
-      No signal. Showing what loaded at {at}. Photos, notes and ticks wait in the queue.
+      <span className="offline-bar__dot" aria-hidden="true" />
+      <span>No signal. Showing what loaded at {at}. Changes queue until it returns.</span>
     </div>
   );
 }

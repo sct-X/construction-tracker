@@ -12,12 +12,17 @@
  *    precached response, so the shell opened offline with no JS.
  *  - everything else same-origin: network, fall back to cache.
  */
-const VERSION = 'ct-shell-v1';
+const VERSION = 'ct-shell-v2';
 const SCOPE = self.registration.scope; // e.g. https://host/construction-tracker/
 const SHELL_URL = new URL('./', SCOPE).href;
-const STATIC = ['./manifest.webmanifest', './icons/icon.svg', './icons/icon-maskable.svg'].map(
-  (p) => new URL(p, SCOPE).href,
-);
+const STATIC = [
+  './manifest.webmanifest',
+  './icons/icon.svg',
+  './icons/icon-maskable.svg',
+  './fonts/atkinson-hyperlegible-next-latin.woff2',
+  './fonts/barlow-semi-condensed-600-latin.woff2',
+  './fonts/barlow-semi-condensed-700-latin.woff2',
+].map((p) => new URL(p, SCOPE).href);
 
 async function precache() {
   const cache = await caches.open(VERSION);

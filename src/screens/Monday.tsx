@@ -73,7 +73,7 @@ export default function Monday() {
   return (
     <main className="monday" data-testid="monday-screen">
       <header className="monday__head">
-        <div>
+        <div className="monday__head-words">
           <h1 className="monday__title">Monday</h1>
           <p className="monday__week" data-testid="monday-week">
             Week of {formatShort(monday)}. {since === 'plan' ? 'Compared with the original plan.' : "Compared with Monday's forecast."}
@@ -81,24 +81,14 @@ export default function Monday() {
         </div>
         <div className="monday__since" role="group" aria-label="Slip since">
           <span className="monday__since-label">Slip since</span>
-          <button
-            type="button"
-            className="monday__since-button"
-            aria-pressed={since === 'monday'}
-            data-testid="monday-since-monday"
-            onClick={() => setSince('monday')}
-          >
-            Monday
-          </button>
-          <button
-            type="button"
-            className="monday__since-button"
-            aria-pressed={since === 'plan'}
-            data-testid="monday-since-plan"
-            onClick={() => setSince('plan')}
-          >
-            the original plan
-          </button>
+          <span className="seg">
+            <button type="button" className="seg__btn" aria-pressed={since === 'monday'} data-testid="monday-since-monday" onClick={() => setSince('monday')}>
+              Monday
+            </button>
+            <button type="button" className="seg__btn" aria-pressed={since === 'plan'} data-testid="monday-since-plan" onClick={() => setSince('plan')}>
+              the original plan
+            </button>
+          </span>
         </div>
       </header>
 
@@ -179,14 +169,16 @@ function FinishCell({ row }: { row: MondayRow }) {
 function SlipCell({ row, since }: { row: MondayRow; since: SlipSince }) {
   const { days, cost } = slipFor(row, since);
   const tone = slipTone(days);
-  const label = days === undefined ? undefined : days === 0 ? 'Nothing moved' : 'Why it moved';
+  const why = days === undefined ? 'Slip' : days === 0 ? 'Nothing moved' : 'Why it moved';
   return (
     <Link
       to={`/jobs/${row.jobId}/why${since === 'plan' ? '?since=plan' : ''}`}
       className="monday__slip-link"
       data-testid={`monday-slip-${row.jobId}`}
+      title={why}
     >
-      <BigNumber size="row" tone={tone} value={<SlipText days={days} cost={cost} />} label={label} />
+      <BigNumber size="row" tone={tone} value={<SlipText days={days} cost={cost} />} label="Slip" />
+      <span className="sr-only">, {why}</span>
     </Link>
   );
 }
@@ -239,12 +231,18 @@ function FreshCell({ jobId, freshness }: { jobId: string; freshness: Freshness }
   );
 }
 
-function outstandingText(row: MondayRow): string {
+/** "2 outstanding, oldest 23 days" on the first line; what and who on a quiet second line. */
+function Outstanding({ row }: { row: MondayRow }) {
   const n = row.outstanding ?? 0;
-  if (n === 0) return 'Nothing outstanding';
+  if (n === 0) return <>Nothing outstanding</>;
   const head = `${n} outstanding, ${n === 1 ? '' : 'oldest '}${row.oldestDays ?? 0} days`;
-  const who = row.oldestItemTitle ? `: ${row.oldestItemTitle}${row.oldestItemWaitingOn ? ` (${row.oldestItemWaitingOn})` : ''}` : '';
-  return head + who;
+  const who = row.oldestItemTitle ? `${row.oldestItemTitle}${row.oldestItemWaitingOn ? `, ${row.oldestItemWaitingOn}` : ''}` : '';
+  return (
+    <>
+      {head}
+      {who ? <span className="monday__outstanding-detail">{who}</span> : null}
+    </>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -254,15 +252,14 @@ function outstandingText(row: MondayRow): string {
 function BuildTable({ rows, since, showMoney, personId }: { rows: MondayRow[]; since: SlipSince; showMoney: boolean; personId: string }) {
   const openJob = useOpenJob();
   return (
-    <table className="monday__table monday__table--builds">
+    <table className="table table--rows monday__table monday__table--builds">
       <thead>
         <tr>
           <th scope="col">Job</th>
           <th scope="col">Forecast finish</th>
           <th scope="col">Slip</th>
-          {showMoney ? <th scope="col">Holding cost</th> : null}
           <th scope="col">Waiting on</th>
-          <th scope="col">Last confirmed</th>
+          <th scope="col">Confirmed</th>
         </tr>
       </thead>
       <tbody>
@@ -271,6 +268,11 @@ function BuildTable({ rows, since, showMoney, personId }: { rows: MondayRow[]; s
             <th scope="row" className="monday__cell-job">
               <JobName row={row} />
               {row.currentStageName ? <span className="monday__stage">{row.currentStageName}</span> : null}
+              {showMoney ? (
+                <span className="monday__holding">
+                  <HoldingCell row={row} />
+                </span>
+              ) : null}
             </th>
             <td className="monday__cell-finish">
               <FinishCell row={row} />
@@ -278,11 +280,6 @@ function BuildTable({ rows, since, showMoney, personId }: { rows: MondayRow[]; s
             <td className="monday__cell-slip">
               <SlipCell row={row} since={since} />
             </td>
-            {showMoney ? (
-              <td className="monday__cell-holding">
-                <HoldingCell row={row} />
-              </td>
-            ) : null}
             <td className="monday__cell-waiting">
               <WaitingOnCell row={row} personId={personId} />
             </td>
@@ -299,7 +296,7 @@ function BuildTable({ rows, since, showMoney, personId }: { rows: MondayRow[]; s
 function DesignTable({ rows }: { rows: MondayRow[] }) {
   const openJob = useOpenJob();
   return (
-    <table className="monday__table monday__table--design">
+    <table className="table table--rows monday__table monday__table--design">
       <thead>
         <tr>
           <th scope="col">Job</th>
@@ -317,7 +314,7 @@ function DesignTable({ rows }: { rows: MondayRow[] }) {
               {row.currentStageName ?? 'No stage'}
             </td>
             <td className="monday__cell-outstanding" data-testid={`monday-outstanding-${row.jobId}`}>
-              {outstandingText(row)}
+              <Outstanding row={row} />
             </td>
           </tr>
         ))}
@@ -366,7 +363,7 @@ function DesignCards({ rows }: { rows: MondayRow[] }) {
             </span>
           </div>
           <p className="monday__outstanding" data-testid={`monday-outstanding-${row.jobId}`}>
-            {outstandingText(row)}
+            <Outstanding row={row} />
           </p>
         </li>
       ))}

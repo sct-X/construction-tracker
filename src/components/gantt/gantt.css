@@ -178,7 +178,7 @@
 }
 .gantt__hold-glyph {
   flex-shrink: 0;
-  color: var(--steel-700);
+  color: var(--text);
   font-size: 15px;
   line-height: 1;
 }

@@ -38,7 +38,7 @@
 .checklist__tab[aria-current='page'] {
   color: var(--text);
   font-weight: var(--weight-bold);
-  border-bottom-color: var(--ink);
+  border-bottom-color: var(--text);
 }
 .shell--phone .checklist__tab {
   min-height: var(--tap);

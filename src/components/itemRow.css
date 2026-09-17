@@ -1,5 +1,7 @@
-/* ItemRow: a fixed type column, then title and who, then dates and status.
-   Phone: dates and status drop under the title. Desktop: one line each. */
+/* ItemRow: a fixed type column, then title and who, then the date phrase and
+   status. Phone: dates drop under the title. Desktop: one line each.
+   Rows sit on the ground and are separated by a hairline; a flagged row
+   carries its words in the late or amber ink, never a coloured edge. */
 .itemrow__list {
   display: flex;
   flex-direction: column;
@@ -32,12 +34,15 @@
   padding: var(--space-3) 0;
   color: var(--text);
   text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: background var(--motion-fast) var(--ease);
 }
-.itemrow--link:hover .itemrow__title {
-  text-decoration: underline;
+.itemrow--link:hover {
+  background: var(--plate);
+  box-shadow: 0 0 0 var(--space-2) var(--plate);
 }
 .itemrow--link:active {
-  background: var(--concrete-100);
+  background: var(--raised);
 }
 .itemrow__type {
   grid-column: 1;

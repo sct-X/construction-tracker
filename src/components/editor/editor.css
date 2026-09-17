@@ -91,7 +91,7 @@
 .ed__check input {
   width: 20px;
   height: 20px;
-  accent-color: var(--steel-700);
+  accent-color: var(--hivis);
 }
 .ed__check--quiet {
   font-weight: var(--weight-regular);
@@ -157,7 +157,7 @@
   padding: 0 var(--space-2);
   border: 0;
   background: none;
-  color: var(--steel-700);
+  color: var(--text);
   font-weight: var(--weight-medium);
   text-decoration: underline;
   text-underline-offset: 2px;

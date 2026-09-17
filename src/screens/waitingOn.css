@@ -179,7 +179,7 @@
 .waiting__advance {
   border: 1px solid var(--steel-700);
   background: var(--surface-raised);
-  color: var(--steel-700);
+  color: var(--text);
   font-weight: var(--weight-bold);
 }
 .waiting__advance:hover {

@@ -1,11 +1,10 @@
-/* CategoryPicker: a ledger of tall rows; the chosen one fills steel. */
+/* CategoryPicker: a ledger of tall buttons on a plate; the chosen row lifts
+   and takes an orange ring, the one place orange marks state (it is also
+   the thumb's target). Never a dropdown. */
 .catpick {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--surface-raised);
+  gap: 2px;
 }
 .catpick__row {
   display: flex;
@@ -16,17 +15,14 @@
   min-height: var(--tap);
   padding: var(--space-2) var(--space-4);
   border: 0;
-  border-top: var(--hairline);
-  background: transparent;
+  border-radius: var(--radius-md);
+  background: var(--plate);
   color: var(--text);
   text-align: left;
   transition: background var(--motion-fast) var(--ease);
 }
-.catpick__row:first-child {
-  border-top: 0;
-}
 .catpick__row:hover {
-  background: var(--concrete-100);
+  background: var(--raised);
 }
 .catpick__row:focus-visible {
   box-shadow: inset var(--focus-ring);
@@ -68,16 +64,9 @@
 }
 .catpick__row--chosen,
 .catpick__row--chosen:hover {
-  background: var(--steel-700);
-  color: var(--text-on-dark);
+  background: var(--lifted);
+  box-shadow: inset 0 0 0 2px var(--hivis);
 }
 .catpick__row--chosen .catpick__name {
   font-weight: var(--weight-bold);
-}
-.catpick__row--chosen .catpick__needed,
-.catpick__row--chosen .catpick__queued,
-.catpick__row--chosen .catpick__count,
-.catpick__row--chosen .catpick__figure,
-.catpick__row--chosen .catpick__none {
-  color: var(--text-on-dark);
 }

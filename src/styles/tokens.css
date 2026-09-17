@@ -1,104 +1,128 @@
 /*
-  Construction Tracker: the one token set.
+  Construction Tracker: the one token set. Dark first.
 
-  TOKEN PLAN (written before the tokens, per docs/SKILL_tracker-ui-design.md)
+  TOKEN PLAN (design pass, 2026-09-18; DESIGN.md is the long form)
 
-  Palette, drawn from site materials, not from a SaaS kit:
-    concrete   #f3f2ef page, #e7e5e0 rows, #d3d0c9 hairlines, #9b978f muted text,
-               #3a3835 secondary ink, #232220 ink. A warm grey with a little
-               limestone in it; never pure white (#fff is a non-choice).
-    steel      #2f3a44 header bars, primary buttons, Gantt forecast bars;
-               #4f5f6e secondary; #c9d1d8 / #e3e8ec light steel for bands.
-    timber     #a9865a, #d9c3a3, #f0e6d6: warm neutral for planned-bar
-               outlines, note paper and quiet emphasis. Never a second accent.
-    hi-vis     #e8730c, the single accent, used sparingly: the primary action
-               on a screen, the focus ring, the "today" line on the program.
-  Semantic status, always paired with words ("14 days late", "unconfirmed 9 days"):
-    late  ink #8f1d1d on #f8e1de   amber ink #7a4c00 on #fbeccb   ok ink #23532c on #dcebd9
-  These read correctly in greyscale because the ink is dark and the wash is light.
+  World: a surveyor's night readout. The screen is a graphite instrument
+  face; the finish date and the slip are the readout digits, everything else
+  is the quiet engraving around them. Surfaces are separated by tone, not by
+  borders. Hi-vis orange is the one accent and it marks where a thumb lands.
 
-  Type: the numbers are the hero on partner screens, so the display face is a
-  heavy condensed sans (Avenir Next Condensed on Apple, Arial Narrow / system
-  condensed elsewhere) with tabular figures: it reads like a site sign, and it
-  needs no web font, which matters offline. UI text is the system stack
-  (San Francisco / Segoe / Roboto), not Inter or Geist. No serif: this is a
-  tool people use in gloves, not a magazine.
+  Surfaces, a tonal ladder (never #000, never a white box):
+    ground   #131517   the page
+    well     #0f1113   sunk: the phone frame edge, code, deep fills
+    plate    #1a1d20   a row band, the sidebar, cards on the phone
+    raised   #212529   inputs, chips, the hover of a plate
+    lifted   #2a2f34   menus, sheets, the floating buzz (with a shadow)
+    line     #2a3035   hairline;  line-strong #3f474f
+  Text, a three-step brightness ladder (the only hierarchy besides size):
+    text #eef0f2 (14:1)   secondary #b9c0c7 (9:1)   muted #8b939c (5.4:1)
+  The one accent:
+    hi-vis #ff8c26 tuned up for dark (8:1 as text on ground); dark ink on it
+    for buttons (#16110a, 9:1). Jobs: the primary action on a screen, the
+    focus ring, the today line on the program, the chosen row's edge. Never a
+    heading, never "you are here", never a status.
+  Status, always with words ("14 days late", "Unconfirmed 9 days"):
+    late   #ff8a80 on #3b1f1d    amber #f3b94c on #362a10    ok #7fd6a4 on #17311f
+  Legacy scale names (concrete, steel, timber) are kept so every screen keeps
+  rendering; they now map onto the ladder above. Steel fills stay mid-tone so
+  light text on them still reads. Timber is the warm neutral for planned
+  outlines and note paper.
 
-  Layout concept: one column of full-width rows on the phone, tables on the
-  desktop, the same rows. Hairline dividers carry structure; radius is a scale
-  (3 / 8 / 12) assigned by element size; shadow only on things that float.
+  Type: Barlow Semi Condensed (600/700) for every figure and title: a
+  signage grotesque from the world of road and site signs, tabular figures,
+  narrow enough that "Fri 26 Feb 2027" leads a six-column table. Atkinson
+  Hyperlegible Next (variable 400-800) for words: drawn for legibility at a
+  distance and in bad light, which is a phone in the sun in gloves. Both
+  self-hosted from /fonts, latin only, 68 KB together, font-display: swap.
 
-  What makes it specific: the forecast finish and slip as big condensed
-  figures, the planned position left behind as a timber outline on the Gantt,
-  and orange only where a thumb should land.
+  Layout: one column of plates on the phone, tables on the desktop, the same
+  cells. Spacing on a 4px scale; radius 4 / 8 / 12 by element size; shadow
+  only on things that float. Motion answers an action and is dropped under
+  reduced motion.
 */
-:root {
-  /* concrete */
-  --concrete-050: #f3f2ef;
-  --concrete-100: #e7e5e0;
-  --concrete-200: #d3d0c9;
-  --concrete-400: #9b978f;
-  --concrete-600: #6b6862;
-  --concrete-800: #3a3835;
-  --ink: #232220;
 
-  /* steel */
-  --steel-100: #e3e8ec;
-  --steel-200: #c9d1d8;
-  --steel-500: #4f5f6e;
-  --steel-700: #2f3a44;
-  --steel-900: #1f272e;
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
 
-  /* timber */
-  --timber-100: #f0e6d6;
-  --timber-300: #d9c3a3;
-  --timber-500: #a9865a;
+  /* ---- the tonal ladder ---- */
+  --well: #0f1113;
+  --ground: #131517;
+  --plate: #1a1d20;
+  --raised: #212529;
+  --lifted: #2a2f34;
 
-  /* the one accent */
-  --hivis: #e8730c;
-  --hivis-ink: #7a3a00;
-  --hivis-100: #fde9d6;
+  /* legacy scales, remapped onto the ladder (names kept for every screen) */
+  --concrete-050: var(--ground);
+  --concrete-100: #22262a; /* hover wash, row band */
+  --concrete-200: #30363c; /* hairline, quiet borders */
+  --concrete-400: #7c848d;
+  --concrete-600: #9aa3ac;
+  --concrete-800: #c4cad1;
+  --ink: #0d0f11; /* the darkest thing: dark ink on the orange button */
 
-  /* semantic: use ink for text and bg for the wash, always with words */
-  --late-ink: #8f1d1d;
-  --late-bg: #f8e1de;
-  --amber-ink: #7a4c00;
-  --amber-bg: #fbeccb;
-  --ok-ink: #23532c;
-  --ok-bg: #dcebd9;
+  --steel-100: #1f262d; /* light band */
+  --steel-200: #364049; /* band edge, outlines */
+  --steel-500: #5f6f80; /* secondary fill, quiet borders */
+  --steel-700: #3a4653; /* a mid fill that takes light text (8:1) */
+  --steel-900: #2b333b; /* a raised dark plate that takes light text (11:1) */
 
-  /* surfaces and text roles */
-  --bg: var(--concrete-050);
-  --surface: #faf9f7;
-  --surface-raised: #ffffff;
-  --line: var(--concrete-200);
-  --line-strong: var(--concrete-400);
-  --text: var(--ink);
-  --text-secondary: var(--concrete-800);
-  --text-muted: var(--concrete-600);
-  --text-on-dark: var(--concrete-050);
-  --primary: var(--steel-700);
-  --primary-hover: var(--steel-900);
+  --timber-100: #26221d; /* note paper */
+  --timber-300: #4d4231;
+  --timber-500: #b48f60; /* planned outline on the program */
+
+  /* ---- the one accent ---- */
+  --hivis: #ff8c26;
+  --hivis-strong: #ffa14d; /* hover */
+  --hivis-ink: #ffb069; /* orange as text on a dark wash */
+  --hivis-100: #3a2612; /* the orange wash */
+  --hivis-contrast: #16110a; /* text on the orange button */
+
+  /* ---- status: ink for the words, bg for the wash ---- */
+  --late-ink: #ff8a80;
+  --late-bg: #3b1f1d;
+  --amber-ink: #f3b94c;
+  --amber-bg: #362a10;
+  --ok-ink: #7fd6a4;
+  --ok-bg: #17311f;
+
+  /* ---- roles ---- */
+  --bg: var(--ground);
+  --surface: var(--plate);
+  --surface-raised: var(--raised);
+  --line: #2a3035;
+  --line-strong: #3f474f;
+  --text: #eef0f2;
+  --text-secondary: #b9c0c7;
+  --text-muted: #8b939c;
+  --text-on-dark: #eef0f2; /* text on steel fills and the buzz */
+  --text-on-fill: var(--text-on-dark);
+  --link: var(--text);
+  --primary: var(--steel-700); /* pressed toggles, "you are here" fills */
+  --primary-hover: #465361;
   --accent: var(--hivis);
 
-  /* type */
-  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, system-ui, sans-serif;
-  --font-display: 'Avenir Next Condensed', 'Helvetica Neue Condensed', 'Roboto Condensed', 'Arial Narrow', 'Segoe UI', system-ui, sans-serif;
+  /* ---- type ---- */
+  --font-ui: 'Atkinson Hyperlegible Next', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Barlow Semi Condensed', 'Avenir Next Condensed', 'Arial Narrow', system-ui, sans-serif;
   --text-xs: 0.75rem; /* 12 */
   --text-sm: 0.875rem; /* 14 */
   --text-md: 1rem; /* 16 */
   --text-lg: 1.125rem; /* 18 */
   --text-xl: 1.375rem; /* 22 */
-  --text-2xl: 1.75rem; /* 28 */
-  --text-display: 2.75rem; /* 44 on the phone; 56 on the desktop */
-  --leading-tight: 1.1;
+  --text-2xl: 1.875rem; /* 30: row figures */
+  --text-3xl: 2rem; /* 32: row figures on the desktop */
+  --text-display: 2.75rem; /* 44 on the phone; 60 on the desktop */
+  --leading-tight: 1.05;
   --leading-body: 1.45;
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-bold: 700;
-  --weight-display: 800;
+  --weight-display: 600; /* Barlow Semi Condensed SemiBold: 700 is for the hero only */
+  --tracking-display: -0.01em;
 
-  /* spacing */
+  /* ---- spacing: a 4px scale ---- */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -108,35 +132,89 @@
   --space-8: 32px;
   --space-10: 40px;
   --space-12: 48px;
+  --space-16: 64px;
 
-  /* shape */
-  --radius-sm: 3px; /* chips, inputs */
-  --radius-md: 8px; /* buttons, cards */
-  --radius-lg: 12px; /* sheets, dialogs */
+  /* ---- shape ---- */
+  --radius-sm: 4px; /* chips, inputs */
+  --radius-md: 8px; /* buttons, plates */
+  --radius-lg: 12px; /* sheets, dialogs, the buzz */
+  --radius-pill: 999px;
   --hairline: 1px solid var(--line);
-  --shadow-float: 0 8px 24px rgba(35, 34, 32, 0.18); /* menus, sheets, toasts only */
+  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35); /* menus, sheets, the buzz only */
 
-  /* controls */
+  /* ---- controls ---- */
   --tap: 56px; /* minimum tap target on Alec's screens; every primary control */
   --control: 40px; /* desktop-only secondary controls */
   --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--hivis);
 
-  /* motion: answers an action, never decorates */
+  /* ---- motion: answers an action, never decorates ---- */
   --motion-fast: 120ms;
   --motion-sheet: 220ms;
   --ease: cubic-bezier(0.2, 0, 0, 1);
 
-  /* layout */
-  --measure: 68ch;
+  /* ---- layout ---- */
+  --measure: 64ch;
   --gutter: var(--space-4);
   --content-max: 1200px;
+  --sidebar: 236px;
   /* phone breakpoint: 768px. CSS cannot read a custom property in a media
      query, so write `@media (min-width: 768px)` and keep this comment honest. */
 }
 
+/* A light theme, for later: the same roles on a cool light ground. Not the
+   default; switch with <html data-theme="light">. */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --well: #dfe3e7;
+  --ground: #f2f4f6;
+  --plate: #ffffff;
+  --raised: #ffffff;
+  --lifted: #ffffff;
+  --concrete-050: var(--ground);
+  --concrete-100: #e6e9ec;
+  --concrete-200: #d2d7dc;
+  --concrete-400: #7a838c;
+  --concrete-600: #5e666e;
+  --concrete-800: #363c42;
+  --ink: #121417;
+  --steel-100: #e3e8ec;
+  --steel-200: #c9d1d8;
+  --steel-500: #4f5f6e;
+  --steel-700: #2f3a44;
+  --steel-900: #1f272e;
+  --timber-100: #f0e6d6;
+  --timber-300: #d9c3a3;
+  --timber-500: #a9865a;
+  --hivis: #e8730c;
+  --hivis-strong: #f0862a;
+  --hivis-ink: #7a3a00;
+  --hivis-100: #fde9d6;
+  --hivis-contrast: #16110a;
+  --late-ink: #8f1d1d;
+  --late-bg: #f8e1de;
+  --amber-ink: #7a4c00;
+  --amber-bg: #fbeccb;
+  --ok-ink: #23532c;
+  --ok-bg: #dcebd9;
+  --bg: var(--ground);
+  --surface: var(--plate);
+  --surface-raised: var(--raised);
+  --line: #d6dbe0;
+  --line-strong: #a9b1b9;
+  --text: #121417;
+  --text-secondary: #3c434a;
+  --text-muted: #646c74;
+  --text-on-dark: #f2f4f6;
+  --text-on-fill: var(--text-on-dark);
+  --link: var(--text);
+  --primary: var(--steel-700);
+  --primary-hover: var(--steel-900);
+  --shadow-float: 0 12px 32px rgba(18, 20, 23, 0.18), 0 2px 6px rgba(18, 20, 23, 0.12);
+}
+
 @media (min-width: 768px) {
   :root {
-    --text-display: 3.5rem; /* 56 */
-    --gutter: var(--space-6);
+    --text-display: 3.75rem; /* 60 */
+    --gutter: var(--space-8);
   }
 }

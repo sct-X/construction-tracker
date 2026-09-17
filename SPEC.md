@@ -1,6 +1,6 @@
 # Construction Tracker prototype: SPEC
 
-Every subagent reads this file and PROGRESS.md first, then docs/UI_PLAN.md (the screen spec, pass criteria, flows and wireframes). docs/BUILD_PLAN.md is background. Screen subagents also read docs/SKILL_tracker-ui-design.md and docs/SKILL_no-vibecoded-design.md before writing UI.
+Every subagent reads this file and PROGRESS.md first, then docs/UI_PLAN.md (the screen spec, pass criteria, flows and wireframes). docs/BUILD_PLAN.md is background. Screen subagents also read DESIGN.md, docs/COPY_RULES.md, docs/SKILL_tracker-ui-design.md and docs/SKILL_no-vibecoded-design.md before writing UI. The Monday screen (`src/screens/Monday.tsx`, `monday.css`) is the reference screen for the dark world.
 
 These decisions are locked. Do not revisit them. If something here conflicts with docs/UI_PLAN.md, this file wins.
 
@@ -60,14 +60,18 @@ Version two (quotes, invoices, documents) is out of scope; don't block it.
 
 ## Design (locked)
 
-- Palette from site materials (concrete, steel, timber) with hi-vis orange as the single accent. One token set in `src/styles/tokens.css`.
-- Numbers are the largest type on partner screens.
-- Colour never carries meaning alone: "14 days late", not just red.
+- Dark mode default. The world is "the surveyor's night readout" (DESIGN.md): a graphite tonal ladder (ground #131517, plate #1a1d20, raised #212529, lifted #2a2f34; never #000, never a white box), regions separated by tone rather than borders, one token set in `src/styles/tokens.css`, themable through `<html data-theme>` (a light theme exists as an override; dark ships).
+- Hi-vis orange (#ff8c26 on dark, tuned from the vest's #e8730c) is the single accent: the one primary action on a screen, the focus ring, the today line on the program, the chosen picker row. Never a heading, never "you are here", never a status.
+- Type: Barlow Semi Condensed (600/700, tabular figures) for every figure and title; Atkinson Hyperlegible Next (variable) for words. Self-hosted latin WOFF2 in `public/fonts` (68 KB), `font-display: swap`, precached by the service worker. No Inter, Geist, Space Grotesk or Roboto.
+- Numbers are the largest type on partner screens; a page title is never larger than the figures beneath it.
+- Colour never carries meaning alone: "14 days late", not just red. Late and amber words carry a leading "!".
+- Less writing: labels are one or two words, no explanatory paragraphs, no sentence that restates what the UI shows (docs/COPY_RULES.md). Rule-bearing words (late, unconfirmed, needed-by, act-by, expected, on plan) and every e2e-asserted phrase stay.
 - Tap targets at least 56px on Alec's screens; category pickers are buttons, never dropdowns.
 - Offline is a thin calm bar.
-- Desktop tables, phone cards, one token set. Phone breakpoint: below 768px.
-- No stock imagery, no gradient cards, no all-caps eyebrow labels.
-- The money component renders nothing (label included) when the field is absent.
+- Desktop tables, phone cards (plates), one token set. Phone breakpoint: below 768px.
+- No stock imagery, no gradient cards, no all-caps eyebrow labels, no shadow on anything that does not float.
+- The money component renders nothing (label included) when the field is absent; never hidden with CSS.
+- The dev bar is a quiet collapsible strip, never three rows on a phone.
 
 ## Testing (locked)
 

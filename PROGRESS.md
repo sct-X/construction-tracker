@@ -214,3 +214,48 @@
 - Stage 4: signed off by reviewer, 2026-09-18, tests 58/58, e2e 168/168 (10 viewport-gated skips: program 3+3 and waiting-item 1+1 run in the other project; flow-c keys and flow-d add form are desktop-only)
 - Stage 5: signed off by reviewer, 2026-09-18, tests 58/58, e2e 196/196 (10 viewport-gated skips, as Stage 4)
 - Stage 6: signed off by reviewer, 2026-09-18, tests 75/75, e2e 238/238 (16 viewport-gated skips, each run in the other project)
+
+## Design pass (2026-09-18, design lead)
+
+Brief: "modern, easy on the eyes, dark mode, cool, sleek, well spaced, not too much writing." Critique of the incumbent scored 22/40 (docs/DESIGN_CRITIQUE_BEFORE.md). Impeccable: PRODUCT.md written from SPEC and UI_PLAN; direction rolled with concept-seed (key 4cab3465, grounded candidate 4 of 7, "the surveyor's night readout"; six catalog challengers all declined, their disciplines kept as named raises in `.impeccable/surfaces/src-screens-monday-tsx.md`); DESIGN.md and `.impeccable/design.json` written from the built world; detector clean on shell, components, dev bar, styles and Monday.
+
+### Decisions
+
+- Dark is the default and the only shipped theme; tokens are themable through `<html data-theme>` and a light override exists in tokens.css for later. `color-scheme` follows the theme so native controls match.
+- Every custom-property name from the old token set survives (concrete, steel, timber, surface, primary...) remapped onto the graphite ladder so unpassed screens keep rendering; new roles: `--well/--ground/--plate/--raised/--lifted`, `--link`, `--hivis-strong`, `--hivis-contrast`, `--text-3xl`, `--space-16`, `--radius-pill`, `--sidebar`, `--tracking-display`.
+- `--ink` stays the darkest colour (dark text on the orange button); `--text` is the light text. `--primary` is a mid steel fill; links use `--link` (the text colour, underlined in line-strong).
+- Fonts: Barlow Semi Condensed 600/700 (figures, titles) and Atkinson Hyperlegible Next variable (words), latin WOFF2 in `public/fonts`, `@font-face` in base.css with `font-display: swap`, precached in `sw.js` (cache version bumped to `ct-shell-v2`). Atkinson's slashed zero is a deliberate readout trait.
+- Shared primitives moved into base.css: `.btn` (primary, fill, ghost, small, desktop), `.seg`/`.seg__btn`, `.input`, `.field`, `.table`/`.table--rows`, `.plate`, `.count`, `.muted`; browser surfaces themed (selection, caret, scrollbar, accent-color, select chevron, date-picker icon); native controls get a zero-specificity dark default via `:where()` so screen CSS still wins.
+- Shell: sidebar 236px on the plate tone with no border; "you are here" is a raised fill; phone tab bar current tab is text-coloured; offline bar is 32px with a dot and one line ("No signal. Showing what loaded at 1:09pm. Changes queue until it returns."); Guard drops its second sentence.
+- Dev bar: one 36px well strip with 26px controls, collapsible to a 24px tag (`dev-collapse`, remembered in localStorage), horizontal scroll on the phone. All test ids kept and visible by default; "Fire reminders due today" is now "Fire reminders" (no spec asserts the label).
+- Components: BigNumber row size is 30/32px; StatusText chips 2px 8px; CategoryPicker rows are plates, the chosen row lifts with a 2px orange ring; Buzz is a lifted plate with the one shadow; ItemRow hover steps to plate; HoldPointCheck callouts are washes without borders.
+- Monday (reference screen): holding cost moved into the job cell (test id `monday-holding-<id>` kept) so the desktop table is five fixed-width columns; the slip figure is the link with "Why it moved" as its title and sr-only text; the since-toggle is a `.seg`; phone cards are plates. No e2e-asserted word changed.
+- Sweep: steel-700/steel-500 as text colours replaced with `--text`/`--text-secondary` in alecToday, waitingOn, gantt, lookahead, editor, newJob, photoGallery, trades, templates, people, installSteps; `--ink` as a fill or tab border replaced with `--steel-700`/`--text`; checkbox accent-color is hi-vis. The only hard-coded colour outside tokens.css is the canvas placeholder photo in PhotoUpload.tsx (image generation, not UI).
+- index.html theme-color and the manifest colours are the ground (#131517).
+
+### Screen-by-screen checklist for the screen passes
+
+Each pass: read DESIGN.md, docs/COPY_RULES.md and src/screens/monday.css; rebuild the screen's CSS on the primitives; cut copy per the rules; keep every test id and asserted phrase; screenshot at 1280 and 390; run the spec that covers it.
+
+- [ ] Jobs list (`JobsList.tsx`, `jobsList.css`): the same readout row as Monday; slip written one way.
+- [ ] Why it moved (`WhyItMoved.tsx`, `whyitmoved.css`): the chain as a plate list; toggle as `.seg`.
+- [ ] Job overview (`JobOverview.tsx`, `jobOverview.css`): hero finish, `.seg` tabs, facts row; Alec's version with the Today section.
+- [ ] Program and Gantt (`Program.tsx`, `program.css`, `components/gantt/*`): forecast bars brighter steel, planned outline timber, today line orange; legend without the sentence.
+- [ ] Step detail (`StepDetail.tsx`, `stepDetail.css`).
+- [ ] Design checklist (`DesignChecklist.tsx`, `designChecklist.css`).
+- [ ] Waiting on (`WaitingOn.tsx`, `waitingOn.css`): one filled action per row, Call as a quiet button, "Later" collapsed by default.
+- [ ] Item sheet (`ItemSheet.tsx`, `itemSheet.css`): `.input`/`.field` primitives.
+- [ ] Call list (`CallList.tsx`, `callList.css`, `components/CallItem.tsx`).
+- [ ] Deliveries (`Deliveries.tsx`, `deliveries.css`): Alec, 56px rows.
+- [ ] Shipments and shipment detail (`Shipments.tsx`, `ShipmentDetail.tsx`, `components/EtaImpact.tsx`): the ETA impact panel as a timber-paper plate.
+- [ ] Photo upload, upload queue, gallery (`PhotoUpload.tsx`, `UploadQueue.tsx`, `PhotoGallery.tsx`): stage picker rows at 56px.
+- [ ] Alec's Today (`AlecToday.tsx`, `alecToday.css`): fewer sections above the fold; the note as a plate.
+- [ ] Daily notes (`DailyNotes.tsx`, `components/NoteEntry.tsx`).
+- [ ] Notifications and activity (`Notifications.tsx`, `notifications.css`).
+- [ ] Settings (`Settings.tsx`, `components/InstallSteps.tsx`): cut to rows; explanations behind "?"; keep the asserted phrases.
+- [ ] Templates, template detail, new job (`Templates.tsx`, `NewJob.tsx`, `templates.css`, `newJob.css`).
+- [ ] Program editor (`ProgramEditor.tsx`, `components/editor/*`).
+- [ ] Trades, People (`Trades.tsx`, `People.tsx`).
+- [ ] Not found, Sign in (`NotFound.tsx`, `SignIn.tsx`).
+- [ ] Final: `impeccable detect --json src`, full Playwright, a greyscale print check of Monday.
+- Finish review (fresh reviewer, disposition "fix"): Monday's title dropped to 22px (a step below the 32px figures); phone cards stack the finish and slip figures; design rows split "2 outstanding, oldest 23 days" from "Traffic report, Traffix consultants" (asserted phrase intact). Declined: trimming "Last confirmed N days ago" in the table (flow-a asserts it verbatim) and narrower figure columns (Barlow at 32px needs 22%).

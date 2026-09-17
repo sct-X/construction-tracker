@@ -1,12 +1,13 @@
 /*
-  App shell. Two layouts, one token set.
+  App shell. Two layouts, one token set, one world.
 
-  Phone: top bar (side, bell, me), content, bottom tab bar of text labels at
-  56px. Desktop: a light sidebar with a hairline on its right, content beside
-  it. The site role gets the phone layout centred on a wide window.
+  Phone: a top bar (side, bell, me) and a bottom tab bar of text labels at
+  56px, both on the plate tone. Desktop: a plate sidebar beside the ground,
+  separated by tone alone, no border. The site role gets the phone layout
+  centred on a wide window.
 
-  Hi-vis orange is spent on primary actions only; "you are here" is weight
-  and a concrete wash, not colour.
+  Hi-vis orange is spent on primary actions only; "you are here" is
+  brightness and a raised fill, never colour.
 */
 
 /* ---- frame ---- */
@@ -16,7 +17,7 @@
 }
 .shell--desktop {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: var(--sidebar) minmax(0, 1fr);
 }
 .shell--phone {
   display: flex;
@@ -34,10 +35,13 @@
 }
 
 @media (min-width: 768px) {
-  /* The site role on a wide window: the phone column, with its edges drawn. */
+  /* The site role on a wide window: the phone column on a well. */
+  body:has(.shell--phone) {
+    background: var(--well);
+  }
   .shell--phone {
-    border-left: var(--hairline);
-    border-right: var(--hairline);
+    min-height: 100dvh;
+    box-shadow: 0 0 0 1px var(--line);
   }
 }
 
@@ -49,24 +53,21 @@
   height: calc(100dvh - var(--above));
   display: flex;
   flex-direction: column;
-  background: var(--surface);
-  border-right: var(--hairline);
-  padding: var(--space-3) var(--space-3);
+  background: var(--plate);
+  padding: var(--space-5) var(--space-3) var(--space-3);
   overflow-y: auto;
 }
 .sidebar__brand {
-  padding: 0 var(--space-2) var(--space-4);
-  border-bottom: var(--hairline);
-  margin-bottom: var(--space-3);
+  padding: 0 var(--space-3) var(--space-5);
 }
 .sidebar__wordmark {
   display: block;
   font-family: var(--font-display);
-  font-weight: var(--weight-display);
+  font-weight: var(--weight-bold);
   font-size: var(--text-xl);
   letter-spacing: 0.01em;
-  color: var(--steel-700);
-  margin-bottom: var(--space-2);
+  color: var(--text);
+  margin-bottom: var(--space-3);
 }
 .sidebar__nav,
 .sidebar__setup {
@@ -75,60 +76,60 @@
   gap: 2px;
 }
 .sidebar__setup {
-  margin-top: var(--space-3);
-  padding-top: var(--space-2);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
   border-top: var(--hairline);
 }
 .sidebar__group {
   font-size: var(--text-xs);
   font-weight: var(--weight-medium);
   color: var(--text-muted);
-  padding: 0 var(--space-2) var(--space-1);
+  padding: 0 var(--space-3) var(--space-2);
 }
 .sidebar__link {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 36px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-sm);
+  min-height: 38px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   text-decoration: none;
   font-weight: var(--weight-medium);
-  transition: background var(--motion-fast) var(--ease);
+  transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
 }
 .sidebar__link:hover {
-  background: var(--concrete-100);
+  background: var(--raised);
+  color: var(--text);
 }
 .sidebar__link[aria-current='page'] {
-  background: var(--concrete-100);
+  background: var(--raised);
   color: var(--text);
-  font-weight: var(--weight-bold);
 }
 .sidebar__jobs {
-  margin: 2px 0 var(--space-1);
-  padding-left: var(--space-3);
-  border-left: 2px solid var(--concrete-100);
-  margin-left: var(--space-3);
+  margin: 2px 0 var(--space-2) var(--space-3);
+  padding-left: var(--space-2);
+  border-left: 1px solid var(--line-strong);
 }
 .sidebar__job {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-2);
-  min-height: 28px;
-  padding: 2px var(--space-2);
+  min-height: 30px;
+  padding: 3px var(--space-2);
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   font-size: var(--text-sm);
   text-decoration: none;
+  transition: color var(--motion-fast) var(--ease);
 }
 .sidebar__job:hover {
   color: var(--text);
 }
 .sidebar__job[aria-current='page'] {
   color: var(--text);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-medium);
 }
 .sidebar__job-name {
   min-width: 0;
@@ -142,7 +143,7 @@
   display: flex;
   gap: var(--space-1);
   margin-top: auto;
-  padding-top: var(--space-2);
+  padding-top: var(--space-3);
   border-top: var(--hairline);
 }
 .sidebar__link--tool {
@@ -162,9 +163,9 @@
 .topbar__count {
   min-width: 20px;
   padding: 0 6px;
-  border-radius: 10px;
-  background: var(--steel-700);
-  color: var(--text-on-dark);
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  color: var(--ink);
   font-size: var(--text-xs);
   font-weight: var(--weight-bold);
   line-height: 20px;
@@ -179,10 +180,10 @@
 .side-switcher select {
   width: 100%;
   min-height: 36px;
-  padding: 0 var(--space-2);
+  padding: 0 var(--space-8) 0 var(--space-2);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  background: var(--surface-raised);
+  background-color: var(--raised);
   color: var(--text);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
@@ -206,8 +207,7 @@
   gap: var(--space-3);
   min-height: var(--tap);
   padding: 0 var(--space-2) 0 var(--gutter);
-  background: var(--surface);
-  border-bottom: var(--hairline);
+  background: var(--plate);
 }
 .topbar__side {
   min-width: 0;
@@ -218,9 +218,9 @@
 }
 .topbar .side-name {
   font-family: var(--font-display);
-  font-weight: var(--weight-display);
+  font-weight: var(--weight-bold);
   font-size: var(--text-lg);
-  color: var(--steel-700);
+  color: var(--text);
 }
 .topbar__tools {
   display: flex;
@@ -254,8 +254,7 @@
   bottom: 0;
   z-index: 5;
   display: flex;
-  background: var(--surface);
-  border-top: var(--hairline);
+  background: var(--plate);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 .tabbar__tab {
@@ -266,32 +265,42 @@
   min-height: var(--tap);
   padding: 0 var(--space-1);
   border-top: 2px solid transparent;
-  margin-top: -1px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   text-decoration: none;
   text-align: center;
+  transition: color var(--motion-fast) var(--ease);
 }
 .tabbar__tab[aria-current='page'] {
   color: var(--text);
-  font-weight: var(--weight-bold);
-  border-top-color: var(--steel-700);
+  border-top-color: var(--text);
 }
 
 /* ---- offline: a thin calm bar under the header ---- */
 .offline-bar {
-  padding: 6px var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  padding: 4px var(--gutter);
   background: var(--amber-bg);
   color: var(--amber-ink);
   font-size: var(--text-sm);
   line-height: 1.4;
 }
+.offline-bar__dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
 
 /* ---- page frame, shared by every screen ---- */
 .page {
   max-width: var(--content-max);
-  padding: var(--space-5) var(--gutter) var(--space-12);
+  padding: var(--space-5) var(--gutter) var(--space-16);
 }
 .page__lede {
   max-width: var(--measure);
@@ -299,17 +308,31 @@
   margin-top: var(--space-3);
 }
 .page-header {
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-6);
 }
 .page-header__back {
-  display: inline-block;
-  margin-bottom: var(--space-2);
-  font-size: var(--text-sm);
-}
-.shell--phone .page-header__back {
   display: inline-flex;
   align-items: center;
-  min-height: var(--tap);
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.page-header__back::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-left: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  margin-right: 2px;
+}
+.page-header__back:hover {
+  color: var(--text);
+}
+.shell--phone .page-header__back {
+  min-height: 44px;
 }
 .page-header__row {
   display: flex;
@@ -323,6 +346,7 @@
   font-weight: var(--weight-display);
   font-size: var(--text-2xl);
   line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
   color: var(--text);
 }
 .page-header__meta {
@@ -338,45 +362,10 @@
   .page {
     padding-top: var(--space-8);
   }
-  .page-header__title {
-    font-size: 2.25rem;
+  .page-header {
+    margin-bottom: var(--space-8);
   }
-}
-
-/* ---- buttons, shared ---- */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  min-height: var(--tap);
-  padding: 0 var(--space-5);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-raised);
-  color: var(--text);
-  font-weight: var(--weight-medium);
-  text-decoration: none;
-  transition: background var(--motion-fast) var(--ease);
-}
-.btn:hover {
-  background: var(--concrete-100);
-}
-.btn--primary {
-  /* dark ink on orange, like the vest: 5.2:1, where white on orange is 3:1 */
-  background: var(--hivis);
-  border-color: var(--hivis);
-  color: var(--ink);
-  font-weight: var(--weight-bold);
-}
-.btn--primary:hover {
-  /* stays hi-vis: this rule outranks .btn:hover by source order at equal specificity */
-  background: var(--hivis);
-  filter: brightness(0.93);
-}
-@media (min-width: 768px) {
-  .btn--desktop {
-    min-height: var(--control);
-    padding: 0 var(--space-4);
+  .page-header__title {
+    font-size: var(--text-3xl);
   }
 }

@@ -1,14 +1,13 @@
 /*
   HoldPointCheck: a ledger of required photo sets with their counts in words.
-  Each row is a small grid: name and count on the first line, the queued words
-  and the "Add photos" link on the second, so an empty set reads as a problem
-  with its fix beside it. The refusal sits first, under the Mark done button.
+  Each row: name and count on the first line, the queued words and the
+  "Add photos" link on the second, so an empty set reads as a problem with
+  its fix beside it. The refusal sits first, under the Mark done button.
 */
 .holdpoint__refusal {
   margin-bottom: var(--space-4);
   padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--amber-ink);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--amber-bg);
   color: var(--amber-ink);
   max-width: var(--measure);
@@ -75,8 +74,7 @@
 .holdpoint__ready {
   margin-top: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--ok-ink);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--ok-bg);
   color: var(--ok-ink);
   max-width: var(--measure);

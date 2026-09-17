@@ -20,8 +20,8 @@
 }
 .jobs__path {
   margin-left: var(--space-2);
-  font-size: var(--text-xs);
-  color: var(--timber-500);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }
 .jobs__finish {
   font-family: var(--font-display);

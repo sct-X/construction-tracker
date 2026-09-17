@@ -16,7 +16,7 @@
 }
 .shell--desktop {
   display: grid;
-  grid-template-columns: 232px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr);
 }
 .shell--phone {
   display: flex;
@@ -131,13 +131,12 @@
   font-weight: var(--weight-bold);
 }
 .sidebar__job-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
 }
 .sidebar__job-kind {
+  flex-shrink: 0;
   font-size: var(--text-xs);
-  color: var(--timber-500);
+  color: var(--text-muted);
 }
 .sidebar__foot {
   display: flex;
@@ -359,9 +358,10 @@
   background: var(--concrete-100);
 }
 .btn--primary {
+  /* dark ink on orange, like the vest: 5.2:1, where white on orange is 3:1 */
   background: var(--hivis);
   border-color: var(--hivis);
-  color: var(--text-on-dark);
+  color: var(--ink);
   font-weight: var(--weight-bold);
 }
 .btn--primary:hover {

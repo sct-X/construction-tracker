@@ -28,7 +28,7 @@
 .monday__title {
   font-family: var(--font-display);
   font-weight: var(--weight-display);
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl); /* below the row figures: numbers lead */
   line-height: var(--leading-tight);
 }
 .monday__week {
@@ -174,17 +174,7 @@
 }
 
 .monday__fresh {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-1);
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-}
-.monday__fresh--amber {
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--amber-bg);
-  color: var(--amber-ink);
+  white-space: normal; /* the table's last column wraps rather than widening the table */
 }
 
 /* Desktop table ------------------------------------------------------------ */
@@ -218,6 +208,9 @@
 .monday__table tbody th {
   font-weight: var(--weight-medium);
 }
+.monday__row {
+  cursor: pointer;
+}
 .monday__table tbody tr:hover {
   background: var(--surface);
 }
@@ -233,8 +226,8 @@
   white-space: nowrap;
 }
 .monday__table--builds .monday__cell-job {
-  width: 14%;
-  min-width: 10em;
+  width: 1%; /* shrink to the name; the waiting-on column takes the room */
+  white-space: nowrap;
 }
 .monday__table--builds .monday__cell-finish,
 .monday__table--builds .monday__cell-slip {
@@ -248,11 +241,9 @@
 }
 .monday__table--builds .monday__cell-waiting {
   width: auto;
-  min-width: 16em;
 }
 .monday__table--builds .monday__cell-fresh {
-  width: 1%;
-  white-space: nowrap;
+  width: 12%;
 }
 .monday__table--design .monday__cell-job {
   width: 18%;
@@ -271,6 +262,7 @@
   flex-direction: column;
 }
 .monday__card {
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);

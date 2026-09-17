@@ -38,6 +38,16 @@ People: `dominic` (admin), `dom`, `norm` (partners), `raff` (builder), `alec` (s
 - `api.previewEtaChange(shipmentId, newEta)` returns `{ linkedItemIds, movedSteps[], finishBefore, finishAfter, deltaDays, slipDaysAfter, slipCostAfter, costDelta }` for the impact panel.
 - `api.getMondayRows()` returns `MondayRow[]` sorted builds by slip cost then design by oldest item, with `waitingOn` (top three) per build job.
 
+## Shell and shared components (Stage 1)
+
+- Routes: one registry, `src/shell/routes.tsx` (`path`, `screen` key for `canSee`, `title`, `stage`, `element`). To add a screen, swap its Placeholder element there; App.tsx maps the list to `<Route>`s inside `<Guard>`. Keep each entry on one line starting with its path: `e2e/no-money-for-site.spec.ts` reads the paths out of that file and visits every one as Alec.
+- `useLayout()` from `src/shell/AppShell` returns `'phone' | 'desktop'` (`'phone'` below 768px and always for the site role). Switch cards and tables on it so every test id exists once.
+- `<PageHeader title meta actions back />` (`src/shell/PageHeader.tsx`) opens every screen; wrap the screen in `<main className="page">`. Shared classes in `src/shell/shell.css`: `.page`, `.page__lede`, `.btn`, `.btn--primary` (hi-vis, dark ink), `.btn--desktop`.
+- `<StatusText tone="late|amber|ok|muted|plain" testId="...">words</StatusText>` (`src/components/StatusText.tsx`) draws status words on a wash; late and amber get a leading "!". Always words, never a bare colour.
+- Shared components take a `testId` prop (never `data-testid`): `Money`, `BigNumber`, `SlipText`, `StatusText`.
+- Freshness (rule 7) comes only from the calculator: `getForecast(jobId).freshness` (`amber`, `daysUnconfirmed`, `text`). Screens may reword it ("Unconfirmed 9 days") but never recompute it.
+- Nav test ids: `nav-<name>` (`nav-monday`, `nav-waiting`, `nav-calls`, `nav-jobs`, `nav-today`, `nav-upload`, `nav-shipments`, `nav-activity`, `nav-templates`, `nav-trades`, `nav-people`, `nav-notifications`, `nav-settings`, `nav-job-<id>`); `primary-nav`, `setup-nav`, `side-switcher` / `side-name`, `offline-bar`, `unread-count`.
+
 ## Money
 
 Fields in `MONEY_FIELDS` (`src/domain/money.ts`): `weeklyHoldingCost`, `slipCost`, `slipSincePlanCost`, `costDelta`, `slipCostAfter`. The data layer deletes them for the site role. Render money through one `<Money value={x} label="..."/>` component that returns `null` when `value === undefined`, label included. Never hide money with CSS, never default it to 0. Format with `formatMoney()` ("$9,000"). Activity and notification text never contains money.

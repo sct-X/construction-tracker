@@ -3,7 +3,7 @@
 ## Stage checklist
 
 - [x] Stage 0: types, seed data, calculator, unit tests, data layer, dev bar. Reviewer sign-off: done
-- [ ] Stage 1: shell, per-role nav, jobs list, Monday screen, Why it moved. Reviewer sign-off: pending
+- [x] Stage 1: shell, per-role nav, jobs list, Monday screen, Why it moved. Reviewer sign-off: done
 - [ ] Stage 2: shipments + ETA impact preview, Gantt, look-ahead, step detail, build job overview. Reviewer sign-off: pending
 - [ ] Stage 3: photo upload + IndexedDB queue, upload queue, gallery, Alec's Today. Reviewer sign-off: pending
 - [ ] Stage 4: waiting-on list, item sheet, call list. Reviewer sign-off: pending
@@ -58,6 +58,14 @@
 - 2026-09-18 Stage 1 (jobs list): columns Job, Stage, Forecast finish (date in the condensed face plus "7 days late" / "On plan" / "N days early"), Slip ("+5 days this week", "No change this week", "Slip appears after the first Monday"), Holding cost (`<Money suffix="/wk">`; the column only exists when some row carries the field, so Alec's table has no empty column), Last confirmed ("Confirmed 2 days ago", amber "Unconfirmed 9 days" after 7 days, amber "Never confirmed"). Design rows: Job with DA/CDC, Stage, Outstanding ("2 outstanding, oldest 23 days", amber only once the oldest passes 14 days, per the wireframe's plain text), Last confirmed. "New job" goes to `#/templates` (Stage 6). Whole rows are targets (`job-row-<id>`), with the name a real link for keyboards.
 - 2026-09-18 Stage 1 (StatusText): `src/components/StatusText.tsx` renders words on a wash (late, amber, ok, muted, plain); late adds a leading "!" so the page reads in greyscale. Freshness on phone cards sits on its own line under the finish and slip chips so three chips never wrap raggedly.
 - 2026-09-18 Stage 1 (shell): `e2e/smoke.spec.ts` (Stage 0's heading) is folded into `e2e/shell.spec.ts` (dev bar checks kept) and removed; `src/styles/app.css` is emptied of the Stage 0 classes, shared page, header and button styles live in `src/shell/shell.css`.
+- 2026-09-18 Stage 1 review fixes (Monday): the builds table shrinks the job, finish, slip and holding columns to their content and gives the room to waiting-on; the freshness cell wraps instead of widening the table, and the flow a spec asserts `scrollWidth <= innerWidth` on the desktop project (as a string expression, since the e2e tsconfig has no DOM lib).
+- 2026-09-18 Stage 1 review fixes (Monday): the whole row and the whole phone card open `#/jobs/:id` on click; links inside (job name, slip figure to Why it moved, items) keep their own targets via a `closest('a, button')` check rather than stopPropagation on each. Keyboard users reach the same places through the job-name link.
+- 2026-09-18 Stage 1 review fixes (Monday): phone cards pass `label="Holding"` to `<Money>` ("Holding $2,000/wk"); the desktop table keeps the column header as the label. Money still renders nothing when the value is absent.
+- 2026-09-18 Stage 1 review fixes (Monday, Why): screen titles drop to 22px so the 28px row figures and the 44/56px hero are the largest type. Freshness renders through the shared `<StatusText tone="amber"|"muted" testId>`, which prefixes "!" for late and amber, so Monday and Jobs read the same; Monday no longer hand-rolls the mark.
+- 2026-09-18 Stage 1 review fixes (shell): contrast: DA/CDC and sidebar "design" labels are `--text-muted` (5.0:1); the hi-vis button is dark ink on orange (5.2:1, the vest) rather than white (3.0:1); the sidebar is 260px and job names wrap instead of truncating.
+- 2026-09-18 Stage 1 review fixes (shell): `src/shell/routes.tsx` carries the element per route (one-place edit; the `elementFor` switch and unused `BUILT` are gone). `e2e/no-money-for-site.spec.ts` reads the `{ path: '...'` entries from that file with a regex (Playwright cannot import a module that imports CSS), substitutes seed ids (park-rd, pr-install-windows, it-pr-windows, sh-park-windows), visits each as Alec in both projects and asserts no "$", "holding" or "slip cost" in the body text and no leaf element anywhere in the DOM containing "$".
+- 2026-09-18 Stage 1 review fixes (jobs list): freshness comes from `getForecast(jobId).freshness` only; the amber case is reworded "Unconfirmed N days", otherwise the calculator's "Last confirmed 2 days ago" is shown as is.
+- 2026-09-18 Stage 1 review fixes (StatusText, locked): "!" prefixes both late and amber; the prop is `testId`, like every shared component. CONTRACTS.md has a "Shell and shared components" section.
 
 ## Open problems
 
@@ -66,3 +74,4 @@
 ## Reviewer sign-offs
 
 - Stage 0: signed off by reviewer, 2026-09-18, tests 49/49, e2e 6/6
+- Stage 1: signed off by reviewer, 2026-09-18, tests 49/49, e2e 86/86

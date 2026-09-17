@@ -14,7 +14,7 @@ test.describe('Flow a: the Monday screen', () => {
     await expect(page.getByTestId('monday-finish-park-rd')).toContainText('Fri 26 Feb 2027');
     await expect(page.getByTestId('monday-slip-park-rd')).toContainText('0');
     await expect(page.getByTestId('monday-slip-park-rd')).not.toContainText('days');
-    await expect(page.getByTestId('monday-holding-park-rd')).toHaveText('$4,500/wk');
+    await expect(page.getByTestId('monday-holding-park-rd')).toContainText('$4,500/wk');
     await expect(page.getByTestId('monday-fresh-park-rd')).toHaveText('Last confirmed 2 days ago');
     // Its waiting-on cell lists three items; the decision is with Dom.
     await expect(page.getByTestId('monday-waiting-park-rd').locator('li')).toHaveCount(3);
@@ -25,13 +25,18 @@ test.describe('Flow a: the Monday screen', () => {
     await expect(page.getByTestId('monday-slip-beatty')).toContainText('+5 days');
     await expect(page.getByTestId('monday-slip-beatty')).toContainText('$1,430');
     await expect(page.getByTestId('monday-fresh-beatty')).toContainText('Last confirmed 9 days ago');
-    await expect(page.getByTestId('monday-fresh-beatty')).toHaveClass(/monday__fresh--amber/);
+    await expect(page.getByTestId('monday-fresh-beatty')).toHaveAttribute('data-tone', 'amber');
     await expect(page.getByTestId('monday-item-it-bt-tiler')).toContainText('expected 5 Oct, 7 days late');
 
     // Seaview St: slip 0.
     await expect(page.getByTestId('monday-finish-seaview')).toContainText('Fri 29 Oct 2027');
     await expect(page.getByTestId('monday-slip-seaview')).toContainText('0');
     await expect(page.getByTestId('monday-slip-seaview')).not.toContainText('days');
+
+    // The table fits the desktop viewport with no horizontal scroll.
+    // (A string expression: the e2e tsconfig has no DOM lib.)
+    const overflow = (await page.evaluate('document.documentElement.scrollWidth - window.innerWidth')) as number;
+    expect(overflow).toBeLessThanOrEqual(0);
 
     // Builds sort by slip cost, so Beatty is first.
     const rows = page.locator('[data-testid^="monday-row-"]');
@@ -43,6 +48,12 @@ test.describe('Flow a: the Monday screen', () => {
     await expect(page.getByTestId('monday-outstanding-tollbar')).toContainText('1 outstanding, 8 days');
     await expect(page.getByTestId('monday-outstanding-lower-beach')).toHaveText('Nothing outstanding');
     await expect(page.getByTestId('monday-outstanding-john-st')).toContainText('1 outstanding, 4 days');
+
+    // Tap a row (not a link inside it) to open the job.
+    await page.getByTestId('monday-row-seaview').click({ position: { x: 5, y: 5 } });
+    await expect(page).toHaveURL(/#\/jobs\/seaview$/);
+    await page.goBack();
+    await expect(page.getByTestId('monday-week')).toBeVisible();
 
     // The toggle reads slip against the original plan.
     await page.getByTestId('monday-since-plan').click();

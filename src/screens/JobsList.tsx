@@ -9,7 +9,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useSession } from '../data/context';
 import type { Job } from '../domain/types';
 import type { JobForecast } from '../domain/forecast';
-import { calendarDaysBetween, formatDayMonthYear, relativeDays } from '../domain/dates';
+import { formatDayMonthYear } from '../domain/dates';
 import { Money } from '../components/Money';
 import { StatusText, type Tone } from '../components/StatusText';
 import { PageHeader } from '../shell/PageHeader';
@@ -39,11 +39,12 @@ function slipStatus(f?: JobForecast): { tone: Tone; text: string } {
   return { tone: 'muted', text: 'No change this week' };
 }
 
-function freshnessStatus(job: Job, today: string): { tone: Tone; text: string } {
-  if (!job.lastConfirmed) return { tone: 'amber', text: 'Never confirmed' };
-  const days = calendarDaysBetween(job.lastConfirmed, today);
-  if (days > 7) return { tone: 'amber', text: `Unconfirmed ${days} days` };
-  return { tone: 'muted', text: `Confirmed ${relativeDays(job.lastConfirmed, today)}` };
+/** Rule 7 comes from the calculator's `freshness`; this only words the amber case as "Unconfirmed N days". */
+function freshnessStatus(f?: JobForecast): { tone: Tone; text: string } | null {
+  if (!f) return null;
+  const { amber, daysUnconfirmed, text } = f.freshness;
+  if (!amber) return { tone: 'muted', text };
+  return { tone: 'amber', text: daysUnconfirmed === undefined ? text : `Unconfirmed ${daysUnconfirmed} days` };
 }
 
 /** "2 outstanding, oldest 23 days"; amber once the oldest has sat more than two weeks. */
@@ -57,7 +58,7 @@ function outstandingStatus(f?: JobForecast): { tone: Tone; text: string } {
 }
 
 export default function JobsList() {
-  const { role, side, today } = useSession();
+  const { role, side } = useSession();
   const layout = useLayout();
   const rows = useQuery<Row[]>((api) => api.listJobs().map((job) => ({ job, forecast: api.getForecast(job.id) })), []);
   const builds = rows.filter((r) => r.job.kind === 'build');
@@ -89,7 +90,7 @@ export default function JobsList() {
               <h2 id="jobs-build" className="jobs__group-title">
                 Build
               </h2>
-              {layout === 'desktop' ? <BuildTable rows={builds} today={today} showMoney={showMoney} /> : <BuildCards rows={builds} today={today} />}
+              {layout === 'desktop' ? <BuildTable rows={builds} showMoney={showMoney} /> : <BuildCards rows={builds} />}
             </section>
           )}
           {designs.length > 0 && (
@@ -97,7 +98,7 @@ export default function JobsList() {
               <h2 id="jobs-design" className="jobs__group-title">
                 Design
               </h2>
-              {layout === 'desktop' ? <DesignTable rows={designs} today={today} /> : <DesignCards rows={designs} today={today} />}
+              {layout === 'desktop' ? <DesignTable rows={designs} /> : <DesignCards rows={designs} />}
             </section>
           )}
         </>
@@ -113,7 +114,7 @@ function useRowNav() {
   return (id: string) => navigate(`/jobs/${id}`);
 }
 
-function BuildTable({ rows, today, showMoney }: { rows: Row[]; today: string; showMoney: boolean }) {
+function BuildTable({ rows, showMoney }: { rows: Row[]; showMoney: boolean }) {
   const go = useRowNav();
   return (
     <table className="jobs__table">
@@ -131,7 +132,7 @@ function BuildTable({ rows, today, showMoney }: { rows: Row[]; today: string; sh
         {rows.map(({ job, forecast }) => {
           const fin = finishStatus(forecast);
           const slip = slipStatus(forecast);
-          const fresh = freshnessStatus(job, today);
+          const fresh = freshnessStatus(forecast);
           return (
             <tr key={job.id} className="jobs__row" data-testid={`job-row-${job.id}`} onClick={() => go(job.id)}>
               <td className="jobs__cell-name">
@@ -162,9 +163,7 @@ function BuildTable({ rows, today, showMoney }: { rows: Row[]; today: string; sh
                   <HoldingCost value={job.weeklyHoldingCost} />
                 </td>
               )}
-              <td>
-                <StatusText tone={fresh.tone}>{fresh.text}</StatusText>
-              </td>
+              <td>{fresh && <StatusText tone={fresh.tone}>{fresh.text}</StatusText>}</td>
             </tr>
           );
         })}
@@ -173,7 +172,7 @@ function BuildTable({ rows, today, showMoney }: { rows: Row[]; today: string; sh
   );
 }
 
-function DesignTable({ rows, today }: { rows: Row[]; today: string }) {
+function DesignTable({ rows }: { rows: Row[] }) {
   const go = useRowNav();
   return (
     <table className="jobs__table">
@@ -187,7 +186,7 @@ function DesignTable({ rows, today }: { rows: Row[]; today: string }) {
       </thead>
       <tbody>
         {rows.map(({ job, forecast }) => {
-          const fresh = freshnessStatus(job, today);
+          const fresh = freshnessStatus(forecast);
           const out = outstandingStatus(forecast);
           return (
             <tr key={job.id} className="jobs__row" data-testid={`job-row-${job.id}`} onClick={() => go(job.id)}>
@@ -201,9 +200,7 @@ function DesignTable({ rows, today }: { rows: Row[]; today: string }) {
               <td>
                 <StatusText tone={out.tone}>{out.text}</StatusText>
               </td>
-              <td>
-                <StatusText tone={fresh.tone}>{fresh.text}</StatusText>
-              </td>
+              <td>{fresh && <StatusText tone={fresh.tone}>{fresh.text}</StatusText>}</td>
             </tr>
           );
         })}
@@ -214,13 +211,13 @@ function DesignTable({ rows, today }: { rows: Row[]; today: string }) {
 
 // ---- phone cards ----
 
-function BuildCards({ rows, today }: { rows: Row[]; today: string }) {
+function BuildCards({ rows }: { rows: Row[] }) {
   return (
     <ul className="jobs__cards">
       {rows.map(({ job, forecast }) => {
         const fin = finishStatus(forecast);
         const slip = slipStatus(forecast);
-        const fresh = freshnessStatus(job, today);
+        const fresh = freshnessStatus(forecast);
         return (
           <li key={job.id}>
             <Link to={`/jobs/${job.id}`} className="jobs__card" data-testid={`job-row-${job.id}`}>
@@ -236,9 +233,11 @@ function BuildCards({ rows, today }: { rows: Row[]; today: string }) {
                 {fin && <StatusText tone={fin.tone}>{fin.text}</StatusText>}
                 <StatusText tone={slip.tone}>{slip.text}</StatusText>
               </div>
-              <div className="jobs__card-fresh">
-                <StatusText tone={fresh.tone}>{fresh.text}</StatusText>
-              </div>
+              {fresh && (
+                <div className="jobs__card-fresh">
+                  <StatusText tone={fresh.tone}>{fresh.text}</StatusText>
+                </div>
+              )}
             </Link>
           </li>
         );
@@ -247,11 +246,11 @@ function BuildCards({ rows, today }: { rows: Row[]; today: string }) {
   );
 }
 
-function DesignCards({ rows, today }: { rows: Row[]; today: string }) {
+function DesignCards({ rows }: { rows: Row[] }) {
   return (
     <ul className="jobs__cards">
       {rows.map(({ job, forecast }) => {
-        const fresh = freshnessStatus(job, today);
+        const fresh = freshnessStatus(forecast);
         const out = outstandingStatus(forecast);
         return (
           <li key={job.id}>
@@ -266,9 +265,11 @@ function DesignCards({ rows, today }: { rows: Row[]; today: string }) {
               <div className="jobs__card-status">
                 <StatusText tone={out.tone}>{out.text}</StatusText>
               </div>
-              <div className="jobs__card-fresh">
-                <StatusText tone={fresh.tone}>{fresh.text}</StatusText>
-              </div>
+              {fresh && (
+                <div className="jobs__card-fresh">
+                  <StatusText tone={fresh.tone}>{fresh.text}</StatusText>
+                </div>
+              )}
             </Link>
           </li>
         );

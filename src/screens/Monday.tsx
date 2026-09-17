@@ -10,7 +10,8 @@
  * Numbers are the largest type on the screen; the finish date leads each row.
  */
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import type { MouseEvent } from 'react';
 import type { MondayRow } from '../data/api';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { Freshness, WaitingOnRow } from '../domain/forecast';
@@ -18,6 +19,7 @@ import { formatDayMonth, formatLong, formatShort, lastMonday } from '../domain/d
 import { BigNumber } from '../components/BigNumber';
 import { Money } from '../components/Money';
 import { SlipText, slipTone } from '../components/SlipText';
+import { StatusText } from '../components/StatusText';
 import './monday.css';
 
 export type SlipSince = 'monday' | 'plan';
@@ -136,6 +138,20 @@ export default function Monday() {
 // Cells, shared by the table and the cards so the test ids are the same
 // ---------------------------------------------------------------------------
 
+/**
+ * "Tap a row to open the job" (UI_PLAN 3.2). The row is a pointer convenience:
+ * the links inside it (job name, slip figure, items) keep their own targets and
+ * give keyboard users the same destinations, so a click that started on one of
+ * them is left alone.
+ */
+function useOpenJob() {
+  const navigate = useNavigate();
+  return (jobId: string) => (e: MouseEvent<HTMLElement>) => {
+    if ((e.target as HTMLElement).closest('a, button')) return;
+    navigate(`/jobs/${jobId}`);
+  };
+}
+
 function slipFor(row: MondayRow, since: SlipSince): { days?: number; cost?: number } {
   return since === 'plan' ? { days: row.slipSincePlanDays, cost: row.slipSincePlanCost } : { days: row.slipDays, cost: row.slipCost };
 }
@@ -175,8 +191,8 @@ function SlipCell({ row, since }: { row: MondayRow; since: SlipSince }) {
   );
 }
 
-function HoldingCell({ row }: { row: MondayRow }) {
-  return <Money value={row.weeklyHoldingCost} suffix="/wk" testId={`monday-holding-${row.jobId}`} />;
+function HoldingCell({ row, label }: { row: MondayRow; label?: string }) {
+  return <Money value={row.weeklyHoldingCost} label={label} suffix="/wk" testId={`monday-holding-${row.jobId}`} />;
 }
 
 function waitingDetail(w: WaitingOnRow): string {
@@ -217,14 +233,9 @@ function WaitingOnCell({ row, personId }: { row: MondayRow; personId: string }) 
 
 function FreshCell({ jobId, freshness }: { jobId: string; freshness: Freshness }) {
   return (
-    <span className={freshness.amber ? 'monday__fresh monday__fresh--amber' : 'monday__fresh'} data-testid={`monday-fresh-${jobId}`}>
-      {freshness.amber ? (
-        <span className="monday__flag" aria-hidden="true">
-          !
-        </span>
-      ) : null}
+    <StatusText tone={freshness.amber ? 'amber' : 'muted'} className="monday__fresh" testId={`monday-fresh-${jobId}`}>
       {freshness.text}
-    </span>
+    </StatusText>
   );
 }
 
@@ -241,6 +252,7 @@ function outstandingText(row: MondayRow): string {
 // ---------------------------------------------------------------------------
 
 function BuildTable({ rows, since, showMoney, personId }: { rows: MondayRow[]; since: SlipSince; showMoney: boolean; personId: string }) {
+  const openJob = useOpenJob();
   return (
     <table className="monday__table monday__table--builds">
       <thead>
@@ -255,7 +267,7 @@ function BuildTable({ rows, since, showMoney, personId }: { rows: MondayRow[]; s
       </thead>
       <tbody>
         {rows.map((row) => (
-          <tr key={row.jobId} data-testid={`monday-row-${row.jobId}`}>
+          <tr key={row.jobId} className="monday__row" data-testid={`monday-row-${row.jobId}`} onClick={openJob(row.jobId)}>
             <th scope="row" className="monday__cell-job">
               <JobName row={row} />
               {row.currentStageName ? <span className="monday__stage">{row.currentStageName}</span> : null}
@@ -285,6 +297,7 @@ function BuildTable({ rows, since, showMoney, personId }: { rows: MondayRow[]; s
 }
 
 function DesignTable({ rows }: { rows: MondayRow[] }) {
+  const openJob = useOpenJob();
   return (
     <table className="monday__table monday__table--design">
       <thead>
@@ -296,7 +309,7 @@ function DesignTable({ rows }: { rows: MondayRow[] }) {
       </thead>
       <tbody>
         {rows.map((row) => (
-          <tr key={row.jobId} data-testid={`monday-row-${row.jobId}`}>
+          <tr key={row.jobId} className="monday__row" data-testid={`monday-row-${row.jobId}`} onClick={openJob(row.jobId)}>
             <th scope="row" className="monday__cell-job">
               <JobName row={row} />
             </th>
@@ -318,10 +331,11 @@ function DesignTable({ rows }: { rows: MondayRow[] }) {
 // ---------------------------------------------------------------------------
 
 function BuildCards({ rows, since, personId }: { rows: MondayRow[]; since: SlipSince; personId: string }) {
+  const openJob = useOpenJob();
   return (
     <ul className="monday__cards">
       {rows.map((row) => (
-        <li key={row.jobId} className="monday__card" data-testid={`monday-row-${row.jobId}`}>
+        <li key={row.jobId} className="monday__card" data-testid={`monday-row-${row.jobId}`} onClick={openJob(row.jobId)}>
           <div className="monday__card-head">
             <JobName row={row} />
             {row.currentStageName ? <span className="monday__stage">{row.currentStageName}</span> : null}
@@ -330,7 +344,7 @@ function BuildCards({ rows, since, personId }: { rows: MondayRow[]; since: SlipS
             <FinishCell row={row} />
             <SlipCell row={row} since={since} />
           </div>
-          <HoldingCell row={row} />
+          <HoldingCell row={row} label="Holding" />
           <WaitingOnCell row={row} personId={personId} />
           <FreshCell jobId={row.jobId} freshness={row.freshness} />
         </li>
@@ -340,10 +354,11 @@ function BuildCards({ rows, since, personId }: { rows: MondayRow[]; since: SlipS
 }
 
 function DesignCards({ rows }: { rows: MondayRow[] }) {
+  const openJob = useOpenJob();
   return (
     <ul className="monday__cards">
       {rows.map((row) => (
-        <li key={row.jobId} className="monday__card monday__card--design" data-testid={`monday-row-${row.jobId}`}>
+        <li key={row.jobId} className="monday__card monday__card--design" data-testid={`monday-row-${row.jobId}`} onClick={openJob(row.jobId)}>
           <div className="monday__card-head">
             <JobName row={row} />
             <span className="monday__stage" data-testid={`monday-stage-${row.jobId}`}>

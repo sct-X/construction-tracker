@@ -178,7 +178,7 @@ test.describe('Jobs list', () => {
     const park = page.getByTestId('job-row-park-rd');
     await expect(park).toContainText('26 Feb 2027');
     await expect(park).toContainText('$4,500/wk');
-    await expect(park).toContainText('Confirmed 2 days ago');
+    await expect(park).toContainText('Last confirmed 2 days ago');
     const beatty = page.getByTestId('job-row-beatty');
     await expect(beatty).toContainText('4 Dec 2026');
     await expect(beatty).toContainText('7 days late');

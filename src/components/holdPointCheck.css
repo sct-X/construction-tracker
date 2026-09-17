@@ -1,0 +1,56 @@
+/* HoldPointCheck: a list of required photo sets with their counts in words. */
+.holdpoint__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-2);
+}
+.holdpoint__title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+}
+.holdpoint__list {
+  display: flex;
+  flex-direction: column;
+}
+.holdpoint__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  border-top: var(--hairline);
+}
+.holdpoint--compact .holdpoint__row {
+  min-height: 36px;
+  padding: var(--space-1) 0;
+}
+.holdpoint__name {
+  min-width: 0;
+}
+.holdpoint__refusal {
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--amber-ink);
+  border-radius: var(--radius-sm);
+  background: var(--amber-bg);
+  color: var(--amber-ink);
+  max-width: var(--measure);
+}
+.holdpoint__queued {
+  margin-top: var(--space-3);
+  color: var(--text-secondary);
+  max-width: var(--measure);
+}
+.holdpoint__upload {
+  margin-top: var(--space-4);
+}
+@media (min-width: 768px) {
+  .holdpoint__upload {
+    min-height: var(--control);
+    padding: 0 var(--space-4);
+  }
+}

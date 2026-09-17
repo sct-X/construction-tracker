@@ -1,0 +1,89 @@
+import { expect, test } from '@playwright/test';
+
+// UI_PLAN flow d: changing the windows shipment ETA moves Park Rd's finish.
+// Dominic, today Thu 17 Sep 2026. Runs at both projects (phone list/cards, desktop table).
+// Each test gets a fresh browser context (fresh localStorage), and the test still
+// resets through the dev bar at the end so nothing leaks if that ever changes.
+
+test.describe('Flow d: the ETA moves the finish', () => {
+  test('Dominic changes the windows ETA and the finish, slip and Why it moved follow', async ({ page }) => {
+    // 1. Shipments, then "Park Rd windows": In production, ETA 26 Oct, 3 linked items.
+    await page.goto('#/shipments?as=dominic&today=2026-09-17');
+    await expect(page.getByTestId('shipment-status-text-sh-park-windows')).toHaveText('In production');
+    await expect(page.getByTestId('shipment-eta-sh-park-windows')).toHaveText('26 Oct 2026');
+    await expect(page.getByTestId('shipment-items-sh-park-windows')).toContainText('3 items');
+    await expect(page.getByTestId('shipment-timing-sh-park-windows')).toContainText('ETA 1 week before needed');
+    await page.getByTestId('shipment-row-sh-park-windows').click({ position: { x: 5, y: 5 } });
+    await expect(page).toHaveURL(/#\/shipments\/sh-park-windows$/);
+
+    await expect(page.getByTestId('shipment-eta')).toContainText('Mon 26 Oct 2026');
+    await expect(page.getByTestId('shipment-status-in_production')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('shipment-needed-by')).toHaveText('Needed by Mon 2 Nov');
+    await expect(page.locator('[data-testid^="shipment-item-it-"]')).toHaveCount(3);
+    await expect(page.getByTestId('shipment-item-expected-it-pr-windows')).toContainText('Mon 26 Oct');
+    await expect(page.getByTestId('eta-preview')).toHaveCount(0);
+
+    // 2. He picks 16 Nov. 3. The impact panel appears before anything is saved.
+    await page.getByTestId('shipment-eta-input').fill('2026-11-16');
+    const preview = page.getByTestId('eta-preview');
+    await expect(preview).toContainText('3 linked items would be expected Mon 16 Nov');
+    await expect(preview).toContainText('Install windows would start Mon 16 Nov, not Mon 2 Nov');
+    await expect(page.getByTestId('eta-preview-finish')).toContainText('Fri 12 Mar 2027');
+    await expect(page.getByTestId('eta-preview-slip')).toContainText('+14 days');
+    await expect(page.getByTestId('eta-preview-slip')).toContainText('$9,000');
+    // Nothing saved yet: the hero still says 26 Oct.
+    await expect(page.getByTestId('shipment-eta')).toContainText('Mon 26 Oct 2026');
+
+    // 4. Save new ETA. 5. The linked items now read 14 days late, expected 16 Nov.
+    await page.getByTestId('eta-save').click();
+    await expect(page.getByTestId('shipment-eta')).toContainText('Mon 16 Nov 2026');
+    await expect(page.getByTestId('shipment-timing')).toContainText('ETA 2 weeks after needed');
+    await expect(page.getByTestId('eta-preview')).toHaveCount(0);
+    for (const id of ['it-pr-windows', 'it-pr-sliding-doors', 'it-pr-glazing-cert']) {
+      await expect(page.getByTestId(`shipment-item-expected-${id}`)).toContainText('Mon 16 Nov');
+      await expect(page.getByTestId(`shipment-item-status-${id}`)).toContainText('14 days late');
+    }
+    // 8. The activity feed records who changed it, from what, to what.
+    await expect(page.getByTestId('shipment-history').locator('li').first()).toContainText('Park Rd windows ETA changed 26 Oct to 16 Nov (Dominic)');
+
+    // 6. Monday shows 12 Mar and +14 days, $9,000.
+    await page.goto('#/monday');
+    await expect(page.getByTestId('monday-finish-park-rd')).toContainText('Fri 12 Mar 2027');
+    await expect(page.getByTestId('monday-slip-park-rd')).toContainText('+14 days');
+    await expect(page.getByTestId('monday-slip-park-rd')).toContainText('$9,000');
+
+    // Why it moved names the windows shipment as the cause.
+    await page.getByTestId('monday-slip-park-rd').click();
+    await expect(page).toHaveURL(/#\/jobs\/park-rd\/why/);
+    await expect(page.getByTestId('why-entry-1')).toContainText('Park Rd windows ETA changed 26 Oct to 16 Nov');
+    await expect(page.getByTestId('why-link-sh-park-windows')).toHaveAttribute('href', '#/shipments/sh-park-windows');
+    await expect(page.getByTestId('why-entry-2')).toContainText('Install windows starts 16 Nov, not 2 Nov (+14 days)');
+    const entries = page.locator('[data-testid^="why-entry-"]');
+    await expect(entries.last()).toContainText("Finish 12 Mar, 14 days later than Monday's snapshot (26 Feb)");
+
+    // Reset through the dev bar so the seed is back for anyone sharing this storage.
+    await page.getByTestId('dev-reset').click();
+    await page.goto('#/shipments/sh-park-windows');
+    await expect(page.getByTestId('shipment-eta')).toContainText('Mon 26 Oct 2026');
+  });
+
+  test('a status change is a button press and Delivered offers to close the items', async ({ page }) => {
+    await page.goto('#/shipments/sh-park-windows?as=raff&today=2026-09-17');
+    await page.getByTestId('shipment-status-shipped').click();
+    await expect(page.getByTestId('shipment-status-shipped')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('shipment-history').locator('li').first()).toContainText('Park Rd windows moved to Shipped');
+    await page.getByTestId('shipment-status-delivered').click();
+    await expect(page.getByTestId('shipment-offer-done')).toContainText('Mark the 3 linked items done?');
+    await page.getByTestId('shipment-mark-items-done').click();
+    await expect(page.getByTestId('shipment-offer-done')).toHaveCount(0);
+    await expect(page.getByTestId('shipment-item-status-it-pr-windows')).toHaveText('Done');
+    await page.getByTestId('dev-reset').click();
+  });
+
+  test('offline, the ETA and status are read-only', async ({ page }) => {
+    await page.goto('#/shipments/sh-park-windows?as=dominic&today=2026-09-17&offline=1');
+    await expect(page.getByTestId('shipment-eta-input')).toBeDisabled();
+    await expect(page.getByTestId('shipment-status-shipped')).toBeDisabled();
+    await expect(page.locator('body')).toContainText('Needs signal');
+  });
+});

@@ -1,0 +1,70 @@
+/* EtaImpact: a note on timber paper, the one place a change is read before it is made. */
+.eta-impact {
+  padding: var(--space-4);
+  border: 1px solid var(--timber-300);
+  border-radius: var(--radius-md);
+  background: var(--timber-100);
+  max-width: var(--measure);
+}
+.eta-impact__title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+.eta-impact__chain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  counter-reset: impact;
+}
+.eta-impact__line {
+  position: relative;
+  padding-left: var(--space-6);
+  counter-increment: impact;
+}
+.eta-impact__line::before {
+  content: counter(impact);
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--timber-500);
+  color: var(--timber-500);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  line-height: 16px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.eta-impact__line--finish {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  margin-top: var(--space-1);
+}
+.eta-impact__finish-label {
+  flex-basis: 100%;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.eta-impact__delta {
+  font-size: var(--text-md);
+  white-space: nowrap;
+}
+.eta-impact__delta--late {
+  color: var(--late-ink);
+}
+.eta-impact__delta--ok {
+  color: var(--ok-ink);
+}
+.eta-impact__delta--muted {
+  color: var(--text-muted);
+}
+.eta-impact__line--quiet {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}

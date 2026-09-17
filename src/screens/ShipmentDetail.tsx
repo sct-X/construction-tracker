@@ -1,0 +1,327 @@
+/**
+ * Shipment detail (UI_PLAN 3.13, flow d): the one place an ETA is changed,
+ * showing what the change does before it is saved.
+ *
+ * The ETA is the screen's one big figure. Status is four buttons in a row
+ * (never a dropdown). The ETA editor is a date field; as soon as the draft
+ * differs from the saved ETA, the impact panel (<EtaImpact>) appears with the
+ * items, the first step and the job's finish in words, and "Save new ETA"
+ * applies it through api.setShipmentEta, which logs the activity entry that
+ * "Why it moved" reads. Linked items take their expected date from the ETA in
+ * the calculator (ItemForecast.expectedFromShipmentId); this screen only
+ * shows it. Offline the screen is read-only ("Needs signal").
+ */
+import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { useApi, useQuery, useSession } from '../data/context';
+import type { ActivityEntry, Item, ShipmentStatus } from '../domain/types';
+import { ITEM_STATUS_LABELS, SHIPMENT_STATUS_LABELS, SHIPMENT_STATUS_ORDER } from '../domain/types';
+import type { EtaPreview, ItemForecast } from '../domain/forecast';
+import { formatDayMonth, formatLong, formatShort, formatTime, isISODate } from '../domain/dates';
+import { BigNumber } from '../components/BigNumber';
+import { EtaImpact } from '../components/EtaImpact';
+import { StatusText } from '../components/StatusText';
+import { PageHeader } from '../shell/PageHeader';
+import { useLayout } from '../shell/AppShell';
+import { timing } from './Shipments';
+import './shipmentDetail.css';
+
+interface LinkedRow {
+  item: Item;
+  forecast?: ItemForecast;
+  ownerName?: string;
+}
+
+export default function ShipmentDetail() {
+  const api = useApi();
+  const { id = '' } = useParams();
+  const { offline, role } = useSession();
+  const layout = useLayout();
+  const shipment = useQuery((api) => api.getShipment(id), [id]);
+  const job = useQuery((api) => (shipment ? api.getJob(shipment.jobId) : undefined), [shipment?.jobId]);
+  const forecast = useQuery((api) => (shipment ? api.getForecast(shipment.jobId) : undefined), [shipment?.jobId]);
+  const rows = useQuery<LinkedRow[]>(
+    (api) =>
+      shipment
+        ? api.listItems({ shipmentId: shipment.id, includeDone: true }).map((item) => ({
+            item,
+            forecast: forecast?.items[item.id],
+            ownerName: item.ownerId ? api.getPerson(item.ownerId)?.name : undefined,
+          }))
+        : [],
+    [shipment?.id, forecast],
+  );
+  const history = useQuery<ActivityEntry[]>((api) => (shipment ? api.listActivity({ shipmentId: shipment.id }) : []), [shipment?.id]);
+  const people = useQuery((api) => new Map(api.listPeople().map((p) => [p.id, p.shortName])), []);
+
+  const [draft, setDraft] = useState<string>(shipment?.eta ?? '');
+  const [offerDone, setOfferDone] = useState(false);
+  useEffect(() => setDraft(shipment?.eta ?? ''), [shipment?.eta]);
+
+  if (!shipment) {
+    return (
+      <main className="page shipment" data-testid="shipment-detail">
+        <PageHeader title="Shipment" back={{ to: '/shipments', label: 'Shipments' }} />
+        <p className="shipment__empty" data-testid="shipment-missing">
+          No shipment with that id on this side.
+        </p>
+      </main>
+    );
+  }
+
+  const canEdit = role === 'admin' || role === 'partner' || role === 'builder';
+  const locked = offline || !canEdit;
+  const openItems = rows.filter((r) => r.item.status !== 'done');
+  const neededBy = openItems.map((r) => r.forecast?.neededBy).filter((d): d is string => !!d).sort()[0];
+  const t = timing(shipment.eta, neededBy);
+  const dirty = isISODate(draft) && draft !== shipment.eta;
+  let preview: EtaPreview | undefined;
+  if (dirty) {
+    try {
+      preview = api.previewEtaChange(shipment.id, draft);
+    } catch {
+      preview = undefined;
+    }
+  }
+
+  function save() {
+    if (!shipment || !preview) return;
+    api.setShipmentEta(shipment.id, preview.newEta);
+  }
+
+  function setStatus(status: ShipmentStatus) {
+    if (!shipment || status === shipment.status) return;
+    api.setShipmentStatus(shipment.id, status);
+    setOfferDone(status === 'delivered' && openItems.length > 0);
+  }
+
+  function markItemsDone() {
+    for (const r of openItems) api.updateItemStatus(r.item.id, 'done');
+    setOfferDone(false);
+  }
+
+  const supplierLine = [shipment.supplier ? `From ${shipment.supplier}` : null].filter(Boolean).join('');
+
+  return (
+    <main className="page shipment" data-testid="shipment-detail">
+      <PageHeader
+        title={shipment.name}
+        back={{ to: '/shipments', label: 'Shipments' }}
+        meta={
+          <>
+            {supplierLine ? `${supplierLine} for ` : 'For '}
+            {job ? (
+              <Link to={`/jobs/${job.id}`} data-testid="shipment-job-link">
+                {job.name}
+              </Link>
+            ) : (
+              'a job on this side'
+            )}
+          </>
+        }
+      />
+
+      <section className="shipment__hero">
+        <BigNumber value={formatLong(shipment.eta)} label="ETA" testId="shipment-eta" tone={t.tone === 'late' ? 'late' : undefined} />
+        <div className="shipment__timing">
+          <StatusText tone={t.tone} testId="shipment-timing">
+            {t.text}
+          </StatusText>
+          {neededBy && (
+            <span className="shipment__needed" data-testid="shipment-needed-by">
+              Needed by {formatShort(neededBy)}
+            </span>
+          )}
+        </div>
+      </section>
+
+      <section className="shipment__status" aria-labelledby="shipment-status-heading">
+        <h2 id="shipment-status-heading" className="shipment__heading">
+          Status
+        </h2>
+        <div className="shipment__status-strip" role="group" aria-label="Shipment status">
+          {SHIPMENT_STATUS_ORDER.map((s, i) => {
+            const current = s === shipment.status;
+            const passed = SHIPMENT_STATUS_ORDER.indexOf(shipment.status) > i;
+            return (
+              <button
+                key={s}
+                type="button"
+                className={['shipment__status-btn', current ? 'shipment__status-btn--current' : '', passed ? 'shipment__status-btn--passed' : ''].join(' ')}
+                aria-pressed={current}
+                disabled={locked}
+                data-testid={`shipment-status-${s}`}
+                onClick={() => setStatus(s)}
+              >
+                <span className="shipment__status-dot" aria-hidden="true" />
+                {SHIPMENT_STATUS_LABELS[s]}
+              </button>
+            );
+          })}
+        </div>
+        {offline && <p className="shipment__signal">Needs signal to change the status.</p>}
+        {offerDone && (
+          <div className="shipment__offer" data-testid="shipment-offer-done">
+            <p>Mark the {openItems.length === 1 ? '1 linked item' : `${openItems.length} linked items`} done?</p>
+            <div className="shipment__offer-actions">
+              <button type="button" className="btn btn--primary btn--desktop" data-testid="shipment-mark-items-done" onClick={markItemsDone}>
+                Mark {openItems.length === 1 ? 'it' : 'them'} done
+              </button>
+              <button type="button" className="btn btn--desktop" data-testid="shipment-offer-dismiss" onClick={() => setOfferDone(false)}>
+                Not yet
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="shipment__eta" aria-labelledby="shipment-eta-heading">
+        <h2 id="shipment-eta-heading" className="shipment__heading">
+          Change the ETA
+        </h2>
+        <div className="shipment__eta-row">
+          <label className="shipment__eta-label" htmlFor="shipment-eta-input">
+            New ETA
+          </label>
+          <input
+            id="shipment-eta-input"
+            className="shipment__eta-input num"
+            type="date"
+            value={draft}
+            disabled={locked}
+            data-testid="shipment-eta-input"
+            onChange={(e) => setDraft(e.target.value)}
+          />
+          {offline && <span className="shipment__signal">Needs signal</span>}
+        </div>
+        {preview && job && (
+          <>
+            <EtaImpact preview={preview} jobName={job.name} />
+            <div className="shipment__eta-actions">
+              <button type="button" className="btn btn--primary" data-testid="eta-save" onClick={save} disabled={locked}>
+                Save new ETA
+              </button>
+              <button type="button" className="btn" data-testid="eta-cancel" onClick={() => setDraft(shipment.eta)}>
+                Keep {formatDayMonth(shipment.eta)}
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+
+      <section className="shipment__items" aria-labelledby="shipment-items-heading">
+        <h2 id="shipment-items-heading" className="shipment__heading">
+          {rows.length === 1 ? '1 linked item' : `${rows.length} linked items`}
+        </h2>
+        {rows.length === 0 ? (
+          <p className="shipment__empty">No items are linked to this shipment yet.</p>
+        ) : layout === 'desktop' ? (
+          <ItemsTable rows={rows} />
+        ) : (
+          <ItemsList rows={rows} />
+        )}
+      </section>
+
+      <section className="shipment__history" aria-labelledby="shipment-history-heading">
+        <h2 id="shipment-history-heading" className="shipment__heading">
+          History
+        </h2>
+        {history.length === 0 ? (
+          <p className="shipment__empty">Nothing recorded yet.</p>
+        ) : (
+          <ol className="shipment__history-list" data-testid="shipment-history">
+            {history.map((a) => (
+              <li key={a.id} className="shipment__history-entry" data-testid={`shipment-history-${a.id}`}>
+                <span className="shipment__history-when num">
+                  {formatDayMonth(a.at.slice(0, 10))} {formatTime(a.at)}
+                </span>
+                <span className="shipment__history-text">
+                  {a.text}
+                  <span className="shipment__history-who"> ({people.get(a.personId) ?? a.personId})</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function ItemStatus({ row }: { row: LinkedRow }) {
+  const { item, forecast } = row;
+  if (item.status === 'done') return <StatusText tone="muted">Done</StatusText>;
+  if (forecast?.lateText) return <StatusText tone="late">{forecast.lateText}</StatusText>;
+  return <StatusText tone="plain">{ITEM_STATUS_LABELS[item.status]}</StatusText>;
+}
+
+function ItemsTable({ rows }: { rows: LinkedRow[] }) {
+  return (
+    <table className="shipment__table">
+      <thead>
+        <tr>
+          <th scope="col">Item</th>
+          <th scope="col">Owner</th>
+          <th scope="col">Act by</th>
+          <th scope="col">Needed by</th>
+          <th scope="col">Expected</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row.item.id} data-testid={`shipment-item-${row.item.id}`}>
+            <td>
+              <Link to={`/items/${row.item.id}`} className="shipment__item-link">
+                {row.item.title}
+              </Link>
+            </td>
+            <td>{row.ownerName ?? <span className="shipment__muted">Nobody</span>}</td>
+            <td className="num">{row.forecast?.actBy ? formatShort(row.forecast.actBy) : ''}</td>
+            <td className="num">{row.forecast?.neededBy ? formatShort(row.forecast.neededBy) : ''}</td>
+            <td className="num" data-testid={`shipment-item-expected-${row.item.id}`}>
+              {row.forecast?.expected ? formatShort(row.forecast.expected) : ''}
+            </td>
+            <td>
+              <span data-testid={`shipment-item-status-${row.item.id}`}>
+                <ItemStatus row={row} />
+                {row.item.status !== 'done' && row.forecast?.lateText && (
+                  <span className="shipment__item-substatus">{ITEM_STATUS_LABELS[row.item.status]}</span>
+                )}
+              </span>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function ItemsList({ rows }: { rows: LinkedRow[] }) {
+  return (
+    <ul className="shipment__list">
+      {rows.map((row) => (
+        <li key={row.item.id} className="shipment__list-row" data-testid={`shipment-item-${row.item.id}`}>
+          <Link to={`/items/${row.item.id}`} className="shipment__item-card">
+            <div className="shipment__item-top">
+              <span className="shipment__item-title">{row.item.title}</span>
+              <span data-testid={`shipment-item-status-${row.item.id}`}>
+                <ItemStatus row={row} />
+              </span>
+            </div>
+            <div className="shipment__item-meta">
+              <span>{row.ownerName ?? 'Nobody'}</span>
+              {row.forecast?.actBy && <span className="num">act by {formatShort(row.forecast.actBy)}</span>}
+              {row.forecast?.expected && (
+                <span className="num" data-testid={`shipment-item-expected-${row.item.id}`}>
+                  expected {formatShort(row.forecast.expected)}
+                </span>
+              )}
+              {row.item.status !== 'done' && row.forecast?.lateText && <span>{ITEM_STATUS_LABELS[row.item.status]}</span>}
+            </div>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}

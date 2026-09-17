@@ -10,11 +10,16 @@
 import type { ReactElement } from 'react';
 import { useParams } from 'react-router-dom';
 import type { ScreenKey } from '../data/api';
-import { useQuery, useSession } from '../data/context';
+import { useQuery } from '../data/context';
+import JobOverview from '../screens/JobOverview';
 import JobsList from '../screens/JobsList';
 import Monday from '../screens/Monday';
 import NotFound from '../screens/NotFound';
 import Placeholder from '../screens/Placeholder';
+import Program from '../screens/Program';
+import ShipmentDetail from '../screens/ShipmentDetail';
+import Shipments from '../screens/Shipments';
+import StepDetail from '../screens/StepDetail';
 import WhyItMoved from '../screens/WhyItMoved';
 
 export interface RouteDef {
@@ -27,14 +32,13 @@ export interface RouteDef {
   element: ReactElement;
 }
 
-/** `/jobs/:id` until Stage 2 (build overview), 3 (Alec's Today) and 5 (design checklist) land. */
+/** `/jobs/:id`: the build overview (Alec's Today section lands in Stage 3); design checklist in Stage 5. */
 function JobRoute() {
   const { id = '' } = useParams();
-  const { role } = useSession();
   const job = useQuery((api) => api.getJob(id), [id]);
   if (!job) return <NotFound />;
   if (job.kind === 'design') return <Placeholder title={job.name} stage={5} />;
-  return <Placeholder title={role === 'site' ? `Today at ${job.name}` : job.name} stage={role === 'site' ? 3 : 2} />;
+  return <JobOverview />;
 }
 
 const soon = (title: string, stage: number) => <Placeholder title={title} stage={stage} />;
@@ -44,15 +48,15 @@ export const ROUTES: RouteDef[] = [
   { path: '/jobs', screen: 'jobs', title: 'Jobs', stage: 1, element: <JobsList /> },
   { path: '/jobs/:id', screen: 'job', title: 'Job', stage: 2, element: <JobRoute /> },
   { path: '/jobs/:id/why', screen: 'monday', title: 'Why it moved', stage: 1, element: <WhyItMoved /> },
-  { path: '/jobs/:id/program', screen: 'program', title: 'Program', stage: 2, element: soon('Program', 2) },
-  { path: '/steps/:id', screen: 'step', title: 'Step', stage: 2, element: soon('Step', 2) },
+  { path: '/jobs/:id/program', screen: 'program', title: 'Program', stage: 2, element: <Program /> },
+  { path: '/steps/:id', screen: 'step', title: 'Step', stage: 2, element: <StepDetail /> },
   { path: '/waiting', screen: 'waiting', title: 'Waiting on', stage: 4, element: soon('Waiting on', 4) },
   { path: '/deliveries', screen: 'deliveries', title: 'Deliveries', stage: 3, element: soon('Deliveries', 3) },
   { path: '/items/new', screen: 'item', title: 'New item', stage: 4, element: soon('New item', 4) },
   { path: '/items/:id', screen: 'item', title: 'Item', stage: 4, element: soon('Item', 4) },
   { path: '/calls', screen: 'calls', title: 'Call list', stage: 4, element: soon('Call list', 4) },
-  { path: '/shipments', screen: 'shipments', title: 'Shipments', stage: 2, element: soon('Shipments', 2) },
-  { path: '/shipments/:id', screen: 'shipment', title: 'Shipment', stage: 2, element: soon('Shipment', 2) },
+  { path: '/shipments', screen: 'shipments', title: 'Shipments', stage: 2, element: <Shipments /> },
+  { path: '/shipments/:id', screen: 'shipment', title: 'Shipment', stage: 2, element: <ShipmentDetail /> },
   { path: '/jobs/:id/photos', screen: 'photos', title: 'Photos', stage: 3, element: soon('Photos', 3) },
   { path: '/jobs/:id/upload', screen: 'upload', title: 'Upload photos', stage: 3, element: soon('Upload photos', 3) },
   { path: '/queue', screen: 'queue', title: 'Upload queue', stage: 3, element: soon('Upload queue', 3) },

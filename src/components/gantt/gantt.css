@@ -1,0 +1,342 @@
+/*
+  Gantt: the chart scrolls sideways inside its own box; the page never does.
+  Label column sticky on the left, axis sticky on top. Forecast bars are steel,
+  the planned position is a timber outline behind them, today is the one
+  hi-vis line on the screen, the shutdown is a hatched band.
+*/
+.gantt {
+  --gantt-row: 36px;
+  --gantt-label: 292px;
+  margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  border: var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.gantt--empty {
+  padding: var(--space-8) var(--space-5);
+  color: var(--text-secondary);
+}
+.gantt__scroll {
+  overflow: auto;
+  max-height: calc(100dvh - var(--above, 0px) - 240px);
+  min-height: 320px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  overscroll-behavior-x: contain;
+}
+.gantt__inner {
+  position: relative;
+}
+
+/* ---- axis ---- */
+.gantt__head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  height: 44px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line-strong);
+}
+.gantt__corner {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  flex: 0 0 var(--gantt-label);
+  background: var(--surface);
+  border-right: var(--hairline);
+}
+.gantt__axis {
+  position: relative;
+  flex: 0 0 auto;
+}
+.gantt__months,
+.gantt__weeks {
+  position: relative;
+  height: 22px;
+}
+.gantt__month {
+  position: absolute;
+  top: 0;
+  height: 22px;
+  padding-left: 6px;
+  border-left: var(--hairline);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  line-height: 22px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.gantt__week {
+  position: absolute;
+  top: 0;
+  height: 22px;
+  padding-left: 4px;
+  border-left: var(--hairline);
+  font-size: var(--text-xs);
+  line-height: 22px;
+  color: var(--text-muted);
+}
+.gantt__lookahead-wash {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--hivis-100);
+}
+.gantt__today-label {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  padding: 0 4px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  line-height: 22px;
+  color: var(--hivis-ink);
+  background: var(--surface);
+}
+
+/* ---- body ---- */
+.gantt__body {
+  position: relative;
+}
+.gantt__under {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.gantt__gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--concrete-100);
+}
+.gantt__shutdown {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(135deg, var(--concrete-100) 0 4px, transparent 4px 9px);
+  border-left: 1px dashed var(--line-strong);
+  border-right: 1px dashed var(--line-strong);
+}
+.gantt__shutdown-label {
+  position: absolute;
+  top: 6px;
+  left: 4px;
+  padding: 0 4px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  background: var(--surface);
+  white-space: nowrap;
+}
+.gantt__row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  height: var(--gantt-row);
+  border-bottom: 1px solid var(--concrete-100);
+}
+.gantt__row--stage {
+  background: var(--concrete-050);
+}
+.gantt__row--active {
+  background: var(--concrete-100);
+}
+.gantt__label {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  flex: 0 0 var(--gantt-label);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 var(--space-3) 0 var(--space-4);
+  background: var(--surface);
+  border-right: var(--hairline);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.gantt__row--stage .gantt__label {
+  background: var(--concrete-050);
+}
+.gantt__row--active .gantt__label {
+  background: var(--concrete-100);
+}
+.gantt__row--step:not(.gantt__row--stagebar) .gantt__label {
+  padding-left: var(--space-8);
+}
+.gantt__stage-name {
+  font-weight: var(--weight-bold);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gantt__step-name {
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gantt__hold-glyph {
+  flex-shrink: 0;
+  color: var(--steel-700);
+  font-size: 15px;
+  line-height: 1;
+}
+.gantt__hold-word {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.gantt__track {
+  position: relative;
+  flex: 0 0 auto;
+  width: calc(100% - var(--gantt-label));
+}
+
+/* stage bands */
+.gantt__band {
+  position: absolute;
+  top: 10px;
+  height: calc(var(--gantt-row) - 20px);
+  background: var(--steel-100);
+  border: 1px solid var(--steel-200);
+  border-radius: 2px;
+}
+
+/* the planned position: a timber outline left behind */
+.gantt__planned {
+  position: absolute;
+  top: 9px;
+  height: calc(var(--gantt-row) - 18px);
+  border: 1.5px solid var(--timber-500);
+  border-radius: 2px;
+  background: var(--timber-100);
+}
+.gantt__planned--hold {
+  width: 12px;
+  height: 12px;
+  top: calc(var(--gantt-row) / 2 - 6px);
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 1px;
+}
+
+/* the forecast bar */
+.gantt__bar {
+  position: absolute;
+  top: 9px;
+  height: calc(var(--gantt-row) - 18px);
+  min-width: 3px;
+  border-radius: 2px;
+  background: var(--steel-700);
+  text-decoration: none;
+  transition: background var(--motion-fast) var(--ease);
+}
+.gantt__bar--done {
+  background: var(--steel-200);
+  border: 1px solid var(--steel-500);
+}
+.gantt__bar--in_progress {
+  background: var(--steel-500);
+}
+.gantt__bar--hold {
+  width: 14px;
+  height: 14px;
+  min-width: 0;
+  top: calc(var(--gantt-row) / 2 - 7px);
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 1px;
+}
+.gantt__bar:hover,
+.gantt__bar--active {
+  background: var(--steel-900);
+}
+.gantt__bar--done:hover,
+.gantt__bar--done.gantt__bar--active {
+  background: var(--steel-500);
+}
+.gantt__bar:focus-visible {
+  box-shadow: var(--focus-ring);
+  border-radius: 2px;
+}
+.gantt__late {
+  position: absolute;
+  top: 0;
+  height: var(--gantt-row);
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+}
+
+/* step links: thin elbows behind the bars, darker when a bar is pointed at */
+.gantt__links {
+  position: absolute;
+  top: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.gantt__link {
+  fill: none;
+  stroke: var(--steel-200);
+  stroke-width: 1;
+}
+.gantt__link--active {
+  stroke: var(--steel-700);
+  stroke-width: 1.5;
+}
+
+/* today: the one hi-vis line */
+.gantt__today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--hivis);
+  pointer-events: none;
+}
+
+/* ---- caption: the legend, or the pointed-at step in words ---- */
+.gantt__caption {
+  min-height: 40px;
+  padding: var(--space-2) var(--space-4);
+  border-top: var(--hairline);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 24px;
+}
+.gantt__key {
+  display: inline-block;
+  vertical-align: middle;
+  width: 18px;
+  height: 10px;
+  margin: 0 6px 0 14px;
+  border-radius: 2px;
+}
+.gantt__key:first-child {
+  margin-left: 0;
+}
+.gantt__key--bar {
+  background: var(--steel-700);
+}
+.gantt__key--planned {
+  border: 1.5px solid var(--timber-500);
+  background: var(--timber-100);
+}
+.gantt__key--hold {
+  width: 10px;
+  height: 10px;
+  background: var(--steel-700);
+  transform: rotate(45deg);
+  border-radius: 1px;
+}
+.gantt__key--today {
+  width: 2px;
+  height: 14px;
+  background: var(--hivis);
+}

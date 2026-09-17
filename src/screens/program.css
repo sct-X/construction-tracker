@@ -1,0 +1,36 @@
+/* Program: the Gantt on the desktop, the strip and look-ahead on the phone. */
+.program__onplan {
+  color: var(--text-muted);
+}
+.program__views {
+  display: inline-flex;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.program__view {
+  min-height: var(--control);
+  padding: 0 var(--space-4);
+  border: 0;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  transition: background var(--motion-fast) var(--ease);
+}
+.program__view + .program__view {
+  border-left: 1px solid var(--line-strong);
+}
+.program__view:hover {
+  background: var(--concrete-100);
+}
+.program__view[aria-pressed='true'] {
+  background: var(--steel-700);
+  color: var(--text-on-dark);
+}
+.program__view:focus-visible {
+  box-shadow: inset var(--focus-ring);
+  border-radius: 0;
+}
+.program[data-layout='phone'] .page-header__actions .btn {
+  flex: 1 1 auto;
+}

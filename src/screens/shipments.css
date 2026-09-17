@@ -1,0 +1,143 @@
+/*
+  Shipments list. Token plan for this screen: the ETA is the figure (condensed
+  face, like the jobs list's finish); the timing words sit under it. No new
+  colours: late/amber/ok inks with words, concrete rows, one hi-vis nowhere
+  (there is no primary action on this list yet).
+
+  desktop                                    phone
+  Shipment | Job | Status | ETA | Needed | Items   name           26 Oct 2026
+  ---------------------------------------------    In production  3 items for Park Rd
+  Park Rd  Park  In prod  26 Oct  Mon 2 Nov  3     [ETA 1 week before needed] needed Mon 2 Nov
+  windows                 1 wk before              A week late costs $4,500
+*/
+.shipments__empty {
+  padding: var(--space-8) 0;
+  font-size: var(--text-lg);
+}
+.shipments__name {
+  display: block;
+  font-weight: var(--weight-bold);
+  color: var(--text);
+  text-decoration: none;
+}
+.shipments__name:hover {
+  text-decoration: underline;
+}
+.shipments__supplier {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.shipments__eta {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  color: var(--text);
+  white-space: nowrap;
+}
+.shipments__muted {
+  color: var(--text-muted);
+}
+
+/* ---- table (desktop) ---- */
+.shipments__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.shipments__table th {
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  padding: var(--space-2) var(--space-3);
+}
+.shipments__table td {
+  padding: var(--space-3);
+  border-top: var(--hairline);
+  vertical-align: top;
+}
+.shipments__table th:first-child,
+.shipments__table td:first-child {
+  padding-left: 0;
+}
+.shipments__row {
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease);
+}
+.shipments__row:hover {
+  background: var(--concrete-100);
+}
+.shipments__cell-name {
+  width: 100%;
+}
+.shipments__table td:not(.shipments__cell-name),
+.shipments__table th:not(:first-child) {
+  white-space: nowrap;
+}
+.shipments__cell-job {
+  color: var(--text-secondary);
+}
+.shipments__eta-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+.shipments__cell-money {
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+/* ---- cards (phone) ---- */
+.shipments__cards {
+  display: flex;
+  flex-direction: column;
+}
+.shipments__cards li + li {
+  border-top: var(--hairline);
+}
+.shipments__card {
+  display: block;
+  min-height: var(--tap);
+  padding: var(--space-4) 0;
+  text-decoration: none;
+  color: var(--text);
+}
+.shipments__card:active {
+  background: var(--concrete-100);
+}
+.shipments__card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.shipments__card-top .shipments__name {
+  font-size: var(--text-lg);
+}
+.shipments__card-mid {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: 2px;
+  color: var(--text-secondary);
+}
+.shipments__card-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.shipments__needed {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.shipments__card-money {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}

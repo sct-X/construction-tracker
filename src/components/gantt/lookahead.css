@@ -1,0 +1,93 @@
+/* Look-ahead: week headings on a rule, 56px rows that are links to the step. */
+.lookahead__week {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--concrete-200);
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  color: var(--text);
+}
+.lookahead__week:first-child {
+  margin-top: 0;
+}
+.lookahead__range {
+  font-family: var(--font-ui);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.lookahead__nothing {
+  padding: var(--space-3) 0;
+  color: var(--text-muted);
+}
+.lookahead__list li + li {
+  border-top: var(--hairline);
+}
+.lookahead__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: var(--tap);
+  padding: var(--space-3) 0;
+  color: var(--text);
+  text-decoration: none;
+}
+.lookahead__row:active {
+  background: var(--concrete-100);
+}
+.lookahead__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.lookahead__name {
+  font-weight: var(--weight-bold);
+  font-size: var(--text-lg);
+}
+.lookahead__hold {
+  color: var(--steel-700);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-sm);
+  margin-right: 4px;
+}
+.lookahead__stage {
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.lookahead__line {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.lookahead__muted {
+  color: var(--text-muted);
+}
+.lookahead__more {
+  margin-top: var(--space-2);
+}
+.lookahead__summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  color: var(--primary);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+/* Sentences on a wash wrap on a narrow phone; the mark stays on the first line. */
+.lookahead__line .status,
+.stages__late .status {
+  display: inline;
+  white-space: normal;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.lookahead__line .status__mark {
+  margin-right: 0.35em;
+}

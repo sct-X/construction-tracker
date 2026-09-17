@@ -1,0 +1,121 @@
+/* Stages strip: chips across the top; bands below. "You are here" is weight and a wash. */
+.stages-strip {
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 0 var(--gutter);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.stages-strip::-webkit-scrollbar {
+  display: none;
+}
+.stages-strip__list {
+  display: flex;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+  width: max-content;
+}
+.stages-strip__chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
+  min-height: var(--tap);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+.stages-strip__chip[aria-current='true'] {
+  background: var(--concrete-100);
+  border-color: var(--line-strong);
+  color: var(--text);
+  font-weight: var(--weight-bold);
+}
+.stages-strip__chip-when {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+}
+
+.stages {
+  margin-top: var(--space-6);
+}
+.stages__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--concrete-200);
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  color: var(--text);
+}
+.stages__heading-note {
+  font-family: var(--font-ui);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.stages__band {
+  padding: var(--space-4) 0;
+}
+.stages__band + .stages__band {
+  border-top: var(--hairline);
+  scroll-margin-top: calc(var(--tap) + var(--space-2));
+}
+.stages__band[aria-current='true'] {
+  background: var(--concrete-050);
+}
+.stages__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.stages__name {
+  font-weight: var(--weight-bold);
+  font-size: var(--text-lg);
+}
+.stages__status {
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.stages__dates {
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.stages__progress {
+  height: 4px;
+  margin-top: var(--space-3);
+  background: var(--steel-100);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.stages__progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--steel-700);
+}
+.stages__late {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.stages__late-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  text-decoration: none;
+}

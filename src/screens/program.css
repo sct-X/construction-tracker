@@ -31,3 +31,8 @@
   margin: 0 calc(-1 * var(--gutter));
   border-radius: 0;
 }
+
+/* 56px segments on the phone layout: Alec reads the program in gloves */
+.program[data-layout='phone'] .seg__btn {
+  min-height: var(--tap);
+}

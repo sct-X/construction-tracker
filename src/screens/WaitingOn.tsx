@@ -13,7 +13,7 @@
  *
  *   2  This week  14-20 Sep
  *   1  Next week  21-27 Sep
- *   18 Later                              hide
+ *   18 Later                              show
  *   11 Done                               show
  *
  * Groups are by act-by date (the reminder date): Overdue is act-by passed or
@@ -327,10 +327,10 @@ export default function WaitingOn() {
                 ))}
               </ItemRowList>
             );
-            // Later and Done can fold away; Done starts folded, Later starts open.
+            // Later and Done fold away: the thumb list is this fortnight.
             if (key === 'done' || key === 'later') {
               return (
-                <details key={key} open={key === 'later'} className={`waiting__group waiting__group--${key} waiting__group--folded`} data-testid={`waiting-group-${key}`}>
+                <details key={key} className={`waiting__group waiting__group--${key} waiting__group--folded`} data-testid={`waiting-group-${key}`}>
                   <summary className="waiting__group-head">
                     <span className="waiting__group-count">{rows.length}</span>
                     <span className="waiting__group-title">{t.title}</span>

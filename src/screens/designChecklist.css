@@ -46,13 +46,18 @@
   min-height: var(--tap);
 }
 
-/* the one big figure */
+/* the one big figure, then the facts row: the overview's skeleton */
 .checklist__hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin-bottom: var(--space-12);
+}
+.checklist__figure {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--space-2) var(--space-5);
-  margin-bottom: var(--space-10);
+  gap: var(--space-3) var(--space-4);
 }
 .checklist__outstanding {
   display: flex;
@@ -62,7 +67,7 @@
 .checklist__count {
   font-size: var(--text-display);
   font-weight: var(--weight-bold);
-  line-height: 1;
+  line-height: var(--leading-tight);
 }
 .checklist__count-words {
   font-size: var(--text-lg);
@@ -83,11 +88,17 @@
   font-size: var(--text-2xl);
   font-weight: var(--weight-display);
 }
+.checklist__facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+}
 .checklist__offline {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin: calc(-1 * var(--space-6)) 0 var(--space-6);
+  margin: calc(-1 * var(--space-8)) 0 var(--space-8);
   font-size: var(--text-sm);
   color: var(--amber-ink);
 }
@@ -231,9 +242,14 @@
 
 @media (max-width: 767.98px) {
   .checklist__hero {
-    flex-direction: column;
-    align-items: flex-start;
+    gap: var(--space-5);
     margin-bottom: var(--space-8);
+  }
+  .checklist__facts {
+    width: 100%;
+  }
+  .checklist__facts .btn {
+    flex: 1 1 100%;
   }
   .checklist__stage {
     padding: 0 var(--space-3);

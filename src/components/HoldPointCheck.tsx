@@ -17,6 +17,9 @@
  * "Add photos" link straight into the upload screen with the stage and
  * category set (`addHref`), so the fix is one tap from the refusal; filled
  * sets get no link, since the block's job is getting the empty ones filled.
+ * "Add photos now" (`uploadHref`, the stage set) is a quiet link, never a
+ * second button: the screen's one hi-vis "Add photos" already sits above it
+ * on Today, and the per-set links sit beside the empty rows on the step.
  */
 import type { HoldPointCheck as Check } from '../domain/forecast';
 import { holdPointReadinessWords } from '../domain/forecast';
@@ -114,7 +117,7 @@ export function HoldPointCheck({
         </p>
       )}
       {uploadHref && !check.ok && (
-        <a className="btn holdpoint__upload" href={`#${uploadHref}`} data-testid="holdpoint-add-photos">
+        <a className="holdpoint__upload" href={`#${uploadHref}`} data-testid="holdpoint-add-photos">
           Add photos now
         </a>
       )}

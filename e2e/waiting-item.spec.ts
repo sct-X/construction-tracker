@@ -43,7 +43,9 @@ test.describe('Waiting-on list as Raff', () => {
     await button.click();
 
     // Confirmed: the acting is done, so it is grouped by when it is expected (Mon 26 Oct): Later.
+    // On the phone, Later starts folded; open it to reach the row.
     const later = page.getByTestId('waiting-group-later');
+    if ((await later.locator('summary').count()) > 0) await later.locator('summary').click();
     await expect(later.getByTestId('item-row-it-pr-windows')).toContainText('Confirmed');
     await expect(page.getByTestId('waiting-group-overdue').getByTestId('item-row-it-pr-windows')).toHaveCount(0);
 

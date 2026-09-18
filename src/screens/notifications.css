@@ -42,19 +42,21 @@
 .notifications__mark-all {
   margin-right: calc(-1 * var(--space-3));
 }
+.shell--phone .notifications__mark-all {
+  min-height: var(--tap);
+}
 .notifications__empty {
   padding: var(--space-3) 0;
   color: var(--text-secondary);
 }
 
-/* filters: chips on the raised tone, the pressed one filled steel */
+/* filters: two `.seg` troughs (jobs, people); one scrolling line on the phone, wrapped on the desktop */
 .notifications__filters {
   display: flex;
-  gap: var(--space-2);
+  max-width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
-  margin: 0 calc(-1 * var(--gutter)) var(--space-2);
-  padding: 2px var(--gutter);
+  margin-bottom: var(--space-2);
 }
 .notifications__filters::-webkit-scrollbar {
   display: none;
@@ -65,24 +67,10 @@
 }
 .notifications__chip {
   flex: 0 0 auto;
-  min-height: 44px;
-  padding: 0 var(--space-3);
-  border: 0;
-  border-radius: var(--radius-md);
-  background: var(--raised);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  white-space: nowrap;
-  transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
 }
-.notifications__chip:hover {
-  background: var(--lifted);
-  color: var(--text);
-}
-.notifications__chip[aria-pressed='true'] {
-  background: var(--steel-700);
-  color: var(--text-on-dark);
+.shell--phone .notifications__tab,
+.shell--phone .notifications__chip {
+  min-height: var(--tap);
 }
 
 /* days and rows */
@@ -217,11 +205,6 @@ a.notifications__row:active {
   .notifications__filters {
     flex-wrap: wrap;
     overflow: visible;
-    margin: 0 0 var(--space-2);
-    padding: 0;
-  }
-  .notifications__chip {
-    min-height: 34px;
   }
   .notifications__row {
     min-height: 0;

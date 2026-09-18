@@ -140,15 +140,15 @@ export default function Notifications() {
       <h2 id="activity-heading" className={layout === 'phone' ? 'sr-only' : 'notifications__heading'}>
         Activity on {side.name}
       </h2>
-      <div className="notifications__filters" role="group" aria-label="Filter by job">
-        <button type="button" className="notifications__chip" aria-pressed={!jobFilter} data-testid="activity-filter-all" onClick={() => setParam('job', null)}>
+      <div className="seg notifications__filters" role="group" aria-label="Filter by job">
+        <button type="button" className="seg__btn notifications__chip" aria-pressed={!jobFilter} data-testid="activity-filter-all" onClick={() => setParam('job', null)}>
           All jobs
         </button>
         {jobs.map((j) => (
           <button
             key={j.id}
             type="button"
-            className="notifications__chip"
+            className="seg__btn notifications__chip"
             aria-pressed={jobFilter === j.id}
             data-testid={`activity-filter-${j.id}`}
             onClick={() => setParam('job', j.id)}
@@ -157,15 +157,15 @@ export default function Notifications() {
           </button>
         ))}
       </div>
-      <div className="notifications__filters" role="group" aria-label="Filter by person">
-        <button type="button" className="notifications__chip" aria-pressed={!personFilter} data-testid="activity-person-all" onClick={() => setParam('person', null)}>
+      <div className="seg notifications__filters" role="group" aria-label="Filter by person">
+        <button type="button" className="seg__btn notifications__chip" aria-pressed={!personFilter} data-testid="activity-person-all" onClick={() => setParam('person', null)}>
           Anyone
         </button>
         {people.map((p) => (
           <button
             key={p.id}
             type="button"
-            className="notifications__chip"
+            className="seg__btn notifications__chip"
             aria-pressed={personFilter === p.id}
             data-testid={`activity-person-${p.id}`}
             onClick={() => setParam('person', p.id)}

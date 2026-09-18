@@ -8,6 +8,9 @@
 .install__switch {
   margin-bottom: var(--space-3);
 }
+.shell--phone .install__tab {
+  min-height: var(--tap);
+}
 .install__steps {
   list-style: none;
   counter-reset: install;

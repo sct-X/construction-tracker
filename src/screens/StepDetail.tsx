@@ -107,6 +107,9 @@ export default function StepDetail() {
 
   // Done on a hold point needs signal: the server counts the photos.
   const doneNeedsSignal = offline && step.isHoldPoint;
+  // While a required set is empty, Mark done would refuse: the thumb should land on Add photos instead.
+  const setsMissing = !!(step.isHoldPoint && check && !check.ok);
+  const firstEmpty = check?.required.find((r) => r.uploadedCount === 0);
 
   const meta = [stage?.name ? `${stage.name} stage` : '', step.isHoldPoint ? 'hold point' : '', step.tradeType ?? ''].filter(Boolean).join(', ');
   const needsWords = requirements
@@ -162,10 +165,19 @@ export default function StepDetail() {
               Mark started
             </button>
           )}
+          {setsMissing && firstEmpty && step.status !== 'done' && (
+            <Link
+              to={`/jobs/${job.id}/upload?stage=${step.stageId}&category=${firstEmpty.categoryId}&return=/steps/${step.id}`}
+              className="btn btn--primary btn--desktop"
+              data-testid="step-add-photos"
+            >
+              Add photos
+            </Link>
+          )}
           {step.status !== 'done' && (
             <button
               type="button"
-              className="btn btn--primary btn--desktop"
+              className={setsMissing ? 'btn btn--fill btn--desktop' : 'btn btn--primary btn--desktop'}
               onClick={() => setStatus('done')}
               disabled={doneNeedsSignal}
               data-testid="step-mark-done"

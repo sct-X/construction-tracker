@@ -16,7 +16,7 @@ const PEOPLE: { as: string; role: string; home: RegExp; nav: Record<Layout, stri
     home: /#\/monday$/,
     nav: {
       phone: ['Monday', 'Waiting on', 'Call list', 'Jobs'],
-      desktop: ['Monday', 'Waiting on', 'Call list', 'Jobs', 'Shipments', 'Activity', 'Templates and new job', 'Trades', 'People and roles'],
+      desktop: ['Monday', 'Waiting on', 'Call list', 'Jobs', 'Shipments', 'Notifications', 'Templates and new job', 'Trades', 'People and roles'],
     },
   },
   {
@@ -25,7 +25,7 @@ const PEOPLE: { as: string; role: string; home: RegExp; nav: Record<Layout, stri
     home: /#\/monday$/,
     nav: {
       phone: ['Monday', 'Waiting on', 'Jobs'],
-      desktop: ['Monday', 'Waiting on', 'Call list', 'Jobs', 'Shipments', 'Activity', 'Templates and new job', 'Trades'],
+      desktop: ['Monday', 'Waiting on', 'Call list', 'Jobs', 'Shipments', 'Notifications', 'Templates and new job', 'Trades'],
     },
   },
   {
@@ -34,7 +34,7 @@ const PEOPLE: { as: string; role: string; home: RegExp; nav: Record<Layout, stri
     home: /#\/monday$/,
     nav: {
       phone: ['Monday', 'Waiting on', 'Jobs'],
-      desktop: ['Monday', 'Waiting on', 'Call list', 'Jobs', 'Shipments', 'Activity', 'Templates and new job', 'Trades'],
+      desktop: ['Monday', 'Waiting on', 'Call list', 'Jobs', 'Shipments', 'Notifications', 'Templates and new job', 'Trades'],
     },
   },
   {
@@ -43,7 +43,7 @@ const PEOPLE: { as: string; role: string; home: RegExp; nav: Record<Layout, stri
     home: /#\/waiting\?owner=me$/,
     nav: {
       phone: ['My items', 'Jobs', '+ Photos', 'Monday'],
-      desktop: ['Monday', 'Waiting on', 'Jobs', 'Shipments', 'Activity', 'Trades'],
+      desktop: ['Monday', 'Waiting on', 'Jobs', 'Shipments', 'Notifications', 'Trades'],
     },
   },
   {

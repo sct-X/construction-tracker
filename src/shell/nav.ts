@@ -69,7 +69,7 @@ export function sidebarMain(api: TrackerApi): NavItem[] {
     { id: 'calls', label: 'Call list', to: '/calls', screen: 'calls', match: ['/calls'] },
     { id: 'jobs', label: 'Jobs', to: '/jobs', screen: 'jobs', match: ['/jobs', '/steps'] },
     { id: 'shipments', label: 'Shipments', to: '/shipments', screen: 'shipments', match: ['/shipments'] },
-    { id: 'activity', label: 'Activity', to: '/notifications', screen: 'activity', match: ['/notifications'] },
+    { id: 'activity', label: 'Notifications', to: '/notifications', screen: 'activity', match: ['/notifications'] },
   ];
   return items.filter((t) => !t.screen || api.canSee(t.screen));
 }

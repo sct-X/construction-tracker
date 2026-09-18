@@ -94,6 +94,7 @@
   background: var(--raised);
 }
 .note-entry__add-photo {
+  min-height: var(--tap);
   padding: 0 var(--space-3);
 }
 .note-entry__problem {

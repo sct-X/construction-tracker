@@ -196,7 +196,7 @@ export default function Settings() {
             <div className="settings__step-body">
               <span className="settings__step-name">Added to the home screen</span>
               <span className="settings__step-state" data-testid="settings-step-home">
-                {standalone ? 'Done.' : homeDone ? 'Done on the phone. This tab is a browser.' : 'Not yet. Steps below.'}
+                {homeDone ? 'Done.' : 'Not yet.'}
               </span>
             </div>
           </li>

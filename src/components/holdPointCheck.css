@@ -85,7 +85,11 @@
   max-width: var(--measure);
 }
 .holdpoint__upload {
-  margin-top: var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  margin-top: var(--space-2);
+  font-weight: var(--weight-medium);
 }
 @media (min-width: 768px) {
   /* the desktop has the width for one line: name, queued words, count, link */
@@ -99,6 +103,5 @@
   }
   .holdpoint__upload {
     min-height: var(--control);
-    padding: 0 var(--space-4);
   }
 }

@@ -245,7 +245,7 @@
     width: 100%;
   }
   .job__confirm .btn {
-    flex: 1 1 auto;
+    flex: 1 1 100%;
   }
   .job__body,
   .job__col {

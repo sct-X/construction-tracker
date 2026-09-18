@@ -306,7 +306,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
   color: var(--text);
 }
 .shell--phone .seg__btn {
-  min-height: 44px;
+  min-height: var(--tap); /* every segmented control on Alec's screens meets the tap rule */
   padding: 0 var(--space-4);
 }
 

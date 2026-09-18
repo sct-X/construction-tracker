@@ -127,13 +127,7 @@ export default function DesignChecklist() {
             {checklist?.currentStageName ? <span data-testid="checklist-current">Now: {checklist.currentStageName.toLowerCase()}</span> : <span>Every stage done</span>}
           </span>
         }
-        actions={
-          role !== 'site' ? (
-            <Link to={`/items/new?job=${job.id}`} className="btn btn--primary btn--desktop" data-testid="checklist-add">
-              Add item
-            </Link>
-          ) : undefined
-        }
+        back={{ to: '/jobs', label: 'Jobs' }}
       />
 
       <nav className="checklist__tabs" aria-label="Job sections" data-testid="job-tabs">
@@ -145,20 +139,29 @@ export default function DesignChecklist() {
       </nav>
 
       <section className="checklist__hero" aria-label="Outstanding">
-        <p className={`checklist__outstanding checklist__outstanding--${out.tone}`} data-testid="checklist-outstanding">
-          {out.count > 0 ? (
-            <>
-              <span className="checklist__count display">{out.count}</span> <span className="checklist__count-words">{out.rest}</span>
-            </>
-          ) : (
-            <span className="checklist__count checklist__count--words display">{out.rest}</span>
+        <div className="checklist__figure">
+          <p className={`checklist__outstanding checklist__outstanding--${out.tone}`} data-testid="checklist-outstanding">
+            {out.count > 0 ? (
+              <>
+                <span className="checklist__count display">{out.count}</span> <span className="checklist__count-words">{out.rest}</span>
+              </>
+            ) : (
+              <span className="checklist__count checklist__count--words display">{out.rest}</span>
+            )}
+          </p>
+        </div>
+        <div className="checklist__facts">
+          {freshness && (
+            <StatusText tone={freshness.amber ? 'amber' : 'muted'} testId="checklist-fresh">
+              {freshness.amber && freshness.lastConfirmed ? `Unconfirmed ${freshness.daysUnconfirmed} days` : freshness.text}
+            </StatusText>
           )}
-        </p>
-        {freshness && (
-          <StatusText tone={freshness.amber ? 'amber' : 'muted'} testId="checklist-fresh">
-            {freshness.amber && freshness.lastConfirmed ? `Unconfirmed ${freshness.daysUnconfirmed} days` : freshness.text}
-          </StatusText>
-        )}
+          {role !== 'site' && (
+            <Link to={`/items/new?job=${job.id}`} className="btn btn--primary btn--desktop" data-testid="checklist-add">
+              Add item
+            </Link>
+          )}
+        </div>
       </section>
       {offline && canEdit && (
         <p className="checklist__offline" data-testid="checklist-offline">

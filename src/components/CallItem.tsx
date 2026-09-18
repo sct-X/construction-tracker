@@ -2,8 +2,8 @@
  * One line of the call script (UI_PLAN 3.11). The act-by date leads in the
  * condensed face, because that is the question Dominic asks first: "you were
  * meant to book this by Friday, is it booked?". Under the title, in words:
- * what it is for, who it is waiting on (with the trade's number as a tel:
- * link), what is expected and how late. Then one primary action in words
+ * what it is for, who it is waiting on (with "Ring 0411 …" as a tel:
+ * button row), what is expected and how late. Then one primary action in words
  * ("Mark booked", "Mark confirmed", "Mark done"), an inline expected date, a
  * note, and Skip.
  *
@@ -207,18 +207,11 @@ export function CallItem(props: CallItemProps) {
           <span className="callitem__status">{ITEM_STATUS_LABELS[item.status]}</span>
         </p>
         {forWords && <p className="callitem__line">{forWords}</p>}
-        {(item.waitingOn || trade) && (
-          <p className="callitem__line">
-            Waiting on {trade?.name ?? item.waitingOn}
-            {trade?.phone && (
-              <>
-                {', '}
-                <a className="callitem__phone num" href={`tel:${trade.phone.replace(/\s+/g, '')}`} data-testid={`call-phone-${id}`}>
-                  {trade.phone}
-                </a>
-              </>
-            )}
-          </p>
+        {(item.waitingOn || trade) && <p className="callitem__line">Waiting on {trade?.name ?? item.waitingOn}</p>}
+        {trade?.phone && (
+          <a className="btn btn--ghost btn--desktop callitem__phone num" href={`tel:${trade.phone.replace(/\s+/g, '')}`} data-testid={`call-phone-${id}`}>
+            Ring {trade.phone}
+          </a>
         )}
         {expectedWords && (
           <p className="callitem__line">

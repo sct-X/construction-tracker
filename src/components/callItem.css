@@ -88,7 +88,11 @@
 .callitem__expected-words {
   white-space: normal;
 }
+/* The number to dial: a 56px ghost button row on the phone, never wrapped. */
 .callitem__phone {
+  align-self: flex-start;
+  margin-left: calc(-1 * var(--space-5));
+  white-space: nowrap;
   font-weight: var(--weight-medium);
 }
 .callitem__note-was {

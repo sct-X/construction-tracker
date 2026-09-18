@@ -19,8 +19,8 @@ test.describe('Trades as Dominic', () => {
     await expect(page.getByTestId('placeholder')).toHaveCount(0);
     expect(await page.locator('[data-testid^="trade-tr-"]').count()).toBeGreaterThanOrEqual(16);
     // The seeded plumber rings from the list and is on Park Rd's program.
-    await expect(page.getByTestId('trade-ring-tr-plumber')).toHaveAttribute('href', 'tel:0411200308');
-    await expect(page.getByTestId('trade-jobs-tr-plumber')).toContainText('Park Rd');
+    await expect(page.getByTestId('trade-ring-tr-firstcall')).toHaveAttribute('href', 'tel:0491571491');
+    await expect(page.getByTestId('trade-jobs-tr-firstcall')).toContainText('Park Rd');
 
     await page.getByTestId('trade-add').click();
     await page.getByTestId('trade-name').fill('Scaff City');
@@ -41,19 +41,19 @@ test.describe('Trades as Dominic', () => {
     await expect(page.locator('[data-testid^="trade-tr-"]', { hasText: 'Scaff City' })).toHaveCount(1);
 
     // One trade's page: the number, the jobs, and the items waiting on them.
-    await page.getByTestId('trade-open-tr-plumber').click();
-    await expect(page).toHaveURL(/#\/trades\/tr-plumber$/);
+    await page.getByTestId('trade-open-tr-firstcall').click();
+    await expect(page).toHaveURL(/#\/trades\/tr-firstcall$/);
     await expect(page.getByTestId('trade-detail')).toBeVisible();
-    await expect(page.getByTestId('trade-ring-tr-plumber')).toHaveAttribute('href', 'tel:0411200308');
-    await expect(page.getByTestId('trade-jobs-tr-plumber')).toContainText('Park Rd');
+    await expect(page.getByTestId('trade-ring-tr-firstcall')).toHaveAttribute('href', 'tel:0491571491');
+    await expect(page.getByTestId('trade-jobs-tr-firstcall')).toContainText('Park Rd');
     expect(await page.locator('[data-testid^="trade-detail-item-"]').count()).toBeGreaterThanOrEqual(1);
-    await expect(page.getByTestId('trade-edit-tr-plumber')).toBeVisible();
+    await expect(page.getByTestId('trade-edit-tr-firstcall')).toBeVisible();
 
     // Offline: reading and ringing work, writing waits.
     await page.goto('#/trades?as=dominic&side=side-nd&today=2026-09-17&offline=1');
     await expect(page.getByTestId('trades-offline')).toContainText('Needs signal');
     await expect(page.getByTestId('trade-add')).toBeDisabled();
-    await expect(page.getByTestId('trade-ring-tr-plumber')).toBeVisible();
+    await expect(page.getByTestId('trade-ring-tr-firstcall')).toBeVisible();
     await page.goto('#/trades?as=dominic&side=side-nd&today=2026-09-17&offline=0');
 
     // The Norm side has nothing yet, in words.
@@ -150,7 +150,7 @@ test.describe('My settings', () => {
     await page.goto('#/settings?as=dominic&side=side-nd&today=2026-09-17');
     await expect(page.getByTestId('settings')).toBeVisible();
     await expect(page.getByTestId('placeholder')).toHaveCount(0);
-    await expect(page.getByTestId('settings-who')).toContainText('Dominic Barone');
+    await expect(page.getByTestId('settings-who')).toContainText('Dominic Xu');
     await expect(page.getByTestId('settings-who')).toContainText('Admin on Norm and Dom');
     await expect(page.getByTestId('settings-who')).toContainText('Also on Norm');
 
@@ -252,16 +252,16 @@ test.describe('My settings', () => {
     await page.goto('#/trades?as=raff&today=2026-09-17');
     await expect(page.getByTestId('trades')).toBeVisible();
     await expect(page.getByTestId('trade-add')).toBeVisible();
-    await expect(page.getByTestId('trade-edit-tr-plumber')).toBeVisible();
-    await page.goto('#/trades/tr-plumber?as=raff&today=2026-09-17');
+    await expect(page.getByTestId('trade-edit-tr-firstcall')).toBeVisible();
+    await page.goto('#/trades/tr-firstcall?as=raff&today=2026-09-17');
     await expect(page.getByTestId('trade-detail')).toBeVisible();
-    await expect(page.getByTestId('trade-edit-tr-plumber')).toBeVisible();
-    await page.goto('#/trades/tr-plumber?as=alec&today=2026-09-17');
+    await expect(page.getByTestId('trade-edit-tr-firstcall')).toBeVisible();
+    await page.goto('#/trades/tr-firstcall?as=alec&today=2026-09-17');
     await expect(page.getByTestId('no-access')).toBeVisible();
 
     await page.goto('#/people?as=dom&today=2026-09-17');
     await expect(page.getByTestId('no-access')).toBeVisible();
     await page.goto('#/trades?as=dom&today=2026-09-17');
-    await expect(page.getByTestId('trade-edit-tr-plumber')).toBeVisible();
+    await expect(page.getByTestId('trade-edit-tr-firstcall')).toBeVisible();
   });
 });

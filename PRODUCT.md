@@ -57,7 +57,7 @@ The forecast is derived, not typed: lead times, shipment ETAs and step links rol
 
 ## Evidence on Hand
 
-- Invented seed data with real-sounding Sydney job names (Park Rd, Seaview St, Beatty St, West St, Tollbar Ave, Lower Beach St, John St) in `src/seed`. No customers, testimonials or press exist and none may be invented.
+- Seed data in `src/seed` built from Cerr Build's real job folders: the sites, approvals, consultants, suppliers and trades are real; program dates, holding costs, phone numbers and emails are placeholders (see README "What's real"). No customers, testimonials or press exist and none may be invented.
 - Placeholder photos are generated SVG/canvas.
 - The incumbent look (screenshots in the design lead's scratchpad, and `docs/DESIGN_CRITIQUE_BEFORE.md`) is evidence and anti-reference only.
 

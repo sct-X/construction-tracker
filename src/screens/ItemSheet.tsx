@@ -10,7 +10,7 @@
  *   Type       [Trade to book|Material to order|...]   segmented troughs
  *   Job        [Park Rd|Seaview St|...]
  *   Step       [Plasterboard, starts Fri 11 Dec  v]
- *   Waiting on [Gyprock Bros (plasterer)  v] or [free text]   Ring 0412 ...
+ *   Waiting on [CJ Linea (plasterer)  v] or [free text]   Ring 0412 ...
  *   Owner      [Dominic|Dom|Norm|Raff|Alec]
  *   Lead time  [12] weeks
  *   Needed by  Fri 11 Dec, from the step         (or a date when no step)

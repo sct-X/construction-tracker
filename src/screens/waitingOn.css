@@ -133,7 +133,7 @@
 /* ---- phone rows: the shared row, reordered so the date leads ----
    ! Act by Mon 10 Aug, 5 weeks ago       Ordered or booked
    Windows  Park Rd                       Material
-   waiting on Hangzhou Glazing Co, with you
+   waiting on HiHaus, with you
    Call  Set date                         [Mark confirmed]                  */
 .shell--phone .waiting .itemrow {
   grid-template-columns: minmax(0, 1fr) auto;

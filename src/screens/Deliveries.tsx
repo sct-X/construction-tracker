@@ -7,7 +7,7 @@
  *   Late
  *     ! Expected Tue 15 Sep, 2 days ago, not marked delivered   <- a plate: date first
  *     Confirmed
- *     Cladding, from Weathertex            Park Rd
+ *     Cladding, from the supplier         Park Rd
  *     [ Mark delivered ]
  *   This week  14-20 Sep
  *   Next week  21-27 Sep

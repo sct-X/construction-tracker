@@ -28,8 +28,8 @@ test.describe('Flow c: the call list', () => {
     await expect(page.getByTestId('call-actby-it-sv-pump')).toHaveText('Fri 18 Sep');
     await expect(pump).toContainText('act by, tomorrow');
     await expect(pump).toContainText('For Pour ground floor slab, Fri 2 Oct');
-    await expect(pump).toContainText('Waiting on Coastal Concrete Pumping');
-    await expect(page.getByTestId('call-phone-it-sv-pump')).toHaveAttribute('href', 'tel:0411200303');
+    await expect(pump).toContainText('Waiting on IR Formwork Constructions');
+    await expect(page.getByTestId('call-phone-it-sv-pump')).toHaveAttribute('href', 'tel:0491570157');
     await expect(page.getByTestId('call-action-it-sv-pump')).toHaveText('Mark booked');
 
     // The windows items: booked 5 weeks past their act-by, expected from the shipment.

@@ -44,7 +44,7 @@ Accepted additions from the UI Plan's model gaps: item.job (required), job.plann
 - Beatty St, stage level, $2,000/wk, finish 4 Dec 2026, slip +5 days, $1,430, tiler expected 5 Oct 2026, last confirmed 9 days ago (amber).
 - Design: West St (with council, 2 outstanding, oldest 23 days), Tollbar Ave (with council, 1, 8 days), Lower Beach St (design, 0), John St (design, 1, 4 days).
 - About 30 items on Park Rd across every item type, a duplex template, trades with phone numbers, a week of daily notes, some placeholder photos (generated SVG/canvas, no stock imagery).
-- Use the brief's real job names above. All data is invented.
+- Use the brief's real job names above. Numbers and program dates are invented; since 18 Sep 2026 the sites, approvals, consultants and trades are the real ones from the job folders (see README "What's real").
 
 ## Scope: six stages, 22 screens (docs/UI_PLAN.md section 6 is the build order)
 

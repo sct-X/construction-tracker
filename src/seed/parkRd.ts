@@ -1,5 +1,9 @@
 /**
- * 64-66 Park Rd: the full-program duplex, $4,500/wk. Today is Thu 17 Sep 2026.
+ * 64-66 Park Rd, Hunters Hill: two attached duplexes on Lots 7 and 8 DP 14994,
+ * run as one job. CDC through Certex (demolition Oct 2025, construction Dec 2025),
+ * Northgroup building, Raff on site. The full-program job, $4,500/wk.
+ * Today is Thu 17 Sep 2026. The program dates are the prototype's (SPEC "Mock data");
+ * the site, approvals, suppliers and trades are the real ones.
  */
 import type { ActivityEntry, DailyNote, ForecastSnapshot, Item, Job, Notification, Photo, Shipment } from '../domain/types';
 import { P, PHOTO_TONES, ProgramBuilder, SIDE_ND, item, svgPhoto } from './helpers';
@@ -11,9 +15,9 @@ export const parkRdJob: Job = {
   id: PARK_RD,
   sideId: SIDE_ND,
   name: '64-66 Park Rd',
-  address: '64-66 Park Rd, Example NSW',
+  address: '64-66 Park Rd, Hunters Hill NSW 2110',
   kind: 'build',
-  path: 'DA',
+  path: 'CDC',
   weeklyHoldingCost: 4500,
   lastConfirmed: '2026-09-15',
   isTemplate: false,
@@ -35,10 +39,10 @@ export const parkRdShipments: Shipment[] = [
     sideId: SIDE_ND,
     jobId: PARK_RD,
     name: 'Park Rd windows',
-    supplier: 'Hangzhou Glazing Co (China)',
+    supplier: 'HiHaus (China)',
     status: 'in_production',
     eta: '2026-10-26',
-    notes: 'Aluminium frames, double glazed. 40ft container, ex Ningbo.',
+    notes: 'Aluminium windows and sliding doors for both units, double glazed. Shop drawings signed with Carlo in Aug. One container ex China.',
   },
 ];
 
@@ -46,53 +50,53 @@ const J = PARK_RD;
 
 export const parkRdItems: Item[] = [
   // ---- Done, earlier stages ----
-  item({ id: 'it-pr-excavator', job: J, type: 'trade', title: 'Book excavator', waitingOn: 'Digby Excavations', trade: 'tr-excavator', owner: P.raff, step: 'pr-site-setup', requirement: 'pr-rq-excavator', lead: 2, status: 'done', expected: '2026-06-01', confirmed: '2026-05-22', created: '2026-05-20', doneAt: '2026-06-01' }),
-  item({ id: 'it-pr-slab-steel', job: J, type: 'material', title: 'Order slab steel', waitingOn: 'Steel supplier', owner: P.raff, step: 'pr-formwork', requirement: 'pr-rq-slab-steel', lead: 2, status: 'done', expected: '2026-06-26', confirmed: '2026-06-15', created: '2026-05-20', doneAt: '2026-06-26' }),
-  item({ id: 'it-pr-slab-insp', job: J, type: 'inspection', title: 'Slab inspection', waitingOn: 'Certify Co', trade: 'tr-certifier', owner: P.raff, step: 'pr-slab-insp', lead: 1, status: 'done', expected: '2026-07-06', confirmed: '2026-06-30', created: '2026-05-20', doneAt: '2026-07-06' }),
-  item({ id: 'it-pr-concreter', job: J, type: 'trade', title: 'Book concreter', waitingOn: 'Hardline Concreting', trade: 'tr-concreter', owner: P.raff, step: 'pr-pour-slab', requirement: 'pr-rq-concreter', lead: 2, status: 'done', expected: '2026-07-07', confirmed: '2026-06-24', created: '2026-05-20', doneAt: '2026-07-07' }),
-  item({ id: 'it-pr-carpenter', job: J, type: 'trade', title: 'Book frame carpenter', waitingOn: 'Framewright Carpentry', trade: 'tr-carpenter', owner: P.raff, step: 'pr-frame', requirement: 'pr-rq-carpenter', lead: 3, status: 'done', expected: '2026-07-08', confirmed: '2026-06-18', created: '2026-05-20', doneAt: '2026-07-08' }),
-  item({ id: 'it-pr-frame-timber', job: J, type: 'material', title: 'Order frame timber', waitingOn: 'Timber yard', owner: P.raff, step: 'pr-frame', requirement: 'pr-rq-frame-timber', lead: 4, status: 'done', expected: '2026-07-07', confirmed: '2026-06-10', created: '2026-05-20', doneAt: '2026-07-07' }),
-  item({ id: 'it-pr-frame-insp', job: J, type: 'inspection', title: 'Frame inspection', waitingOn: 'Certify Co', trade: 'tr-certifier', owner: P.raff, step: 'pr-frame-insp', lead: 1, status: 'done', expected: '2026-07-29', confirmed: '2026-07-22', created: '2026-05-20', doneAt: '2026-07-29' }),
-  item({ id: 'it-pr-trusses', job: J, type: 'material', title: 'Order roof trusses', waitingOn: 'Truss plant', owner: P.raff, step: 'pr-trusses', requirement: 'pr-rq-trusses', lead: 6, status: 'done', expected: '2026-07-29', confirmed: '2026-06-16', created: '2026-05-20', doneAt: '2026-07-29' }),
+  item({ id: 'it-pr-excavator', job: J, type: 'trade', title: 'Book demolition and excavation', waitingOn: 'Democorp Australia', trade: 'tr-democorp', owner: P.raff, step: 'pr-site-setup', requirement: 'pr-rq-excavator', lead: 2, status: 'done', expected: '2026-06-01', confirmed: '2026-05-22', created: '2026-05-20', doneAt: '2026-06-01' }),
+  item({ id: 'it-pr-slab-steel', job: J, type: 'material', title: 'Order slab steel', waitingOn: 'Express Steel Supplies', owner: P.raff, step: 'pr-formwork', requirement: 'pr-rq-slab-steel', lead: 2, status: 'done', expected: '2026-06-26', confirmed: '2026-06-15', created: '2026-05-20', doneAt: '2026-06-26' }),
+  item({ id: 'it-pr-slab-insp', job: J, type: 'inspection', title: 'Slab inspection', waitingOn: 'Certex Approvals', trade: 'tr-certex', owner: P.raff, step: 'pr-slab-insp', lead: 1, status: 'done', expected: '2026-07-06', confirmed: '2026-06-30', created: '2026-05-20', doneAt: '2026-07-06' }),
+  item({ id: 'it-pr-concreter', job: J, type: 'trade', title: 'Book concreter', waitingOn: 'IR Formwork Constructions', trade: 'tr-ir', owner: P.raff, step: 'pr-pour-slab', requirement: 'pr-rq-concreter', lead: 2, status: 'done', expected: '2026-07-07', confirmed: '2026-06-24', created: '2026-05-20', doneAt: '2026-07-07' }),
+  item({ id: 'it-pr-carpenter', job: J, type: 'trade', title: 'Book frame carpenter', waitingOn: 'Build Solid Carpentry', trade: 'tr-buildsolid', owner: P.raff, step: 'pr-frame', requirement: 'pr-rq-carpenter', lead: 3, status: 'done', expected: '2026-07-08', confirmed: '2026-06-18', created: '2026-05-20', doneAt: '2026-07-08' }),
+  item({ id: 'it-pr-frame-timber', job: J, type: 'material', title: 'Order frame timber', waitingOn: 'Australian Timber Supplies', owner: P.raff, step: 'pr-frame', requirement: 'pr-rq-frame-timber', lead: 4, status: 'done', expected: '2026-07-07', confirmed: '2026-06-10', created: '2026-05-20', doneAt: '2026-07-07' }),
+  item({ id: 'it-pr-frame-insp', job: J, type: 'inspection', title: 'Frame inspection', waitingOn: 'Certex Approvals', trade: 'tr-certex', owner: P.raff, step: 'pr-frame-insp', lead: 1, status: 'done', expected: '2026-07-29', confirmed: '2026-07-22', created: '2026-05-20', doneAt: '2026-07-29' }),
+  item({ id: 'it-pr-trusses', job: J, type: 'material', title: 'Order roof trusses', waitingOn: 'Australian Timber Supplies', owner: P.raff, step: 'pr-trusses', requirement: 'pr-rq-trusses', lead: 6, status: 'done', expected: '2026-07-29', confirmed: '2026-06-16', created: '2026-05-20', doneAt: '2026-07-29' }),
   item({ id: 'it-pr-da-conditions', job: J, type: 'condition_of_consent', title: 'Sediment and erosion controls in place before works', waitingOn: 'Raff', owner: P.raff, step: 'pr-site-setup', lead: 0, status: 'done', created: '2026-05-20', doneAt: '2026-06-01' }),
 
   // ---- Lock-up, current stage ----
-  item({ id: 'it-pr-roof-plumber', job: J, type: 'trade', title: 'Book roof plumber', waitingOn: 'Southside Roofing', trade: 'tr-roofplumber', owner: P.raff, step: 'pr-roof-plumbing', requirement: 'pr-rq-roof-plumber', lead: 3, status: 'confirmed', expected: '2026-09-14', confirmed: '2026-08-28', created: '2026-08-10' }),
-  item({ id: 'it-pr-cladder', job: J, type: 'trade', title: 'Book cladder', waitingOn: 'Coastal Cladding', trade: 'tr-cladder', owner: P.raff, step: 'pr-cladding', requirement: 'pr-rq-cladder', lead: 4, status: 'confirmed', expected: '2026-09-16', confirmed: '2026-08-21', created: '2026-08-10' }),
-  item({ id: 'it-pr-cladding', job: J, type: 'material', title: 'Order cladding', waitingOn: 'Weathertex', owner: P.raff, step: 'pr-cladding', requirement: 'pr-rq-cladding', lead: 2, status: 'confirmed', expected: '2026-09-15', confirmed: '2026-09-01', created: '2026-08-10', notes: 'One pack short on delivery, supplier chasing.' }),
+  item({ id: 'it-pr-roof-plumber', job: J, type: 'trade', title: 'Book roofers', waitingOn: 'Build Solid Carpentry', trade: 'tr-buildsolid', owner: P.raff, step: 'pr-roof-plumbing', requirement: 'pr-rq-roof-plumber', lead: 3, status: 'confirmed', expected: '2026-09-14', confirmed: '2026-08-28', created: '2026-08-10' }),
+  item({ id: 'it-pr-cladder', job: J, type: 'trade', title: 'Book cladders', waitingOn: 'Build Solid Carpentry', trade: 'tr-buildsolid', owner: P.raff, step: 'pr-cladding', requirement: 'pr-rq-cladder', lead: 4, status: 'confirmed', expected: '2026-09-16', confirmed: '2026-08-21', created: '2026-08-10' }),
+  item({ id: 'it-pr-cladding', job: J, type: 'material', title: 'Order cladding', waitingOn: 'Cladding supplier', owner: P.raff, step: 'pr-cladding', requirement: 'pr-rq-cladding', lead: 2, status: 'confirmed', expected: '2026-09-15', confirmed: '2026-09-01', created: '2026-08-10', notes: 'One pack short on delivery, supplier chasing.' }),
   // The three shipment-linked items. Their expected date comes from the shipment ETA.
-  item({ id: 'it-pr-windows', job: J, type: 'material', title: 'Windows', waitingOn: 'Hangzhou Glazing Co (China)', owner: P.raff, step: 'pr-install-windows', requirement: 'pr-rq-windows', shipment: 'sh-park-windows', lead: 12, status: 'booked', created: '2026-07-20', notes: 'Ordered 6 Aug. Deposit paid.' }),
-  item({ id: 'it-pr-sliding-doors', job: J, type: 'material', title: 'Sliding doors', waitingOn: 'Hangzhou Glazing Co (China)', owner: P.raff, step: 'pr-install-windows', shipment: 'sh-park-windows', lead: 12, status: 'booked', created: '2026-07-20' }),
-  item({ id: 'it-pr-glazing-cert', job: J, type: 'consultant_report', title: 'Glazing energy compliance certificate', waitingOn: 'Hangzhou Glazing Co (China)', owner: P.dominic, step: 'pr-install-windows', shipment: 'sh-park-windows', lead: 12, status: 'to_do', created: '2026-07-20', notes: 'Comes with the shipment paperwork. Certifier needs it before final.' }),
-  item({ id: 'it-pr-window-installer', job: J, type: 'trade', title: 'Book window installers', waitingOn: 'Glassline Installations', trade: 'tr-windows', owner: P.raff, step: 'pr-install-windows', requirement: 'pr-rq-window-installer', lead: 3, status: 'to_do', created: '2026-08-10' }),
+  item({ id: 'it-pr-windows', job: J, type: 'material', title: 'Windows', waitingOn: 'HiHaus (China)', owner: P.raff, step: 'pr-install-windows', requirement: 'pr-rq-windows', shipment: 'sh-park-windows', lead: 12, status: 'booked', created: '2026-07-20', notes: 'Ordered 6 Aug after the shop drawings were signed. Deposit paid.' }),
+  item({ id: 'it-pr-sliding-doors', job: J, type: 'material', title: 'Sliding doors', waitingOn: 'HiHaus (China)', owner: P.raff, step: 'pr-install-windows', shipment: 'sh-park-windows', lead: 12, status: 'booked', created: '2026-07-20' }),
+  item({ id: 'it-pr-glazing-cert', job: J, type: 'consultant_report', title: 'Glazing energy compliance certificate', waitingOn: 'HiHaus (China)', owner: P.dominic, step: 'pr-install-windows', shipment: 'sh-park-windows', lead: 12, status: 'to_do', created: '2026-07-20', notes: 'Comes with the shipment paperwork. Certex needs it before final.' }),
+  item({ id: 'it-pr-window-installer', job: J, type: 'trade', title: 'Book window installers', waitingOn: 'Build Solid Carpentry', trade: 'tr-buildsolid', owner: P.raff, step: 'pr-install-windows', requirement: 'pr-rq-window-installer', lead: 3, status: 'to_do', created: '2026-08-10' }),
   item({ id: 'it-pr-external-doors', job: J, type: 'material', title: 'Order external doors', waitingOn: 'Door supplier', owner: P.raff, step: 'pr-external-doors', requirement: 'pr-rq-external-doors', lead: 6, status: 'to_do', created: '2026-08-10' }),
 
   // ---- External works ----
-  item({ id: 'it-pr-sw-plumber', job: J, type: 'trade', title: 'Book plumber for stormwater', waitingOn: 'Baxter Plumbing', trade: 'tr-plumber', owner: P.raff, step: 'pr-stormwater', requirement: 'pr-rq-sw-plumber', lead: 2, status: 'booked', created: '2026-08-24', notes: 'Pencilled in, not confirmed.' }),
-  item({ id: 'it-pr-sw-council', job: J, type: 'council_request', title: 'Stormwater connection approval', waitingOn: 'Council', owner: P.dominic, step: 'pr-stormwater', lead: 3, status: 'booked', created: '2026-08-14', notes: 'Lodged 21 Aug. Council says two weeks.' }),
-  item({ id: 'it-pr-sw-insp', job: J, type: 'inspection', title: 'Stormwater inspection', waitingOn: 'Certify Co', trade: 'tr-certifier', owner: P.raff, step: 'pr-stormwater-insp', lead: 1, status: 'to_do', created: '2026-08-24' }),
-  item({ id: 'it-pr-landscaper', job: J, type: 'trade', title: 'Book landscaper', waitingOn: 'Greenway Landscapes', trade: 'tr-landscaper', owner: P.raff, step: 'pr-landscaping', requirement: 'pr-rq-landscaper', lead: 4, status: 'to_do', created: '2026-08-24' }),
+  item({ id: 'it-pr-sw-plumber', job: J, type: 'trade', title: 'Book plumber for stormwater', waitingOn: 'First Call Plumbing Solutions', trade: 'tr-firstcall', owner: P.raff, step: 'pr-stormwater', requirement: 'pr-rq-sw-plumber', lead: 2, status: 'booked', created: '2026-08-24', notes: 'Pencilled in, not confirmed.' }),
+  item({ id: 'it-pr-sw-council', job: J, type: 'council_request', title: 'Stormwater connection approval', waitingOn: 'Hunters Hill Council', owner: P.dominic, step: 'pr-stormwater', lead: 3, status: 'booked', created: '2026-08-14', notes: 'Lodged 21 Aug. Council says two weeks.' }),
+  item({ id: 'it-pr-sw-insp', job: J, type: 'inspection', title: 'Stormwater inspection', waitingOn: 'Certex Approvals', trade: 'tr-certex', owner: P.raff, step: 'pr-stormwater-insp', lead: 1, status: 'to_do', created: '2026-08-24' }),
+  item({ id: 'it-pr-landscaper', job: J, type: 'trade', title: 'Book landscaper', waitingOn: 'Landscaper, to be quoted', owner: P.raff, step: 'pr-landscaping', requirement: 'pr-rq-landscaper', lead: 4, status: 'to_do', created: '2026-08-24' }),
 
   // ---- Fit-out ----
-  item({ id: 'it-pr-ri-plumber', job: J, type: 'trade', title: 'Book plumber for rough-in', waitingOn: 'Baxter Plumbing', trade: 'tr-plumber', owner: P.raff, step: 'pr-rough-in', requirement: 'pr-rq-ri-plumber', lead: 4, status: 'to_do', created: '2026-08-24' }),
-  item({ id: 'it-pr-ri-electrician', job: J, type: 'trade', title: 'Book electrician for rough-in', waitingOn: 'Volt Electrical', trade: 'tr-electrician', owner: P.raff, step: 'pr-rough-in', requirement: 'pr-rq-ri-electrician', lead: 4, status: 'to_do', created: '2026-08-24' }),
+  item({ id: 'it-pr-ri-plumber', job: J, type: 'trade', title: 'Book plumber for rough-in', waitingOn: 'First Call Plumbing Solutions', trade: 'tr-firstcall', owner: P.raff, step: 'pr-rough-in', requirement: 'pr-rq-ri-plumber', lead: 4, status: 'to_do', created: '2026-08-24' }),
+  item({ id: 'it-pr-ri-electrician', job: J, type: 'trade', title: 'Book electrician for rough-in', waitingOn: 'One Connection', trade: 'tr-oneconn', owner: P.raff, step: 'pr-rough-in', requirement: 'pr-rq-ri-electrician', lead: 4, status: 'to_do', created: '2026-08-24' }),
   item({ id: 'it-pr-insulation', job: J, type: 'material', title: 'Order insulation', waitingOn: 'Insulation supplier', owner: P.raff, step: 'pr-insulation', requirement: 'pr-rq-insulation', lead: 2, status: 'to_do', created: '2026-08-24' }),
-  item({ id: 'it-pr-plasterer', job: J, type: 'trade', title: 'Book plasterer', waitingOn: 'Gyprock Bros', trade: 'tr-plasterer', owner: P.raff, step: 'pr-plasterboard', requirement: 'pr-rq-plasterer', lead: 12, status: 'to_do', created: '2026-08-24' }),
+  item({ id: 'it-pr-plasterer', job: J, type: 'trade', title: 'Book plasterer', waitingOn: 'CJ Linea', trade: 'tr-cjlinea', owner: P.raff, step: 'pr-plasterboard', requirement: 'pr-rq-plasterer', lead: 12, status: 'to_do', created: '2026-08-24' }),
   item({ id: 'it-pr-tile-choice', job: J, type: 'decision', title: 'Tile choice', waitingOn: 'Dom', owner: P.dom, neededBy: '2026-09-14', lead: 0, status: 'to_do', created: '2026-08-31', notes: 'Bathroom floor and wall tiles. Samples at the office.' }),
   item({ id: 'it-pr-tiles', job: J, type: 'material', title: 'Order tiles', waitingOn: 'Tile warehouse', owner: P.raff, step: 'pr-tiling', requirement: 'pr-rq-tiles', lead: 8, status: 'to_do', created: '2026-08-24' }),
-  item({ id: 'it-pr-tiler', job: J, type: 'trade', title: 'Book tiler', waitingOn: 'Marino Tiling', trade: 'tr-tiler', owner: P.raff, step: 'pr-tiling', requirement: 'pr-rq-tiler', lead: 6, status: 'to_do', created: '2026-08-24' }),
-  item({ id: 'it-pr-waterproofer', job: J, type: 'trade', title: 'Book waterproofer', waitingOn: 'Sealtight Waterproofing', trade: 'tr-waterproofer', owner: P.raff, step: 'pr-waterproofing', requirement: 'pr-rq-waterproofer', lead: 4, status: 'to_do', created: '2026-08-24' }),
+  item({ id: 'it-pr-tiler', job: J, type: 'trade', title: 'Book tiler', waitingOn: 'Competent Tiling', trade: 'tr-competent', owner: P.raff, step: 'pr-tiling', requirement: 'pr-rq-tiler', lead: 6, status: 'to_do', created: '2026-08-24' }),
+  item({ id: 'it-pr-waterproofer', job: J, type: 'trade', title: 'Book waterproofing', waitingOn: 'Competent Tiling', trade: 'tr-competent', owner: P.raff, step: 'pr-waterproofing', requirement: 'pr-rq-waterproofer', lead: 4, status: 'to_do', created: '2026-08-24' }),
   item({ id: 'it-pr-kitchen-signoff', job: J, type: 'decision', title: 'Kitchen design sign-off', waitingOn: 'Norm', owner: P.norm, step: 'pr-kitchen', lead: 10, status: 'to_do', created: '2026-09-01', notes: 'Joiner needs the signed drawings before ordering stone.' }),
-  item({ id: 'it-pr-kitchen', job: J, type: 'material', title: 'Order kitchen', waitingOn: 'Bench and Board Joinery', trade: 'tr-joiner', owner: P.raff, step: 'pr-kitchen', requirement: 'pr-rq-kitchen', lead: 8, status: 'to_do', created: '2026-08-24' }),
-  item({ id: 'it-pr-painter', job: J, type: 'trade', title: 'Book painter', waitingOn: 'Fresh Coat Painting', trade: 'tr-painter', owner: P.raff, step: 'pr-painting', requirement: 'pr-rq-painter', lead: 4, status: 'to_do', created: '2026-08-24' }),
+  item({ id: 'it-pr-kitchen', job: J, type: 'material', title: 'Order kitchen', waitingOn: 'Wooden Age Joinery', trade: 'tr-woodenage', owner: P.raff, step: 'pr-kitchen', requirement: 'pr-rq-kitchen', lead: 8, status: 'to_do', created: '2026-08-24' }),
+  item({ id: 'it-pr-painter', job: J, type: 'trade', title: 'Book painter', waitingOn: 'Painter, to be quoted', owner: P.raff, step: 'pr-painting', requirement: 'pr-rq-painter', lead: 4, status: 'to_do', created: '2026-08-24' }),
 
   // ---- Handover ----
-  item({ id: 'it-pr-final-insp', job: J, type: 'inspection', title: 'Final inspection for OC', waitingOn: 'Certify Co', trade: 'tr-certifier', owner: P.raff, step: 'pr-final-insp', lead: 2, status: 'to_do', created: '2026-08-24' }),
-  item({ id: 'it-pr-coc-landscaping', job: J, type: 'condition_of_consent', title: 'Landscaping plan certified before OC', waitingOn: 'Landscape architect', owner: P.dominic, step: 'pr-final-insp', lead: 4, status: 'to_do', created: '2026-08-24' }),
+  item({ id: 'it-pr-final-insp', job: J, type: 'inspection', title: 'Final inspection for OC', waitingOn: 'Certex Approvals', trade: 'tr-certex', owner: P.raff, step: 'pr-final-insp', lead: 2, status: 'to_do', created: '2026-08-24' }),
+  item({ id: 'it-pr-coc-landscaping', job: J, type: 'condition_of_consent', title: 'Landscaping certified against the iScape plan before OC', waitingOn: 'iScape', trade: 'tr-iscape', owner: P.dominic, step: 'pr-final-insp', lead: 4, status: 'to_do', created: '2026-08-24' }),
 
   // ---- No step ----
-  item({ id: 'it-pr-defect-tile', job: J, type: 'defect', title: 'Cracked roof tiles above garage', waitingOn: 'Southside Roofing', trade: 'tr-roofplumber', owner: P.raff, neededBy: '2026-09-25', lead: 0, status: 'to_do', created: '2026-09-10', photo: 'ph-pr-defect-1', notes: 'Three tiles cracked by the cladders scaffold.' }),
-  item({ id: 'it-pr-insurance', job: J, type: 'manual_reminder', title: 'Renew builders insurance', waitingOn: 'Dominic', owner: P.dominic, neededBy: '2026-10-01', lead: 0, status: 'to_do', created: '2026-09-01' }),
+  item({ id: 'it-pr-defect-tile', job: J, type: 'defect', title: 'Cracked roof tiles above garage', waitingOn: 'Build Solid Carpentry', trade: 'tr-buildsolid', owner: P.raff, neededBy: '2026-09-25', lead: 0, status: 'to_do', created: '2026-09-10', photo: 'ph-pr-defect-1', notes: 'Three tiles cracked by the cladders scaffold.' }),
+  item({ id: 'it-pr-insurance', job: J, type: 'manual_reminder', title: 'Renew site insurance', waitingOn: 'Dominic', owner: P.dominic, neededBy: '2026-10-01', lead: 0, status: 'to_do', created: '2026-09-01' }),
 ];
 
 // ---- Photos: tiny flat SVGs, no stock imagery ----
@@ -138,12 +142,12 @@ export const parkRdPhotos: Photo[] = [
 ];
 
 export const parkRdNotes: DailyNote[] = [
-  { id: 'dn-pr-0910', sideId: SIDE_ND, jobId: J, date: '2026-09-10', authorId: P.alec, text: 'Brickies finishing rear elevation. Sand delivery 7am. Noticed cracked roof tiles above garage, told Raff.', createdAt: '2026-09-10T15:40', weather: 'fine', onSite: [P.alec] },
+  { id: 'dn-pr-0910', sideId: SIDE_ND, jobId: J, date: '2026-09-10', authorId: P.alec, text: 'Brickies finishing the rear elevation on 66. Sand delivery 7am. Noticed cracked roof tiles above the garage, told Raff.', createdAt: '2026-09-10T15:40', weather: 'fine', onSite: [P.alec] },
   { id: 'dn-pr-0911', sideId: SIDE_ND, jobId: J, date: '2026-09-11', authorId: P.alec, text: 'Brickwork done and cleaned down. Scaffold stays up for the cladders.', createdAt: '2026-09-11T15:05' },
-  { id: 'dn-pr-0914', sideId: SIDE_ND, jobId: J, date: '2026-09-14', authorId: P.alec, text: 'Roof plumber on site, two blokes. Downpipes started on the north side.', createdAt: '2026-09-14T16:02', weather: 'overcast', onSite: [P.alec, 'tr-roofplumber'] },
-  { id: 'dn-pr-0915', sideId: SIDE_ND, jobId: J, date: '2026-09-15', authorId: P.raff, text: 'Cladding delivered, stacked under cover. One pack short, Weathertex chasing it.', createdAt: '2026-09-15T12:48' },
-  { id: 'dn-pr-0916', sideId: SIDE_ND, jobId: J, date: '2026-09-16', authorId: P.alec, text: 'Cladders started on the rear wall. Roof plumber still here.', createdAt: '2026-09-16T15:31', weather: 'fine', onSite: [P.alec, 'tr-cladder', 'tr-roofplumber'] },
-  { id: 'dn-pr-0917', sideId: SIDE_ND, jobId: J, date: '2026-09-17', authorId: P.alec, text: 'Rain till 10. Cladding continued after. Roof plumbing finished bar the garage.', createdAt: '2026-09-17T15:55', weather: 'rain', onSite: [P.alec, 'tr-cladder', 'tr-roofplumber'] },
+  { id: 'dn-pr-0914', sideId: SIDE_ND, jobId: J, date: '2026-09-14', authorId: P.alec, text: 'Build Solid on site, two blokes. Downpipes started on the north side.', createdAt: '2026-09-14T16:02', weather: 'overcast', onSite: [P.alec, 'tr-buildsolid'] },
+  { id: 'dn-pr-0915', sideId: SIDE_ND, jobId: J, date: '2026-09-15', authorId: P.raff, text: 'Cladding delivered, stacked under cover. One pack short, supplier chasing it.', createdAt: '2026-09-15T12:48' },
+  { id: 'dn-pr-0916', sideId: SIDE_ND, jobId: J, date: '2026-09-16', authorId: P.alec, text: 'Cladders started on the rear wall of 64. Roofers still here.', createdAt: '2026-09-16T15:31', weather: 'fine', onSite: [P.alec, 'tr-buildsolid'] },
+  { id: 'dn-pr-0917', sideId: SIDE_ND, jobId: J, date: '2026-09-17', authorId: P.alec, text: 'Rain till 10. Cladding continued after. Roof plumbing finished bar the garage.', createdAt: '2026-09-17T15:55', weather: 'rain', onSite: [P.alec, 'tr-buildsolid'] },
 ];
 
 /** Snapshots equal the forecast at the time: nothing had moved. */

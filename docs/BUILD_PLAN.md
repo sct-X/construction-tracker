@@ -22,7 +22,7 @@ The server only makes outbound connections, so no ports are opened and it has no
 
 The first test runs on GitHub Pages as a clickable front end with made-up data, before any server exists. Pages only serves static files, so there is no database, no login and no server code at this stage.
 
-- **Fake data only:** a Pages site is public to anyone with the link, even when the repository is private. No real addresses, prices, holding costs or photos go in. Use invented jobs like "12 Example St".
+- **Fake data only:** a Pages site is public to anyone with the link, even when the repository is private. No real addresses, prices, holding costs or photos go in. Use invented jobs like "12 Example St". (Superseded 18 Sep 2026: real sites, approvals and trades are in by request; prices, contract sums, real phone numbers and emails still stay out. See README "What's real".)
 - **What it can test:** the phone and desktop layouts, the Monday screen, the Gantt and look-ahead, the waiting-on list, and installing to the home screen, since Pages serves HTTPS.
 - **What it can't test:** shared data between people, roles, photo uploads that persist, push reminders and backups. Each person's changes stay in their own browser.
 - **Build it so nothing is thrown away:** the front end is a static single-page app that reads and writes through one data layer. On Pages that layer is a mock holding seed data in the browser. On the real server the same layer calls the API, and the box serves the same static files.

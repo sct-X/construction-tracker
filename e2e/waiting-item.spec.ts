@@ -64,8 +64,8 @@ test.describe('Waiting-on list as Raff', () => {
 
   test('Call rings the trade, Set date saves an expected date inline, and reports say requested and received', async ({ page }) => {
     await page.goto('#/waiting?as=dominic&today=2026-09-17');
-    // Gyprock Bros has a number; the council has none.
-    await expect(page.getByTestId('item-call-it-pr-plasterer')).toHaveAttribute('href', /^tel:0411/);
+    // CJ Linea has a number; the council has none.
+    await expect(page.getByTestId('item-call-it-pr-plasterer')).toHaveAttribute('href', /^tel:0491/);
     await expect(page.getByTestId('item-call-it-pr-sw-council')).toHaveCount(0);
     // A shipment sets the expected date, so those rows offer no Set date.
     await expect(page.getByTestId('item-set-date-it-pr-windows')).toHaveCount(0);
@@ -242,7 +242,7 @@ test.describe('Desktop table', () => {
     const row = page.getByTestId('item-row-it-pr-windows');
     await expect(row).toContainText('64-66 Park Rd');
     await expect(row).toContainText('Material');
-    await expect(row).toContainText('Hangzhou Glazing Co');
+    await expect(row).toContainText('HiHaus');
     await expect(row).toContainText('Raff');
     await expect(row).toContainText('Mon 2 Nov');
     await expect(row).toContainText('Mon 10 Aug');

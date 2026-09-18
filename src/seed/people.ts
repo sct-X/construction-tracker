@@ -6,10 +6,15 @@ export const sides: Side[] = [
   { id: SIDE_NORM, name: 'Norm' },
 ];
 
+/**
+ * The real people on the jobs (Cerr Build, NWC Finance, AGA Group,
+ * Constructaview). Contact details are placeholders: the site is public, so
+ * nobody's real number or email goes in. Alec is a stand-in site person.
+ */
 export const people: Person[] = [
   {
     id: P.dominic,
-    name: 'Dominic Barone',
+    name: 'Dominic Xu',
     shortName: 'Dominic',
     phone: '0400 111 222',
     email: 'dominic@example.invalid',
@@ -19,7 +24,7 @@ export const people: Person[] = [
   },
   {
     id: P.dom,
-    name: 'Dom Barone',
+    name: 'Domenic Morello',
     shortName: 'Dom',
     phone: '0400 333 444',
     email: 'dom@example.invalid',
@@ -29,7 +34,7 @@ export const people: Person[] = [
   },
   {
     id: P.norm,
-    name: 'Norm Halloran',
+    name: 'Norm Cerreto',
     shortName: 'Norm',
     phone: '0400 555 666',
     email: 'norm@example.invalid',
@@ -39,7 +44,7 @@ export const people: Person[] = [
   },
   {
     id: P.raff,
-    name: 'Raff Costa',
+    name: 'Raff Gargour',
     shortName: 'Raff',
     phone: '0400 777 888',
     email: 'raff@example.invalid',

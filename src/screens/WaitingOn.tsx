@@ -8,7 +8,7 @@
  *   9  Overdue                        <- a plate: the one loud thing
  *   ! Act by Mon 10 Aug, 5 weeks ago      Ordered or booked
  *   Windows  Park Rd                      Material
- *   waiting on Hangzhou Glazing Co, with you
+ *   waiting on HiHaus, with you
  *   Call  Set date                        [Mark confirmed]
  *
  *   2  This week  14-20 Sep

@@ -1,5 +1,8 @@
 /**
- * 31 Seaview St: entered at stage level, $3,800/wk. One placeholder step per
+ * 31 Seaview St, Balgowlah: demolish and build a dual occupancy with basement
+ * (Lot 31 Sec 1 DP 62625). CDC through Certex, Northgroup building, Raff on
+ * site. Demolition by Delt Civil finished late Jun 2026, excavation through
+ * Jul and Aug. Entered at stage level, $3,800/wk. One placeholder step per
  * stage, except Slab, which carries the hold point flow e needs.
  *
  * Tuned: 180 working days after Lock-up ends (Fri 19 Feb 2027) lands
@@ -14,7 +17,7 @@ export const seaviewJob: Job = {
   id: SEAVIEW,
   sideId: SIDE_ND,
   name: '31 Seaview St',
-  address: '31 Seaview St, Example NSW',
+  address: '31 Seaview St, Balgowlah NSW 2093',
   kind: 'build',
   path: 'CDC',
   weeklyHoldingCost: 3800,
@@ -64,13 +67,15 @@ export const seaviewProgram = (() => {
 const J = SEAVIEW;
 
 export const seaviewItems: Item[] = [
-  item({ id: 'it-sv-excavator', job: J, type: 'trade', title: 'Book excavator', waitingOn: 'Digby Excavations', trade: 'tr-excavator', owner: P.raff, step: 'sv-site', lead: 2, status: 'done', expected: '2026-08-24', confirmed: '2026-08-12', created: '2026-08-10', doneAt: '2026-08-24' }),
-  item({ id: 'it-sv-slab-steel', job: J, type: 'material', title: 'Order slab steel', waitingOn: 'Steel supplier', owner: P.raff, step: 'sv-slab-prep', lead: 2, status: 'confirmed', expected: '2026-09-18', confirmed: '2026-09-04', created: '2026-08-24' }),
-  item({ id: 'it-sv-pump', job: J, type: 'trade', title: 'Book concrete pump', waitingOn: 'Coastal Concrete Pumping', trade: 'tr-pump', owner: P.raff, step: 'sv-pour', requirement: 'sv-rq-pump', lead: 2, status: 'to_do', created: '2026-08-24' }),
-  item({ id: 'it-sv-concreter', job: J, type: 'trade', title: 'Book concreter for pour', waitingOn: 'Hardline Concreting', trade: 'tr-concreter', owner: P.raff, step: 'sv-pour', requirement: 'sv-rq-concreter', lead: 2, status: 'booked', created: '2026-08-24' }),
-  item({ id: 'it-sv-slab-insp', job: J, type: 'inspection', title: 'Book slab inspection', waitingOn: 'Certify Co', trade: 'tr-certifier', owner: P.raff, step: 'sv-slab-insp', lead: 1, status: 'to_do', created: '2026-08-24' }),
-  item({ id: 'it-sv-frame-timber', job: J, type: 'material', title: 'Order frame timber', waitingOn: 'Timber yard', owner: P.raff, step: 'sv-frame', requirement: 'sv-rq-frame-timber', lead: 4, status: 'booked', created: '2026-08-24' }),
-  item({ id: 'it-sv-carpenter', job: J, type: 'trade', title: 'Book frame carpenter', waitingOn: 'Framewright Carpentry', trade: 'tr-carpenter', owner: P.raff, step: 'sv-frame', requirement: 'sv-rq-carpenter', lead: 3, status: 'confirmed', expected: '2026-10-05', confirmed: '2026-09-11', created: '2026-08-24' }),
+  item({ id: 'it-sv-excavator', job: J, type: 'trade', title: 'Book demolition and excavation', waitingOn: 'Delt Civil', trade: 'tr-delt', owner: P.raff, step: 'sv-site', lead: 2, status: 'done', expected: '2026-08-24', confirmed: '2026-08-12', created: '2026-08-10', doneAt: '2026-08-24' }),
+  item({ id: 'it-sv-slab-steel', job: J, type: 'material', title: 'Order slab steel', waitingOn: 'Express Steel Supplies', owner: P.raff, step: 'sv-slab-prep', lead: 2, status: 'confirmed', expected: '2026-09-18', confirmed: '2026-09-04', created: '2026-08-24' }),
+  item({ id: 'it-sv-pump', job: J, type: 'trade', title: 'Book concrete pump', waitingOn: 'IR Formwork Constructions', trade: 'tr-ir', owner: P.raff, step: 'sv-pour', requirement: 'sv-rq-pump', lead: 2, status: 'to_do', created: '2026-08-24' }),
+  item({ id: 'it-sv-concreter', job: J, type: 'trade', title: 'Book concreter for pour', waitingOn: 'IR Formwork Constructions', trade: 'tr-ir', owner: P.raff, step: 'sv-pour', requirement: 'sv-rq-concreter', lead: 2, status: 'booked', created: '2026-08-24' }),
+  item({ id: 'it-sv-slab-insp', job: J, type: 'inspection', title: 'Book slab inspection', waitingOn: 'Certex Approvals', trade: 'tr-certex', owner: P.raff, step: 'sv-slab-insp', lead: 1, status: 'to_do', created: '2026-08-24' }),
+  item({ id: 'it-sv-frame-timber', job: J, type: 'material', title: 'Order frame timber', waitingOn: 'Australian Timber Supplies', owner: P.raff, step: 'sv-frame', requirement: 'sv-rq-frame-timber', lead: 4, status: 'booked', created: '2026-08-24' }),
+  item({ id: 'it-sv-carpenter', job: J, type: 'trade', title: 'Book frame carpenter', waitingOn: 'Advance Carpentry Services', trade: 'tr-advance', owner: P.raff, step: 'sv-frame', requirement: 'sv-rq-carpenter', lead: 3, status: 'confirmed', expected: '2026-10-05', confirmed: '2026-09-11', created: '2026-08-24' }),
+  item({ id: 'it-sv-s73', job: J, type: 'condition_of_consent', title: 'Sydney Water section 73 certificate before OC', waitingOn: 'Sydney Water', owner: P.dominic, step: 'sv-handover', lead: 8, status: 'booked', created: '2026-08-07', notes: 'Case 236544 lodged 7 Aug through Billbergia.' }),
+  item({ id: 'it-sv-footpath', job: J, type: 'council_request', title: 'Footpath damage claim from council', waitingOn: 'Northern Beaches Council', owner: P.dominic, neededBy: '2026-07-31', lead: 0, status: 'done', created: '2026-07-01', doneAt: '2026-07-24', notes: 'Council photographed the footpath after demolition. Delt Civil made good.' }),
   item({ id: 'it-sv-termite', job: J, type: 'condition_of_consent', title: 'Termite barrier certificate before pour', waitingOn: 'Pest company', owner: P.dominic, step: 'sv-pour', lead: 1, status: 'to_do', created: '2026-09-02' }),
 ];
 

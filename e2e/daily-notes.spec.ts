@@ -39,7 +39,7 @@ test.describe('Daily notes', () => {
 
     // The week of seeded notes is there, grouped by week, newest first.
     await expect(page.getByTestId('note-dn-pr-0917')).toContainText('Rain till 10');
-    await expect(page.getByTestId('note-dn-pr-0917')).toContainText('Rain. On site: Alec, Cladder, Roof plumber.');
+    await expect(page.getByTestId('note-dn-pr-0917')).toContainText('Rain. On site: Alec, Carpenter.');
     await expect(page.getByTestId('notes-week-2026-09-14')).toContainText('This week, 14-18 Sep');
     await expect(page.getByTestId('notes-week-2026-09-07')).toContainText('Last week, 7-11 Sep');
 
@@ -59,7 +59,7 @@ test.describe('Daily notes', () => {
     await expect(overcast).toHaveAttribute('aria-checked', 'true');
     await page.getByTestId('note-onsite-alec').click();
     await expect(page.getByTestId('note-onsite-alec')).toHaveAttribute('aria-pressed', 'true');
-    await page.getByTestId('note-onsite-tr-cladder').click();
+    await page.getByTestId('note-onsite-tr-firstcall').click();
     await page.getByTestId('note-save').click();
     await expect(page.getByTestId('note-saved')).toContainText('Saved');
     await expect(page.getByTestId('note-queued')).toHaveCount(0);
@@ -93,7 +93,7 @@ test.describe('Daily notes', () => {
     const parkList = page.getByTestId('notes-list');
     await expect(parkList).toContainText(PARK_TEXT);
     await expect(parkList).toContainText('Overcast');
-    await expect(parkList).toContainText('Alec, Cladder');
+    await expect(parkList).toContainText('Alec, Plumber');
     if (!phone) {
       await expect(parkList.locator('table')).toHaveCount(1);
       await expect(page.getByTestId('note-today').locator('textarea')).toHaveCount(1);

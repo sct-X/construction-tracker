@@ -26,7 +26,7 @@ CI (`.github/workflows/deploy.yml`) runs `npm test` and `npm run build` on every
 
 ## Roles and sides
 
-There is no login. Five invented people cover the four roles; every row of data belongs to one of two sides.
+There is no login. Five people cover the four roles (the four real ones with placeholder contact details, and Alec, a stand-in site person); every row of data belongs to one of two sides.
 
 | Person | Role | Home screen | Sees |
 | --- | --- | --- | --- |
@@ -52,7 +52,11 @@ The same controls work from the URL, on any route, so a link can set the scene: 
 
 ## What's fake
 
-There is no backend: `src/data/mockApi.ts` holds the seed in your browser (localStorage for records, IndexedDB for the photo queue) behind the same `TrackerApi` interface a server would sit behind, so nothing is shared between people, devices or browsers, and a private window starts from the seed. Push notifications are an in-app banner and a bell count, not a real push; "install to home screen" and the offline shell are real (a web app manifest and a service worker), but "offline" for the data is the dev bar's toggle, not the network. Photos you upload are downscaled and kept in your browser, and the seeded photos are generated placeholders. All names, addresses, numbers and phone numbers are invented.
+There is no backend: `src/data/mockApi.ts` holds the seed in your browser (localStorage for records, IndexedDB for the photo queue) behind the same `TrackerApi` interface a server would sit behind, so nothing is shared between people, devices or browsers, and a private window starts from the seed. Push notifications are an in-app banner and a bell count, not a real push; "install to home screen" and the offline shell are real (a web app manifest and a service worker), but "offline" for the data is the dev bar's toggle, not the network. Photos you upload are downscaled and kept in your browser, and the seeded photos are generated placeholders.
+
+## What's real
+
+The sites are Cerr Build's real ones, taken from the job folders: the addresses, the approval paths and their milestones, the consultants and trades on each job, the suppliers (HiHaus windows, Premium Lift Systems, CJ Linea and the rest), and the stage each build is at. Dom's personal and family jobs, the admin folder and anything about third parties are left out. What is still made up: the program dates and durations (SPEC "Mock data" fixes Park Rd, Seaview St and Beatty St; the other builds are stage-level estimates), the weekly holding costs, every phone number (the trades carry ACMA fictitious numbers, 0491 570 006 to 0491 579 858, which never connect) and every email address. No contract sums, claims, fees or bank details are in the app.
 
 ## Layout
 
@@ -99,7 +103,7 @@ Best on a phone or the 390px phone project; the desktop app centres the phone la
 ### c. Dominic rings Raff and works through the call list
 
 1. Open `#/calls?as=dominic&today=2026-09-17`. The list is set to Raff: "11 items across 3 jobs to chase with Raff" (the fortnight's cut: to do or booked, act-by within 14 days or past). The other people's buttons show their counts.
-2. Jobs are grouped, most urgent question first. Seaview St leads with "Book concrete pump", act by Fri 18 Sep ("act by, tomorrow"), "For Pour ground floor slab, Fri 2 Oct", "Waiting on Coastal Concrete Pumping" with a tap-to-call number. Each job header carries its freshness words and finish: Beatty "unconfirmed 9 days", "Finish Fri 4 Dec 2026, 7 days late".
+2. Jobs are grouped, most urgent question first. Seaview St leads with "Book concrete pump", act by Fri 18 Sep ("act by, tomorrow"), "For Pour ground floor slab, Fri 2 Oct", "Waiting on IR Formwork Constructions" with a tap-to-call number. Each job header carries its freshness words and finish: Beatty "unconfirmed 9 days", "Finish Fri 4 Dec 2026, 7 days late".
 3. Raff says the pump is booked. Click "Mark booked" (or press B with the row marked). The row folds into Seaview's "Done this call" strip as "booked", with "Back on the list" to undo.
 4. Park Rd, "Book plasterer": click "Mark booked", then "Back on the list", and the button now says "Mark confirmed". Click it, enter 2026-09-23, confirm. The strip reads "confirmed for Wed 23 Sep".
 5. Beatty St, "Book tiler": open "Date, note, skip" on the phone (the desktop shows the date inline) and set the expected date to 2026-10-12. The row folds as "expected moved to Mon 12 Oct" and a line appears under the job: "Beatty St finish moves +7 days, $2,000, now Fri 11 Dec".

@@ -291,7 +291,7 @@ function TradeForm({ trade, types, onDone, onDeleted }: { trade?: Trade; types: 
       <h2 className="trades__form-title">{trade ? `Change ${trade.name}` : 'New trade'}</h2>
       <div className="trades__field">
         <label htmlFor={`${prefix}trade-name`}>Business or person</label>
-        <input id={`${prefix}trade-name`} className="input input--desktop trades__input" value={name} data-testid="trade-name" onChange={(e) => setName(e.target.value)} placeholder="Baxter Plumbing" />
+        <input id={`${prefix}trade-name`} className="input input--desktop trades__input" value={name} data-testid="trade-name" onChange={(e) => setName(e.target.value)} placeholder="First Call Plumbing Solutions" />
       </div>
       <div className="trades__field">
         <span className="trades__field-label" id={`${prefix}trade-type-label`}>

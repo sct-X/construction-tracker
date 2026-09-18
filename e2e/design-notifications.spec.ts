@@ -27,11 +27,11 @@ test.describe('Design checklist as Dominic', () => {
     await expect(page.getByTestId('checklist-stage-status-west-st-st-2-in_progress')).toHaveAttribute('aria-pressed', 'true');
 
     // The two open items sit under the current stage with their age in words; done ones are folded.
-    const traffic = page.getByTestId('checklist-item-it-ws-traffic');
-    await expect(traffic).toContainText('Traffic report');
+    const traffic = page.getByTestId('checklist-item-it-ws-fire');
+    await expect(traffic).toContainText('Fire engineering report');
     await expect(traffic).toContainText('outstanding 23 days');
     await expect(traffic).toContainText('with you');
-    await expect(page.getByTestId('checklist-item-it-ws-rfi')).toContainText('outstanding 14 days');
+    await expect(page.getByTestId('checklist-item-it-ws-portal')).toContainText('outstanding 14 days');
     await expect(page.getByTestId('checklist-item-it-ws-lodge')).toBeHidden();
     await page.getByTestId('checklist-done').locator('summary').click();
     await expect(page.getByTestId('checklist-item-it-ws-lodge')).toBeVisible();
@@ -58,7 +58,7 @@ test.describe('Design checklist as Dominic', () => {
     await expect(page.getByTestId('checklist-stage-west-st-st-2')).toHaveAttribute('data-status', 'done');
     // The next stage is now the current one and the open items move under it.
     await expect(page.getByTestId('checklist-current')).toContainText('approved');
-    await expect(page.getByTestId('checklist-stage-west-st-st-3').getByTestId('checklist-item-it-ws-traffic')).toBeVisible();
+    await expect(page.getByTestId('checklist-stage-west-st-st-3').getByTestId('checklist-item-it-ws-fire')).toBeVisible();
 
     await page.reload();
     await expect(page.getByTestId('checklist-stage-status-west-st-st-2-done')).toHaveAttribute('aria-pressed', 'true');

@@ -11,7 +11,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { TrackerApi } from './api';
 import type { Session } from './session';
-import { sessionFromHash } from './session';
+import { resolveTheme, sessionFromHash } from './session';
 import type { Person, Role, Side } from '../domain/types';
 
 interface ApiContextValue {
@@ -38,6 +38,20 @@ export function ApiProvider({ api, children }: { api: TrackerApi; children: Reac
     window.addEventListener('hashchange', apply);
     return () => window.removeEventListener('hashchange', apply);
   }, [api]);
+
+  // The theme is an attribute on <html>; "system" follows the OS and re-resolves when it changes.
+  const theme = api.getSession().theme;
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+    const apply = () => {
+      document.documentElement.dataset.theme = resolveTheme(theme, !!mq?.matches);
+    };
+    apply();
+    if (theme !== 'system' || !mq) return;
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, [theme]);
 
   // When signal returns, send what is queued. Keyed on the offline flag only,
   // so a flush that changes nothing cannot loop through version bumps.

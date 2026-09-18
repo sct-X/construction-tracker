@@ -45,7 +45,7 @@
 }
 .editor__stage[aria-pressed='true'] {
   background: var(--steel-700);
-  color: var(--text);
+  color: var(--text-on-dark);
 }
 .editor__stage-n {
   display: inline-flex;
@@ -56,14 +56,14 @@
   padding: 0 4px;
   border-radius: var(--radius-sm);
   background: var(--raised);
-  color: var(--text-secondary);
+  color: var(--text-on-dark);
   font-family: var(--font-display);
   font-weight: var(--weight-display);
   font-size: var(--text-sm);
 }
 .editor__stage[aria-pressed='true'] .editor__stage-n {
   background: var(--steel-500);
-  color: var(--text);
+  color: var(--text-on-dark);
 }
 .editor__stage--add {
   background: transparent;

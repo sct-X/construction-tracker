@@ -37,7 +37,7 @@
 }
 .stages-strip__chip[aria-current='true'] {
   background: var(--steel-700);
-  color: var(--text);
+  color: var(--text-on-dark);
   font-weight: var(--weight-bold);
 }
 .stages-strip__chip-when {
@@ -46,7 +46,8 @@
   color: var(--text-muted);
 }
 .stages-strip__chip[aria-current='true'] .stages-strip__chip-when {
-  color: var(--text-secondary);
+  color: var(--text-on-dark);
+  opacity: 0.8;
 }
 
 .stages {

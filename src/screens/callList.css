@@ -66,7 +66,7 @@
 }
 .calls__person[aria-pressed='true'] {
   background: var(--steel-700);
-  color: var(--text);
+  color: var(--text-on-dark);
 }
 .calls__person-name {
   font-weight: var(--weight-medium);
@@ -76,7 +76,8 @@
   color: var(--text-muted);
 }
 .calls__person[aria-pressed='true'] .calls__person-count {
-  color: var(--text-secondary);
+  color: var(--text-on-dark);
+  opacity: 0.75;
 }
 .calls__scope {
   display: flex;

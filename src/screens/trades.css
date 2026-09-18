@@ -138,7 +138,12 @@
 }
 .trades__ring-word {
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--text-on-dark);
+  opacity: 0.75;
+}
+.trades__ring--none .trades__ring-word {
+  color: var(--text-muted);
+  opacity: 1;
 }
 .trades__ring-number {
   font-family: var(--font-display);

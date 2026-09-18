@@ -183,14 +183,14 @@
   table-layout: fixed;
 }
 .monday__table--builds th:nth-child(1) {
-  width: 15%;
+  width: 16%;
 }
 .monday__table--builds th:nth-child(2),
 .monday__table--builds th:nth-child(3) {
   width: 22%;
 }
 .monday__table--builds th:nth-child(5) {
-  width: 17%; /* "! Last confirmed 9 days ago" on two lines, not three */
+  width: 16%; /* "! Last confirmed 9 days ago" on two lines, not three */
 }
 .monday__table--builds .monday__cell-job {
   padding-right: var(--space-4);

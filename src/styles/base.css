@@ -1,6 +1,6 @@
 /*
   Reset, fonts, browser surfaces, and the shared primitives every screen
-  builds from: .btn, .input, .table, .plate. Tokens live in tokens.css.
+  builds from. Every colour is a token, so both themes come from tokens.css: .btn, .input, .table, .plate. Tokens live in tokens.css.
   Screen CSS may extend these; it should not redraw them.
 */
 
@@ -141,11 +141,10 @@ hr {
   opacity: 1;
 }
 input[type='date']::-webkit-calendar-picker-indicator {
-  filter: invert(0.8);
   cursor: pointer;
 }
-:root[data-theme='light'] input[type='date']::-webkit-calendar-picker-indicator {
-  filter: none;
+:root[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
 }
 
 /* ---- native controls: a safe default for every screen that has not had its pass ---- */
@@ -173,7 +172,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
   padding-right: var(--space-8);
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%238b939c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: var(--select-chevron);
   background-repeat: no-repeat;
   background-position: right var(--space-3) center;
 }
@@ -284,7 +283,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
   display: inline-flex;
   padding: 3px;
   border-radius: var(--radius-md);
-  background: var(--raised);
+  background: var(--concrete-100);
 }
 .seg__btn {
   min-height: 34px;
@@ -303,7 +302,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
 }
 .seg__btn[aria-pressed='true'] {
   background: var(--steel-700);
-  color: var(--text);
+  color: var(--text-on-dark);
 }
 .shell--phone .seg__btn {
   min-height: var(--tap); /* every segmented control on Alec's screens meets the tap rule */

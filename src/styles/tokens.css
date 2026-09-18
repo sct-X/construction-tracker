@@ -1,5 +1,5 @@
 /*
-  Construction Tracker: the one token set. Dark first.
+  Construction Tracker: the one token set. Light by default, dark as the alternate.
 
   TOKEN PLAN (design pass, 2026-09-18; DESIGN.md is the long form)
 
@@ -8,22 +8,29 @@
   is the quiet engraving around them. Surfaces are separated by tone, not by
   borders. Hi-vis orange is the one accent and it marks where a thumb lands.
 
-  Surfaces, a tonal ladder (never #000, never a white box):
-    ground   #131517   the page
-    well     #0f1113   sunk: the phone frame edge, code, deep fills
-    plate    #1a1d20   a row band, the sidebar, cards on the phone
-    raised   #212529   inputs, chips, the hover of a plate
-    lifted   #2a2f34   menus, sheets, the floating buzz (with a shadow)
-    line     #2a3035   hairline;  line-strong #3f474f
-  Text, a three-step brightness ladder (the only hierarchy besides size):
-    text #eef0f2 (14:1)   secondary #b9c0c7 (9:1)   muted #8b939c (5.4:1)
+  Surfaces, a tonal ladder (light: a warm off-white, never #fff for the page;
+  dark: graphite, never #000):
+                light      dark
+    ground      #f4f2ee    #131517   the page
+    well        #e8e5df    #0f1113   sunk: the dev bar, the chart ground, the phone frame
+    plate       #fbfaf8    #1a1d20   a row band, the sidebar, cards on the phone
+    raised      #ffffff    #212529   inputs, chips, a hovered plate
+    lifted      #ffffff    #2a2f34   menus, sheets, the floating buzz (with a shadow)
+    wash        #e9e6e0    #22262a   hover wash, row band, the segmented trough (concrete-100)
+    line        #dcd8d1    #2a3035   hairline;  line-strong #aaa69e / #3f474f
+  Text, a three-step ladder (the only hierarchy besides size), all AA+:
+    light: text #1b1a17 (15:1)  secondary #46443f (9:1)  muted #66635d (5.6:1)
+    dark:  text #eef0f2 (14:1)  secondary #b9c0c7 (9:1)  muted #8b939c (5.4:1)
   The one accent:
-    hi-vis #ff8c26 tuned up for dark (8:1 as text on ground); dark ink on it
-    for buttons (#16110a, 9:1). Jobs: the primary action on a screen, the
-    focus ring, the today line on the program, the chosen row's edge. Never a
-    heading, never "you are here", never a status.
+    hi-vis #e8730c on light (the vest), #ff8c26 on dark; dark ink on it for
+    buttons (#16110a: 6.9:1 light, 9:1 dark). Orange as small text is never
+    used on light (3.2:1); "hivis-ink" is the dark orange for that. Jobs: the
+    primary action on a screen, the focus ring, the today line on the
+    program, the chosen picker row. Never a heading, never "you are here",
+    never a status.
   Status, always with words ("14 days late", "Unconfirmed 9 days"):
-    late   #ff8a80 on #3b1f1d    amber #f3b94c on #362a10    ok #7fd6a4 on #17311f
+    light: dark ink on a light wash   late #8f1d1d/#f8e1de  amber #7a4c00/#fbeccb  ok #23532c/#dcebd9
+    dark:  light ink on a dark wash   late #ff8a80/#3b1f1d  amber #f3b94c/#362a10  ok #7fd6a4/#17311f
   Legacy scale names (concrete, steel, timber) are kept so every screen keeps
   rendering; they now map onto the ladder above. Steel fills stay mid-tone so
   light text on them still reads. Timber is the warm neutral for planned
@@ -43,65 +50,68 @@
 */
 
 :root,
-:root[data-theme='dark'] {
-  color-scheme: dark;
+:root[data-theme='light'] {
+  color-scheme: light;
 
   /* ---- the tonal ladder ---- */
-  --well: #0f1113;
-  --ground: #131517;
-  --plate: #1a1d20;
-  --raised: #212529;
-  --lifted: #2a2f34;
+  --well: #e8e5df;
+  --ground: #f4f2ee;
+  --plate: #fbfaf8;
+  --raised: #ffffff;
+  --lifted: #ffffff;
 
   /* legacy scales, remapped onto the ladder (names kept for every screen) */
   --concrete-050: var(--ground);
-  --concrete-100: #22262a; /* hover wash, row band */
-  --concrete-200: #30363c; /* hairline, quiet borders */
-  --concrete-400: #7c848d;
-  --concrete-600: #9aa3ac;
-  --concrete-800: #c4cad1;
-  --ink: #0d0f11; /* the darkest thing: dark ink on the orange button */
+  --concrete-100: #e9e6e0; /* hover wash, row band, the segmented trough */
+  --concrete-200: #d6d2ca; /* hairline, quiet borders */
+  --concrete-400: #8a8780;
+  --concrete-600: #66635d;
+  --concrete-800: #37352f;
+  --ink: #14130f; /* the darkest thing: dark ink on the orange button */
 
-  --steel-100: #1f262d; /* light band */
-  --steel-200: #364049; /* band edge, outlines */
-  --steel-500: #5f6f80; /* secondary fill, quiet borders */
-  --steel-700: #3a4653; /* a mid fill that takes light text (8:1) */
-  --steel-900: #2b333b; /* a raised dark plate that takes light text (11:1) */
+  --steel-100: #e2e7eb; /* light band */
+  --steel-200: #c6cfd7; /* band edge, outlines */
+  --steel-500: #52626f; /* secondary fill, quiet borders */
+  --steel-700: #2f3a44; /* a fill that takes light text (11:1) */
+  --steel-900: #1f272e; /* a deeper fill that takes light text */
 
-  --timber-100: #26221d; /* note paper */
-  --timber-300: #4d4231;
-  --timber-500: #b48f60; /* planned outline on the program */
+  --timber-100: #f1e8d8; /* note paper */
+  --timber-300: #d8c2a2;
+  --timber-500: #9c7a4b; /* planned outline on the program */
 
   /* ---- the one accent ---- */
-  --hivis: #ff8c26;
-  --hivis-strong: #ffa14d; /* hover */
-  --hivis-ink: #ffb069; /* orange as text on a dark wash */
-  --hivis-100: #3a2612; /* the orange wash */
+  --hivis: #e8730c;
+  --hivis-strong: #d9680a; /* hover */
+  --hivis-ink: #8a4200; /* orange as text: dark enough for AA on the wash and the ground */
+  --hivis-100: #fde9d6; /* the orange wash */
   --hivis-contrast: #16110a; /* text on the orange button */
+  --focus: #d9680a;
 
   /* ---- status: ink for the words, bg for the wash ---- */
-  --late-ink: #ff8a80;
-  --late-bg: #3b1f1d;
-  --amber-ink: #f3b94c;
-  --amber-bg: #362a10;
-  --ok-ink: #7fd6a4;
-  --ok-bg: #17311f;
+  --late-ink: #8f1d1d;
+  --late-bg: #f8e1de;
+  --amber-ink: #7a4c00;
+  --amber-bg: #fbeccb;
+  --ok-ink: #23532c;
+  --ok-bg: #dcebd9;
 
   /* ---- roles ---- */
   --bg: var(--ground);
   --surface: var(--plate);
   --surface-raised: var(--raised);
-  --line: #2a3035;
-  --line-strong: #3f474f;
-  --text: #eef0f2;
-  --text-secondary: #b9c0c7;
-  --text-muted: #8b939c;
-  --text-on-dark: #eef0f2; /* text on steel fills and the buzz */
+  --line: #dcd8d1;
+  --line-strong: #aaa69e;
+  --text: #1b1a17;
+  --text-secondary: #46443f;
+  --text-muted: #66635d;
+  --text-on-dark: #f4f2ee; /* text on steel fills */
   --text-on-fill: var(--text-on-dark);
   --link: var(--text);
   --primary: var(--steel-700); /* pressed toggles, "you are here" fills */
-  --primary-hover: #465361;
+  --primary-hover: var(--steel-900);
   --accent: var(--hivis);
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2366635d' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --shadow-float: 0 12px 32px rgba(20, 19, 15, 0.16), 0 2px 6px rgba(20, 19, 15, 0.1); /* menus, sheets, the buzz only */
 
   /* ---- type ---- */
   --font-ui: 'Atkinson Hyperlegible Next', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
@@ -140,12 +150,11 @@
   --radius-lg: 12px; /* sheets, dialogs, the buzz */
   --radius-pill: 999px;
   --hairline: 1px solid var(--line);
-  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35); /* menus, sheets, the buzz only */
 
   /* ---- controls ---- */
   --tap: 56px; /* minimum tap target on Alec's screens; every primary control */
   --control: 40px; /* desktop-only secondary controls */
-  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--hivis);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--focus);
 
   /* ---- motion: answers an action, never decorates ---- */
   --motion-fast: 120ms;
@@ -161,55 +170,57 @@
      query, so write `@media (min-width: 768px)` and keep this comment honest. */
 }
 
-/* A light theme, for later: the same roles on a cool light ground. Not the
-   default; switch with <html data-theme="light">. */
-:root[data-theme='light'] {
-  color-scheme: light;
-  --well: #dfe3e7;
-  --ground: #f2f4f6;
-  --plate: #ffffff;
-  --raised: #ffffff;
-  --lifted: #ffffff;
+/* The dark alternate: the same roles on a graphite ladder. Switch with
+   <html data-theme="dark">; My settings offers light, dark and system. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --well: #0f1113;
+  --ground: #131517;
+  --plate: #1a1d20;
+  --raised: #212529;
+  --lifted: #2a2f34;
   --concrete-050: var(--ground);
-  --concrete-100: #e6e9ec;
-  --concrete-200: #d2d7dc;
-  --concrete-400: #7a838c;
-  --concrete-600: #5e666e;
-  --concrete-800: #363c42;
-  --ink: #121417;
-  --steel-100: #e3e8ec;
-  --steel-200: #c9d1d8;
-  --steel-500: #4f5f6e;
-  --steel-700: #2f3a44;
-  --steel-900: #1f272e;
-  --timber-100: #f0e6d6;
-  --timber-300: #d9c3a3;
-  --timber-500: #a9865a;
-  --hivis: #e8730c;
-  --hivis-strong: #f0862a;
-  --hivis-ink: #7a3a00;
-  --hivis-100: #fde9d6;
+  --concrete-100: #22262a;
+  --concrete-200: #30363c;
+  --concrete-400: #7c848d;
+  --concrete-600: #9aa3ac;
+  --concrete-800: #c4cad1;
+  --ink: #0d0f11;
+  --steel-100: #1f262d;
+  --steel-200: #364049;
+  --steel-500: #5f6f80;
+  --steel-700: #3a4653;
+  --steel-900: #2b333b;
+  --timber-100: #26221d;
+  --timber-300: #4d4231;
+  --timber-500: #b48f60;
+  --hivis: #ff8c26;
+  --hivis-strong: #ffa14d;
+  --hivis-ink: #ffb069;
+  --hivis-100: #3a2612;
   --hivis-contrast: #16110a;
-  --late-ink: #8f1d1d;
-  --late-bg: #f8e1de;
-  --amber-ink: #7a4c00;
-  --amber-bg: #fbeccb;
-  --ok-ink: #23532c;
-  --ok-bg: #dcebd9;
+  --focus: #ff8c26;
+  --late-ink: #ff8a80;
+  --late-bg: #3b1f1d;
+  --amber-ink: #f3b94c;
+  --amber-bg: #362a10;
+  --ok-ink: #7fd6a4;
+  --ok-bg: #17311f;
   --bg: var(--ground);
   --surface: var(--plate);
   --surface-raised: var(--raised);
-  --line: #d6dbe0;
-  --line-strong: #a9b1b9;
-  --text: #121417;
-  --text-secondary: #3c434a;
-  --text-muted: #646c74;
-  --text-on-dark: #f2f4f6;
+  --line: #2a3035;
+  --line-strong: #3f474f;
+  --text: #eef0f2;
+  --text-secondary: #b9c0c7;
+  --text-muted: #8b939c;
+  --text-on-dark: #eef0f2;
   --text-on-fill: var(--text-on-dark);
   --link: var(--text);
   --primary: var(--steel-700);
-  --primary-hover: var(--steel-900);
-  --shadow-float: 0 12px 32px rgba(18, 20, 23, 0.18), 0 2px 6px rgba(18, 20, 23, 0.12);
+  --primary-hover: #465361;
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%238b939c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 @media (min-width: 768px) {

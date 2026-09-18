@@ -1,33 +1,34 @@
 ---
 name: Construction Tracker
-description: A surveyor's night readout for a builder's Monday, a builder's phone and a site hand's gloves.
+description: A surveyor's readout for a builder's Monday, a builder's phone and a site hand's gloves. Light by default, dark as the alternate.
 colors:
-  ground: "#131517"
-  well: "#0f1113"
-  plate: "#1a1d20"
-  raised: "#212529"
-  lifted: "#2a2f34"
-  line: "#2a3035"
-  line-strong: "#3f474f"
-  text: "#eef0f2"
-  text-secondary: "#b9c0c7"
-  text-muted: "#8b939c"
-  ink: "#0d0f11"
-  hivis: "#ff8c26"
-  hivis-strong: "#ffa14d"
-  hivis-ink: "#ffb069"
-  hivis-wash: "#3a2612"
+  ground: "#f4f2ee"
+  well: "#e8e5df"
+  plate: "#fbfaf8"
+  raised: "#ffffff"
+  lifted: "#ffffff"
+  wash: "#e9e6e0"
+  line: "#dcd8d1"
+  line-strong: "#aaa69e"
+  text: "#1b1a17"
+  text-secondary: "#46443f"
+  text-muted: "#66635d"
+  ink: "#14130f"
+  hivis: "#e8730c"
+  hivis-strong: "#d9680a"
+  hivis-ink: "#8a4200"
+  hivis-wash: "#fde9d6"
   hivis-contrast: "#16110a"
-  steel-fill: "#3a4653"
-  steel-outline: "#364049"
-  timber: "#b48f60"
-  timber-paper: "#26221d"
-  late-ink: "#ff8a80"
-  late-bg: "#3b1f1d"
-  amber-ink: "#f3b94c"
-  amber-bg: "#362a10"
-  ok-ink: "#7fd6a4"
-  ok-bg: "#17311f"
+  steel-fill: "#2f3a44"
+  steel-outline: "#c6cfd7"
+  timber: "#9c7a4b"
+  timber-paper: "#f1e8d8"
+  late-ink: "#8f1d1d"
+  late-bg: "#f8e1de"
+  amber-ink: "#7a4c00"
+  amber-bg: "#fbeccb"
+  ok-ink: "#23532c"
+  ok-bg: "#dcebd9"
 typography:
   display:
     fontFamily: "Barlow Semi Condensed, Avenir Next Condensed, Arial Narrow, system-ui, sans-serif"
@@ -63,6 +64,7 @@ rounded:
   sm: "4px"
   md: "8px"
   lg: "12px"
+  nested: "6px"
   pill: "999px"
 spacing:
   "1": "4px"
@@ -131,43 +133,44 @@ components:
 
 ## Overview
 
-**Creative North Star: "The surveyor's night readout"**
+**Creative North Star: "The surveyor's readout"**
 
-Every site starts with the surveyor: a graphite instrument on a tripod, orange-flagged pegs, a readout of precise figures that were measured rather than typed. This app is that instrument for the money side of a build. The screen is a dark instrument face on which the forecast finish and the slip are the readout digits, and everything else (job names, holding costs, the three things a job is waiting on, when it was last confirmed) is the quiet engraving around them. Nothing is decorated; the hierarchy is carried by size and by a three-step brightness ladder of text, and surfaces separate by tone rather than by borders.
+Every site starts with the surveyor: a graphite instrument on a tripod, orange-flagged pegs, a readout of precise figures that were measured rather than typed. This app is that instrument for the money side of a build. The screen is an instrument face on which the forecast finish and the slip are the readout digits, and everything else (job names, holding costs, the three things a job is waiting on, when it was last confirmed) is the quiet engraving around them. Nothing is decorated; the hierarchy is carried by size and by a three-step ladder of text, and surfaces separate by tone rather than by borders.
 
-It is dark because of the scene: a partner reading figures on a desk at 7am, a builder in the ute between calls, a site hand in the sun with the brightness turned up. Dark ground with bright figures survives all three. The single accent is the hi-vis orange of a vest and a peg flag, and it appears only where a thumb should land: the one primary action on a screen, the focus ring, the today line on the program, the chosen row of a picker. It is never a heading, never a status, never "you are here".
+It ships light by the client's decision: a warm off-white ground (never pure white for the page), plates a step lighter, the well a step darker, dark ink figures. The same roles map onto a graphite ladder as the dark alternate (My settings: Light, Dark, Match device), so every screen is drawn once from tokens and reads in either. The single accent is the hi-vis orange of a vest and a peg flag, and it appears only where a thumb should land: the one primary action on a screen, the focus ring, the today line on the program, the chosen row of a picker. It is never a heading, never a status, never "you are here".
 
 The redesign replaced a cream ledger with a condensed system face and sentences everywhere. Confirmed rejections: gradient cards, eyebrow labels, stock imagery, sentences that restate what the figure already says, a dev bar that dominates the phone.
 
 **Key Characteristics:**
 - Numbers are the largest type on partner screens; a title is smaller than the figures beneath it.
-- Tonal surfaces (ground, plate, raised, lifted), never #000, never a white box, hairlines only inside a table.
+- Tonal surfaces (well, ground, plate, raised, lifted): never pure white for the page, never #000; hairlines only inside a table.
 - Words carry every status; the wash only agrees with them. The Monday screen reads printed in greyscale.
 - Two faces: a signage grotesque for figures and titles, a legibility face for words; both self-hosted.
 - One accent with a short job list; 56px targets on the site role's screens.
 
 ## Colors
 
-A graphite ladder with one hi-vis accent and three status inks that read as words first.
+A warm off-white ladder (graphite in the dark alternate) with one hi-vis accent and three status inks that read as words first. Light values below; dark values in tokens.css under `[data-theme='dark']`.
 
 ### Primary
-- **Hi-vis** (#ff8c26): the single accent, tuned up from the vest's #e8730c so it holds 8:1 as text on the ground. Fills the one primary button per screen (dark ink #16110a on it, 9:1), draws the focus ring, the today line on the program and the ring on a chosen picker row. **Hi-vis strong** (#ffa14d) is its hover; **hi-vis ink** (#ffb069) is orange as text on the **hi-vis wash** (#3a2612), used for the today label on the program only.
+- **Hi-vis** (#e8730c, the vest; #ff8c26 in dark): the single accent. Fills the one primary button per screen (dark ink #16110a on it, 6.9:1), draws the focus ring (#d9680a in light so it holds on the off-white), the today line on the program and the ring on a chosen picker row. **Hi-vis strong** (#d9680a) is its hover; **hi-vis ink** (#8a4200) is orange as text on the **hi-vis wash** (#fde9d6), used for the today label on the program only. Orange is never small text on the light ground (3.2:1).
 
 ### Neutral
-- **Ground** (#131517): the page. **Well** (#0f1113): sunk regions (the dev bar, the desktop frame behind the site role's phone column).
-- **Plate** (#1a1d20): the sidebar, the phone chrome, a card on the phone, a hovered table row. **Raised** (#212529): inputs, chips, pressed toggles, a hovered plate. **Lifted** (#2a2f34): menus, sheets, the floating buzz, always with a shadow.
-- **Line** (#2a3035) hairlines inside tables and between list rows; **line strong** (#3f474f) input and button outlines.
-- **Text** (#eef0f2, 14:1), **secondary** (#b9c0c7, 9:1), **muted** (#8b939c, 5.4:1): the brightness ladder. **Ink** (#0d0f11): dark text on the orange button, and the count badge's text.
-- **Steel fill** (#3a4653): a mid fill that takes light text (pressed segmented buttons, "you are here" on the desktop, forecast bars). **Steel outline** (#364049): band edges.
-- **Timber** (#b48f60) and **timber paper** (#26221d): the planned-position outline on the program and note paper. A warm neutral, never a second accent.
+- **Ground** (#f4f2ee): the page, a warm off-white. **Well** (#e8e5df): sunk regions (the dev bar, the chart ground, the desktop frame behind the site role's phone column).
+- **Plate** (#fbfaf8): the sidebar, the phone chrome, a card on the phone, a hovered table row. **Raised** (#ffffff): inputs, chips, a hovered plate. **Lifted** (#ffffff): menus, sheets, the floating buzz, always with a shadow. **Wash** (#e9e6e0): the segmented trough, row bands, hover on the ground.
+- **Line** (#dcd8d1) hairlines inside tables and between list rows; **line strong** (#aaa69e) input and button outlines.
+- **Text** (#1b1a17, 15:1), **secondary** (#46443f, 9:1), **muted** (#66635d, 5.6:1): the ladder. **Ink** (#14130f): dark text on the orange button.
+- **Steel fill** (#2f3a44): a dark fill that takes light text (`--text-on-dark`, #f4f2ee) for pressed segments, chosen pickers, "you are here" and forecast bars. Anything drawn on a steel fill uses `--text-on-dark`, never the text ladder, so it reads in both themes.
+- **Timber** (#9c7a4b) and **timber paper** (#f1e8d8): the planned-position outline on the program and note paper. A warm neutral, never a second accent.
 
 ### Status (always beside words)
-- **Late** #ff8a80 on #3b1f1d. **Amber** #f3b94c on #362a10. **Ok** #7fd6a4 on #17311f. Chip contrast is at least 5.5:1; as plain text on the ground the inks are 8:1 or better.
+- **Late** #8f1d1d on #f8e1de. **Amber** #7a4c00 on #fbeccb. **Ok** #23532c on #dcebd9. Dark ink on a light wash, 7:1 or better; in the dark alternate the pairs invert to light ink on a dark wash.
 
 ### Named Rules
 **The Thumb Rule.** Orange goes where a thumb lands and nowhere else: one primary action per screen, the focus ring, the today line, the chosen picker row. If a screen has no primary action it has no orange.
 **The Words First Rule.** Late, amber and ok never appear as colour alone; the wash sits behind "14 days late", "Unconfirmed 9 days", "On plan". Late and amber words carry a leading "!" so they read in greyscale.
-**The Tone Not Border Rule.** Regions separate by stepping the ladder (ground to plate to raised), not by outlining. Hairlines live inside tables and lists only.
+**The Tone Not Border Rule.** Regions separate by stepping the ladder (well, ground, plate, raised), not by outlining. Hairlines live inside tables and lists only.
+**The On-Fill Rule.** Text on a steel fill is `--text-on-dark` (dimmed with opacity for a secondary line), never a colour from the text ladder; the ladder flips with the theme, the fill does not.
 
 ## Typography
 
@@ -194,17 +197,17 @@ Desktop: a 236px plate sidebar beside the ground; content up to 1200px with a 32
 
 ## Elevation & Depth
 
-Tonal layering, with one exception. Depth is conveyed by stepping the ladder: ground, plate, raised, lifted. Nothing at rest has a shadow. The floating buzz (the in-app stand-in for a phone notification) and future menus and sheets sit on lifted with the one shadow in the system.
+Tonal layering, with one exception. Depth is conveyed by stepping the ladder: well, ground, plate, raised, lifted. Nothing at rest has a shadow. The floating buzz (the in-app stand-in for a phone notification) and future menus and sheets sit on lifted with the one shadow in the system.
 
 ### Shadow Vocabulary
-- **Float** (`box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35)`): menus, sheets, toasts, the buzz. Nothing else.
+- **Float** (`box-shadow: 0 12px 32px rgba(20, 19, 15, 0.16), 0 2px 6px rgba(20, 19, 15, 0.1)`; deeper in dark): menus, sheets, toasts, the buzz. Nothing else.
 
 ### Named Rules
 **The Flat-At-Rest Rule.** Surfaces are flat; hover steps one rung up the ladder; only floating things cast a shadow.
 
 ## Shapes
 
-Radius by element size: 4px for chips, inputs and small controls; 8px for buttons and plates on the desktop; 12px for phone plates, sheets and the buzz; pill for counts. Borders are 1px hairlines and appear on outlined buttons and inputs only. No coloured edges thicker than 1px on rows, cards or callouts; a callout is a wash with a radius. Icons are hand-drawn inline SVG at 1.6px stroke, 20px, no icon library.
+Radius by element size: 4px for chips, inputs and small controls; 8px for buttons and plates on the desktop; 12px for phone plates, sheets and the buzz; 6px for a control nested inside an 8px trough (a segment inside `.seg`); pill for counts. Borders are 1px hairlines and appear on outlined buttons and inputs only. No coloured edges thicker than 1px on rows, cards or callouts; a callout is a wash with a radius. Icons are hand-drawn inline SVG at 1.6px stroke, 20px, no icon library.
 
 ## Components
 
@@ -214,8 +217,8 @@ Radius by element size: 4px for chips, inputs and small controls; 8px for button
 - **Secondary (`.btn`):** transparent with a line-strong outline, text colour; hover fills raised.
 - **Fill (`.btn--fill`):** steel fill with light text, for the pressed half of a pair or a quiet confirm.
 - **Ghost (`.btn--ghost`):** text only, secondary colour, for links that need a tap target.
-- **Segmented (`.seg` / `.seg__btn`):** a raised trough with a steel-filled pressed segment (`aria-pressed`), 34px on the desktop, 44px on the phone.
-- **Focus:** the focus ring everywhere (`0 0 0 2px ground, 0 0 0 4px hi-vis`); inset on full-width rows.
+- **Segmented (`.seg` / `.seg__btn`):** a wash trough with a steel-filled pressed segment (`aria-pressed`, light text), 34px on the desktop, 56px on the phone.
+- **Focus:** the focus ring everywhere (`0 0 0 2px ground, 0 0 0 4px --focus`, the darker orange in light); inset on full-width rows.
 
 ### Chips
 - **Style (`<StatusText>`):** words on a wash, 14px medium, 4px radius, 2px 8px padding. Tones late, amber, ok; muted and plain drop the wash.
@@ -244,7 +247,7 @@ Radius by element size: 4px for chips, inputs and small controls; 8px for button
 `<BigNumber>`: a figure in Barlow with a two-word label under it in muted 14px. At `size="row"` it is the unit of the Monday table and of every phone card's first line; at `size="hero"` it is the one big figure on a job or shipment screen. Tone (late, amber, ok, muted) colours the figure only when its words say so.
 
 ### The Dev Bar
-A 36px well strip above the shell, 12px muted text, controls at 26px, an orange dot beside "dev". It collapses to a 24px tag (remembered per browser) and scrolls sideways on a phone rather than wrapping.
+A 36px well strip above the shell, 12px muted text, controls at 26px, an orange dot beside "dev"; the same in both themes. It collapses to a 24px tag (remembered per browser) and scrolls sideways on a phone rather than wrapping.
 
 ### The Offline Bar
 A 32px amber wash with a dot and one short line: "No signal. Showing what loaded at 1:09pm. Changes queue until it returns." Never a modal, never red.
@@ -255,13 +258,14 @@ One authored moment: the buzz slides up 12px over 220ms with `cubic-bezier(0.2, 
 
 ## Theming
 
-Every token lives on `:root` and is overridden under `:root[data-theme='light']` (a cool light ground, not the old cream), so a theme switch is one attribute on `<html>`. Dark is the default; `color-scheme` is set per theme so native controls follow.
+Light is the default on `:root`; the dark alternate lives under `:root[data-theme='dark']` with the same role names. The shell sets `data-theme` on `<html>` from the session (`theme: light | dark | system`, My settings "Look", `?theme=` in the hash for tests); "system" follows `prefers-color-scheme`. `color-scheme` is set per theme so native controls follow. Screens never branch on the theme: they use roles.
 
 ## Do's and Don'ts
 
 ### Do:
 - **Do** set the figure larger than the title on any screen that has a figure; `--text-3xl` (32px) for rows, `--text-display` for the hero.
-- **Do** step the ladder for regions (ground, plate, raised) and reserve hairlines for table and list rows.
+- **Do** step the ladder for regions (well, ground, plate, raised) and reserve hairlines for table and list rows.
+- **Do** draw text on a steel fill with `--text-on-dark` so it survives both themes.
 - **Do** put every status in words with the chip behind them; add "!" for late and amber.
 - **Do** keep one hi-vis control per screen, 56px tall, dark ink on orange.
 - **Do** use `.btn`, `.seg`, `.input`, `.table`, `.plate` from base.css before writing screen CSS.
@@ -270,8 +274,8 @@ Every token lives on `:root` and is overridden under `:root[data-theme='light']`
 
 ### Don't:
 - **Don't** use orange for headings, "you are here", status or decoration.
-- **Don't** use a white or near-white box on the dark ground, a gradient anywhere, or a shadow on anything that does not float.
+- **Don't** use pure white for the page, a gradient anywhere, or a shadow on anything that does not float.
 - **Don't** add eyebrow labels, uppercase tracking, middle-dot meta strings, or an arrow after a link.
-- **Don't** hard-code a colour in screen CSS; every colour is a token from tokens.css.
+- **Don't** hard-code a colour in screen CSS or branch on the theme; every colour is a role from tokens.css.
 - **Don't** put a coloured edge thicker than 1px on a row, card or callout.
 - **Don't** fall back to a system display face; Barlow Semi Condensed is self-hosted and precached.

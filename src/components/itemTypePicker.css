@@ -29,7 +29,7 @@
 .typepick__btn--chosen,
 .typepick__btn--chosen:hover {
   background: var(--steel-700);
-  color: var(--text);
+  color: var(--text-on-dark);
 }
 .shell--phone .typepick {
   flex-wrap: nowrap;

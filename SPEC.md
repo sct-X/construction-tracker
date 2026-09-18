@@ -60,8 +60,8 @@ Version two (quotes, invoices, documents) is out of scope; don't block it.
 
 ## Design (locked)
 
-- Dark mode default. The world is "the surveyor's night readout" (DESIGN.md): a graphite tonal ladder (ground #131517, plate #1a1d20, raised #212529, lifted #2a2f34; never #000, never a white box), regions separated by tone rather than borders, one token set in `src/styles/tokens.css`, themable through `<html data-theme>` (a light theme exists as an override; dark ships).
-- Hi-vis orange (#ff8c26 on dark, tuned from the vest's #e8730c) is the single accent: the one primary action on a screen, the focus ring, the today line on the program, the chosen picker row. Never a heading, never "you are here", never a status.
+- Light theme by default, dark available. The world is "the surveyor's readout" (DESIGN.md): a tonal ladder (light: well #e8e5df, ground #f4f2ee, plate #fbfaf8, raised #ffffff; dark alternate: #0f1113 / #131517 / #1a1d20 / #212529; never pure white for the page, never #000), regions separated by tone rather than borders, one token set in `src/styles/tokens.css` with the same role names in both themes. The shell sets `data-theme` on `<html>` from the session (`theme: light | dark | system`, chosen in My settings; `?theme=` in the hash for tests). Screens use roles and never branch on the theme.
+- Hi-vis orange (#e8730c, the vest; #ff8c26 in dark) is the single accent: the one primary action on a screen, the focus ring, the today line on the program, the chosen picker row. Never a heading, never "you are here", never a status.
 - Type: Barlow Semi Condensed (600/700, tabular figures) for every figure and title; Atkinson Hyperlegible Next (variable) for words. Self-hosted latin WOFF2 in `public/fonts` (68 KB), `font-display: swap`, precached by the service worker. No Inter, Geist, Space Grotesk or Roboto.
 - Numbers are the largest type on partner screens; a page title is never larger than the figures beneath it.
 - Colour never carries meaning alone: "14 days late", not just red. Late and amber words carry a leading "!".

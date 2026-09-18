@@ -14,6 +14,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
+import { THEMES, type Theme } from '../data/session';
 import type { NotificationPrefKey } from '../data/api';
 import { NOTIFICATION_PREF_KEYS } from '../data/api';
 import { ROLE_LABELS } from '../domain/types';
@@ -88,10 +89,12 @@ function requestPermission(): Promise<PermissionState> {
   });
 }
 
+const THEME_WORDS: Record<Theme, string> = { light: 'Light', dark: 'Dark', system: 'Match device' };
+
 export default function Settings() {
   const api = useApi();
   const navigate = useNavigate();
-  const { person, role, side, sides, personId } = useSession();
+  const { person, role, side, sides, personId, theme, setSession } = useSession();
   const prefs = useQuery((api) => api.getNotificationPrefs(), [personId]);
   const lastSync = useQuery((api) => api.getLastSync(), []);
   const subscriptions = useQuery((api) => api.listPushSubscriptions(), [personId]);
@@ -233,6 +236,26 @@ export default function Settings() {
             </div>
           </li>
         </ol>
+      </section>
+
+      <section className="settings__section" aria-labelledby="settings-theme-title">
+        <h2 id="settings-theme-title" className="settings__title">
+          Look
+        </h2>
+        <div className="seg settings__theme" role="group" aria-label="Theme" data-testid="settings-theme">
+          {THEMES.map((t: Theme) => (
+            <button
+              key={t}
+              type="button"
+              className="seg__btn"
+              aria-pressed={theme === t}
+              data-testid={`settings-theme-${t}`}
+              onClick={() => setSession({ theme: t })}
+            >
+              {THEME_WORDS[t]}
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="settings__section" aria-labelledby="settings-prefs-title">

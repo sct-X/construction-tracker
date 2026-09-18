@@ -83,7 +83,8 @@
   color: var(--text-muted);
 }
 .seg__btn[aria-pressed='true'] .newjob__pick-sub {
-  color: var(--text-secondary);
+  color: var(--text-on-dark);
+  opacity: 0.8;
 }
 /* the stage ladder: a numbered column, so "starts from" reads as a place in the sequence */
 .newjob__stages {
@@ -112,7 +113,7 @@
 }
 .newjob__stage[aria-pressed='true'] {
   background: var(--steel-700);
-  color: var(--text);
+  color: var(--text-on-dark);
 }
 .newjob__stage[data-done='true'] {
   color: var(--text-muted);
@@ -128,7 +129,7 @@
   text-decoration: none;
 }
 .newjob__stage[aria-pressed='true'] .newjob__stage-num {
-  color: var(--text);
+  color: var(--text-on-dark);
 }
 .newjob__stage-words {
   font-size: var(--text-xs);
@@ -137,7 +138,8 @@
   text-decoration: none;
 }
 .newjob__stage[aria-pressed='true'] .newjob__stage-words {
-  color: var(--text-secondary);
+  color: var(--text-on-dark);
+  opacity: 0.8;
 }
 .shell--phone .newjob__stage {
   min-height: var(--tap);

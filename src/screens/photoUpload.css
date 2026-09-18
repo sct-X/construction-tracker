@@ -67,7 +67,8 @@
   font-weight: var(--weight-bold);
 }
 .upload__stage--chosen .upload__stage-now {
-  color: var(--text-secondary);
+  color: var(--text-on-dark);
+  opacity: 0.8;
 }
 
 /* Fetching photos: two quiet outlined buttons side by side. */

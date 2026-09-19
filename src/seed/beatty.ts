@@ -1,7 +1,9 @@
 /**
- * 26a Beatty St, Balgowlah Heights: a dual occupancy with basement on Lot 1
- * DP 217340. Demolition Oct 2025, CDC through Certex Dec 2025, Constructaview
- * (Raff) on site, roof slab poured May 2026. Entered at stage level, $2,000/wk.
+ * 26a Beatty St, Balgowlah Heights: Dom's own house, a dual occupancy with
+ * basement on Lot 1 DP 217340. Demolition Oct 2025, CDC through Certex Dec
+ * 2025, Constructaview (Raff) on site, roof slab poured May 2026. Now in
+ * internal fit-out with the external works (driveway, fence, landscaping)
+ * running alongside. Entered at stage level, $2,000/wk.
  * The done stages carry their real windows; the chain from Rough-in on is the
  * prototype's: the tiler is expected Mon 5 Oct, a week after Tiling was planned
  * to start (Mon 28 Sep), so every step after it moves 5 working days: planned
@@ -35,6 +37,7 @@ export const beattyProgram = (() => {
     .stage('bt-st-roughin', 'Rough-in', 'in_progress')
     .stage('bt-st-tiling', 'Tiling')
     .stage('bt-st-finishes', 'Finishes')
+    .stage('bt-st-external', 'External works')
     .stage('bt-st-handover', 'Handover');
 
   b.step({ id: 'bt-demo', stage: 'bt-st-demo', name: 'Demolition, whole stage', duration: 15, start: '2025-10-20', status: 'done', placeholder: true, trade: 'Demolition' })
@@ -43,7 +46,9 @@ export const beattyProgram = (() => {
     .step({ id: 'bt-roughin', stage: 'bt-st-roughin', name: 'Rough-in, whole stage', duration: 15, start: '2026-09-07', after: 'bt-lockup', status: 'in_progress', placeholder: true, trade: 'Plumber, Electrician' })
     .step({ id: 'bt-tiling', stage: 'bt-st-tiling', name: 'Tiling, whole stage', duration: 10, after: 'bt-roughin', placeholder: true, trade: 'Tiler' })
     .step({ id: 'bt-finishes', stage: 'bt-st-finishes', name: 'Finishes, whole stage', duration: 30, after: 'bt-tiling', placeholder: true, trade: 'Painter, Joiner' })
-    .step({ id: 'bt-handover', stage: 'bt-st-handover', name: 'Handover, whole stage', duration: 5, after: 'bt-finishes', placeholder: true });
+    // Runs alongside the fit-out: started 14 Sep with the civils meeting, done well before handover.
+    .step({ id: 'bt-external', stage: 'bt-st-external', name: 'Driveway, front fence and landscaping', duration: 40, start: '2026-09-14', status: 'in_progress', placeholder: true, trade: 'Sydney Water tap-in, Landscaper' })
+    .step({ id: 'bt-handover', stage: 'bt-st-handover', name: 'Handover, whole stage', duration: 5, after: ['bt-finishes', 'bt-external'], placeholder: true });
 
   b.req({ id: 'bt-rq-tiler', step: 'bt-tiling', kind: 'trade', name: 'Tiler', lead: 3, trade: 'Tiler' })
     .req({ id: 'bt-rq-tiles', step: 'bt-tiling', kind: 'material', name: 'Tiles', lead: 1 })
@@ -52,6 +57,7 @@ export const beattyProgram = (() => {
   b.category('bt-pc-general', null, 'General')
     .category('bt-pc-roughin', 'bt-st-roughin', 'Rough-in before plasterboard')
     .category('bt-pc-waterproofing', 'bt-st-tiling', 'Wet area waterproofing')
+    .category('bt-pc-external', 'bt-st-external', 'Driveway and fence')
     .category('bt-pc-finishes', 'bt-st-handover', 'Final finishes');
   return b;
 })();
@@ -68,7 +74,7 @@ export const beattyItems: Item[] = [
   item({ id: 'it-bt-kitchen', job: J, type: 'material', title: 'Order kitchens', waitingOn: 'Industry Kitchens', trade: 'tr-industry', owner: P.raff, step: 'bt-finishes', lead: 8, status: 'confirmed', expected: '2026-10-19', confirmed: '2026-06-22', created: '2026-06-01', notes: 'Ordered June.' }),
   item({ id: 'it-bt-workszone', job: J, type: 'council_request', title: 'Works zone permit', waitingOn: 'Northern Beaches Council', owner: P.dominic, neededBy: '2026-04-14', lead: 0, status: 'done', created: '2026-03-16', doneAt: '2026-04-14', notes: 'PERM2026/00630, runs to 14 Dec.' }),
   item({ id: 'it-bt-tapin', job: J, type: 'trade', title: 'Sydney Water tap-in', waitingOn: 'Multitask Civil', trade: 'tr-multitask', owner: P.raff, neededBy: '2026-08-14', lead: 2, status: 'done', created: '2026-06-22', doneAt: '2026-08-12' }),
-  item({ id: 'it-bt-driveway', job: J, type: 'decision', title: 'Driveway civils: kerb and layback detail', waitingOn: 'Dominic', owner: P.dominic, neededBy: '2026-10-16', lead: 0, status: 'to_do', created: '2026-09-14', notes: 'Site meeting 14 Sep with the civils crew.' }),
+  item({ id: 'it-bt-driveway', job: J, type: 'decision', title: 'Driveway civils: kerb and layback detail', waitingOn: 'Dominic', owner: P.dominic, step: 'bt-external', lead: 0, status: 'to_do', created: '2026-09-14', notes: 'Site meeting 14 Sep with the civils crew.' }),
   item({ id: 'it-bt-defect', job: J, type: 'defect', title: 'Leaking window flashing, bedroom 2', waitingOn: 'Build Solid Carpentry', trade: 'tr-buildsolid', owner: P.raff, neededBy: '2026-10-09', lead: 0, status: 'booked', created: '2026-09-11' }),
 ];
 

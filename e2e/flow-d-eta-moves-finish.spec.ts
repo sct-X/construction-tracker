@@ -107,11 +107,11 @@ test.describe('Flow d: the ETA moves the finish', () => {
     await expect(page.getByTestId('shipment-item-it-pr-external-doors')).toHaveCount(0);
     await expect(page.getByTestId('shipment-link-item-it-pr-external-doors')).toBeVisible();
 
-    // The list has one more shipment than the seed (Park Rd, 12 and 14 Hunts, 232 North Rd).
+    // The list now has two shipments.
     await page.goto('#/shipments');
-    await expect(page.locator('[data-testid^="shipment-row-"]')).toHaveCount(5);
+    await expect(page.locator('[data-testid^="shipment-row-"]')).toHaveCount(2);
     await page.getByTestId('dev-reset').click();
-    await expect(page.locator('[data-testid^="shipment-row-"]')).toHaveCount(4);
+    await expect(page.locator('[data-testid^="shipment-row-"]')).toHaveCount(1);
   });
 
   test('offline, the ETA and status are read-only', async ({ page }) => {

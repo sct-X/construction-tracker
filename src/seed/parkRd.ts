@@ -1,7 +1,9 @@
 /**
- * 64-66 Park Rd, Hunters Hill: two attached duplexes on Lots 7 and 8 DP 14994,
- * run as one job. CDC through Certex (demolition Oct 2025, construction Dec 2025),
- * Northgroup building, Raff on site. The full-program job, $4,500/wk.
+ * 64-66 Park Rd, Hunters Hill: two duplexes side by side on Lots 7 and 8 DP
+ * 14994, run as one job; the 64 side is sold, so its finishes are the buyer's
+ * pick and sit under the job as their own items. CDC through Certex (demolition
+ * Oct 2025, construction Dec 2025), Northgroup building, Raff on site. Roof on,
+ * into lock-up, windows ordered from China. The full-program job, $4,500/wk.
  * Today is Thu 17 Sep 2026. The program dates are the prototype's (SPEC "Mock data");
  * the site, approvals, suppliers and trades are the real ones.
  */
@@ -86,6 +88,7 @@ export const parkRdItems: Item[] = [
   item({ id: 'it-pr-tiles', job: J, type: 'material', title: 'Order tiles', waitingOn: 'Tile warehouse', owner: P.raff, step: 'pr-tiling', requirement: 'pr-rq-tiles', lead: 8, status: 'to_do', created: '2026-08-24' }),
   item({ id: 'it-pr-tiler', job: J, type: 'trade', title: 'Book tiler', waitingOn: 'Competent Tiling', trade: 'tr-competent', owner: P.raff, step: 'pr-tiling', requirement: 'pr-rq-tiler', lead: 6, status: 'to_do', created: '2026-08-24' }),
   item({ id: 'it-pr-waterproofer', job: J, type: 'trade', title: 'Book waterproofing', waitingOn: 'Competent Tiling', trade: 'tr-competent', owner: P.raff, step: 'pr-waterproofing', requirement: 'pr-rq-waterproofer', lead: 4, status: 'to_do', created: '2026-08-24' }),
+  item({ id: 'it-pr-64-finishes', job: J, type: 'decision', title: '64 side: buyer picks finishes schedule A or B', waitingOn: 'Buyer of 64', owner: P.dominic, step: 'pr-tiling', lead: 10, status: 'to_do', created: '2026-09-07', notes: 'The 64 side is sold. Two schedules went to the buyer; tiles, joinery and paint follow their pick.' }),
   item({ id: 'it-pr-kitchen-signoff', job: J, type: 'decision', title: 'Kitchen design sign-off', waitingOn: 'Norm', owner: P.norm, step: 'pr-kitchen', lead: 10, status: 'to_do', created: '2026-09-01', notes: 'Joiner needs the signed drawings before ordering stone.' }),
   item({ id: 'it-pr-kitchen', job: J, type: 'material', title: 'Order kitchen', waitingOn: 'Wooden Age Joinery', trade: 'tr-woodenage', owner: P.raff, step: 'pr-kitchen', requirement: 'pr-rq-kitchen', lead: 8, status: 'to_do', created: '2026-08-24' }),
   item({ id: 'it-pr-painter', job: J, type: 'trade', title: 'Book painter', waitingOn: 'Painter, to be quoted', owner: P.raff, step: 'pr-painting', requirement: 'pr-rq-painter', lead: 4, status: 'to_do', created: '2026-08-24' }),

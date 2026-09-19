@@ -56,7 +56,7 @@ There is no backend: `src/data/mockApi.ts` holds the seed in your browser (local
 
 ## What's real
 
-The sites are Cerr Build's real ones, taken from the job folders: the addresses, the approval paths and their milestones, the consultants and trades on each job, the suppliers (HiHaus windows, Premium Lift Systems, CJ Linea and the rest), and the stage each build is at. Dom's personal and family jobs, the admin folder and anything about third parties are left out. What is still made up: the program dates and durations (SPEC "Mock data" fixes Park Rd, Seaview St and Beatty St; the other builds are stage-level estimates), the weekly holding costs, every phone number (the trades carry ACMA fictitious numbers, 0491 570 006 to 0491 579 858, which never connect) and every email address. No contract sums, claims, fees or bank details are in the app.
+The seven jobs are Cerr Build's real ones, taken from the job folders: the addresses, the approval paths and their milestones, the consultants and trades on each job, the suppliers (HiHaus windows, Wooden Age Joinery, CJ Linea and the rest), and the stage each is at. Nothing else from the folders is in. What is still made up: the program dates and durations (SPEC "Mock data" fixes them), the weekly holding costs, every phone number (the trades carry ACMA fictitious numbers, 0491 570 006 to 0491 579 858, which never connect) and every email address. No contract sums, claims, fees or bank details are in the app.
 
 ## Layout
 

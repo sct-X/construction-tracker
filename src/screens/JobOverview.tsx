@@ -1,16 +1,13 @@
 /**
  * Build job overview (UI_PLAN 3.4): "how is this job going?" in one screen.
  *
- * The forecast finish is the hero figure. Under it a readout row: the slip
- * since Monday (the figure is the link to "why it moved"), the holding cost,
- * the stage, and how fresh the figures are with the one action, Confirm
- * program. Then the next hold point with its photo sets, the stage ladder,
- * and what the job is waiting on as a short list. Money draws nothing when
- * absent.
+ * The stage is the hero, with how fresh the picture is and the one action,
+ * Confirm program. Then the next hold point with its photo sets, the stage
+ * ladder, and what the job is waiting on as a short list. No forecast finish,
+ * slip or money anywhere.
  *
  * Alec gets the phone layout with the Today section on top (AlecToday), then
- * the finish date at row scale, the stages and the latest photos; never slip
- * or money (the data layer strips them; nothing here defaults).
+ * the stages and the latest photos.
  */
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -18,13 +15,11 @@ import { useApi, useQuery, useSession } from '../data/context';
 import type { Item, Job, Person, Photo } from '../domain/types';
 import type { JobForecast, StageForecast } from '../domain/forecast';
 import { topWaitingOn } from '../domain/forecast';
-import { formatDayMonth, formatLong, formatShort, relativeDays } from '../domain/dates';
+import { formatDayMonth, formatShort, relativeDays } from '../domain/dates';
 import { BigNumber } from '../components/BigNumber';
 import { HoldPointCheck, readinessWords } from '../components/HoldPointCheck';
 import { ItemRow, ItemRowList } from '../components/ItemRow';
-import { Money } from '../components/Money';
-import { SlipText, slipTone } from '../components/SlipText';
-import { StatusText, type Tone } from '../components/StatusText';
+import { StatusText } from '../components/StatusText';
 import AlecToday from './AlecToday';
 import NotFound from './NotFound';
 import { PageHeader } from '../shell/PageHeader';
@@ -39,16 +34,6 @@ interface Data {
   /** The newest few, for the strip at the foot. */
   latestPhotos: Photo[];
   stepCount: number;
-}
-
-/** "7 days late, planned Fri 27 Nov" / "On plan" / "3 days early". */
-export function lateWords(f: JobForecast): { tone: Tone; text: string } {
-  if (f.lateDays > 0) {
-    const planned = f.plannedFinish ? `, planned ${formatShort(f.plannedFinish)}` : '';
-    return { tone: 'late', text: `${f.lateDays} day${f.lateDays === 1 ? '' : 's'} late${planned}` };
-  }
-  if (f.lateDays < 0) return { tone: 'ok', text: `${-f.lateDays} day${f.lateDays === -1 ? '' : 's'} early` };
-  return { tone: 'ok', text: 'On plan' };
 }
 
 /** The stage's forecast span in words, and its planned span when that differs. */
@@ -112,11 +97,10 @@ export default function JobOverview() {
   const openCount = items.filter((i) => i.status !== 'done').length;
   const hp = forecast?.nextHoldPoint;
   const hpStage = hp ? forecast?.stages.find((s) => s.stageId === hp.stageId) : undefined;
-  const slipWhy = forecast?.slipDays === undefined ? 'Slip' : forecast.slipDays === 0 ? 'Nothing moved' : 'Why it moved';
 
   return (
     <main className={site ? 'page job job--site' : 'page job'} data-testid="job-overview">
-      <PageHeader title={job.name} back={site ? undefined : { to: '/jobs', label: 'Jobs' }} />
+      <PageHeader title={job.name} back={site ? undefined : { to: '/overview', label: 'Overview' }} />
 
       <nav className="job__tabs" aria-label="Job sections" data-testid="job-tabs">
         {tabs.map((t) => (
@@ -134,31 +118,13 @@ export default function JobOverview() {
         </p>
       ) : (
         <>
-          <section className="job__hero" aria-label="Forecast">
+          <section className="job__hero" aria-label="Where it is">
             <div className="job__finish">
-              <BigNumber
-                value={forecast.forecastFinish ? formatLong(forecast.forecastFinish) : 'No dates yet'}
-                label="Forecast finish"
-                tone={forecast.isLate ? 'late' : undefined}
-                testId="job-finish"
-              />
-              {forecast.forecastFinish && (
-                <StatusText tone={lateWords(forecast).tone} testId="job-late">
-                  {lateWords(forecast).text}
-                </StatusText>
-              )}
+              <BigNumber value={forecast.currentStageName ?? 'Done'} label="Stage" testId="job-stage" />
             </div>
 
             {!site && (
               <div className="job__facts">
-                <Link to={`/jobs/${id}/why`} className="job__slip-link" data-testid="job-slip" title={slipWhy}>
-                  <BigNumber size="row" tone={slipTone(forecast.slipDays)} value={<SlipText days={forecast.slipDays} cost={forecast.slipCost} />} label={forecast.slipDays === undefined ? undefined : 'Slip since Monday'} />
-                  <span className="sr-only">, {slipWhy}</span>
-                </Link>
-                {job.weeklyHoldingCost !== undefined && (
-                  <BigNumber size="row" value={<Money value={job.weeklyHoldingCost} suffix="/wk" testId="job-holding" />} label="Holding" />
-                )}
-                {forecast.currentStageName && <BigNumber size="row" value={forecast.currentStageName} label="Stage" />}
                 <div className="job__confirm">
                   <StatusText tone={forecast.freshness.amber ? 'amber' : 'muted'} testId="job-fresh">
                     {forecast.freshness.text}

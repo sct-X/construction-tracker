@@ -1,8 +1,9 @@
 /**
  * Who is using the app, on which side, on what date, and whether the signal
- * is off, and which theme to draw. There is no login: the dev bar sets this,
- * and so do URL params in the hash query, e.g.
- * `#/monday?as=alec&today=2026-09-17&offline=1&theme=dark`.
+ * is off, and which theme to draw. Sign-in is a person picker with no
+ * password: `personId` is empty until someone picks a name. URL params in
+ * the hash query set the same things for tests and the dev bar, e.g.
+ * `#/overview?as=alec&today=2026-09-17&offline=1&theme=dark`.
  */
 import type { KeyValueStorage } from './storage';
 
@@ -10,6 +11,7 @@ export type Theme = 'light' | 'dark' | 'system';
 export const THEMES: Theme[] = ['light', 'dark', 'system'];
 
 export interface Session {
+  /** Empty when nobody is signed in. */
   personId: string;
   sideId: string;
   /** ISO date the app treats as today. */
@@ -20,13 +22,22 @@ export interface Session {
 }
 
 export const SESSION_KEY = 'construction-tracker.session.v1';
-export const DEFAULT_PERSON = 'dominic';
+/** Signed out. */
+export const DEFAULT_PERSON = '';
 export const DEFAULT_SIDE = 'side-nd';
 export const DEFAULT_TODAY = '2026-09-17';
 export const DEFAULT_THEME: Theme = 'light';
 
 export function defaultSession(): Session {
   return { personId: DEFAULT_PERSON, sideId: DEFAULT_SIDE, today: DEFAULT_TODAY, offline: false, theme: DEFAULT_THEME };
+}
+
+/** Anything in the hash query that drives the session, which is what the tests and the dev bar use. */
+export function hashHasSessionParams(hash: string): boolean {
+  const q = hash.indexOf('?');
+  if (q < 0) return false;
+  const params = new URLSearchParams(hash.slice(q + 1));
+  return ['as', 'today', 'offline', 'side', 'theme', 'dev'].some((k) => params.has(k));
 }
 
 export function isTheme(value: string | null | undefined): value is Theme {

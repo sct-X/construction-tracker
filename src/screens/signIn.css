@@ -1,0 +1,37 @@
+/* Sign in: a column of name plates, each a 56px-plus target. */
+.signin__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 28rem;
+  margin-top: var(--space-6);
+}
+.signin__person {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--plate);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease);
+}
+.signin__person:hover {
+  background: var(--raised);
+}
+.signin__name {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+}
+.signin__role {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}

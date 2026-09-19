@@ -27,6 +27,7 @@ export const P = {
   norm: 'norm',
   raff: 'raff',
   alec: 'alec',
+  pino: 'pino',
 } as const;
 
 export interface StepSpec {

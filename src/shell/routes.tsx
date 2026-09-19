@@ -8,17 +8,14 @@
  * so keep each entry on one line, starting with its path.
  */
 import type { ReactElement } from 'react';
-import { useParams } from 'react-router-dom';
+import { Navigate, useLocation, useParams } from 'react-router-dom';
 import type { ScreenKey } from '../data/api';
 import { useQuery } from '../data/context';
-import CallList from '../screens/CallList';
 import DailyNotes from '../screens/DailyNotes';
 import Deliveries from '../screens/Deliveries';
 import DesignChecklist from '../screens/DesignChecklist';
 import ItemSheet from '../screens/ItemSheet';
 import JobOverview from '../screens/JobOverview';
-import JobsList from '../screens/JobsList';
-import Monday from '../screens/Monday';
 import PhotoUpload from '../screens/PhotoUpload';
 import NotFound from '../screens/NotFound';
 import Notifications from '../screens/Notifications';
@@ -35,7 +32,7 @@ import Templates, { TemplateDetail } from '../screens/Templates';
 import NewJob from '../screens/NewJob';
 import UploadQueue from '../screens/UploadQueue';
 import WaitingOn from '../screens/WaitingOn';
-import WhyItMoved from '../screens/WhyItMoved';
+import Overview from '../screens/Overview';
 
 export interface RouteDef {
   path: string;
@@ -56,18 +53,30 @@ function JobRoute() {
   return <JobOverview />;
 }
 
+/**
+ * Old routes forward to their new home with the query kept, so `?as=` and
+ * `?today=` in a bookmarked or typed URL still reach the session provider.
+ */
+function Redirect({ to, set }: { to: string; set?: Record<string, string> }) {
+  const { search } = useLocation();
+  const p = new URLSearchParams(search);
+  for (const [k, v] of Object.entries(set ?? {})) p.set(k, v);
+  const q = p.toString();
+  return <Navigate to={q ? `${to}?${q}` : to} replace />;
+}
+
 export const ROUTES: RouteDef[] = [
-  { path: '/monday', screen: 'monday', title: 'Monday', stage: 1, element: <Monday /> },
-  { path: '/jobs', screen: 'jobs', title: 'Jobs', stage: 1, element: <JobsList /> },
+  { path: '/overview', screen: 'overview', title: 'Overview', stage: 1, element: <Overview /> },
+  { path: '/monday', title: 'Overview', stage: 1, element: <Redirect to="/overview" /> },
+  { path: '/jobs', title: 'Overview', stage: 1, element: <Redirect to="/overview" /> },
   { path: '/jobs/:id', screen: 'job', title: 'Job', stage: 2, element: <JobRoute /> },
-  { path: '/jobs/:id/why', screen: 'monday', title: 'Why it moved', stage: 1, element: <WhyItMoved /> },
   { path: '/jobs/:id/program', screen: 'program', title: 'Program', stage: 2, element: <Program /> },
   { path: '/steps/:id', screen: 'step', title: 'Step', stage: 2, element: <StepDetail /> },
   { path: '/waiting', screen: 'waiting', title: 'Waiting on', stage: 4, element: <WaitingOn /> },
   { path: '/deliveries', screen: 'deliveries', title: 'Deliveries', stage: 3, element: <Deliveries /> },
   { path: '/items/new', screen: 'item', title: 'New item', stage: 4, element: <ItemSheet /> },
   { path: '/items/:id', screen: 'item', title: 'Item', stage: 4, element: <ItemSheet /> },
-  { path: '/calls', screen: 'calls', title: 'Call list', stage: 4, element: <CallList /> },
+  { path: '/calls', screen: 'waiting', title: 'Waiting on', stage: 4, element: <Redirect to="/waiting" set={{ mode: 'call' }} /> },
   { path: '/shipments', screen: 'shipments', title: 'Shipments', stage: 2, element: <Shipments /> },
   { path: '/shipments/:id', screen: 'shipment', title: 'Shipment', stage: 2, element: <ShipmentDetail /> },
   { path: '/jobs/:id/photos', screen: 'photos', title: 'Photos', stage: 3, element: <PhotoGallery /> },

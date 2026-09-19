@@ -6,7 +6,7 @@ import { expect, test } from '@playwright/test';
 // resets through the dev bar at the end so nothing leaks if that ever changes.
 
 test.describe('Flow d: the ETA moves the finish', () => {
-  test('Dominic changes the windows ETA and the finish, slip and Why it moved follow', async ({ page }) => {
+  test('Dominic changes the windows ETA and the linked items, the step and the overview follow', async ({ page }) => {
     // 1. Shipments, then "Park Rd windows": In production, ETA 26 Oct, 3 linked items.
     await page.goto('#/shipments?as=dominic&today=2026-09-17');
     await expect(page.getByTestId('shipment-status-text-sh-park-windows')).toHaveText('In production');
@@ -28,9 +28,9 @@ test.describe('Flow d: the ETA moves the finish', () => {
     const preview = page.getByTestId('shipment-eta-preview');
     await expect(preview).toContainText('3 linked items would be expected Mon 16 Nov');
     await expect(preview).toContainText('Install windows would start Mon 16 Nov, not Mon 2 Nov');
-    await expect(page.getByTestId('shipment-eta-preview-finish')).toContainText('Fri 12 Mar 2027');
-    await expect(page.getByTestId('shipment-eta-preview-slip')).toContainText('+14 days');
-    await expect(page.getByTestId('shipment-eta-preview-slip')).toContainText('$9,000');
+    // No finish date and no money in the panel.
+    await expect(page.getByTestId('shipment-eta-preview-finish')).toHaveCount(0);
+    expect(await preview.innerText()).not.toMatch(/Mar 2027|\$/);
     // Nothing saved yet: the hero still says 26 Oct.
     await expect(page.getByTestId('shipment-eta')).toContainText('Mon 26 Oct 2026');
 
@@ -46,20 +46,13 @@ test.describe('Flow d: the ETA moves the finish', () => {
     // 8. The activity feed records who changed it, from what, to what.
     await expect(page.getByTestId('shipment-history').locator('li').first()).toContainText('Park Rd windows ETA changed 26 Oct to 16 Nov (Dominic)');
 
-    // 6. Monday shows 12 Mar and +14 days, $9,000.
-    await page.goto('#/monday');
-    await expect(page.getByTestId('monday-finish-park-rd')).toContainText('Fri 12 Mar 2027');
-    await expect(page.getByTestId('monday-slip-park-rd')).toContainText('+14 days');
-    await expect(page.getByTestId('monday-slip-park-rd')).toContainText('$9,000');
-
-    // Why it moved names the windows shipment as the cause.
-    await page.getByTestId('monday-slip-park-rd').click();
-    await expect(page).toHaveURL(/#\/jobs\/park-rd\/why/);
-    await expect(page.getByTestId('why-entry-1')).toContainText('Park Rd windows ETA changed 26 Oct to 16 Nov');
-    await expect(page.getByTestId('why-link-sh-park-windows')).toHaveAttribute('href', '#/shipments/sh-park-windows');
-    await expect(page.getByTestId('why-entry-2')).toContainText('Install windows starts 16 Nov, not 2 Nov (+14 days)');
-    const entries = page.locator('[data-testid^="why-entry-"]');
-    await expect(entries.last()).toContainText("Finish 12 Mar, 14 days later than Monday's snapshot (26 Feb)");
+    // 6. The overview's waiting-on lines carry the lateness; the step detail says why it starts 16 Nov.
+    await page.goto('#/overview');
+    await expect(page.getByTestId('overview-item-it-pr-windows')).toContainText('expected 16 Nov, 14 days late');
+    expect(await page.locator('#root').innerText()).not.toMatch(/Mar 2027|\$/);
+    await page.goto('#/steps/pr-install-windows');
+    await expect(page.getByTestId('step-forecast')).toContainText('Mon 16 Nov 2026');
+    await expect(page.getByTestId('step-reason')).toContainText('because the Park Rd windows shipment is expected 16 Nov');
 
     // Reset through the dev bar so the seed is back for anyone sharing this storage.
     await page.getByTestId('dev-reset').click();

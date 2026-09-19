@@ -19,7 +19,6 @@ import type { NotificationPrefKey } from '../data/api';
 import { NOTIFICATION_PREF_KEYS } from '../data/api';
 import { ROLE_LABELS } from '../domain/types';
 import { formatStamp } from '../domain/dates';
-import { DEFAULT_PERSON, DEFAULT_SIDE } from '../data/session';
 import { SEED_VERSION } from '../seed';
 import { InstallSteps, detectPlatform, deviceWords, isStandalone } from '../components/InstallSteps';
 import { PageHeader } from '../shell/PageHeader';
@@ -153,9 +152,9 @@ export default function Settings() {
     setResetStep('done');
   }
 
-  /** No login in the prototype: signing out drops back to the default person and the sign-in page, which explains the dev bar. */
+  /** Signing out clears who you are; the sign-in page lists everyone to pick from. */
   function signOut() {
-    api.setSession({ personId: DEFAULT_PERSON, sideId: DEFAULT_SIDE });
+    api.setSession({ personId: '' });
     navigate('/sign-in');
   }
 
@@ -176,8 +175,8 @@ export default function Settings() {
           <p className="settings__who" data-testid="settings-who">
             <span className="settings__who-name">{person.name}</span>
             <span className="settings__who-role">
-              {ROLE_LABELS[role]} on {side.name}
-              {otherSides.length > 0 && `. Also on ${otherSides.map((s) => s.name).join(' and ')}`}.
+              {ROLE_LABELS[role]}
+              {sides.length > 1 ? ` on ${side.name}. Also on ${otherSides.map((s) => s.name).join(' and ')}` : ''}.
             </span>
             {person.phone && <span className="settings__who-phone">{person.phone}</span>}
           </p>

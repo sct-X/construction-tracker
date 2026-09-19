@@ -11,7 +11,7 @@ test.describe('Waiting-on list as Raff', () => {
   test('groups render and the windows items are overdue in words', async ({ page }) => {
     await page.goto('#/waiting?owner=me&as=raff&today=2026-09-17');
     await expect(page.getByTestId('waiting-on')).toBeVisible();
-    await expect(page.getByTestId('waiting-filter-mine')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('waiting-filter-owner')).toHaveValue('me');
 
     for (const key of ['overdue', 'this-week', 'next-week', 'later', 'done']) {
       await expect(page.getByTestId(`waiting-group-${key}`)).toHaveCount(1);
@@ -98,11 +98,11 @@ test.describe('Waiting-on list as Raff', () => {
   test('a decision goes straight to done, and the job filter narrows the list', async ({ page }) => {
     await page.goto('#/waiting?as=dom&today=2026-09-17');
     await expect(page.getByTestId('item-advance-it-pr-tile-choice')).toHaveText('Mark done');
-    await page.getByTestId('waiting-filter-job-seaview').click();
+    await page.getByTestId('waiting-filter-job').selectOption('seaview');
     await expect(page).toHaveURL(/job=seaview/);
     await expect(page.getByTestId('item-row-it-pr-tile-choice')).toHaveCount(0);
     await expect(page.getByTestId('waiting-add')).toHaveAttribute('href', '#/items/new?job=seaview');
-    await page.getByTestId('waiting-filter-all-jobs').click();
+    await page.getByTestId('waiting-filter-job').selectOption('');
     await expect(page.getByTestId('item-row-it-pr-tile-choice')).toBeVisible();
   });
 });
@@ -252,9 +252,12 @@ test.describe('Desktop table', () => {
     await expect(page.getByTestId('waiting-group-overdue')).toContainText('Overdue');
     const fits = await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth');
     expect(fits).toBe(true);
-    // Filters are buttons, not selects.
-    await expect(page.getByTestId('waiting-filters').locator('select')).toHaveCount(0);
-    await expect(page.getByTestId('waiting-filter-owner-raff')).toBeVisible();
+    // Filters are dropdowns: owner, job, type; Dominic can pick any person.
+    await expect(page.getByTestId('waiting-filters').locator('select')).toHaveCount(3);
+    await expect(page.getByTestId('waiting-filter-owner-raff')).toHaveText('Raff');
+    await page.getByTestId('waiting-filter-owner').selectOption('raff');
+    await expect(page).toHaveURL(/owner=raff/);
+    await expect(page.getByTestId('item-row-it-pr-tile-choice')).toHaveCount(0);
   });
 
   test('the phone gets rows, not a table', async ({ page }) => {

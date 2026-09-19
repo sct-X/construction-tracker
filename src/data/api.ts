@@ -51,27 +51,36 @@ export type { QueuedPhoto } from './photoQueue';
 // Row and result shapes
 // ---------------------------------------------------------------------------
 
-export interface MondayRow {
+export interface SignInOption {
+  person: Person;
+  roles: { side: Side; role: Role }[];
+}
+
+export interface NextStep {
+  stepId: string;
+  name: string;
+  stageName: string;
+  /** The date the step is expected to start; undefined when the program has no dates. */
+  start?: string;
+  status: StepStatus;
+  isHoldPoint: boolean;
+}
+
+/** One job on the overview: where it is, what comes next, what it waits on, how fresh that is. */
+export interface OverviewRow {
   jobId: string;
   name: string;
   kind: JobKind;
-  forecastFinish?: string;
-  plannedFinish?: string;
-  /** Undefined before the first Monday snapshot. */
-  slipDays?: number;
-  /** Money. */
-  slipCost?: number;
-  slipSincePlanDays?: number;
-  /** Money. */
-  slipSincePlanCost?: number;
-  /** Money. */
-  weeklyHoldingCost?: number;
+  path?: ApprovalPath;
   freshness: Freshness;
   currentStageName?: string;
+  /** Builds: the next few steps not yet done, in date order, the running one first. */
+  nextSteps: NextStep[];
   /** Top three: late first, then soonest act-by within 14 days. */
   waitingOn: WaitingOnRow[];
   nextHoldPoint?: HoldPointCheck;
   /** Design jobs. */
+  nextStageName?: string;
   outstanding?: number;
   oldestDays?: number | null;
   oldestItemTitle?: string;
@@ -347,6 +356,10 @@ export interface TrackerApi {
   setSession(patch: Partial<Session>): void;
   /** The current person, their role on the current side, and the sides they belong to. */
   whoami(): { person: Person; role: Role; side: Side; sides: Side[] };
+  /** False until someone picks a name on the sign-in page. */
+  signedIn(): boolean;
+  /** Everyone who can sign in, across every side, with the roles they hold. */
+  listSignIns(): SignInOption[];
   /** Screens a role can open. Routes not listed show "You don't have access to this". */
   canSee(screen: ScreenKey): boolean;
 
@@ -473,7 +486,7 @@ export interface TrackerApi {
    * design jobs, which have no forecast finish.
    */
   previewProgramChange(jobId: string, draft: ProgramDraft): ProgramPreview | undefined;
-  getMondayRows(): MondayRow[];
+  getOverviewRows(): OverviewRow[];
   listSnapshots(jobId: string): ForecastSnapshot[];
   /** Saves a snapshot for every build job for the Monday of the given date (default: last Monday of today). */
   saveMondaySnapshot(date?: string): ForecastSnapshot[];
@@ -497,7 +510,7 @@ export interface TrackerApi {
 
 /** Screen keys used by navigation and `canSee`. Routes are in src/screens/README.md. */
 export type ScreenKey =
-  | 'monday'
+  | 'overview'
   | 'jobs'
   | 'job'
   | 'program'
@@ -506,7 +519,6 @@ export type ScreenKey =
   | 'waiting'
   | 'deliveries'
   | 'item'
-  | 'calls'
   | 'shipments'
   | 'shipment'
   | 'photos'
@@ -522,7 +534,7 @@ export type ScreenKey =
   | 'people';
 
 export const SCREEN_ACCESS: Record<ScreenKey, Role[]> = {
-  monday: ['admin', 'partner', 'builder'],
+  overview: ['admin', 'partner', 'builder', 'site'],
   jobs: ['admin', 'partner', 'builder', 'site'],
   job: ['admin', 'partner', 'builder', 'site'],
   program: ['admin', 'partner', 'builder', 'site'],
@@ -531,7 +543,6 @@ export const SCREEN_ACCESS: Record<ScreenKey, Role[]> = {
   waiting: ['admin', 'partner', 'builder'],
   deliveries: ['site'],
   item: ['admin', 'partner', 'builder'],
-  calls: ['admin', 'partner'],
   shipments: ['admin', 'partner', 'builder'],
   shipment: ['admin', 'partner', 'builder'],
   photos: ['admin', 'partner', 'builder', 'site'],

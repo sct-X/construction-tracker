@@ -10,9 +10,9 @@ typed route the role can't see shows "You don't have access to this".
 
 | # | Screen | Route | Screen key | Who | Stage |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Sign in (stub: the dev bar) | `#/` | — | A P B S | 1 |
-| 2 | Monday screen | `#/monday` | `monday` | A P B | 1 |
-| 3 | Jobs list | `#/jobs` | `jobs` | A P B S | 1 |
+| 1 | Sign in (a name, no password) | `#/sign-in` | — | everyone | 1 |
+| 2 | Overview (stage, next steps, waiting on, freshness; `#/monday` and `#/jobs` forward here) | `#/overview` | `overview` | A P B S | 1 |
+| 3 | (folded into the overview) | `#/jobs` | `jobs` | — | 1 |
 | 4 | Build job: overview (Alec: Today) | `#/jobs/:id` | `job` | A P B S | 2 |
 | 5 | Build job: program (Gantt / look-ahead) | `#/jobs/:id/program` | `program` | A P B S | 2 |
 | 6 | Step detail | `#/steps/:id` | `step` | A P B S | 2, hold point in 5 |
@@ -20,7 +20,7 @@ typed route the role can't see shows "You don't have access to this".
 | 8 | Waiting-on list (all jobs or `?job=`) | `#/waiting` | `waiting` | A P B | 4 |
 | 9 | Deliveries (Alec) | `#/deliveries` | `deliveries` | S | 3 |
 | 10 | Item detail, add and edit (sheet) | `#/items/:id`, `#/items/new` | `item` | A P B | 4 |
-| 11 | Call list | `#/calls` | `calls` | A P | 4 |
+| 11 | Waiting on, Call mode (`#/calls` forwards here) | `#/waiting?mode=call` | `waiting` | A P | 4 |
 | 12 | Shipments list | `#/shipments` | `shipments` | A P B | 2 |
 | 13 | Shipment detail with ETA impact preview | `#/shipments/:id` | `shipment` | A P B | 2 |
 | 14 | Photos: gallery | `#/jobs/:id/photos` | `photos` | A P B S | 3 |

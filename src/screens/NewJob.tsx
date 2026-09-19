@@ -2,7 +2,7 @@
  * New job (UI_PLAN 3.21): turns a template into a dated job.
  *
  * `#/jobs/new?template=<id>`. Name, side, kind (build | design), path
- * (DA | CDC), weekly holding cost, template (buttons), start date, and
+ * (DA | CDC), template (buttons), start date, and
  * "starts from stage" for a live job that is already part way: the stages
  * before it are marked done and the planned dates run forward from the
  * start date. The planned finish is derived live through
@@ -22,7 +22,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { ApprovalPath, JobKind } from '../domain/types';
 import { calendarDaysBetween, formatLong, formatShort, isISODate, nextMonday } from '../domain/dates';
-import { BigNumber } from '../components/BigNumber';
 import { PageHeader } from '../shell/PageHeader';
 import { countWords, plural, type TemplateShape } from './Templates';
 import './newJob.css';
@@ -34,9 +33,8 @@ export default function NewJob() {
   const api = useApi();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { role, side, sides, today, offline } = useSession();
+  const { side, sides, today, offline } = useSession();
   const templates = useQuery((api) => api.listTemplates(), []);
-  const canMoney = role === 'admin' || role === 'partner';
 
   const preset = params.get('template');
   const presetTemplate = templates.find((t) => t.id === preset);
@@ -45,7 +43,6 @@ export default function NewJob() {
   const [sideId, setSideId] = useState(side.id);
   const [kind, setKind] = useState<JobKind>(presetTemplate?.kind ?? 'build');
   const [path, setPath] = useState<ApprovalPath>(presetTemplate?.path ?? 'DA');
-  const [holding, setHolding] = useState('');
   const [templateId, setTemplateId] = useState<string>(presetTemplate?.id ?? templates.find((t) => t.kind === kind)?.id ?? '');
   const [startDate, setStartDate] = useState(nextMonday(today));
   const [fromStageId, setFromStageId] = useState<string>('');
@@ -90,14 +87,12 @@ export default function NewJob() {
     if (kind === 'build' && !template) list.push(templates.some((t) => t.kind === 'build') ? 'Pick a template.' : 'No build template yet.');
     if (kind === 'design' && !template && !blankDesign) list.push('Pick a template, or the standard checklist.');
     if (!validStart) list.push('Pick a start date.');
-    if (holding && (Number.isNaN(Number(holding)) || Number(holding) < 0)) list.push('Holding cost is 0 or more.');
     return list;
-  }, [name, kind, template, blankDesign, validStart, holding, templates]);
+  }, [name, kind, template, blankDesign, validStart, templates]);
   const ready = problems.length === 0 && !offline;
 
   const create = () => {
     if (!ready) return;
-    const weeklyHoldingCost = canMoney && holding.trim() !== '' ? Math.round(Number(holding)) : undefined;
     let jobId: string;
     if (template) {
       const job = api.copyTemplate(template.id, {
@@ -105,12 +100,11 @@ export default function NewJob() {
         sideId,
         path,
         startDate,
-        weeklyHoldingCost,
         startsFromStageId: fromIndex > 0 ? fromStageId : undefined,
       });
       jobId = job.id;
     } else {
-      const job = api.addJob({ name: name.trim(), kind: 'design', path, sideId, startDate, weeklyHoldingCost });
+      const job = api.addJob({ name: name.trim(), kind: 'design', path, sideId, startDate });
       jobId = job.id;
     }
     // A job made for the other side shows there; switch so the overview opens.
@@ -182,19 +176,6 @@ export default function NewJob() {
           </div>
         </div>
 
-        {canMoney && (
-          <div className="newjob__field">
-            <label htmlFor="newjob-holding">Weekly holding cost</label>
-            <div className="newjob__money">
-              <span className="newjob__money-sign" aria-hidden="true">
-                $
-              </span>
-              <input id="newjob-holding" className="input input--desktop" type="number" min={0} step={100} inputMode="numeric" value={holding} data-testid="newjob-holding" placeholder="4500" onChange={(e) => setHolding(e.target.value)} />
-              <span className="newjob__money-unit">/wk</span>
-            </div>
-          </div>
-        )}
-
         <div className="newjob__field">
           <span className="newjob__label" id="newjob-template-label">
             Template
@@ -211,7 +192,7 @@ export default function NewJob() {
               {kind === 'design' && (
                 <button type="button" className="seg__btn newjob__pick" aria-pressed={blankDesign} data-testid="newjob-template-blank" onClick={() => pickTemplate('blank')}>
                   Standard {path} checklist
-                  <span className="newjob__pick-sub">{path === 'DA' ? 'Design, With council, Approved, Construction certificate' : 'Design, With certifier, Approved'}</span>
+                  <span className="newjob__pick-sub">{path === 'DA' ? 'Design, Pending approval, Approved, Construction certificate' : 'Design, Pending approval, Approved'}</span>
                 </button>
               )}
             </div>
@@ -260,14 +241,10 @@ export default function NewJob() {
         {kind === 'build' && (
           <div className="newjob__finish" data-testid="newjob-planned-finish" aria-live="polite">
             {preview?.plannedFinish ? (
-              <>
-                <BigNumber value={formatLong(preview.plannedFinish)} label="Planned finish" testId="newjob-planned-finish-date" />
-                <p className="newjob__finish-words">
-                  {plural(stepsToRun, 'step')}, about {plural(weeks, 'week')}, from {formatLong(preview.startsOn)}
-                  {fromIndex > 0 && shape ? `, ${plural(preview.stagesDone, 'stage')} before ${shape.stages[fromIndex].name} marked done` : ''}.
-                </p>
-                <p className="newjob__finish-words">Slip appears after the first Monday.</p>
-              </>
+              <p className="newjob__finish-words" data-testid="newjob-planned-finish-words">
+                {plural(stepsToRun, 'step')}, about {plural(weeks, 'week')}, from {formatLong(preview.startsOn)}
+                {fromIndex > 0 && shape ? `, ${plural(preview.stagesDone, 'stage')} before ${shape.stages[fromIndex].name} marked done` : ''}.
+              </p>
             ) : (
               <p className="newjob__finish-words">Pick a template and a start date.</p>
             )}

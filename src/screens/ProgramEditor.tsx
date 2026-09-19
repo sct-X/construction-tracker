@@ -22,14 +22,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { ProgramDraft } from '../data/api';
 import { useApi, useQuery, useSession } from '../data/context';
-import { formatLong } from '../domain/dates';
 import type { PhotoCategory, Requirement, Stage, Step, StepLink } from '../domain/types';
 import { StageForm } from '../components/editor/StageForm';
 import { StepForm } from '../components/editor/StepForm';
 import { applyProgramDraft, diffProgram, draftId, isDraftId, makeStage, makeStep, readProgram, withPlannedEnd } from '../components/editor/programDraft';
 import { Gantt } from '../components/gantt/Gantt';
-import { BigNumber } from '../components/BigNumber';
-import { SlipText } from '../components/SlipText';
 import { PageHeader } from '../shell/PageHeader';
 import { useLayout } from '../shell/AppShell';
 import NotFound from './NotFound';
@@ -205,9 +202,8 @@ export default function ProgramEditor() {
       const real = ids.get(selection.id);
       setSelection(real ? { ...selection, id: real } : null);
     }
-    const finish = preview?.finishAfter;
     const n = changes.length;
-    setSavedWords(`Saved ${n} change${n === 1 ? '' : 's'}.${finish ? ` Finish ${formatLong(finish)}.` : ''}`);
+    setSavedWords(`Saved ${n} change${n === 1 ? '' : 's'}.`);
   };
   const cancel = () => {
     setDraft(null);
@@ -219,9 +215,9 @@ export default function ProgramEditor() {
   const selectedStep = selection?.kind === 'step' ? program.steps.find((s) => s.id === selection.id) : undefined;
   const selectedStage = selection?.kind === 'stage' ? program.stages.find((s) => s.id === selection.id) : undefined;
 
-  const finishBefore = preview?.finishBefore;
-  const finishAfter = preview?.finishAfter;
-  const delta = preview?.deltaDays ?? 0;
+  // What the draft would move: steps whose start changes, plus any new step.
+  const savedForecast = preview ? api.getForecast(job.id) : undefined;
+  const movedSteps = preview ? Object.values(preview.forecast.steps).filter((st) => savedForecast?.steps[st.stepId]?.forecastStart !== st.forecastStart).length : 0;
 
   return (
     <main className="page editor" data-testid="editor" data-layout="desktop" data-dirty={dirty ? 'true' : 'false'}>
@@ -330,21 +326,9 @@ export default function ProgramEditor() {
 
       <footer className="editor__foot" data-testid="editor-foot">
         <div className="editor__finish" data-testid="editor-preview-finish" aria-live="polite">
-          {preview && finishBefore && finishAfter ? (
-            delta === 0 ? (
-              <BigNumber size="row" value={formatLong(finishAfter)} label={dirty ? 'Finish, unchanged' : 'Finish'} />
-            ) : (
-              <>
-                <BigNumber size="row" value={formatLong(finishBefore)} label="Finish now" tone="muted" className="editor__finish-was" />
-                <BigNumber size="row" value={formatLong(finishAfter)} label="After these edits" tone={delta > 0 ? 'late' : 'ok'} />
-                <span className="editor__finish-note">
-                  <SlipText days={delta} cost={preview.costDelta} testId="editor-preview-slip" />
-                </span>
-              </>
-            )
-          ) : (
-            <span className="editor__finish-note">{design ? 'A design job has no finish to forecast.' : 'No dates on a template.'}</span>
-          )}
+          <span className="editor__finish-note">
+            {preview ? (dirty ? (movedSteps === 0 ? 'No step dates move.' : `${movedSteps} step${movedSteps === 1 ? '' : 's'} would move.`) : 'Edit a step to see what moves.') : design ? 'A design job has no program dates.' : 'No dates on a template.'}
+          </span>
         </div>
         <div className="editor__foot-actions">
           <span className="editor__changes" data-testid="editor-changes">

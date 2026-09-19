@@ -56,23 +56,24 @@ test.describe('Trades as Dominic', () => {
     await expect(page.getByTestId('trade-ring-tr-firstcall')).toBeVisible();
     await page.goto('#/trades?as=dominic&side=side-nd&today=2026-09-17&offline=0');
 
-    // The Norm side has nothing yet, in words.
+    // The Norm side has its own directory: the Eastwood firms, none of the Norm and Dom rows.
     await page.goto('#/trades?as=dominic&side=side-norm&today=2026-09-17');
-    await expect(page.getByTestId('trades-empty')).toContainText('No trades yet. Add them as you book them.');
-    await expect(page.locator('[data-testid^="trade-tr-"]')).toHaveCount(0);
+    await expect(page.getByTestId('trade-trn-cjlinea')).toBeVisible();
+    await expect(page.getByTestId('trade-tr-firstcall')).toHaveCount(0);
+    const before = await page.locator('[data-testid^="trade-tr"]').count();
 
     // Add, then delete, on that side.
     await page.getByTestId('trade-add').click();
     await page.getByTestId('trade-name').fill('Norm Side Sparky');
     await page.getByTestId('trade-type-electrician').click();
     await page.getByTestId('trade-save').click();
-    const norm = page.locator('[data-testid^="trade-tr-"]', { hasText: 'Norm Side Sparky' });
+    const norm = page.locator('[data-testid^="trade-tr"]', { hasText: 'Norm Side Sparky' });
     await expect(norm).toHaveCount(1);
     await norm.locator('[data-testid^="trade-edit-"]').click();
-    await page.locator('[data-testid^="trade-delete-tr-"]').click();
+    await page.locator('[data-testid^="trade-delete-tr"]').first().click();
     await expect(page.locator('[data-testid^="trade-delete-words-"]')).toContainText('Delete Norm Side Sparky?');
     await page.locator('[data-testid^="trade-delete-confirm-"]').click();
-    await expect(page.getByTestId('trades-empty')).toBeVisible();
+    await expect(page.locator('[data-testid^="trade-tr"]')).toHaveCount(before);
 
     await reset(page);
     await page.goto('#/trades?as=dominic&side=side-nd&today=2026-09-17');
@@ -111,15 +112,13 @@ test.describe('People and roles as Dominic', () => {
     await expect(page.getByTestId('person-add')).toBeDisabled();
     await page.goto('#/people?as=dominic&side=side-nd&today=2026-09-17&offline=0');
 
-    // Raff now gets a partner's navigation.
+    // Raff now gets a partner's navigation: the overview home and the Call mode.
     await page.goto('#/?as=raff');
-    await expect(page).toHaveURL(/#\/monday$/);
-    if (isPhone(page)) {
-      await expect(page.getByTestId('nav-upload')).toHaveCount(0);
-      await expect(page.getByTestId('nav-monday')).toBeVisible();
-    } else {
-      await expect(page.getByTestId('nav-calls')).toBeVisible();
-    }
+    await expect(page).toHaveURL(/#\/overview$/);
+    await expect(page.getByTestId('nav-upload')).toHaveCount(0);
+    await expect(page.getByTestId('nav-overview')).toBeVisible();
+    await page.goto('#/waiting');
+    await expect(page.getByTestId('waiting-mode-call')).toBeVisible();
 
     await reset(page);
     await page.goto('#/people?as=dominic&side=side-nd&today=2026-09-17');
@@ -153,6 +152,7 @@ test.describe('My settings', () => {
     await expect(page.getByTestId('settings-who')).toContainText('Dominic Xu');
     await expect(page.getByTestId('settings-who')).toContainText('Admin on Norm and Dom');
     await expect(page.getByTestId('settings-who')).toContainText('Also on Norm');
+    await expect(page.getByTestId('side-switcher')).toBeVisible();
 
     // A preference toggles and persists.
     const pref = page.getByTestId('settings-pref-eta_changes');
@@ -195,12 +195,28 @@ test.describe('My settings', () => {
     await expect(page.getByTestId('settings-reset-done')).toContainText('Reset done');
     await expect(page.getByTestId('settings-pref-eta_changes')).toHaveAttribute('aria-checked', 'true');
 
-    // Sign out drops to the sign-in page, which explains the dev bar.
+    // Sign out drops to the sign-in page: a name each, no password, no chrome. Picking Dom lands him home with no side in sight.
     await page.goto('#/settings?as=alec&today=2026-09-17');
     await page.getByTestId('settings-sign-out').click();
     await expect(page).toHaveURL(/#\/sign-in$/);
     await expect(page.getByTestId('sign-in')).toBeVisible();
-    await expect(page.getByTestId('dev-person')).toHaveValue('dominic');
+    await expect(page.getByTestId('primary-nav')).toHaveCount(0);
+    await expect(page.getByTestId('dev-person')).toHaveValue('');
+    for (const id of ['dominic', 'dom', 'norm', 'raff', 'alec', 'pino']) await expect(page.getByTestId(`sign-in-as-${id}`)).toBeVisible();
+    await expect(page.getByTestId('sign-in-as-dominic')).toContainText('Admin on Norm and Dom, Admin on Norm');
+    await expect(page.getByTestId('sign-in-as-dom')).toContainText('Partner');
+    await expect(page.getByTestId('sign-in-as-dom')).not.toContainText('Norm and Dom');
+    await page.getByTestId('sign-in-as-dom').click();
+    await expect(page).toHaveURL(/#\/overview$/);
+    expect(await page.locator('#root').innerText()).not.toContain('Norm and Dom');
+    await page.goto('#/settings');
+    await expect(page.getByTestId('settings-who')).toContainText('Domenic Morello');
+    await expect(page.getByTestId('settings-who')).not.toContainText('Norm and Dom');
+    // A fresh visit with nobody signed in goes straight to the names.
+    await page.goto('#/settings?as=');
+    await page.getByTestId('settings-sign-out').click();
+    await page.goto('#/overview');
+    await expect(page.getByTestId('sign-in')).toBeVisible();
   });
 
   test.describe('on an iPhone', () => {
@@ -237,7 +253,8 @@ test.describe('My settings', () => {
     await page.goto('#/settings?as=alec&today=2026-09-17');
     await expect(page.getByTestId('settings')).toBeVisible();
     await expect(page.getByTestId('settings-who')).toContainText('Alec Ferris');
-    await expect(page.getByTestId('settings-who')).toContainText('Site on Norm and Dom');
+    await expect(page.getByTestId('settings-who')).toContainText('Site');
+    await expect(page.getByTestId('settings-who')).not.toContainText('Norm and Dom');
     expect(await page.locator('body').innerText()).not.toContain('$');
     await expect(page.getByTestId('settings-pref-unconfirmed_jobs')).toHaveCount(0);
     await expect(page.getByTestId('settings-pref-reminders')).toBeVisible();

@@ -20,21 +20,23 @@ import { seaviewActivity, seaviewItems, seaviewJob, seaviewNotes, seaviewPhotos,
 import { beattyActivity, beattyItems, beattyJob, beattyNotes, beattyNotifications, beattyProgram, beattySnapshots } from './beatty';
 import { designItems, designJobs, designStages } from './design';
 import { duplexTemplateJob, duplexTemplateProgram } from './template';
+import { eastwoodActivity, eastwoodItems, eastwoodNotes, eastwoodShipments, hunts12Job, hunts12Program, hunts14Job, hunts14Program, northRdJob, northRdProgram } from './eastwood';
 
 export { SIDE_ND, SIDE_NORM, P } from './helpers';
 export { PARK_RD } from './parkRd';
 export { SEAVIEW } from './seaview';
 export { BEATTY } from './beatty';
 export { TEMPLATE_DUPLEX } from './template';
+export { HUNTS_12, HUNTS_14, NORTH_RD } from './eastwood';
 
 /** Bump when the seed changes shape or numbers, so stale localStorage reseeds. */
-export const SEED_VERSION = 3;
+export const SEED_VERSION = 4;
 
 /** Thu 17 Sep 2026: the default "today" for the dev bar and every test. */
 export const DEFAULT_TODAY = '2026-09-17';
 
 function assemble(): SeedData {
-  const programs = [parkRdProgram, seaviewProgram, beattyProgram, duplexTemplateProgram];
+  const programs = [parkRdProgram, seaviewProgram, beattyProgram, hunts12Program, hunts14Program, northRdProgram, duplexTemplateProgram];
   const stepStarts: Record<string, string> = {};
   const stepEnds: Record<string, string> = {};
   for (const s of parkRdProgram.steps) {
@@ -45,19 +47,19 @@ function assemble(): SeedData {
     sides,
     people,
     memberships,
-    jobs: [parkRdJob, seaviewJob, beattyJob, ...designJobs, duplexTemplateJob],
+    jobs: [parkRdJob, seaviewJob, beattyJob, ...designJobs, duplexTemplateJob, hunts12Job, hunts14Job, northRdJob],
     stages: [...programs.flatMap((p) => p.stages), ...designStages],
     steps: programs.flatMap((p) => p.steps),
     stepLinks: programs.flatMap((p) => p.links),
     requirements: programs.flatMap((p) => p.requirements),
-    items: [...parkRdItems, ...seaviewItems, ...beattyItems, ...designItems],
+    items: [...parkRdItems, ...seaviewItems, ...beattyItems, ...designItems, ...eastwoodItems],
     trades,
-    shipments: parkRdShipments,
+    shipments: [...parkRdShipments, ...eastwoodShipments],
     photoCategories: programs.flatMap((p) => p.categories),
     photos: [...parkRdPhotos, ...seaviewPhotos],
-    dailyNotes: [...parkRdNotes, ...seaviewNotes, ...beattyNotes],
+    dailyNotes: [...parkRdNotes, ...seaviewNotes, ...beattyNotes, ...eastwoodNotes],
     snapshots: [...parkRdSnapshots(stepStarts, stepEnds), ...seaviewSnapshots, ...beattySnapshots],
-    activity: [...parkRdActivity, ...seaviewActivity, ...beattyActivity],
+    activity: [...parkRdActivity, ...seaviewActivity, ...beattyActivity, ...eastwoodActivity],
     notifications: [...parkRdNotifications, ...beattyNotifications],
     pushSubscriptions: [],
   };

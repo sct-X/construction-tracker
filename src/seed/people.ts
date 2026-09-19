@@ -8,8 +8,9 @@ export const sides: Side[] = [
 
 /**
  * The real people on the jobs (Cerr Build, NWC Finance, AGA Group,
- * Constructaview). Contact details are placeholders: the site is public, so
- * nobody's real number or email goes in. Alec is a stand-in site person.
+ * Constructaview, Pino on Norm's sites). Contact details are placeholders:
+ * the site is public, so nobody's real number or email goes in. Alec is a
+ * stand-in site person.
  */
 export const people: Person[] = [
   {
@@ -61,6 +62,15 @@ export const people: Person[] = [
     installedToHomeScreen: true,
     testBuzzReceived: false,
   },
+  {
+    id: P.pino,
+    name: 'Pino',
+    shortName: 'Pino',
+    phone: '0400 222 333',
+    notificationsEnabled: true,
+    installedToHomeScreen: false,
+    testBuzzReceived: false,
+  },
 ];
 
 export const memberships: Membership[] = [
@@ -69,7 +79,8 @@ export const memberships: Membership[] = [
   { id: 'm-norm-nd', personId: P.norm, sideId: SIDE_ND, role: 'partner' },
   { id: 'm-raff-nd', personId: P.raff, sideId: SIDE_ND, role: 'builder' },
   { id: 'm-alec-nd', personId: P.alec, sideId: SIDE_ND, role: 'site' },
-  // Dominic and Norm belong to both sides, so they get the side switcher.
+  // Dominic and Norm belong to both sides, so they get the side switcher. Pino runs Norm's sites.
   { id: 'm-dominic-norm', personId: P.dominic, sideId: SIDE_NORM, role: 'admin' },
   { id: 'm-norm-norm', personId: P.norm, sideId: SIDE_NORM, role: 'partner' },
+  { id: 'm-pino-norm', personId: P.pino, sideId: SIDE_NORM, role: 'builder' },
 ];

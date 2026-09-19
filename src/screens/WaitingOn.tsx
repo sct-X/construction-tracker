@@ -3,7 +3,7 @@
  * list of everything that can hold a job up, built for Raff to tick off with
  * a thumb between calls. `#/waiting?owner=me` is his home.
  *
- *   [Mine | Anyone]  [All jobs | Park Rd | ...]  [All types | ...]
+ *   [Anyone v]  [All jobs v]  [All types v]          List | Call
  *
  *   9  Overdue                        <- a plate: the one loud thing
  *   ! Act by Mon 10 Aug, 5 weeks ago      Ordered or booked
@@ -18,8 +18,10 @@
  *
  * Groups are by act-by date (the reminder date): Overdue is act-by passed or
  * the item already late; then this week, next week, later; done items sit
- * collapsed at the foot. Filters are buttons: owner (mine / anyone), job,
- * type; the side is automatic. Every row is the shared <ItemRow> (a link to
+ * collapsed at the foot. Filters are dropdowns: owner (anyone / mine / a
+ * person), job, type; the side is automatic. The Call mode (`?mode=call`,
+ * admin and partners) is the same list worked as a phone call with one
+ * person: their fortnight, one action per row, Finish the call. Every row is the shared <ItemRow> (a link to
  * the item sheet) with one action that moves the status forward, labelled
  * with exactly what it does. The desktop draws the same rows as a table with
  * the extra columns. Alec never reaches this screen (the guard refuses the
@@ -28,6 +30,9 @@
 import { useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
+import { FilterBar, FilterSelect } from '../components/FilterSelect';
+import CallList from './CallList';
+import { WaitingMode } from '../components/WaitingMode';
 import type { Item, ItemType, Job, Person, Trade } from '../domain/types';
 import { ITEM_STATUS_LABELS, ITEM_TYPE_LABELS } from '../domain/types';
 import type { ItemForecast, JobForecast } from '../domain/forecast';
@@ -120,6 +125,7 @@ export default function WaitingOn() {
   const ownerParam = params.get('owner'); // "me" or a person id
   const jobParam = params.get('job');
   const typeParam = params.get('type') as ItemType | null;
+  const callMode = params.get('mode') === 'call' && (role === 'admin' || role === 'partner');
 
   const data = useQuery((api) => {
     const jobs = api.listJobs();
@@ -192,31 +198,23 @@ export default function WaitingOn() {
       ? 'Nothing waiting.'
       : `${openCount} to act on${overdueCount ? `, ${overdueCount} overdue` : ''}${jobFilter ? ` on ${jobFilter.name}` : ''}`;
 
-  const chip = (key: string, label: string, pressed: boolean, onClick: () => void) => (
-    <button key={key} type="button" className="seg__btn" aria-pressed={pressed} onClick={onClick} data-testid={`waiting-filter-${key}`}>
-      {label}
-    </button>
-  );
-
+  const ownerOptions = [
+    { value: '', label: 'Anyone' },
+    { value: 'me', label: 'Mine' },
+    ...(role === 'builder' ? [] : people.filter((p) => p.id !== personId).map((p) => ({ value: p.id, label: p.shortName }))),
+  ];
   const filters = (
-    <div className="waiting__filters" data-testid="waiting-filters">
-      <div className="seg waiting__seg" role="group" aria-label="Owner">
-        {chip('mine', 'Mine', ownerParam === 'me', () => setParam('owner', ownerParam === 'me' ? null : 'me'))}
-        {chip('anyone', 'Anyone', !ownerParam, () => setParam('owner', null))}
-        {role !== 'builder' &&
-          people
-            .filter((p) => p.id !== personId)
-            .map((p) => chip(`owner-${p.id}`, p.shortName, ownerParam === p.id, () => setParam('owner', ownerParam === p.id ? null : p.id)))}
-      </div>
-      <div className="seg waiting__seg" role="group" aria-label="Job">
-        {chip('all-jobs', 'All jobs', !jobParam, () => setParam('job', null))}
-        {jobs.map((j) => chip(`job-${j.id}`, j.name, jobParam === j.id, () => setParam('job', jobParam === j.id ? null : j.id)))}
-      </div>
-      <div className="seg waiting__seg" role="group" aria-label="Type">
-        {chip('all-types', 'All types', !typeParam, () => setParam('type', null))}
-        {typeOrder.map((t) => chip(`type-${t}`, ITEM_TYPE_LABELS[t], typeParam === t, () => setParam('type', typeParam === t ? null : t)))}
-      </div>
-    </div>
+    <FilterBar testId="waiting-filters">
+      <FilterSelect label="Owner" value={ownerParam ?? ''} options={ownerOptions} onChange={(v) => setParam('owner', v || null)} testId="waiting-filter-owner" />
+      <FilterSelect label="Job" value={jobParam ?? ''} options={[{ value: '', label: 'All jobs' }, ...jobs.map((j) => ({ value: j.id, label: j.name }))]} onChange={(v) => setParam('job', v || null)} testId="waiting-filter-job" />
+      <FilterSelect
+        label="Type"
+        value={typeParam ?? ''}
+        options={[{ value: '', label: 'All types' }, ...typeOrder.map((t) => ({ value: t, label: ITEM_TYPE_LABELS[t] }))]}
+        onChange={(v) => setParam('type', v || null)}
+        testId="waiting-filter-type"
+      />
+    </FilterBar>
   );
 
   /** The row's controls: the one filled status button, with Call (a tel: link when the trade has a number) and Set date as quiet text beside it. */
@@ -291,6 +289,8 @@ export default function WaitingOn() {
     </p>
   );
 
+  if (callMode) return <CallList />;
+
   return (
     <main className="page waiting" data-testid="waiting-on">
       <PageHeader
@@ -298,9 +298,12 @@ export default function WaitingOn() {
         meta={meta}
         back={jobFilter ? { to: `/jobs/${jobFilter.id}`, label: jobFilter.name } : undefined}
         actions={
-          <Link to={addHref} className="btn btn--desktop" data-testid="waiting-add">
-            Add item
-          </Link>
+          <>
+            <WaitingMode mode="list" />
+            <Link to={addHref} className="btn btn--desktop" data-testid="waiting-add">
+              Add item
+            </Link>
+          </>
         }
       />
       {filters}

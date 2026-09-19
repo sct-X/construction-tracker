@@ -18,7 +18,7 @@ describe('money and the site role through the API', () => {
     const preview = api.previewEtaChange('sh-park-windows', '2026-11-16');
     expect('costDelta' in preview).toBe(false);
     expect(preview.deltaDays).toBe(14);
-    const everything = JSON.stringify([api.listJobs(), api.getMondayRows(), api.listItems(), api.listActivity(), api.listNotifications()]);
+    const everything = JSON.stringify([api.listJobs(), api.getOverviewRows(), api.listItems(), api.listActivity(), api.listNotifications()]);
     for (const field of MONEY_FIELDS) expect(everything).not.toContain(`"${field}"`);
     expect(everything).not.toContain('$');
     // Alec sees builds only.
@@ -28,9 +28,13 @@ describe('money and the site role through the API', () => {
   it('a partner receives money fields', () => {
     const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dom', today: DEFAULT_TODAY } });
     expect(api.getJob(PARK_RD)!.weeklyHoldingCost).toBe(4500);
-    const rows = api.getMondayRows();
-    expect(rows[0].jobId).toBe(BEATTY); // sorted by slip cost, largest first
-    expect(rows.find((r) => r.jobId === PARK_RD)!.slipCost).toBe(0);
+    const rows = api.getOverviewRows();
+    expect(rows[0].jobId).toBe(PARK_RD); // builds in the side's order
+    const beatty = rows.find((r) => r.jobId === BEATTY)!;
+    expect(beatty.currentStageName).toBe('Rough-in');
+    expect(beatty.nextSteps[0].name).toBe('Rough-in, whole stage');
+    expect(beatty.nextSteps.map((s) => s.name)).toContain('Tiling, whole stage');
+    expect(beatty.nextSteps.find((s) => s.name === 'Tiling, whole stage')!.start).toBe('2026-10-05');
   });
 });
 

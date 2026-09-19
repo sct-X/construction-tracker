@@ -96,7 +96,7 @@ function DesktopChrome({ pathname }: { pathname: string }) {
   const main = useQuery((api) => sidebarMain(api), []);
   const setup = useQuery((api) => sidebarSetup(api), []);
   const jobs = useQuery((api) => api.listJobs(), []);
-  const showJobs = main.some((m) => m.id === 'jobs');
+  const showJobs = main.some((m) => m.id === 'overview');
   return (
     <aside className="sidebar" data-testid="sidebar">
       <div className="sidebar__brand">
@@ -107,7 +107,7 @@ function DesktopChrome({ pathname }: { pathname: string }) {
         {main.map((item) => (
           <div key={item.id}>
             <NavLinkItem item={item} pathname={pathname} className="sidebar__link" />
-            {item.id === 'jobs' && showJobs && jobs.length > 0 && (
+            {item.id === 'overview' && showJobs && jobs.length > 0 && (
               <ul className="sidebar__jobs">
                 {jobs.map((j) => {
                   const here = matchPath('/jobs/:id/*', pathname)?.params.id === j.id || matchPath('/jobs/:id', pathname)?.params.id === j.id;
@@ -178,6 +178,20 @@ export function AppShell() {
     const id = m?.params.id;
     if (id && api.getJob(id)?.kind === 'build') rememberJob(id);
   }, [pathname, api]);
+
+  // Signed out, or on the sign-in page: no chrome, just the page.
+  const bare = !api.signedIn() || pathname === '/sign-in';
+  if (bare) {
+    return (
+      <LayoutContext.Provider value={phone ? 'phone' : 'desktop'}>
+        <div className={`shell shell--bare ${phone ? 'shell--phone' : 'shell--desktop'}`} data-layout={phone ? 'phone' : 'desktop'} style={{ '--above': `${above}px` } as CSSProperties}>
+          <div className="shell__content">
+            <Outlet />
+          </div>
+        </div>
+      </LayoutContext.Provider>
+    );
+  }
 
   return (
     <LayoutContext.Provider value={phone ? 'phone' : 'desktop'}>

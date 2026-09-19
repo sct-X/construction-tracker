@@ -13,28 +13,28 @@ const PEOPLE: { as: string; role: string; home: RegExp; nav: Record<Layout, stri
   {
     as: 'dominic',
     role: 'admin',
-    home: /#\/monday$/,
+    home: /#\/overview$/,
     nav: {
-      phone: ['Monday', 'Waiting on', 'Call list', 'Jobs'],
-      desktop: ['Monday', 'Waiting on', 'Call list', 'Jobs', 'Shipments', 'Notifications', 'Templates and new job', 'Trades', 'People and roles'],
+      phone: ['Overview', 'Waiting on', 'Shipments'],
+      desktop: ['Overview', 'Waiting on', 'Shipments', 'Notifications', 'Templates and new job', 'Trades', 'People and roles'],
     },
   },
   {
     as: 'dom',
     role: 'partner',
-    home: /#\/monday$/,
+    home: /#\/overview$/,
     nav: {
-      phone: ['Monday', 'Waiting on', 'Jobs'],
-      desktop: ['Monday', 'Waiting on', 'Call list', 'Jobs', 'Shipments', 'Notifications', 'Templates and new job', 'Trades'],
+      phone: ['Overview', 'Waiting on', 'Shipments'],
+      desktop: ['Overview', 'Waiting on', 'Shipments', 'Notifications', 'Templates and new job', 'Trades'],
     },
   },
   {
     as: 'norm',
     role: 'partner',
-    home: /#\/monday$/,
+    home: /#\/overview$/,
     nav: {
-      phone: ['Monday', 'Waiting on', 'Jobs'],
-      desktop: ['Monday', 'Waiting on', 'Call list', 'Jobs', 'Shipments', 'Notifications', 'Templates and new job', 'Trades'],
+      phone: ['Overview', 'Waiting on', 'Shipments'],
+      desktop: ['Overview', 'Waiting on', 'Shipments', 'Notifications', 'Templates and new job', 'Trades'],
     },
   },
   {
@@ -42,8 +42,8 @@ const PEOPLE: { as: string; role: string; home: RegExp; nav: Record<Layout, stri
     role: 'builder',
     home: /#\/waiting\?owner=me$/,
     nav: {
-      phone: ['My items', 'Jobs', '+ Photos', 'Monday'],
-      desktop: ['Monday', 'Waiting on', 'Jobs', 'Shipments', 'Notifications', 'Trades'],
+      phone: ['My items', 'Jobs', '+ Photos'],
+      desktop: ['Overview', 'Waiting on', 'Shipments', 'Notifications', 'Trades'],
     },
   },
   {
@@ -83,28 +83,32 @@ test.describe('Shell: navigation and landing per role', () => {
     });
   }
 
-  test('the side switcher shows for Dominic and Norm only', async ({ page }) => {
+  test('the side switcher shows for Dominic and Norm only; nobody else sees a side name at all', async ({ page }) => {
     for (const as of ['dominic', 'norm']) {
-      await page.goto(`#/jobs?as=${as}&side=side-nd`);
+      await page.goto(`#/overview?as=${as}&side=side-nd`);
       await expect(page.getByTestId('side-switcher')).toBeVisible();
     }
     for (const as of ['dom', 'raff', 'alec']) {
-      await page.goto(`#/jobs?as=${as}&side=side-nd`);
+      await page.goto(`#/overview?as=${as}&side=side-nd`);
       await expect(page.getByTestId('side-switcher')).toHaveCount(0);
-      await expect(page.getByTestId('side-name')).toHaveText('Norm and Dom');
+      await expect(page.getByTestId('side-name')).toHaveCount(0);
+      expect(await page.locator('#root').innerText()).not.toContain('Norm and Dom');
     }
   });
 
-  test('the Norm side is empty and invites action', async ({ page }) => {
-    await page.goto('#/jobs?as=norm&side=side-nd');
+  test("the Norm side holds Norm's Eastwood jobs, and Dom cannot reach them", async ({ page }) => {
+    await page.goto('#/overview?as=norm&side=side-nd');
     await expect(page.getByTestId('job-row-park-rd')).toBeVisible();
     await page.getByTestId('side-switcher').selectOption('side-norm');
-    await expect(page.getByTestId('jobs-empty')).toContainText('No jobs on this side yet.');
-    await expect(page.getByTestId('jobs-new')).toBeVisible();
+    for (const id of ['hunts-12', 'hunts-14', 'north-rd']) await expect(page.getByTestId(`job-row-${id}`)).toBeVisible();
     await expect(page.getByTestId('job-row-park-rd')).toHaveCount(0);
+    await expect(page.getByTestId('jobs-new')).toBeVisible();
     // Back, so the persisted session does not leak into other tests.
     await page.getByTestId('side-switcher').selectOption('side-nd');
     await expect(page.getByTestId('job-row-park-rd')).toBeVisible();
+    // Dom is on one side only: the Norm side's jobs are not found for him.
+    await page.goto('#/jobs/hunts-12?as=dom');
+    await expect(page.getByTestId('not-found')).toBeVisible();
   });
 
   test('the offline toggle shows a thin bar, and hides it again', async ({ page }) => {
@@ -123,11 +127,19 @@ test.describe('Shell: navigation and landing per role', () => {
     await expect(page.getByTestId('offline-bar')).toHaveCount(0);
   });
 
-  test('a typed route the role cannot see is refused, Monday for Alec included', async ({ page }) => {
+  test('a typed route the role cannot see is refused, Waiting on for Alec included; old routes forward', async ({ page }) => {
+    await page.goto('#/waiting?as=alec');
+    await expect(page.getByTestId('no-access')).toContainText("You don't have access to this");
+    await page.goto('#/people?as=raff');
+    await expect(page.getByTestId('no-access')).toContainText("You don't have access to this");
+    // Raff can open the old call list address, but gets the plain list: only admin and partners ring people.
     await page.goto('#/calls?as=raff');
-    await expect(page.getByTestId('no-access')).toContainText("You don't have access to this");
-    await page.goto('#/monday?as=alec');
-    await expect(page.getByTestId('no-access')).toContainText("You don't have access to this");
+    await expect(page).toHaveURL(/#\/waiting\?.*mode=call/);
+    await expect(page.getByTestId('waiting-on')).toBeVisible();
+    await expect(page.getByTestId('waiting-mode')).toHaveCount(0);
+    await page.goto('#/monday?as=dominic');
+    await expect(page).toHaveURL(/#\/overview/);
+    await expect(page.getByTestId('overview-screen')).toBeVisible();
     await page.goto('#/nowhere?as=dominic');
     await expect(page.getByTestId('not-found')).toBeVisible();
   });
@@ -169,27 +181,26 @@ test.describe('Shell: navigation and landing per role', () => {
   });
 });
 
-test.describe('Jobs list', () => {
-  test('Dominic sees builds and design jobs with finish, slip, money and freshness words', async ({ page }) => {
-    await page.goto('#/jobs?as=dominic&side=side-nd&today=2026-09-17');
+test.describe('Overview', () => {
+  test('Dominic sees builds and design jobs with stage, next steps, waiting-on and freshness words, and never a date of finish or a dollar', async ({ page }) => {
+    await page.goto('#/overview?as=dominic&side=side-nd&today=2026-09-17');
     for (const id of ['park-rd', 'seaview', 'beatty', 'west-st', 'tollbar', 'lower-beach', 'john-st']) {
       await expect(page.getByTestId(`job-row-${id}`)).toBeVisible();
     }
     const park = page.getByTestId('job-row-park-rd');
-    await expect(park).toContainText('26 Feb 2027');
-    await expect(park).toContainText('$4,500/wk');
+    await expect(park).toContainText('Lock-up');
     await expect(park).toContainText('Last confirmed 2 days ago');
-    const beatty = page.getByTestId('job-row-beatty');
-    await expect(beatty).toContainText('4 Dec 2026');
-    await expect(beatty).toContainText('7 days late');
-    await expect(beatty).toContainText('+5 days this week');
-    await expect(beatty).toContainText('Unconfirmed 9 days');
+    const text = await page.locator('#root').innerText();
+    expect(text).not.toContain('$');
+    expect(text).not.toContain('26 Feb 2027');
+    expect(text).not.toContain('Slip');
     await expect(page.getByTestId('job-row-west-st')).toContainText('2 outstanding, oldest 23 days');
+    await expect(page.getByTestId('overview-stage-west-st')).toContainText('Pending approval');
     await expect(page.getByTestId('jobs-new')).toBeVisible();
   });
 
   test('Alec sees builds only and no money anywhere on the page', async ({ page }) => {
-    await page.goto('#/jobs?as=alec&side=side-nd');
+    await page.goto('#/overview?as=alec&side=side-nd');
     await expect(page.getByTestId('job-row-park-rd')).toBeVisible();
     await expect(page.getByTestId('job-row-west-st')).toHaveCount(0);
     await expect(page.getByTestId('jobs-new')).toHaveCount(0);
@@ -199,8 +210,8 @@ test.describe('Jobs list', () => {
   });
 
   test('tapping a row opens the job', async ({ page }) => {
-    await page.goto('#/jobs?as=raff&side=side-nd');
-    await page.getByTestId('job-row-seaview').click();
+    await page.goto('#/overview?as=raff&side=side-nd');
+    await page.getByTestId('job-row-seaview').click({ position: { x: 5, y: 5 } });
     await expect(page).toHaveURL(/#\/jobs\/seaview$/);
     await expect(page.locator('h1')).toContainText('31 Seaview St');
   });

@@ -1,6 +1,7 @@
 /**
  * `#/` sends each role to the screen it opens the app for: partners and
- * admin to Monday, the builder to My items, the site hand to Today.
+ * admin to the overview, the builder to My items, the site hand to Today.
+ * Nobody signed in goes to the sign-in page.
  *
  * URL params (`?as=raff`) are applied by the provider in an effect after the
  * first render, so this waits until the session matches what the hash asks
@@ -21,5 +22,6 @@ export function Landing() {
     (pending.today !== undefined && pending.today !== session.today) ||
     (pending.offline !== undefined && pending.offline !== session.offline);
   if (waiting) return null;
+  if (!api.signedIn()) return <Navigate to="/sign-in" replace />;
   return <Navigate to={homeFor(session.role, api)} replace />;
 }

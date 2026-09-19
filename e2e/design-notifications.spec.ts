@@ -19,7 +19,7 @@ test.describe('Design checklist as Dominic', () => {
     await expect(page.getByTestId('placeholder')).toHaveCount(0);
     await expect(page.getByTestId('checklist-outstanding')).toContainText('2 outstanding, oldest 23 days');
     await expect(page.getByTestId('checklist-path')).toContainText('DA');
-    await expect(page.getByTestId('checklist-current')).toContainText('with council');
+    await expect(page.getByTestId('checklist-current')).toContainText('pending approval');
 
     // Four DA stages, in order, with the tick state in words on the buttons.
     for (const n of [1, 2, 3, 4]) await expect(page.getByTestId(`checklist-stage-west-st-st-${n}`)).toBeVisible();
@@ -63,7 +63,7 @@ test.describe('Design checklist as Dominic', () => {
     await page.reload();
     await expect(page.getByTestId('checklist-stage-status-west-st-st-2-done')).toHaveAttribute('aria-pressed', 'true');
     await page.getByTestId('checklist-stage-status-west-st-st-2-in_progress').click();
-    await expect(page.getByTestId('checklist-current')).toContainText('with council');
+    await expect(page.getByTestId('checklist-current')).toContainText('pending approval');
     await reset(page);
   });
 
@@ -151,21 +151,21 @@ test.describe('Activity feed as Dominic', () => {
     const all = await page.locator('[data-testid^="activity-act-"]').count();
     expect(all).toBeGreaterThan(8);
 
-    await page.getByTestId('activity-filter-beatty').click();
-    await expect(page.getByTestId('activity-filter-beatty')).toHaveAttribute('aria-pressed', 'true');
+    await page.getByTestId('activity-filter').selectOption('beatty');
+    await expect(page.getByTestId('activity-filter')).toHaveValue('beatty');
     await expect(page.getByTestId('activity-act-pr-8')).toHaveCount(0);
     await expect(page.locator('[data-testid^="activity-act-"]')).toHaveCount(await page.locator('[data-testid^="activity-act-bt-"]').count());
     expect(page.url()).toContain('job=beatty');
 
-    await page.getByTestId('activity-filter-all').click();
+    await page.getByTestId('activity-filter').selectOption('');
     await expect(page.locator('[data-testid^="activity-act-"]')).toHaveCount(all);
 
     // By person: Alec's only seeded entry is the Seaview photos.
-    await page.getByTestId('activity-person-alec').click();
-    await expect(page.getByTestId('activity-person-alec')).toHaveAttribute('aria-pressed', 'true');
+    await page.getByTestId('activity-person').selectOption('alec');
+    await expect(page.getByTestId('activity-person')).toHaveValue('alec');
     await expect(page.locator('[data-testid^="activity-act-"]')).toHaveCount(1);
     await expect(page.getByTestId('activity-act-sv-2')).toContainText('Added 4 photos');
-    await page.getByTestId('activity-person-all').click();
+    await page.getByTestId('activity-person').selectOption('');
     await expect(page.locator('[data-testid^="activity-act-"]')).toHaveCount(all);
   });
 
@@ -173,7 +173,7 @@ test.describe('Activity feed as Dominic', () => {
     await page.goto('#/jobs/west-st?as=dominic&today=2026-09-17');
     await page.getByTestId('checklist-stage-status-west-st-st-2-done').click();
     await page.goto('#/notifications?tab=activity&job=west-st&as=dominic&today=2026-09-17');
-    await expect(page.getByTestId('activity')).toContainText('With council done on 59-61 West St');
+    await expect(page.getByTestId('activity')).toContainText('Pending approval done on 59-61 West St');
     await expect(page.getByTestId('activity')).toContainText('Dominic');
     await reset(page);
   });

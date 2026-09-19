@@ -190,7 +190,7 @@ describe('rule 9: design jobs', () => {
       job: { ...b.job, kind: 'design', path: 'DA' },
       stages: [
         { id: 'd1', sideId: 's', jobId: 'j', name: 'Design', order: 1, status: 'done' },
-        { id: 'd2', sideId: 's', jobId: 'j', name: 'With council', order: 2, status: 'in_progress' },
+        { id: 'd2', sideId: 's', jobId: 'j', name: 'Pending approval', order: 2, status: 'in_progress' },
       ],
       steps: [],
       links: [],
@@ -202,7 +202,7 @@ describe('rule 9: design jobs', () => {
     });
     expect(f.kind).toBe('design');
     expect(f.forecastFinish).toBeUndefined();
-    expect(f.checklist).toMatchObject({ currentStageName: 'With council', outstanding: 2, oldestDays: 23 });
+    expect(f.checklist).toMatchObject({ currentStageName: 'Pending approval', outstanding: 2, oldestDays: 23 });
     expect(f.checklist!.outstandingItems[0].title).toBe('Traffic report');
   });
 });

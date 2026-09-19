@@ -1,5 +1,5 @@
 /**
- * Call list (UI_PLAN 3.11): Dominic's script for ringing Raff.
+ * The Call mode of Waiting on (UI_PLAN 3.11): Dominic's script for ringing Raff.
  *
  * Pick who you're ringing (buttons, Raff by default). The list is everything
  * that person owns that is still to do or ordered-or-booked with an act-by
@@ -22,13 +22,14 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { Item, ItemStatus, Job, Person, Step, Trade } from '../domain/types';
 import type { JobForecast } from '../domain/forecast';
-import { addCalendarWeeks, calendarDaysBetween, formatDelta, formatLong, formatShort } from '../domain/dates';
+import { addCalendarWeeks, formatShort } from '../domain/dates';
 import { CallItem, type Handled } from '../components/CallItem';
 import { nextStatus } from '../domain/itemFlow';
-import { Money } from '../components/Money';
 import { StatusText, type Tone } from '../components/StatusText';
 import { useLayout } from '../shell/AppShell';
 import { PageHeader } from '../shell/PageHeader';
+import { FilterSelect } from '../components/FilterSelect';
+import { WaitingMode } from '../components/WaitingMode';
 import './callList.css';
 
 interface Data {
@@ -198,43 +199,18 @@ export default function CallList() {
   const touched = (jobId: string) => changedIds(jobId).size;
 
   // ---- actions, each writing through the api and folding the row in words ----
-  const finishMoveWords = (jobId: string, before?: JobForecast): ReactNode => {
-    const after = api.getForecast(jobId);
-    if (!before?.forecastFinish || !after?.forecastFinish) return null;
-    const delta = calendarDaysBetween(before.forecastFinish, after.forecastFinish);
-    const name = shortJob(groups.find((g) => g.job.id === jobId)?.job.name ?? '');
-    if (delta === 0) return ` ${name} finish doesn't move.`;
-    const cost = before.slipCost !== undefined && after.slipCost !== undefined ? after.slipCost - before.slipCost : undefined;
-    return (
-      <span className="calls__moved" data-testid={`call-moved-${jobId}`}>
-        {' '}
-        {name} finish moves {formatDelta(delta)}
-        {cost !== undefined && cost !== 0 ? (
-          <>
-            , <Money value={Math.abs(cost)} />
-          </>
-        ) : null}
-        , now {formatShort(after.forecastFinish)}.
-      </span>
-    );
-  };
-
   const advance = (item: Item, status: ItemStatus, confirmedFor?: string) => {
-    const before = api.getForecast(item.jobId);
     if (status === 'confirmed' && confirmedFor && confirmedFor !== item.expectedDate) api.setItemExpectedDate(item.id, confirmedFor);
     api.updateItemStatus(item.id, status);
     // The folded sentence uses the button's own words ("Mark requested" -> "requested"), so the flow reads the same everywhere.
     const label = (nextStatus(item)?.label ?? 'Mark done').replace(/^Mark /, '').toLowerCase();
     const words = `${label}${status === 'confirmed' && confirmedFor ? ` for ${formatShort(confirmedFor)}` : ''}`;
-    const moved = status === 'confirmed' && confirmedFor ? finishMoveWords(item.jobId, before) : null;
-    setHandled((h) => ({ ...h, [item.id]: { item, words: <>{words}{moved}</> } }));
+    setHandled((h) => ({ ...h, [item.id]: { item, words: <>{words}</> } }));
   };
 
   const setExpected = (item: Item, date: string) => {
-    const before = api.getForecast(item.jobId);
     api.setItemExpectedDate(item.id, date);
-    const moved = finishMoveWords(item.jobId, before);
-    setHandled((h) => ({ ...h, [item.id]: { item, words: <>expected {item.expectedDate ? 'moved' : 'set'} to {formatShort(date)}.{moved}</> } }));
+    setHandled((h) => ({ ...h, [item.id]: { item, words: <>expected {item.expectedDate ? 'moved' : 'set'} to {formatShort(date)}.</> } }));
   };
 
   const setNote = (item: Item, text: string) => {
@@ -325,35 +301,35 @@ export default function CallList() {
   return (
     <main className="page calls" data-testid="call-list">
       <PageHeader
-        title="Call list"
+        title="Waiting on"
         meta={<span data-testid="calls-count">{meta}</span>}
         actions={
-          // On the phone the button sits at the foot of the script, where the call ends.
-          person && !summary && !phone ? (
-            <button type="button" className="btn btn--primary btn--desktop" onClick={openFinish} disabled={finishing} data-testid="calls-finish">
-              Finish call
-            </button>
-          ) : undefined
+          <>
+            <WaitingMode mode="call" />
+            {/* On the phone the button sits at the foot of the script, where the call ends. */}
+            {person && !summary && !phone ? (
+              <button type="button" className="btn btn--primary btn--desktop" onClick={openFinish} disabled={finishing} data-testid="calls-finish">
+                Finish call
+              </button>
+            ) : null}
+          </>
         }
       />
 
       <div className="calls__body">
         <aside className="calls__people" aria-label="Who are you ringing">
-          <h2 className="calls__people-title">Ringing</h2>
-          <ul className="calls__people-list" data-testid="calls-people">
-            {data.people.map((p) => {
+          <FilterSelect
+            label="Ringing"
+            labelShown
+            className="calls__pick"
+            value={person?.id ?? ''}
+            onChange={(id) => id && pickPerson(id)}
+            testId="calls-person"
+            options={data.people.map((p) => {
               const n = countFor(p.id);
-              const on = p.id === person?.id;
-              return (
-                <li key={p.id}>
-                  <button type="button" className="calls__person" aria-pressed={on} onClick={() => pickPerson(p.id)} data-testid={`calls-person-${p.id}`}>
-                    <span className="calls__person-name">{p.shortName}</span>
-                    <span className="calls__person-count num">{n === 0 ? 'nothing' : `${n} item${n === 1 ? '' : 's'}`}</span>
-                  </button>
-                </li>
-              );
+              return { value: p.id, label: `${p.shortName}, ${n === 0 ? 'nothing' : `${n} item${n === 1 ? '' : 's'}`}` };
             })}
-          </ul>
+          />
           <label className="calls__scope">
             <input type="checkbox" checked={everything} onChange={(e) => setParam('scope', e.target.checked ? 'all' : null)} data-testid="calls-scope" />
             <span>All open items</span>
@@ -393,8 +369,8 @@ export default function CallList() {
                 <button type="button" className="btn btn--desktop" onClick={anotherCall} data-testid="calls-again">
                   Start another call
                 </button>
-                <Link to="/monday" className="calls__summary-link">
-                  Monday
+                <Link to="/overview" className="calls__summary-link">
+                  Overview
                 </Link>
               </p>
             </section>
@@ -426,16 +402,8 @@ export default function CallList() {
                               {fresh.text}
                             </StatusText>
                           )}
-                          <Money value={g.job.weeklyHoldingCost} label="Holding" suffix="/wk" className="calls__job-holding" testId={`calls-holding-${g.job.id}`} />
                         </p>
                       </div>
-                      {g.forecast?.forecastFinish && (
-                        <p className={`calls__job-finish${g.forecast.isLate ? ' calls__job-finish--late' : ''}`} data-testid={`calls-finish-${g.job.id}`}>
-                          <span className="calls__job-finish-label">Finish </span>
-                          <span className="calls__job-finish-date num">{formatLong(g.forecast.forecastFinish)}</span>
-                          {g.forecast.isLate ? <span className="calls__job-finish-late">, {g.forecast.lateDays} days late</span> : null}
-                        </p>
-                      )}
                     </header>
                     {g.items.length === 0 && done.length === 0 ? (
                       <p className="calls__quiet" data-testid={`calls-nothing-${g.job.id}`}>

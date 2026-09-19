@@ -1,25 +1,21 @@
 /*
-  Monday screen: the readout.
+  Overview: the readout without the dial.
 
-  Each build is one row of an instrument face: the forecast finish and the
-  slip are the readout digits (32px on the desktop, 30px on the phone), set
-  in the display face; the job name, holding cost, three waiting-on lines and
-  the freshness words are the quiet engraving around them. On the desktop the
+  Each job is one row: the name and stage engraved on the left, then the next
+  steps, the top waiting-on lines and the freshness words. On the desktop the
   rows sit on the ground with hairlines between them and lift to the plate
   tone on hover; on the phone each job is a plate. Design jobs are a second,
-  plainer readout underneath.
-
-  Orange appears nowhere here except the focus ring: nothing on this screen
-  is a thumb's target.
+  plainer readout underneath. Orange appears nowhere here except the focus
+  ring and the New job button.
 */
-.monday {
+.overview {
   max-width: var(--content-max);
   margin: 0 auto;
   padding: var(--space-5) var(--gutter) var(--space-16);
 }
 
 /* Header ------------------------------------------------------------------ */
-.monday__head {
+.overview__head {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -27,83 +23,56 @@
   gap: var(--space-4) var(--space-6);
   margin-bottom: var(--space-6);
 }
-.monday__title {
+.overview__title {
   font-family: var(--font-display);
   font-weight: var(--weight-display);
   font-size: var(--text-xl); /* a step below the row figures: numbers lead */
   line-height: var(--leading-tight);
   letter-spacing: var(--tracking-display);
 }
-.monday__week {
-  margin-top: var(--space-1);
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-}
-.monday__since {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-size: var(--text-sm);
-}
-.monday__since-label {
-  color: var(--text-muted);
-}
-
 /* Groups ------------------------------------------------------------------ */
-.monday__group + .monday__group {
+.overview__group + .overview__group {
   margin-top: var(--space-12);
 }
-.monday__group-title {
+.overview__group-title {
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--text-muted);
   margin-bottom: var(--space-3);
 }
-.monday__empty {
+.overview__empty {
   padding: var(--space-8) 0;
   color: var(--text-secondary);
 }
 
 /* Shared cell pieces -------------------------------------------------------- */
-.monday__job {
+.overview__job {
   font-size: var(--text-lg);
   font-weight: var(--weight-medium);
   color: var(--text);
   text-decoration: none;
 }
-.monday__job:hover {
+.overview__job:hover {
   text-decoration: underline;
   text-decoration-color: var(--line-strong);
 }
-.monday__stage {
+.overview__stage {
   display: block;
   font-size: var(--text-sm);
   font-weight: var(--weight-regular);
   color: var(--text-muted);
 }
-.monday__slip-link {
-  display: inline-block;
-  color: inherit;
-  text-decoration: none;
-  border-radius: var(--radius-sm);
-}
-.monday__slip-link:hover .bignumber__value {
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 6px;
-  text-decoration-color: var(--line-strong);
-}
-.monday__quiet {
+.overview__quiet {
   color: var(--text-muted);
 }
 
-.monday__waiting {
+.overview__waiting {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
   font-size: var(--text-sm);
 }
-.monday__item-link {
+.overview__item-link {
   display: grid;
   grid-template-columns: 0.9em minmax(0, 1fr) auto;
   column-gap: var(--space-2);
@@ -112,33 +81,33 @@
   text-decoration: none;
   min-height: 24px;
 }
-.monday__item-link:hover .monday__item-title {
+.overview__item-link:hover .overview__item-title {
   text-decoration: underline;
   text-decoration-color: var(--line-strong);
 }
-.monday__item--late .monday__item-link {
+.overview__item--late .overview__item-link {
   color: var(--late-ink);
 }
-.monday__flag {
+.overview__flag {
   display: inline-block;
   width: 0.9em;
   font-weight: var(--weight-bold);
   text-align: center;
 }
-.monday__item-title {
+.overview__item-title {
   color: var(--text);
   font-weight: var(--weight-medium);
 }
-.monday__item--late .monday__item-title {
+.overview__item--late .overview__item-title {
   color: var(--late-ink);
 }
-.monday__item-body {
+.overview__item-body {
   min-width: 0;
 }
-.monday__item-detail {
+.overview__item-detail {
   white-space: normal;
 }
-.monday__with-you {
+.overview__with-you {
   align-self: start;
   margin-top: 1px;
   padding: 1px var(--space-2);
@@ -150,88 +119,74 @@
   white-space: nowrap;
 }
 
-.monday__fresh {
+.overview__fresh {
   white-space: normal; /* the table's last column wraps rather than widening the table */
 }
 
 /* Desktop table ------------------------------------------------------------ */
-.monday__table th,
-.monday__table td {
+.overview__table th,
+.overview__table td {
   padding-top: var(--space-5);
   padding-bottom: var(--space-5);
 }
-.monday__table thead th {
+.overview__table thead th {
   padding-top: var(--space-2);
   padding-bottom: var(--space-2);
 }
-.monday__table th:first-child,
-.monday__table td:first-child {
+.overview__table th:first-child,
+.overview__table td:first-child {
   padding-left: var(--space-3);
 }
-.monday__table th:last-child,
-.monday__table td:last-child {
+.overview__table th:last-child,
+.overview__table td:last-child {
   padding-right: var(--space-3);
 }
-.monday__table tbody tr {
+.overview__table tbody tr {
   transition: background var(--motion-fast) var(--ease);
 }
 /* The header row already names the columns: the in-cell labels are for the phone. */
-.monday__table .bignumber__label {
-  display: none;
-}
-.monday__table--builds {
+.overview__table--builds {
   table-layout: fixed;
 }
-.monday__table--builds th:nth-child(1) {
-  width: 16%;
+.overview__table--builds th:nth-child(1) {
+  width: 20%;
 }
-.monday__table--builds th:nth-child(2),
-.monday__table--builds th:nth-child(3) {
-  width: 22%;
+.overview__table--builds th:nth-child(2),
+.overview__table--builds th:nth-child(3) {
+  width: 32%;
 }
-.monday__table--builds th:nth-child(5) {
+.overview__table--builds th:nth-child(4) {
   width: 16%; /* "! Last confirmed 9 days ago" on two lines, not three */
 }
-.monday__table--builds .monday__cell-job {
+.overview__table--builds .overview__cell-job {
   padding-right: var(--space-4);
 }
-.monday__holding {
-  display: block;
-  margin-top: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
-.monday__table--builds .monday__cell-finish,
-.monday__table--builds .monday__cell-slip {
-  white-space: nowrap;
+.overview__table--builds .overview__cell-next,
+.overview__table--builds .overview__cell-waiting {
   padding-right: var(--space-4);
 }
-.monday__table--builds .monday__cell-waiting,
-.monday__table--builds .monday__cell-fresh {
-  padding-top: calc(var(--space-5) + 6px);
-}
-.monday__table--design .monday__cell-job {
+.overview__table--design .overview__cell-job {
   width: 22%;
 }
-.monday__table--design .monday__cell-stage {
+.overview__table--design .overview__cell-stage {
   width: 18%;
   color: var(--text-secondary);
 }
-.monday__table--design .monday__cell-outstanding {
+.overview__table--design .overview__cell-outstanding {
   color: var(--text);
 }
-.monday__outstanding-detail {
+.overview__outstanding-detail {
   display: block;
   color: var(--text-muted);
 }
 
 /* Phone cards ---------------------------------------------------------------- */
-.monday__cards {
+.overview__cards {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
-.monday__card {
+.overview__card {
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -241,53 +196,94 @@
   border-radius: var(--radius-lg);
   transition: background var(--motion-fast) var(--ease);
 }
-.monday__card:active {
+.overview__card:active {
   background: var(--raised);
 }
-.monday__card-head {
+.overview__card-head {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0 var(--space-3);
 }
-.monday__card-figures {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-8);
-}
-.monday__card > .money {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin-top: calc(-1 * var(--space-2));
-}
-.monday__card .monday__waiting {
+.overview__card .overview__waiting {
   gap: var(--space-1);
 }
-.monday__card .monday__item-link {
+.overview__card .overview__item-link {
   min-height: 32px;
   align-content: center;
 }
-.monday__card--design {
+.overview__card--design {
   gap: var(--space-1);
 }
-.monday__outstanding {
+.overview__outstanding {
   font-size: var(--text-sm);
   color: var(--text);
 }
 
 @media (max-width: 767.98px) {
-  .monday {
+  .overview {
     padding-top: var(--space-4);
   }
-  .monday__head {
+  .overview__head {
     gap: var(--space-3);
   }
-  .monday__since {
-    width: 100%;
-    justify-content: space-between;
-  }
-  .monday__card-figures {
-    flex-direction: column;
-    gap: var(--space-3);
-  }
+}
+
+/* Next steps ---------------------------------------------------------------- */
+.overview__steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+.overview__step-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-3);
+  align-items: baseline;
+  color: var(--text-secondary);
+  text-decoration: none;
+  min-height: 24px;
+}
+.overview__step-link:hover .overview__step-name {
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+}
+.overview__step-name {
+  color: var(--text);
+  font-weight: var(--weight-medium);
+}
+.overview__step--running .overview__step-name::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: var(--space-2);
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+}
+.overview__step-when {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.overview__path {
+  margin-left: var(--space-2);
+  color: var(--text-muted);
+}
+.overview__card-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.overview__card-label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.overview__card .overview__step-link {
+  min-height: 32px;
+  align-content: center;
 }

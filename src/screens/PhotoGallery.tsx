@@ -27,6 +27,7 @@ import { formatLong, formatShort, formatTime } from '../domain/dates';
 import { StatusText } from '../components/StatusText';
 import NotFound from './NotFound';
 import { PageHeader } from '../shell/PageHeader';
+import { FilterBar, FilterSelect } from '../components/FilterSelect';
 import { useLayout } from '../shell/AppShell';
 import './photoGallery.css';
 
@@ -126,12 +127,6 @@ export default function PhotoGallery() {
     setParam('photo', null);
   };
 
-  const chip = (key: string, label: string, active: boolean, onClick: () => void, testId: string) => (
-    <button key={key} type="button" className="gallery__chip" aria-pressed={active} onClick={onClick} data-testid={testId}>
-      {label}
-    </button>
-  );
-
   return (
     <main className="page gallery" data-testid="gallery">
       <PageHeader
@@ -145,29 +140,36 @@ export default function PhotoGallery() {
         }
       />
 
-      <div className="gallery__filters" role="group" aria-label="Stage">
-        {chip('all', 'All stages', stageFilter === 'all', () => setParam('stage', null), 'gallery-filter-all')}
-        {groups.map((g) => chip(g.id, g.name, stageFilter === g.id, () => setParam('stage', g.id), `gallery-filter-${g.id}`))}
-      </div>
-      {(uploaders.length > 1 || layout === 'desktop') && (
-        <div className="gallery__filters gallery__filters--who" role="group" aria-label="Uploaded by">
-          {uploaders.length > 1 && (
-            <>
-              {chip('anyone', 'Anyone', byFilter === 'anyone', () => setParam('by', null), 'gallery-filter-by-anyone')}
-              {uploaders.map((u) => chip(u.id, u.name, byFilter === u.id, () => setParam('by', u.id), `gallery-filter-by-${u.id}`))}
-            </>
-          )}
-          {layout === 'desktop' && (
-            <label className="gallery__sort">
-              <span className="sr-only">Sort</span>
-              <select value={sort} onChange={(e) => setParam('sort', e.target.value === 'oldest' ? 'oldest' : null)} data-testid="gallery-sort">
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-              </select>
-            </label>
-          )}
-        </div>
-      )}
+      <FilterBar testId="gallery-filters">
+        <FilterSelect
+          label="Stage"
+          value={stageFilter === 'all' ? '' : stageFilter}
+          options={[{ value: '', label: 'All stages' }, ...groups.map((g) => ({ value: g.id, label: g.name }))]}
+          onChange={(v) => setParam('stage', v || null)}
+          testId="gallery-filter"
+        />
+        {uploaders.length > 1 && (
+          <FilterSelect
+            label="Uploaded by"
+            value={byFilter === 'anyone' ? '' : byFilter}
+            options={[{ value: '', label: 'Anyone' }, ...uploaders.map((u) => ({ value: u.id, label: u.name }))]}
+            onChange={(v) => setParam('by', v || null)}
+            testId="gallery-filter-by"
+          />
+        )}
+        {layout === 'desktop' && (
+          <FilterSelect
+            label="Sort"
+            value={sort}
+            options={[
+              { value: 'newest', label: 'Newest first' },
+              { value: 'oldest', label: 'Oldest first' },
+            ]}
+            onChange={(v) => setParam('sort', v === 'oldest' ? 'oldest' : null)}
+            testId="gallery-sort"
+          />
+        )}
+      </FilterBar>
 
       {photos.length === 0 && queued.length === 0 && (
         <p className="gallery__empty" data-testid="gallery-empty">

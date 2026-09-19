@@ -1,24 +1,41 @@
 /**
- * Sign in, as a stub. The prototype has no login: the dev bar at the top of
- * the window sets who you are, what day it is, and whether there is signal.
+ * Sign in: a name, no password. One button per person, with the role they
+ * hold; someone on two sides shows both. Picking a name sets the session and
+ * lands on that person's home. This is also how the view for each person is
+ * checked: sign out from My settings, pick another name.
  */
-import { useSession } from '../data/context';
+import { useNavigate } from 'react-router-dom';
+import { useApi, useQuery } from '../data/context';
 import { ROLE_LABELS } from '../domain/types';
 import './plainPage.css';
+import './signIn.css';
 
 export default function SignIn() {
-  const { person, role, side } = useSession();
+  const api = useApi();
+  const navigate = useNavigate();
+  const options = useQuery((api) => api.listSignIns(), []);
+
+  const pick = (personId: string) => {
+    api.setSession({ personId });
+    navigate('/', { replace: true });
+  };
+
   return (
-    <main className="plain" data-testid="sign-in">
-      <h1 className="plain__title">Sign in</h1>
-      <p className="plain__line">
-        No login in the prototype. The dev bar picks who you are: {person.shortName}, {ROLE_LABELS[role].toLowerCase()} on {side.name}.
-      </p>
-      <p className="plain__action">
-        <a className="btn btn--primary btn--desktop" href="#/" data-testid="sign-in-continue">
-          Open the app as {person.shortName}
-        </a>
-      </p>
+    <main className="plain signin" data-testid="sign-in">
+      <h1 className="plain__title">Who are you?</h1>
+      <p className="plain__line">Pick your name. There is no password in the prototype.</p>
+      <ul className="signin__list">
+        {options.map(({ person, roles }) => (
+          <li key={person.id}>
+            <button type="button" className="signin__person" onClick={() => pick(person.id)} data-testid={`sign-in-as-${person.id}`}>
+              <span className="signin__name">{person.name}</span>
+              <span className="signin__role">
+                {roles.length > 1 ? roles.map((r) => `${ROLE_LABELS[r.role]} on ${r.side.name}`).join(', ') : roles[0] ? ROLE_LABELS[roles[0].role] : 'No side yet'}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
     </main>
   );
 }

@@ -48,7 +48,7 @@ import {
 } from '../domain/dates';
 import { slipCostFor, stripMoney } from '../domain/money';
 import { buildSeed, SEED_VERSION } from '../seed';
-import type { CopyTemplateInput, JobListOptions, Listener, MondayRow, NewPhotoInput, ProgramPreview, ScreenKey, StepStatusResult, TrackerApi } from './api';
+import type { CopyTemplateInput, JobListOptions, Listener, NextStep, NewPhotoInput, OverviewRow, ProgramPreview, ScreenKey, StepStatusResult, TrackerApi } from './api';
 import { NOTIFICATION_PREF_KEYS, SCREEN_ACCESS } from './api';
 import type { NotificationPrefs } from './api';
 import { defaultStorage, type KeyValueStorage } from './storage';
@@ -75,8 +75,8 @@ export interface MockApiOptions {
 }
 
 const DESIGN_STAGES: Record<'DA' | 'CDC', string[]> = {
-  DA: ['Design', 'With council', 'Approved', 'Construction certificate'],
-  CDC: ['Design', 'With certifier', 'Approved'],
+  DA: ['Design', 'Pending approval', 'Approved', 'Construction certificate'],
+  CDC: ['Design', 'Pending approval', 'Approved'],
 };
 
 export function createMockApi(options: MockApiOptions = {}): TrackerApi {
@@ -412,6 +412,20 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
       session = next;
       saveSession(storage, session);
       notify();
+    },
+    signedIn() {
+      return !!session.personId && d().people.some((p) => p.id === session.personId);
+    },
+    listSignIns() {
+      return scoped(
+        d().people.map((person) => ({
+          person,
+          roles: d()
+            .memberships.filter((m) => m.personId === person.id)
+            .map((m) => ({ side: d().sides.find((s) => s.id === m.sideId)!, role: m.role }))
+            .filter((r) => r.side),
+        })),
+      );
     },
     whoami() {
       const person = d().people.find((p) => p.id === session.personId) ?? d().people[0];
@@ -1315,43 +1329,50 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
         .filter((f): f is JobForecast => !!f)
         .map((f) => scoped(f));
     },
-    getMondayRows() {
-      if (!api.canSee('monday')) return [];
-      const rows: MondayRow[] = [];
+    getOverviewRows() {
+      if (!api.canSee('overview')) return [];
+      const rows: OverviewRow[] = [];
       for (const job of visibleJobs()) {
         const f = rawForecast(job.id);
         if (!f) continue;
         const items = d().items.filter((i) => i.jobId === job.id);
         const oldest = f.checklist?.outstandingItems[0];
+        const stageName = new Map(f.stages.map((st) => [st.stageId, st.name]));
+        // The next few steps: anything not done, the running one first, then by start date.
+        const nextSteps: NextStep[] = Object.values(f.steps)
+          .filter((st) => st.status !== 'done')
+          .sort((a, b) => (a.status === 'in_progress' ? -1 : b.status === 'in_progress' ? 1 : 0) || a.forecastStart.localeCompare(b.forecastStart))
+          .slice(0, 3)
+          .map((st) => ({
+            stepId: st.stepId,
+            name: st.name,
+            stageName: stageName.get(st.stageId) ?? '',
+            start: st.forecastStart,
+            status: st.status,
+            isHoldPoint: st.isHoldPoint,
+          }));
+        const nextStage = f.checklist ? f.stages.find((st) => st.status === 'not_started') : undefined;
         rows.push({
           jobId: job.id,
           name: job.name,
           kind: job.kind,
-          forecastFinish: f.forecastFinish,
-          plannedFinish: f.plannedFinish,
-          slipDays: f.slipDays,
-          slipCost: f.slipCost,
-          slipSincePlanDays: f.slipSincePlanDays,
-          slipSincePlanCost: f.slipSincePlanCost,
-          weeklyHoldingCost: job.weeklyHoldingCost,
+          path: job.path,
           freshness: f.freshness,
           currentStageName: f.currentStageName,
+          nextSteps,
           waitingOn: job.kind === 'build' ? topWaitingOn(f, items) : [],
           nextHoldPoint: f.nextHoldPoint,
+          nextStageName: nextStage?.name,
           outstanding: f.checklist?.outstanding,
           oldestDays: f.checklist?.oldestDays,
           oldestItemTitle: oldest?.title,
           oldestItemWaitingOn: oldest?.waitingOn,
         });
       }
+      // Builds first, in the side's own order; design jobs after, the longest-waiting first.
       rows.sort((a, b) => {
         if (a.kind !== b.kind) return a.kind === 'build' ? -1 : 1;
-        if (a.kind === 'build') {
-          const ca = a.slipCost ?? a.slipDays ?? -1;
-          const cb = b.slipCost ?? b.slipDays ?? -1;
-          if (cb !== ca) return cb - ca;
-          return a.name.localeCompare(b.name);
-        }
+        if (a.kind === 'build') return 0;
         return (b.oldestDays ?? -1) - (a.oldestDays ?? -1) || a.name.localeCompare(b.name);
       });
       return scoped(rows);

@@ -206,7 +206,7 @@ export default function ShipmentDetail() {
         </div>
         {preview && job && (
           <>
-            <EtaImpact preview={preview} jobName={job.name} />
+            <EtaImpact preview={preview} />
             <div className="shipment__eta-actions">
               <button type="button" className="btn btn--primary" data-testid="shipment-save-eta" onClick={save} disabled={locked}>
                 Save new ETA

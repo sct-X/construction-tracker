@@ -15,11 +15,11 @@ const EDIT = '#/jobs/park-rd/edit?as=dominic&today=2026-09-17';
 test.describe('Program editor: desktop', () => {
   test.skip(({ viewport }) => (viewport?.width ?? 0) < 768, 'desktop only');
 
-  test('a longer Install windows moves the finish a week, in words, before Save; Monday and Why it moved agree after', async ({ page }) => {
+  test('a longer Install windows moves the steps after it, in words, before Save; the step detail agrees after', async ({ page }) => {
     await page.goto(EDIT);
     await expect(page.getByTestId('editor')).toHaveAttribute('data-layout', 'desktop');
     await expect(page.getByTestId('gantt')).toBeVisible();
-    await expect(page.getByTestId('editor-preview-finish')).toContainText('Fri 26 Feb 2027');
+    await expect(page.getByTestId('editor-preview-finish')).toContainText('Edit a step to see what moves');
     await expect(page.getByTestId('editor-save')).toBeDisabled();
 
     // Bars are buttons in the editor, not links.
@@ -34,43 +34,35 @@ test.describe('Program editor: desktop', () => {
     await expect(page.getByTestId('editor-waits-pr-cladding')).toBeVisible();
     await expect(page.getByTestId('editor-holdpoint')).not.toBeChecked();
 
-    // Five more working days: the preview names both finishes and the delta before anything is saved.
+    // Five more working days: the preview says how many steps move before anything is saved. No finish, no money.
     await page.getByTestId('editor-duration').fill('15');
     await expect(page.getByTestId('editor-derived')).toContainText('Planned Mon 2 Nov to Fri 20 Nov, 15 working days');
-    await expect(page.getByTestId('editor-preview-finish')).toContainText('Fri 26 Feb 2027');
-    await expect(page.getByTestId('editor-preview-finish')).toContainText('Fri 5 Mar 2027');
-    await expect(page.getByTestId('editor-preview-slip')).toContainText('+7 days');
-    await expect(page.getByTestId('editor-preview-slip')).toContainText('$4,500');
+    await expect(page.getByTestId('editor-preview-finish')).toContainText(/\d+ steps would move/);
+    expect(await page.getByTestId('editor-foot').innerText()).not.toMatch(/2027|\$/);
     await expect(page.getByTestId('editor-changes')).toHaveText('1 unsaved change');
-    // The chart already shows the longer bar, but the real forecast has not moved.
-    await page.goto('#/jobs/park-rd/program');
-    await expect(page.getByTestId('program')).toContainText('Fri 26 Feb 2027');
+    // The chart already shows the longer bar, but the real dates have not moved.
+    await page.goto('#/steps/pr-external-doors');
+    await expect(page.getByTestId('step-forecast')).toContainText('Mon 16 Nov 2026');
     await page.goBack();
 
     await page.getByTestId('gantt-bar-pr-install-windows').click();
     await page.getByTestId('editor-duration').fill('15');
     await page.getByTestId('editor-save').click();
     await expect(page.getByTestId('editor-changes')).toContainText('Saved 1 change');
-    await expect(page.getByTestId('editor-preview-finish')).toContainText('Fri 5 Mar 2027');
+    await expect(page.getByTestId('editor-preview-finish')).toContainText('Edit a step to see what moves');
     await expect(page.getByTestId('editor-save')).toBeDisabled();
 
-    // Monday shows the new finish and the slip against the 14 Sep snapshot; Why it moved names the step.
-    await page.goto('#/monday');
-    await expect(page.getByTestId('monday-finish-park-rd')).toContainText('Fri 5 Mar 2027');
-    await expect(page.getByTestId('monday-slip-park-rd')).toContainText('+7 days');
-    await expect(page.getByTestId('monday-slip-park-rd')).toContainText('$4,500');
-    await page.getByTestId('monday-slip-park-rd').click();
-    await expect(page).toHaveURL(/#\/jobs\/park-rd\/why/);
-    await expect(page.getByTestId('why-screen')).toContainText('Install windows ends 20 Nov, not 13 Nov (+7 days)');
-    await expect(page.locator('[data-testid^="why-entry-"]').last()).toContainText("Finish 5 Mar, 7 days later than Monday's snapshot (26 Feb)");
+    // The step after it now starts a week later.
+    await page.goto('#/steps/pr-external-doors');
+    await expect(page.getByTestId('step-forecast')).toContainText('Mon 23 Nov 2026');
 
     // The edit is in the activity feed in the step's words.
     await page.goto('#/notifications?tab=activity&job=park-rd');
     await expect(page.getByTestId('activity')).toContainText('Install windows: duration 10 to 15 days');
 
     await page.getByTestId('dev-reset').click();
-    await page.goto('#/monday');
-    await expect(page.getByTestId('monday-finish-park-rd')).toContainText('Fri 26 Feb 2027');
+    await page.goto('#/steps/pr-external-doors');
+    await expect(page.getByTestId('step-forecast')).toContainText('Mon 16 Nov 2026');
   });
 
   test('a link that would loop is refused in words and nothing changes', async ({ page }) => {
@@ -116,7 +108,7 @@ test.describe('Program editor: desktop', () => {
     await expect(page.getByTestId('editor-duration')).toHaveValue('5');
     // The new step starts after the job's last planned end, so the finish moves with it.
     await expect(page.getByTestId('editor-planned-start')).not.toHaveValue('');
-    await expect(page.getByTestId('editor-preview-slip')).toContainText('+');
+    await expect(page.getByTestId('editor-preview-finish')).toContainText('would move');
     await page.getByTestId('editor-holdpoint').check();
 
     await page.getByTestId('editor-category-add').click();
@@ -150,7 +142,7 @@ test.describe('Program editor: desktop', () => {
     await expect(page.getByTestId('editor-changes')).toHaveText('1 unsaved change');
     await page.getByTestId('editor-save').click();
     await expect(page.getByTestId('editor-changes')).toContainText('Saved 1 change');
-    await expect(page.getByTestId('editor-preview-finish')).toContainText('Fri 26 Feb 2027');
+    await expect(page.getByTestId('editor-preview-finish')).toContainText('Edit a step to see what moves');
 
     await page.getByTestId('dev-reset').click();
     await expect(page.getByTestId('editor-stages').locator('[data-testid^="editor-stage-"]')).toHaveCount(8);
@@ -174,7 +166,7 @@ test.describe('Program editor: desktop', () => {
     await expect(page.getByTestId('editor-panel')).toHaveAttribute('data-kind', 'stage');
     await expect(page.getByTestId('editor-category-add')).toHaveCount(0);
     await expect(page.getByTestId('editor-move-down')).toBeEnabled();
-    await expect(page.getByTestId('editor-preview-finish')).toContainText('A design job has no finish to forecast');
+    await expect(page.getByTestId('editor-preview-finish')).toContainText('A design job has no program dates');
   });
 
   test('offline the editor is read-only, and Raff is refused', async ({ page }) => {

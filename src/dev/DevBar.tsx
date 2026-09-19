@@ -1,21 +1,52 @@
 /**
- * The dev bar stands in for login: person, side, "today is", offline, fire
- * reminders, reset. One quiet strip above the shell, obviously not the app.
- * It collapses to a 24px tag (remembered on this browser) and scrolls
- * sideways on a phone rather than wrapping into three rows.
+ * The dev bar: person, side, "today is", offline, fire reminders, reset. One
+ * quiet strip above the shell, obviously not the app. It collapses to a 24px
+ * tag (remembered on this browser) and scrolls sideways on a phone rather
+ * than wrapping into three rows.
  *
+ * Hidden by default: it appears once the hash carries `?dev=1` (or any
+ * session param such as `as=`), and stays on for this browser after that.
  * Tests drive it through data-testids and through URL params
  * (`#/...?as=alec&today=2026-09-17&offline=1`), so every control stays in
- * the DOM and visible while the bar is open, and it opens by default.
+ * the DOM and visible while the bar is open.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApi, useQuery, useSession } from '../data/context';
 import { ROLE_LABELS } from '../domain/types';
 import { formatLong } from '../domain/dates';
-import { DEFAULT_TODAY } from '../data/session';
+import { DEFAULT_TODAY, hashHasSessionParams } from '../data/session';
 import './devbar.css';
 
 const COLLAPSED_KEY = 'construction-tracker.devbar.collapsed';
+const DEV_KEY = 'construction-tracker.dev';
+
+function readDev(): boolean {
+  try {
+    return localStorage.getItem(DEV_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** True once the hash has asked for the dev bar, remembered on this browser. */
+function useDevMode(): boolean {
+  const [on, setOn] = useState(() => readDev() || hashHasSessionParams(window.location.hash));
+  useEffect(() => {
+    const check = () => {
+      if (!hashHasSessionParams(window.location.hash)) return;
+      setOn(true);
+      try {
+        localStorage.setItem(DEV_KEY, '1');
+      } catch {
+        /* private mode: on for this load only */
+      }
+    };
+    check();
+    window.addEventListener('hashchange', check);
+    return () => window.removeEventListener('hashchange', check);
+  }, []);
+  return on;
+}
 
 function readCollapsed(): boolean {
   try {
@@ -28,12 +59,12 @@ function readCollapsed(): boolean {
 export function DevBar() {
   const api = useApi();
   const session = useSession();
-  const people = useQuery((api) => api.listPeople(), []);
-  const memberships = useQuery((api) => api.listMemberships(), []);
+  const everyone = useQuery((api) => api.listSignIns(), []);
   const [lastFired, setLastFired] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(readCollapsed);
+  const dev = useDevMode();
+  if (!dev) return null;
 
-  const roleOf = (personId: string) => memberships.find((m) => m.personId === personId)?.role;
   const toggle = () => {
     const next = !collapsed;
     setCollapsed(next);
@@ -56,10 +87,11 @@ export function DevBar() {
           <label className="devbar__field">
             <span className="sr-only">As</span>
             <select data-testid="dev-person" value={session.personId} onChange={(e) => session.setSession({ personId: e.target.value })}>
-              {people.map((p) => (
+              <option value="">Signed out</option>
+              {everyone.map(({ person: p, roles }) => (
                 <option key={p.id} value={p.id}>
                   {p.shortName}
-                  {roleOf(p.id) ? ` (${ROLE_LABELS[roleOf(p.id)!].toLowerCase()})` : ''}
+                  {roles[0] ? ` (${ROLE_LABELS[roles[0].role].toLowerCase()})` : ''}
                 </option>
               ))}
             </select>

@@ -20,6 +20,7 @@ import { addCalendarDays, formatLong, formatShort, formatTime } from '../domain/
 import { notificationHref } from '../components/Buzz';
 import { useLayout } from '../shell/AppShell';
 import { PageHeader } from '../shell/PageHeader';
+import { FilterBar, FilterSelect } from '../components/FilterSelect';
 import './notifications.css';
 
 interface Data {
@@ -46,7 +47,7 @@ function byDay<T extends { at: string }>(rows: T[]): { day: string; rows: T[] }[
 
 export default function Notifications() {
   const api = useApi();
-  const { today, side } = useSession();
+  const { today } = useSession();
   const layout = useLayout();
   const [params, setParams] = useSearchParams();
   const jobFilter = params.get('job') ?? '';
@@ -138,42 +139,12 @@ export default function Notifications() {
   const activityPane = showActivity ? (
     <section className="notifications__pane" aria-labelledby="activity-heading" data-testid="activity">
       <h2 id="activity-heading" className={layout === 'phone' ? 'sr-only' : 'notifications__heading'}>
-        Activity on {side.name}
+        Activity
       </h2>
-      <div className="seg notifications__filters" role="group" aria-label="Filter by job">
-        <button type="button" className="seg__btn notifications__chip" aria-pressed={!jobFilter} data-testid="activity-filter-all" onClick={() => setParam('job', null)}>
-          All jobs
-        </button>
-        {jobs.map((j) => (
-          <button
-            key={j.id}
-            type="button"
-            className="seg__btn notifications__chip"
-            aria-pressed={jobFilter === j.id}
-            data-testid={`activity-filter-${j.id}`}
-            onClick={() => setParam('job', j.id)}
-          >
-            {j.name}
-          </button>
-        ))}
-      </div>
-      <div className="seg notifications__filters" role="group" aria-label="Filter by person">
-        <button type="button" className="seg__btn notifications__chip" aria-pressed={!personFilter} data-testid="activity-person-all" onClick={() => setParam('person', null)}>
-          Anyone
-        </button>
-        {people.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            className="seg__btn notifications__chip"
-            aria-pressed={personFilter === p.id}
-            data-testid={`activity-person-${p.id}`}
-            onClick={() => setParam('person', p.id)}
-          >
-            {p.shortName}
-          </button>
-        ))}
-      </div>
+      <FilterBar testId="activity-filters">
+        <FilterSelect label="Job" value={jobFilter ?? ''} options={[{ value: '', label: 'All jobs' }, ...jobs.map((j) => ({ value: j.id, label: j.name }))]} onChange={(v) => setParam('job', v || null)} testId="activity-filter" />
+        <FilterSelect label="Person" value={personFilter ?? ''} options={[{ value: '', label: 'Anyone' }, ...people.map((p) => ({ value: p.id, label: p.shortName }))]} onChange={(v) => setParam('person', v || null)} testId="activity-person" />
+      </FilterBar>
       {activity.length === 0 ? (
         <p className="notifications__empty" data-testid="activity-empty">
           {jobFilter || personFilter ? `Nothing ${personFilter ? `by ${nameOf(personFilter)} ` : ''}${jobFilter ? `on ${jobName(jobFilter) ?? 'this job'} ` : ''}yet.` : 'Nothing yet.'}

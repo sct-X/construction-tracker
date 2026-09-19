@@ -10,12 +10,9 @@
  */
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useSession } from '../data/context';
-import { formatLong } from '../domain/dates';
-import { BigNumber } from '../components/BigNumber';
-import { Gantt, lateText, type GanttView } from '../components/gantt/Gantt';
+import { Gantt, type GanttView } from '../components/gantt/Gantt';
 import { LookAhead } from '../components/gantt/LookAhead';
 import { StagesList, StagesStrip } from '../components/gantt/StagesStrip';
-import { StatusText } from '../components/StatusText';
 import { PageHeader } from '../shell/PageHeader';
 import { useLayout } from '../shell/AppShell';
 import NotFound from './NotFound';
@@ -64,20 +61,7 @@ export default function Program() {
     setParams(next, { replace: true });
   };
 
-  // The finish is the screen's figure: a row-scale readout under the job name, never larger than the title.
-  const finish = forecast?.forecastFinish;
-  const meta = finish ? (
-    <span className="program__finish">
-      <BigNumber size="row" value={formatLong(finish)} label="Forecast finish" tone={forecast.lateDays > 0 ? 'late' : undefined} />
-      {forecast.lateDays > 0 ? (
-        <StatusText tone="late">{lateText(forecast.lateDays)}</StatusText>
-      ) : (
-        <span className="program__onplan">on plan</span>
-      )}
-    </span>
-  ) : (
-    'Program'
-  );
+  const meta = forecast?.currentStageName ? `${forecast.currentStageName} stage` : 'Program';
 
   const showGantt = layout === 'desktop' || viewParam === 'gantt';
   const ganttView: GanttView = viewParam === 'lookahead' || viewParam === 'late' ? viewParam : 'all';

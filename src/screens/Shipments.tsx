@@ -14,7 +14,6 @@ import { useApi, useQuery, useSession } from '../data/context';
 import type { Item, Job, Shipment, ShipmentStatus } from '../domain/types';
 import { SHIPMENT_STATUS_LABELS, SHIPMENT_STATUS_ORDER } from '../domain/types';
 import { calendarDaysBetween, formatDayMonthYear, formatShort, isISODate, minDate } from '../domain/dates';
-import { Money } from '../components/Money';
 import { StatusText, type Tone } from '../components/StatusText';
 import { PageHeader } from '../shell/PageHeader';
 import { useLayout } from '../shell/AppShell';
@@ -191,7 +190,6 @@ function useRowNav() {
 
 function ShipmentTable({ rows }: { rows: ShipmentRow[] }) {
   const go = useRowNav();
-  const showMoney = rows.some((r) => r.job?.weeklyHoldingCost !== undefined);
   return (
     <table className="table table--rows shipments__table">
       <thead>
@@ -202,7 +200,6 @@ function ShipmentTable({ rows }: { rows: ShipmentRow[] }) {
           <th scope="col">ETA</th>
           <th scope="col">Needed by</th>
           <th scope="col">Items</th>
-          {showMoney && <th scope="col">A week late</th>}
         </tr>
       </thead>
       <tbody>
@@ -234,11 +231,6 @@ function ShipmentTable({ rows }: { rows: ShipmentRow[] }) {
               <td className="num" data-testid={`shipment-items-${shipment.id}`}>
                 {itemsWords(items.length)}
               </td>
-              {showMoney && (
-                <td className="shipments__cell-money">
-                  <Money value={job?.weeklyHoldingCost} />
-                </td>
-              )}
             </tr>
           );
         })}
@@ -276,7 +268,6 @@ function ShipmentCards({ rows }: { rows: ShipmentRow[] }) {
                 <span data-testid={`shipment-items-${shipment.id}`}>
                   {itemsWords(items.length)} for {job?.name ?? 'no job'}
                 </span>
-                <Money value={job?.weeklyHoldingCost} label="A week late" className="shipments__card-money" />
               </div>
             </Link>
           </li>

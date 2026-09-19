@@ -1,0 +1,36 @@
+/* Filters: dropdowns in a row, each no wider than its longest option. */
+.filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-6);
+}
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+.filter__label {
+  color: var(--text-muted);
+}
+.filter .filter__select {
+  width: auto;
+  max-width: 100%;
+  min-height: 44px;
+  padding-left: var(--space-3);
+  padding-right: var(--space-9, 2.5rem);
+  font-size: var(--text-sm);
+}
+.shell--phone .filter {
+  flex: 1 1 40%;
+}
+.shell--phone .filter .filter__select {
+  width: 100%;
+  min-height: var(--tap);
+}
+
+/* The List | Call switch sits level with the header's buttons on every width. */
+.page-header__actions .seg {
+  align-self: center;
+}

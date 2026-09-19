@@ -18,7 +18,7 @@ import type { JobForecast } from '../domain/forecast';
 import { ItemRow, ItemRowList } from '../components/ItemRow';
 import { StatusText, type Tone } from '../components/StatusText';
 import { ClockGlyph } from '../components/QueueBadge';
-import { outstandingStatus } from './JobsList';
+import { outstandingWords as overviewOutstanding } from './Overview';
 import { PageHeader } from '../shell/PageHeader';
 import NotFound from './NotFound';
 import './designChecklist.css';
@@ -34,9 +34,9 @@ interface Data {
   people: Person[];
 }
 
-/** "2 outstanding, oldest 23 days" / "Nothing outstanding": the jobs list's own helper, so the two screens always agree. */
+/** "2 outstanding, oldest 23 days" / "Nothing outstanding": the overview's own helper, so the two screens always agree. */
 export function outstandingWords(f?: JobForecast): { count: number; rest: string; tone: Tone } {
-  const { tone, text } = outstandingStatus(f);
+  const { tone, text } = overviewOutstanding(f?.checklist?.outstanding, f?.checklist?.oldestDays);
   const m = /^(\d+) (.*)$/.exec(text);
   return m ? { count: Number(m[1]), rest: m[2], tone } : { count: 0, rest: text, tone };
 }

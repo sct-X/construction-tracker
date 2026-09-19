@@ -11,8 +11,9 @@ function job(id: string, name: string, address: string, path: 'DA' | 'CDC', crea
   return { id, sideId: SIDE_ND, name, address, kind: 'design', path, isTemplate: false, lastConfirmed, createdAt };
 }
 
-const DA_STAGES = ['Design', 'With council', 'Approved', 'Construction certificate'];
-const CDC_STAGES = ['Design', 'With certifier', 'Approved'];
+/** "Pending approval" whichever desk it sits on: council for a DA, the certifier for a CDC. */
+const DA_STAGES = ['Design', 'Pending approval', 'Approved', 'Construction certificate'];
+const CDC_STAGES = ['Design', 'Pending approval', 'Approved'];
 
 function stages(jobId: string, path: 'DA' | 'CDC', doneCount: number): Stage[] {
   const names = path === 'DA' ? DA_STAGES : CDC_STAGES;

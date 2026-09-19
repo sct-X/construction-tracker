@@ -58,25 +58,22 @@ test.describe('Templates and new job', () => {
 
     await page.getByTestId('newjob-name').fill('12 Smith St');
     await page.getByTestId('newjob-path-CDC').click();
-    await page.getByTestId('newjob-holding').fill('3000');
     await page.getByTestId('newjob-start').fill('2026-10-05');
 
-    // The planned finish is shown in words before anything is created.
+    // The program's size is shown in words before anything is created; no finish date, no money.
     const finish = page.getByTestId('newjob-planned-finish');
-    await expect(finish).toContainText('Fri 4 Jun 2027');
-    await expect(finish).toContainText('Planned finish');
     await expect(finish).toContainText('29 steps');
     await expect(finish).toContainText('from Mon 5 Oct 2026');
-    await expect(finish).toContainText('Slip appears after the first Monday');
+    await expect(finish).not.toContainText('Jun 2027');
+    await expect(page.getByTestId('newjob-holding')).toHaveCount(0);
     await expect(page.getByTestId('newjob-from-stage-tpl-st-site')).toHaveAttribute('aria-pressed', 'true');
 
-    // Starting from Lock-up marks four stages done and brings the finish forward; back to the start restores it.
+    // Starting from Lock-up marks four stages done; back to the start restores it.
     await page.getByTestId('newjob-from-stage-tpl-st-lockup').click();
-    await expect(finish).toContainText('Tue 2 Mar 2027');
     await expect(finish).toContainText('4 stages before Lock-up marked done');
     await expect(page.getByTestId('newjob-from-stage-tpl-st-slab')).toHaveAttribute('data-done', 'true');
     await page.getByTestId('newjob-from-stage-tpl-st-site').click();
-    await expect(finish).toContainText('Fri 4 Jun 2027');
+    await expect(finish).toContainText('29 steps');
 
     // Create: the overview opens on the new job.
     await expect(page.getByTestId('newjob-create')).toHaveText('Create 12 Smith St');
@@ -85,24 +82,17 @@ test.describe('Templates and new job', () => {
     await expect(page).toHaveURL(/#\/jobs\/job-[a-z0-9]+$/);
     const jobId = ((await page.evaluate('location.hash')) as string).replace('#/jobs/', '');
     await expect(page.getByTestId('job-overview')).toContainText('12 Smith St');
-    await expect(page.getByTestId('job-overview')).toContainText('Fri 4 Jun 2027');
+    await expect(page.getByTestId('job-stage')).toContainText('Site establishment');
 
-    // Jobs list: forecast = planned, no slip yet.
-    await page.goto('#/jobs');
+    // Overview: the new job with its stage and first steps, confirmed today.
+    await page.goto('#/overview');
     const row = page.getByTestId(`job-row-${jobId}`);
     await expect(row).toBeVisible();
     await expect(row).toContainText('12 Smith St');
-    await expect(row).toContainText('4 Jun 2027');
-    await expect(row).toContainText('On plan');
-    await expect(row).toContainText('Slip appears after the first Monday');
-    await expect(row).toContainText('$3,000/wk');
+    await expect(row).toContainText('Site setup and fencing');
+    await expect(row).toContainText('Mon 5 Oct');
     await expect(row).toContainText('Last confirmed today');
-
-    // Monday: the same.
-    await page.goto('#/monday');
-    await expect(page.getByTestId(`monday-row-${jobId}`)).toBeVisible();
-    await expect(page.getByTestId(`monday-finish-${jobId}`)).toContainText('Fri 4 Jun 2027');
-    await expect(page.getByTestId(`monday-slip-${jobId}`)).toContainText('Slip appears after the first Monday');
+    expect(await row.innerText()).not.toContain('$');
 
     // The program has the template's steps, dated from 5 Oct.
     await page.goto(`#/jobs/${jobId}/program`);
@@ -114,7 +104,7 @@ test.describe('Templates and new job', () => {
     expect(stepCount).toBeGreaterThan(0);
 
     await reset(page);
-    await page.goto('#/jobs');
+    await page.goto('#/overview');
     await expect(page.getByTestId(`job-row-${jobId}`)).toHaveCount(0);
   });
 
@@ -127,7 +117,7 @@ test.describe('Templates and new job', () => {
     await page.getByTestId('newjob-create').click();
     await expect(page).toHaveURL(/#\/jobs\/job-[a-z0-9]+$/);
     await expect(page.getByTestId('checklist')).toBeVisible();
-    await expect(page.getByTestId('checklist')).toContainText('With council');
+    await expect(page.getByTestId('checklist')).toContainText('Pending approval');
     await expect(page.getByTestId('checklist')).toContainText('Construction certificate');
     await reset(page);
   });

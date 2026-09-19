@@ -21,7 +21,7 @@ export function homeFor(role: Role, api: TrackerApi): string {
   switch (role) {
     case 'admin':
     case 'partner':
-      return '/monday';
+      return '/overview';
     case 'builder':
       return '/waiting?owner=me';
     case 'site': {
@@ -38,24 +38,22 @@ export function phoneTabs(role: Role, api: TrackerApi): NavItem[] {
   const all: Record<Role, NavItem[]> = {
     site: [
       { id: 'today', label: 'Today', to: jobPath, screen: 'job', match: jobId ? [`/jobs/${jobId}`] : [] },
-      { id: 'jobs', label: 'Jobs', to: '/jobs', screen: 'jobs', match: ['/jobs'] },
+      { id: 'overview', label: 'Jobs', to: '/overview', screen: 'overview', match: ['/overview', '/jobs'] },
     ],
     builder: [
       { id: 'waiting', label: 'My items', to: '/waiting?owner=me', screen: 'waiting', match: ['/waiting', '/items'] },
-      { id: 'jobs', label: 'Jobs', to: '/jobs', screen: 'jobs', match: ['/jobs'] },
+      { id: 'overview', label: 'Jobs', to: '/overview', screen: 'overview', match: ['/overview', '/jobs'] },
       { id: 'upload', label: '+ Photos', to: `${jobPath}/upload`, screen: 'upload', match: [`${jobPath}/upload`, '/queue'] },
-      { id: 'monday', label: 'Monday', to: '/monday', screen: 'monday', match: ['/monday'] },
     ],
     partner: [
-      { id: 'monday', label: 'Monday', to: '/monday', screen: 'monday', match: ['/monday'] },
+      { id: 'overview', label: 'Overview', to: '/overview', screen: 'overview', match: ['/overview', '/jobs'] },
       { id: 'waiting', label: 'Waiting on', to: '/waiting', screen: 'waiting', match: ['/waiting', '/items'] },
-      { id: 'jobs', label: 'Jobs', to: '/jobs', screen: 'jobs', match: ['/jobs'] },
+      { id: 'shipments', label: 'Shipments', to: '/shipments', screen: 'shipments', match: ['/shipments'] },
     ],
     admin: [
-      { id: 'monday', label: 'Monday', to: '/monday', screen: 'monday', match: ['/monday'] },
+      { id: 'overview', label: 'Overview', to: '/overview', screen: 'overview', match: ['/overview', '/jobs'] },
       { id: 'waiting', label: 'Waiting on', to: '/waiting', screen: 'waiting', match: ['/waiting', '/items'] },
-      { id: 'calls', label: 'Call list', to: '/calls', screen: 'calls', match: ['/calls'] },
-      { id: 'jobs', label: 'Jobs', to: '/jobs', screen: 'jobs', match: ['/jobs'] },
+      { id: 'shipments', label: 'Shipments', to: '/shipments', screen: 'shipments', match: ['/shipments'] },
     ],
   };
   return all[role].filter((t) => !t.screen || api.canSee(t.screen));
@@ -64,10 +62,8 @@ export function phoneTabs(role: Role, api: TrackerApi): NavItem[] {
 /** Desktop sidebar, main group. */
 export function sidebarMain(api: TrackerApi): NavItem[] {
   const items: NavItem[] = [
-    { id: 'monday', label: 'Monday', to: '/monday', screen: 'monday', match: ['/monday'] },
+    { id: 'overview', label: 'Overview', to: '/overview', screen: 'overview', match: ['/overview', '/jobs', '/steps'] },
     { id: 'waiting', label: 'Waiting on', to: '/waiting', screen: 'waiting', match: ['/waiting', '/items'] },
-    { id: 'calls', label: 'Call list', to: '/calls', screen: 'calls', match: ['/calls'] },
-    { id: 'jobs', label: 'Jobs', to: '/jobs', screen: 'jobs', match: ['/jobs', '/steps'] },
     { id: 'shipments', label: 'Shipments', to: '/shipments', screen: 'shipments', match: ['/shipments'] },
     { id: 'activity', label: 'Notifications', to: '/notifications', screen: 'activity', match: ['/notifications'] },
   ];

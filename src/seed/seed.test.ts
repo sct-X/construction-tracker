@@ -259,8 +259,8 @@ describe('Beatty St', () => {
 
 describe('Design jobs (rule 9)', () => {
   const expected: Record<string, { stage: string; outstanding: number; oldest: number | null }> = {
-    'west-st': { stage: 'With council', outstanding: 2, oldest: 23 },
-    tollbar: { stage: 'With council', outstanding: 1, oldest: 8 },
+    'west-st': { stage: 'Pending approval', outstanding: 2, oldest: 23 },
+    tollbar: { stage: 'Pending approval', outstanding: 1, oldest: 8 },
     'lower-beach': { stage: 'Design', outstanding: 0, oldest: null },
     'john-st': { stage: 'Design', outstanding: 1, oldest: 4 },
   };
@@ -304,11 +304,20 @@ describe('the rest of the mock data', () => {
     for (const p of seed.photos) expect(p.dataUrl.startsWith('data:image/svg+xml')).toBe(true);
   });
 
-  it('the Norm side is empty', () => {
+  it("the Norm side holds Norm's three Eastwood builds, with Pino on the trades", () => {
     expect(seed.sides.map((s) => s.id)).toContain(SIDE_NORM);
-    expect(seed.jobs.filter((j) => j.sideId === SIDE_NORM)).toHaveLength(0);
-    expect(seed.items.filter((i) => i.sideId === SIDE_NORM)).toHaveLength(0);
-    expect(seed.trades.filter((t) => t.sideId === SIDE_NORM)).toHaveLength(0);
+    const jobs = seed.jobs.filter((j) => j.sideId === SIDE_NORM);
+    expect(jobs.map((j) => j.name).sort()).toEqual(['12 Hunts Ave', '14 Hunts Ave', '232 North Rd']);
+    const items = seed.items.filter((i) => i.sideId === SIDE_NORM);
+    expect(items.length).toBeGreaterThan(10);
+    expect(items.every((i) => jobs.some((j) => j.id === i.jobId))).toBe(true);
+    expect(items.filter((i) => i.type === 'trade').every((i) => i.ownerId === 'pino')).toBe(true);
+    const trades = seed.trades.filter((t) => t.sideId === SIDE_NORM);
+    expect(trades.length).toBeGreaterThan(5);
+    for (const i of items) if (i.tradeId) expect(trades.some((t) => t.id === i.tradeId)).toBe(true);
+    // Nothing on the Norm side leaks a Norm and Dom id, and vice versa.
+    for (const s of seed.steps.filter((x) => x.sideId === SIDE_NORM)) expect(jobs.some((j) => j.id === s.jobId)).toBe(true);
+    for (const f of forecastJob(bundleFor('hunts-12')).stages) expect(typeof f.name).toBe('string');
   });
 
   it('the duplex template has no dates and the same steps as Park Rd', () => {
@@ -318,13 +327,14 @@ describe('the rest of the mock data', () => {
     expect(seed.jobs.find((j) => j.id === 'tpl-duplex')!.isTemplate).toBe(true);
   });
 
-  it('people and memberships: Dominic admin, Dom and Norm partners, Raff builder, Alec site', () => {
+  it('people and memberships: Dominic admin, Dom and Norm partners, Raff builder, Alec site, Pino builds for Norm', () => {
     const role = (p: string) => seed.memberships.find((m) => m.personId === p && m.sideId === 'side-nd')!.role;
     expect(role('dominic')).toBe('admin');
     expect(role('dom')).toBe('partner');
     expect(role('norm')).toBe('partner');
     expect(role('raff')).toBe('builder');
     expect(role('alec')).toBe('site');
-    expect(seed.memberships.filter((m) => m.sideId === SIDE_NORM).map((m) => m.personId).sort()).toEqual(['dominic', 'norm']);
+    expect(seed.memberships.filter((m) => m.sideId === SIDE_NORM).map((m) => m.personId).sort()).toEqual(['dominic', 'norm', 'pino']);
+    expect(seed.memberships.find((m) => m.personId === 'pino' && m.sideId === SIDE_NORM)!.role).toBe('builder');
   });
 });

@@ -30,6 +30,10 @@
   order: 2;
   flex: 1 0 auto;
 }
+/* Signed out: the sign-in page alone, one column, no sidebar. */
+.shell--bare.shell--desktop {
+  grid-template-columns: minmax(0, 1fr);
+}
 .shell__content {
   min-width: 0;
 }

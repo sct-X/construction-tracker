@@ -108,11 +108,11 @@ test.describe('Photo gallery', () => {
     await expect(page.getByTestId('gallery-upload-pr-pc-lockup-windows')).toHaveAttribute('href', '#/jobs/park-rd/upload?stage=pr-st-lockup&category=pr-pc-lockup-windows');
     await expect(page.getByTestId('gallery-upload')).toHaveAttribute('href', '#/jobs/park-rd/upload?stage=pr-st-lockup');
 
-    // Filter chips are buttons, 56px on his phone.
-    const chip = page.getByTestId('gallery-filter-pr-st-roof');
-    expect((await chip.boundingBox())!.height).toBeGreaterThanOrEqual(56);
-    await chip.click();
-    await expect(chip).toHaveAttribute('aria-pressed', 'true');
+    // The stage filter is a dropdown, 56px on his phone.
+    const stageFilter = page.getByTestId('gallery-filter');
+    expect((await stageFilter.boundingBox())!.height).toBeGreaterThanOrEqual(56);
+    await stageFilter.selectOption('pr-st-roof');
+    await expect(stageFilter).toHaveValue('pr-st-roof');
     await expect(page.getByTestId('gallery-stage-pr-st-roof')).toBeVisible();
     await expect(page.getByTestId('gallery-stage-pr-st-slab')).toHaveCount(0);
     await expect(page).toHaveURL(/stage=pr-st-roof/);
@@ -135,10 +135,10 @@ test.describe('Photo gallery', () => {
     await page.goto('#/jobs/park-rd/photos?as=dominic&today=2026-09-17');
     await expect(page.locator('[data-testid^="gallery-photo-"]')).toHaveCount(20);
     await expect(page.getByTestId('gallery-stage-general')).toContainText('1 photo');
-    await expect(page.getByTestId('gallery-filter-by-raff')).toBeVisible();
-    await page.getByTestId('gallery-filter-by-raff').click();
+    await expect(page.getByTestId('gallery-filter-by-raff')).toHaveText('Raff');
+    await page.getByTestId('gallery-filter-by').selectOption('raff');
     await expect(page.locator('[data-testid^="gallery-photo-"]')).toHaveCount(3);
-    await page.getByTestId('gallery-filter-by-anyone').click();
+    await page.getByTestId('gallery-filter-by').selectOption('');
 
     if (testInfo.project.name === 'desktop') {
       const first = page.getByTestId('gallery-category-pr-pc-roof-complete').locator('[data-testid^="gallery-photo-"]').first();

@@ -1,6 +1,6 @@
 {
-  "name": "Construction Tracker",
-  "short_name": "Tracker",
+  "name": "Cruise",
+  "short_name": "Cruise",
   "description": "Job tracker prototype: forecast finish, waiting-on items, site photos.",
   "start_url": "/construction-tracker/#/",
   "scope": "/construction-tracker/",

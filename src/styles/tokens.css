@@ -81,6 +81,7 @@
 
   /* ---- the one accent ---- */
   --hivis: #e8730c;
+  --logo-accent: #c1652e; /* the dot in the Cruise mark */
   --hivis-strong: #d9680a; /* hover */
   --hivis-ink: #8a4200; /* orange as text: dark enough for AA on the wash and the ground */
   --hivis-100: #fde9d6; /* the orange wash */
@@ -195,6 +196,7 @@
   --timber-300: #4d4231;
   --timber-500: #b48f60;
   --hivis: #ff8c26;
+  --logo-accent: #eb6a2e;
   --hivis-strong: #ffa14d;
   --hivis-ink: #ffb069;
   --hivis-100: #3a2612;

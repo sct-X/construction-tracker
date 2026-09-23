@@ -20,6 +20,7 @@ import { QueueBadge } from '../components/QueueBadge';
 import { SideSwitcher } from './SideSwitcher';
 import { isHere, phoneTabs, sidebarMain, sidebarSetup, type NavItem } from './nav';
 import { rememberJob } from './lastJob';
+import { Logo, LogoMark } from './Logo';
 import { usePhoneWidth } from './useNarrow';
 import './shell.css';
 
@@ -71,6 +72,7 @@ function PhoneChrome({ pathname }: { pathname: string }) {
   return (
     <>
       <header className="topbar" data-testid="topbar">
+        <LogoMark className="topbar__mark" size={28} />
         <SideSwitcher className="topbar__side" />
         <div className="topbar__tools">
           <Link to="/notifications" className="topbar__tool" data-testid="nav-notifications" aria-label="Notifications">
@@ -100,7 +102,7 @@ function DesktopChrome({ pathname }: { pathname: string }) {
   return (
     <aside className="sidebar" data-testid="sidebar">
       <div className="sidebar__brand">
-        <span className="sidebar__wordmark">Tracker</span>
+        <Logo className="sidebar__wordmark" height={28} />
         <SideSwitcher className="sidebar__side" />
       </div>
       <nav className="sidebar__nav" data-testid="primary-nav" aria-label="Main">

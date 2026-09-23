@@ -62,8 +62,8 @@ export function permissionWords(state: PermissionState, platform: Platform): { t
       return {
         text:
           platform === 'android'
-            ? 'Blocked on this phone. To unblock: hold the Tracker icon, tap App info, then Notifications, and turn them on.'
-            : 'Blocked on this phone. To unblock: Settings, Notifications, Tracker, Allow Notifications.',
+            ? 'Blocked on this phone. To unblock: hold the Cruise icon, tap App info, then Notifications, and turn them on.'
+            : 'Blocked on this phone. To unblock: Settings, Notifications, Cruise, Allow Notifications.',
         canAsk: false,
       };
     case 'default':

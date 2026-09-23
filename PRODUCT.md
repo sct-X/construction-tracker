@@ -2,9 +2,9 @@
 
 <!-- impeccable:product-schema 1 -->
 
-<!-- Written by the design lead from SPEC.md and docs/UI_PLAN.md "Read this
-     first" (no user interview was possible in this session; facts marked
-     [inferred] come from the brief, not from a confirmed answer). -->
+<!-- Rewritten 23 Sep 2026 from Dom's change brief ("timing first") and the
+     code as of c1025a1. Facts marked [inferred] are not confirmed by a user
+     answer. -->
 
 ## Platform
 
@@ -12,63 +12,72 @@ web
 
 ## Users
 
-- **Dom and Norm (partners).** Desktop, Monday morning. They open one screen to see each build job's forecast finish, how far it slipped since last Monday, and what the slip costs in holding money. They read numbers, not prose.
-- **Dominic (admin).** Same as the partners plus setup: templates, trades, people, program editing. Desktop first.
-- **Raff (builder).** Phone, between calls on site or in the ute. Works a list of dated actions: what to book, what to order, who to chase, and ticks them off after a call.
-- **Alec (site hand).** Phone, gloves on, patchy reception. Uploads before-cover photos into named categories, reads today's plan and this week's deliveries. Never sees money.
+- **Dom and Norm (partners).** Open the app on Overview. They want to see, per job, what's late, what's next and what the job is waiting on. They scan; they don't read.
+- **Dominic (admin).** Same view as the partners plus setup: templates and new job, trades, people and roles, program editing. On both sides.
+- **Raff (builder).** Phone, between calls on site or in the ute. Opens on My items (his waiting-on items): dated actions to book, order or chase, ticked off as they're done. Also sees jobs, shipments, photos and notes; no setup, no Call mode.
+- **Alec (site hand).** Phone, gloves on, patchy reception. Opens on Today for the last build job he opened: today's plan, this week's deliveries, notes, and before-cover photos uploaded into named categories. Build jobs only. Never sees money.
 
-Two "sides" (Norm and Dom; Norm) partition the data; only Dominic and Norm can switch.
+Two "sides" (Norm and Dom; Norm) partition the data. Only Dominic and Norm are on both and get the side switcher; everyone else never sees a side name.
 
 ## Product Purpose
 
-One list of dated actions (waiting-on items) viewed about twenty ways, plus a calculator that turns late items into a later finish date and a dollar figure. Success on a Monday: the partners know in seconds which job moved, by how many days, at what cost, and why. Success on site: a hold point can't be ticked until the photos the certifier needs exist.
+Cruise keeps the timing of each job on track. One list of dated actions (waiting-on items) against each job's program of stages and steps, shown so a partner can tell in seconds what's overdue, what's next, and what the job is waiting on. Anything that doesn't help answer those three is pared back. Success on site: a hold point can't be ticked until the photos the certifier needs exist.
 
 ## Positioning
 
-The forecast is derived, not typed: lead times, shipment ETAs and step links roll forward into a finish date and a holding-cost figure automatically, and the "why it moved" chain names the cause. A spreadsheet or a generic task app cannot truthfully do this.
+Dates are derived, not typed: lead times, shipment ETAs and step links roll forward into each item's act-by and needed-by dates, so "overdue" and "next" come from the program itself rather than someone remembering to update a list. A spreadsheet or a generic task app cannot truthfully do this.
 
 ## Operating Context
 
-- Rituals: Monday morning review (partners, desktop); a Monday forecast snapshot; call lists worked from the phone; daily site notes; before-cover photos before every hold point.
-- Vocabulary: subbie/trade, lead time, lock-up, hold point, certifier, before-cover photo, OC, DA/CDC/CC, look-ahead, defect, holding cost, act-by, needed-by.
-- Environments: desktop browser (partners, admin); phone home-screen install with a service worker; offline on site with a photo queue that survives reload.
-- Locale: en-AU, dates as "Fri 26 Feb 2027", money as "$4,500/wk".
+- Rituals: partners check Overview (Monday is the usual review) [inferred]; builders work their items from the phone; daily site notes; before-cover photos before every hold point.
+- Vocabulary: subbie/trade, lead time, lock-up, hold point, certifier, before-cover photo, OC, DA/CDC/CC, look-ahead, defect, act-by, needed-by, pending approval.
+- Environments: desktop browser and phone (partners, admin); phone home-screen install with a service worker; offline on site with a photo queue that survives reload.
+- Locale: en-AU. Dates read "Mon 28 Sep" with relative time alongside.
 
 ## Capabilities and Constraints
 
-- Stack: Vite + React + TypeScript, hash routing, no backend (mock data layer behind one API interface), Vitest, Playwright. See SPEC.md (locked) for rules, roles and mock data.
-- Rules that shape the UI (SPEC.md "Rules"): needed-by and act-by dates; forecast vs planned; slip in calendar days and dollars; hold points refuse completion until required photo categories are filled (the refusal names the empty categories); a job goes amber after 7 days unconfirmed.
-- Money is stripped by the data layer for the site role; the money component renders nothing (label included) when the field is absent. Never hidden with CSS.
-- Colour never carries meaning alone: late/amber/ok always come with words ("14 days late").
-- Tap targets at least 56px on the site role's screens; category pickers are buttons, never dropdowns.
+- Stack: Vite + React + TypeScript, hash routing, no backend (mock data layer behind one API interface), Vitest, Playwright. SPEC.md (locked) holds rules, roles and mock data.
+- Overview (home for partners and admin, jobs index for everyone): per job its stage, the next steps with dates and next hold point, the top waiting-on items, and freshness. No screen shows a finish date or money; the calculator stays underneath only to produce act-by and needed-by dates.
+- Waiting on is its own bottom tab, with a Call mode for partners and admin. The bell (notifications) sits top right.
+- Current partner/admin bottom tabs: Overview, Waiting on, Shipments. Builder: My items, Jobs, + Photos. Site: Today, Jobs.
+- Planned direction for partner and admin only (not yet built): bottom nav becomes Overview and Waiting on; Shipments moves into each job page as a tab; a job dropdown at the top of each job page switches jobs. Builder and site views stay as they are for now.
+- Hold points refuse completion until required photo categories are filled; the refusal names the empty categories.
+- Money fields are stripped by the data layer for the site role; nothing is hidden with CSS.
+- Sign-in is a person list with no password; signed out is a real state.
 - Offline is a thin, calm bar; date changes are disabled offline with "Needs signal".
+- Tap targets at least 56px on site-role screens; category pickers are buttons, never dropdowns. Filters elsewhere are dropdowns.
 - Desktop tables and phone cards from one token set; phone breakpoint below 768px.
 - Every `data-testid` and every word asserted by the Playwright specs is load-bearing.
 - No stock imagery: the photos users upload are the only images.
-- Undecided: a light theme (dark ships as the default; tokens are themable via `[data-theme]`).
 
 ## Brand Commitments
 
-- Hi-vis orange is the single accent, tuned for dark backgrounds. [confirmed in SPEC.md]
-- The client's brief for the redesign, verbatim: "I want a modern easy on the eyes app. dark mode. cool. sleek. well spaced. not too much writing. get rid of all the fluff in terms of writing." [binding]
+- Product name: Cruise, with the Cruise logo.
+- Hi-vis orange is the single accent. [confirmed in SPEC.md]
+- Light theme by default; dark and system available from My settings.
 - A self-hosted web font pair is approved. [confirmed]
 - No Inter, Geist, Space Grotesk or Roboto. [binding]
 - No gradient cards, no all-caps eyebrow labels. [confirmed in SPEC.md]
+- Dom's change brief, 23 Sep 2026, verbatim: "This version is about one thing: making sure the timing of each job is on track. Anything that doesn't help me see what's late, what's next and what we're waiting on should be pared back. The app is also a bit text heavy right now, so I'd like it more visual and cleaner overall." [binding]
+- The earlier client brief still stands where it doesn't conflict: "modern easy on the eyes app… sleek. well spaced. not too much writing." [binding]
 
 ## Evidence on Hand
 
-- Seed data in `src/seed` built from Cerr Build's real job folders: the sites, approvals, consultants, suppliers and trades are real; program dates, holding costs, phone numbers and emails are placeholders (see README "What's real"). No customers, testimonials or press exist and none may be invented.
+- Seed data in `src/seed` built from Cerr Build's real job folders: the seven jobs, approvals, consultants, suppliers and trades are real; program dates, phone numbers and emails are placeholders (see README "What's real"). No customers, testimonials or press exist and none may be invented.
 - Placeholder photos are generated SVG/canvas.
-- The incumbent look (screenshots in the design lead's scratchpad, and `docs/DESIGN_CRITIQUE_BEFORE.md`) is evidence and anti-reference only.
+- `docs/DESIGN_CRITIQUE_BEFORE.md` and older screenshots are evidence and anti-reference only.
 
 ## Product Principles
 
-1. Numbers first: on partner screens the date and the dollar figure are the largest type; everything else is secondary.
-2. Words carry meaning; colour only agrees with them. The Monday screen must read printed in greyscale.
-3. Fewer words: a label is one or two words; a screen never explains what it already shows.
-4. Two densities, one system: tables for the desk, cards and 56px targets for the glove.
-5. Nothing is censored: what a role can't see is absent, never blanked.
+1. Timing first: every screen answers what's late, what's next, and what we're waiting on. Anything else is pared back.
+2. Waiting on leads: on a job card it is the most important thing and is read first.
+3. Red means overdue, and only overdue: things actually past their date. No amber "coming soon" warnings; keep the signal rare so it means something.
+4. Every date carries relative time: "Mon 28 Sep, in 5 days", "Mon 21 Sep, overdue by 2 days".
+5. Progress through stages is shown visually, as a progress bar, not a text label.
+6. Less text, more visual: the bar, colour and spacing carry the information; a label is one or two words and a screen never explains what it already shows.
+7. Colour agrees with words, never replaces them: overdue is red and says "overdue".
+8. Nothing is censored: what a role can't see is absent, never blanked.
 
 ## Accessibility & Inclusion
 
-Visible keyboard focus everywhere; reduced motion respected; text contrast at least 4.5:1 on its surface; 56px tap targets on site-role screens; status never by colour alone. [inferred from SPEC.md and the existing test suite]
+Visible keyboard focus everywhere; reduced motion respected; text contrast at least 4.5:1 on its surface; 56px tap targets on site-role screens; status never by colour alone, so the overdue red always travels with the word. [inferred from SPEC.md and the existing test suite]

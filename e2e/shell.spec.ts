@@ -139,11 +139,11 @@ test.describe('Shell: navigation and landing per role', () => {
     await expect(page.getByTestId('no-access')).toContainText("You don't have access to this");
     await page.goto('#/people?as=raff');
     await expect(page.getByTestId('no-access')).toContainText("You don't have access to this");
-    // Raff can open the old call list address, but gets the plain list: only admin and partners ring people.
+    // The old call list address forwards to the one list.
     await page.goto('#/calls?as=raff');
-    await expect(page).toHaveURL(/#\/waiting\?.*mode=call/);
+    await expect(page).toHaveURL(/#\/waiting/);
+    await expect(page).not.toHaveURL(/mode=call/);
     await expect(page.getByTestId('waiting-on')).toBeVisible();
-    await expect(page.getByTestId('waiting-mode')).toHaveCount(0);
     await page.goto('#/monday?as=dominic');
     await expect(page).toHaveURL(/#\/overview/);
     await expect(page.getByTestId('overview-screen')).toBeVisible();

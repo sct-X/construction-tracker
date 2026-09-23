@@ -11,16 +11,16 @@ typed route the role can't see shows "You don't have access to this".
 | # | Screen | Route | Screen key | Who | Stage |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Sign in (a name, no password) | `#/sign-in` | — | everyone | 1 |
-| 2 | Overview (stage, next steps, waiting on, freshness; `#/monday` and `#/jobs` forward here) | `#/overview` | `overview` | A P B S | 1 |
+| 2 | Overview (a card per job: name, stage bar, overdue count; `#/monday` and `#/jobs` forward here) | `#/overview` | `overview` | A P B S | 1 |
 | 3 | (folded into the overview) | `#/jobs` | `jobs` | — | 1 |
 | 4 | Build job: overview (Alec: Today) | `#/jobs/:id` | `job` | A P B S | 2 |
 | 5 | Build job: program (Gantt / look-ahead) | `#/jobs/:id/program` | `program` | A P B S | 2 |
 | 6 | Step detail | `#/steps/:id` | `step` | A P B S | 2, hold point in 5 |
 | 7 | Design job: checklist | `#/jobs/:id` (design kind) | `checklist` | A P B | 5 |
-| 8 | Waiting-on list (all jobs or `?job=`) | `#/waiting` | `waiting` | A P B | 4 |
+| 8 | Waiting on: one list, Overdue / This week / Later, a Call button per row (all jobs or `?job=`, `?owner=me`; `#/calls` and `?mode=call` show the same list) | `#/waiting` | `waiting` | A P B | 4 |
 | 9 | Deliveries (Alec) | `#/deliveries` | `deliveries` | S | 3 |
 | 10 | Item detail, add and edit (sheet) | `#/items/:id`, `#/items/new` | `item` | A P B | 4 |
-| 11 | Waiting on, Call mode (`#/calls` forwards here) | `#/waiting?mode=call` | `waiting` | A P | 4 |
+| 11 | (Call mode removed; folded into Waiting on) | — | — | — | 4 |
 | 12 | Shipments list | `#/shipments` | `shipments` | A P B | 2 |
 | 13 | Shipment detail: forwards into its job for every role | `#/shipments/:id` | `jobShipment` | A P B S | 2 |
 | 12a | Job Shipments tab (every role; site reads only) | `#/jobs/:id/shipments` | `jobShipments` | A P B S | 2 |

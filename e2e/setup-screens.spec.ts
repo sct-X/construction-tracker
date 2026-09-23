@@ -112,13 +112,13 @@ test.describe('People and roles as Dominic', () => {
     await expect(page.getByTestId('person-add')).toBeDisabled();
     await page.goto('#/people?as=dominic&side=side-nd&today=2026-09-17&offline=0');
 
-    // Raff now gets a partner's navigation: the overview home and the Call mode.
+    // Raff now gets a partner's navigation: the overview home and Waiting on.
     await page.goto('#/?as=raff');
     await expect(page).toHaveURL(/#\/overview$/);
     await expect(page.getByTestId('nav-upload')).toHaveCount(0);
     await expect(page.getByTestId('nav-overview')).toBeVisible();
     await page.goto('#/waiting');
-    await expect(page.getByTestId('waiting-mode-call')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Waiting on');
 
     await reset(page);
     await page.goto('#/people?as=dominic&side=side-nd&today=2026-09-17');

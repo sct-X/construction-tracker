@@ -8,54 +8,57 @@ async function reset(page: Page) {
 }
 
 test.describe('Waiting-on list as Raff', () => {
-  test('groups render; the windows, ordered on time, wait under Later by their expected date', async ({ page }) => {
+  test('one list in three groups; the windows, ordered on time, wait under Later by their expected date', async ({ page }) => {
     await page.goto('#/waiting?owner=me&as=raff&today=2026-09-17');
     await expect(page.getByTestId('waiting-on')).toBeVisible();
-    await expect(page.getByTestId('waiting-filter-owner')).toHaveValue('me');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('My items');
+    await expect(page.getByTestId('waiting-owner-me')).toHaveAttribute('aria-pressed', 'true');
 
-    for (const key of ['this-week', 'next-week', 'later', 'done']) {
-      await expect(page.getByTestId(`waiting-group-${key}`)).toHaveCount(1);
-    }
-    // Nothing of Raff's is past its date: every booking carries its expected date, so no Overdue group.
-    await expect(page.getByTestId('waiting-group-overdue')).toHaveCount(0);
-    // Windows: ordered, expected from the shipment on Mon 26 Oct, so grouped by that date.
+    // Overdue, This week, Later, in that order, and nothing else.
+    const groups = page.locator('[data-testid^="waiting-group-"]');
+    await expect(groups).toHaveCount(3);
+    expect(await groups.evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')))).toEqual([
+      'waiting-group-overdue',
+      'waiting-group-this-week',
+      'waiting-group-later',
+    ]);
+    await expect(page.getByTestId('waiting-group-overdue').getByRole('heading')).toContainText('Overdue');
+    // Raff's two overdue: the cladding order and the cladders, both needed yesterday with nothing expected.
+    await expect(page.getByTestId('waiting-count-overdue')).toHaveText('2');
+    await expect(page.getByTestId('item-when-it-pr-cladding')).toHaveAttribute('data-tone', 'late');
+    await expect(page.getByTestId('item-when-it-pr-cladding')).toContainText('overdue by 1 day');
+
+    // Windows: ordered, expected from the shipment on Mon 26 Oct, so under Later, in plain words.
     const later = page.getByTestId('waiting-group-later');
     const windows = later.getByTestId('item-row-it-pr-windows');
-    await expect(windows).toContainText('Mon 26 Oct');
-    await expect(windows).toContainText('Ordered or booked');
+    await expect(windows).toContainText('Expected Mon 26 Oct, in 5 weeks');
+    await expect(page.getByTestId('item-when-it-pr-windows')).toHaveAttribute('data-tone', 'plain');
     await expect(windows).not.toContainText('overdue');
     await expect(later.getByTestId('item-row-it-pr-sliding-doors')).toHaveCount(1);
 
     // Every row's button is a real tap target on the phone.
     const box = await page.getByTestId('item-advance-it-pr-plasterer').boundingBox();
     expect(box).not.toBeNull();
-    if (test.info().project.name === 'phone') expect(box!.height).toBeGreaterThanOrEqual(56);
+    if (test.info().project.name === 'phone') expect(box!.height).toBeGreaterThanOrEqual(44);
 
     // Raff's list holds only his items: Dominic's glazing certificate is not here.
     await expect(page.getByTestId('item-row-it-pr-glazing-cert')).toHaveCount(0);
     await expect(page.getByTestId('waiting-add')).toHaveAttribute('href', '#/items/new');
+    // No mode switch and no table, on either width.
+    await expect(page.getByTestId('waiting-mode')).toHaveCount(0);
+    await expect(page.locator('table')).toHaveCount(0);
   });
 
-  test('advancing an item changes its status word and moves it between groups', async ({ page }) => {
+  test('advancing an item changes its button, and done takes it off the list', async ({ page }) => {
     await page.goto('#/waiting?owner=me&as=raff&today=2026-09-17');
-    // On the phone, Later starts folded; open it to reach the row.
-    const later = page.getByTestId('waiting-group-later');
-    if ((await later.locator('summary').count()) > 0) await later.locator('summary').click();
     const button = page.getByTestId('item-advance-it-pr-windows');
     await expect(button).toHaveText('Mark confirmed');
     await button.click();
-
     // Confirmed: still grouped by when it is expected (Mon 26 Oct): Later.
-    await expect(later.getByTestId('item-row-it-pr-windows')).toContainText('Confirmed');
-
+    await expect(page.getByTestId('waiting-group-later').getByTestId('item-row-it-pr-windows')).toHaveCount(1);
     await expect(button).toHaveText('Mark done');
     await button.click();
-    await expect(page.getByTestId('item-advance-it-pr-windows')).toHaveCount(0);
-    const done = page.getByTestId('waiting-group-done');
-    await expect(done).toContainText('Done');
-    await done.locator('summary').click();
-    await expect(done.getByTestId('item-row-it-pr-windows')).toBeVisible();
-    await expect(done.getByTestId('item-row-it-pr-windows')).toContainText('Done');
+    await expect(page.getByTestId('item-row-it-pr-windows')).toHaveCount(0);
 
     await reset(page);
     await expect(page.getByTestId('waiting-group-later').getByTestId('item-row-it-pr-windows')).toHaveCount(1);
@@ -68,22 +71,36 @@ test.describe('Waiting-on list as Raff', () => {
     await button.click();
     // Not booked yet: the date field opens with the reason in words.
     await expect(page.getByTestId('item-date-problem-it-pr-plasterer')).toHaveText('!Ordered or booked needs an expected date.');
-    await expect(page.getByTestId('item-row-it-pr-plasterer')).toContainText('To do');
     await page.getByTestId('item-date-save-it-pr-plasterer').click();
-    await expect(page.getByTestId('item-row-it-pr-plasterer')).toContainText('To do');
+    // Still to do: saving without a date is refused.
+    await expect(page.getByTestId('item-date-input-it-pr-plasterer')).toBeVisible();
+    await expect(page.getByTestId('item-row-it-pr-plasterer')).toContainText('Act by Fri 18 Sep');
     await page.getByTestId('item-date-input-it-pr-plasterer').fill('2026-09-23');
     await expect(page.getByTestId('item-date-save-it-pr-plasterer')).toHaveText('Mark booked');
     await page.getByTestId('item-date-save-it-pr-plasterer').click();
-    await expect(page.getByTestId('item-row-it-pr-plasterer')).toContainText('Ordered or booked');
-    await expect(page.getByTestId('item-row-it-pr-plasterer')).toContainText('Wed 23 Sep');
+    await expect(page.getByTestId('item-row-it-pr-plasterer')).toContainText('Expected Wed 23 Sep, in 6 days');
+    await expect(page.getByTestId('item-advance-it-pr-plasterer')).toHaveText('Mark confirmed');
     await reset(page);
   });
 
   test('Call rings the trade, Set date saves an expected date inline, and reports say requested and received', async ({ page }) => {
     await page.goto('#/waiting?as=dominic&today=2026-09-17');
-    // CJ Linea has a number; the council has none.
-    await expect(page.getByTestId('item-call-it-pr-plasterer')).toHaveAttribute('href', /^tel:0491/);
+    // CJ Linea has a number: Call is a tel: link that names who it rings; the council has none.
+    const call = page.getByTestId('item-call-it-pr-plasterer');
+    await expect(call).toHaveAttribute('href', /^tel:0491\d+$/);
+    await expect(call).toHaveText('Call CJ Linea');
+    await expect(call).toHaveAttribute('aria-label', /^Call CJ Linea, /);
     await expect(page.getByTestId('item-call-it-pr-sw-council')).toHaveCount(0);
+    if (test.info().project.name === 'phone') expect((await call.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    // The shared item flow: a report is requested, then received.
+    await expect(page.getByTestId('item-advance-it-pr-glazing-cert')).toHaveText('Mark requested');
+    await expect(page.getByTestId('item-advance-it-pr-sw-council')).toHaveText('Mark received');
+
+    // The phone keeps each row to Call and the status step; Set date is on the item sheet there.
+    if (test.info().project.name === 'phone') {
+      await expect(page.locator('[data-testid^="item-set-date-"]')).toHaveCount(0);
+      return;
+    }
     // A shipment sets the expected date, so those rows offer no Set date.
     await expect(page.getByTestId('item-set-date-it-pr-windows')).toHaveCount(0);
 
@@ -94,26 +111,22 @@ test.describe('Waiting-on list as Raff', () => {
     await page.goto('#/items/it-pr-plasterer?as=dominic&today=2026-09-17');
     await expect(page.getByTestId('item-expected')).toHaveValue('2026-09-23');
     await expect(page.getByTestId('item-history')).toContainText('expected date set to 23 Sep');
-
-    // The one flow, shared with the call list: a report is requested, then received.
-    await page.goto('#/waiting?as=dominic&today=2026-09-17');
-    await expect(page.getByTestId('item-advance-it-pr-glazing-cert')).toHaveText('Mark requested');
-    await expect(page.getByTestId('item-advance-it-pr-sw-council')).toHaveText('Mark received');
     await reset(page);
   });
 
   test('offline, Set date needs signal but the status button still works', async ({ page }) => {
     await page.goto('#/waiting?as=raff&owner=me&today=2026-09-17&offline=1');
     await expect(page.getByTestId('item-set-date-it-pr-plasterer')).toHaveCount(0);
-    await expect(page.getByTestId('waiting-group-this-week')).toContainText('Date needs signal');
+    if (test.info().project.name === 'desktop') await expect(page.getByTestId('waiting-group-this-week')).toContainText('Date needs signal');
     // Booking needs a date, and a date needs signal: the plasterer stays to do.
     await page.getByTestId('item-advance-it-pr-plasterer').click();
     await expect(page.getByTestId('item-date-input-it-pr-plasterer')).toBeDisabled();
     await expect(page.getByTestId('item-date-problem-it-pr-plasterer')).toContainText('Needs signal');
     await page.getByTestId('item-date-cancel-it-pr-plasterer').click();
     // A tick that needs no date still saves offline: the booked stormwater plumber is confirmed.
+    await expect(page.getByTestId('item-advance-it-pr-sw-plumber')).toHaveText('Mark confirmed');
     await page.getByTestId('item-advance-it-pr-sw-plumber').click();
-    await expect(page.getByTestId('item-row-it-pr-sw-plumber')).toContainText('Confirmed');
+    await expect(page.getByTestId('item-advance-it-pr-sw-plumber')).toHaveText('Mark done');
     await page.goto('#/waiting?as=raff&owner=me&today=2026-09-17&offline=0');
     await reset(page);
   });
@@ -133,10 +146,8 @@ test.describe('Waiting-on list as Raff', () => {
 test.describe('Item sheet', () => {
   test('editing the lead time moves the act-by date in words', async ({ page }) => {
     await page.goto('#/waiting?owner=me&as=raff&today=2026-09-17');
-    // The windows wait under Later, folded on the phone.
-    const later = page.getByTestId('waiting-group-later');
-    if ((await later.locator('summary').count()) > 0) await later.locator('summary').click();
-    await page.getByTestId('item-row-it-pr-windows').click();
+    // The whole row opens the item sheet.
+    await page.getByTestId('item-open-it-pr-windows').click();
     await expect(page).toHaveURL(/#\/items\/it-pr-windows/);
     await expect(page.getByTestId('item-sheet')).toBeVisible();
     await expect(page.getByTestId('item-title')).toHaveValue('Windows');
@@ -200,11 +211,12 @@ test.describe('Item sheet', () => {
     await page.getByTestId('item-save').click();
 
     await expect(page).toHaveURL(/#\/waiting\?job=park-rd/);
-    const nextWeek = page.getByTestId('waiting-group-next-week');
-    await expect(nextWeek).toContainText('Ring the certifier about the OC paperwork');
-    const row = nextWeek.locator('[data-testid^="item-row-"]', { hasText: 'Ring the certifier' });
-    await expect(row).toContainText('Reminder');
-    await expect(row).toContainText(/with you|you/);
+    // Act by Fri 25 Sep is next week: under Later.
+    const later = page.getByTestId('waiting-group-later');
+    await expect(later).toContainText('Ring the certifier about the OC paperwork');
+    const row = later.locator('[data-testid^="item-row-"]', { hasText: 'Ring the certifier' });
+    await expect(row).toContainText('Act by Fri 25 Sep, in 8 days');
+    await expect(row).toContainText('with you');
     await reset(page);
     await expect(page.getByText('Ring the certifier about the OC paperwork')).toHaveCount(0);
   });
@@ -274,46 +286,53 @@ test.describe('Alec', () => {
   });
 });
 
-test.describe('Desktop table', () => {
-  test('Dominic gets the extra columns and no sideways page scroll', async ({ page }) => {
-    test.skip(test.info().project.name !== 'desktop', 'desktop layout only');
+test.describe('One list for everyone', () => {
+  test('the Overdue group holds exactly what the Overview counts', async ({ page }) => {
+    await page.goto('#/overview?as=dominic&today=2026-09-17');
+    await expect(page.getByTestId('overview-overdue-park-rd')).toHaveText('!4 overdue');
+    const counts = await page.locator('[data-testid^="overview-overdue-"]').allInnerTexts();
+    const total = counts.reduce((n, t) => n + Number(t.match(/\d+/)![0]), 0);
     await page.goto('#/waiting?as=dominic&today=2026-09-17');
-    const table = page.locator('.waiting__table').first();
-    await expect(table).toBeVisible();
-    // Seven columns: act-by leads; job, type, owner and lead time sit inside the item, waiting-on and act-by cells (asserted on the row below).
-    for (const col of ['Act by', 'Item', 'Waiting on', 'Needed by', 'Expected', 'Status']) {
-      await expect(table.locator('thead')).toContainText(col);
-    }
-    const row = page.getByTestId('item-row-it-pr-windows');
-    await expect(row).toContainText('64-66 Park Rd');
-    await expect(row).toContainText('Material');
-    await expect(row).toContainText('HiHaus');
-    await expect(row).toContainText('Raff');
-    await expect(row).toContainText('Mon 2 Nov');
-    await expect(row).toContainText('Mon 10 Aug');
-    await expect(row).toContainText('12 wk');
-    await expect(row).toContainText('Mon 26 Oct');
-    await expect(row).toContainText('Ordered or booked');
-    await expect(page.getByTestId('waiting-group-overdue')).toContainText('Overdue');
-    // Overdue holds exactly what the Overview counts: the glazing certificate and the tile choice.
-    await expect(page.getByTestId('waiting-group-overdue').locator('[data-testid^="item-row-"]')).toHaveCount(2);
-    const fits = await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth');
-    expect(fits).toBe(true);
-    // Filters are dropdowns: owner, job, type; Dominic can pick any person.
-    await expect(page.getByTestId('waiting-filters').locator('select')).toHaveCount(3);
-    await expect(page.getByTestId('waiting-filter-owner-raff')).toHaveText('Raff');
-    await page.getByTestId('waiting-filter-owner').selectOption('raff');
-    await expect(page).toHaveURL(/owner=raff/);
-    await expect(page.getByTestId('item-row-it-pr-tile-choice')).toHaveCount(0);
+    await expect(page.getByTestId('waiting-count-overdue')).toHaveText(String(total));
+    await expect(page.getByTestId('waiting-group-overdue').locator('[data-testid^="item-row-"]')).toHaveCount(total);
+    // Every overdue row is red and says overdue; no row outside the group is red.
+    await expect(page.getByTestId('waiting-group-overdue').locator('[data-tone="late"]')).toHaveCount(total);
+    await expect(page.locator('[data-tone="late"]')).toHaveCount(total);
+    await expect(page.getByTestId('item-row-it-pr-glazing-cert')).toContainText('Act by Mon 10 Aug, overdue by 5 weeks');
   });
 
-  test('the phone gets rows, not a table', async ({ page }) => {
-    test.skip(test.info().project.name !== 'phone', 'phone layout only');
+  test('the same rows on both widths, no sideways scroll, and minimal filters', async ({ page }) => {
     await page.goto('#/waiting?as=dominic&today=2026-09-17');
-    await expect(page.locator('.waiting__table')).toHaveCount(0);
-    await expect(page.getByTestId('item-row-it-pr-glazing-cert')).toContainText('Act by Mon 10 Aug, overdue by 5 weeks');
-    // The strip under the row holds only controls: the button is a tap target and so is Call.
-    const call = await page.getByTestId('item-call-it-pr-plasterer').boundingBox();
-    expect(call!.height).toBeGreaterThanOrEqual(56);
+    await expect(page.locator('table')).toHaveCount(0);
+    const row = page.getByTestId('item-row-it-pr-windows');
+    await expect(row).toContainText('Windows');
+    await expect(row).toContainText('64-66 Park Rd');
+    await expect(row).toContainText('waiting on HiHaus');
+    await expect(row).toContainText('with Raff');
+    await expect(row).toContainText('Expected Mon 26 Oct');
+    const fits = await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth');
+    expect(fits).toBe(true);
+    // Filters: whose (a segmented control) and one job menu.
+    await expect(page.getByTestId('waiting-filters').locator('select')).toHaveCount(1);
+    await expect(page.getByTestId('waiting-owner-all')).toHaveAttribute('aria-pressed', 'true');
+    await page.getByTestId('waiting-owner-me').click();
+    await expect(page).toHaveURL(/owner=me/);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('My items');
+    await expect(page.getByTestId('item-row-it-pr-windows')).toHaveCount(0);
+    await page.getByTestId('waiting-owner-all').click();
+    await expect(page).not.toHaveURL(/owner=/);
+    await expect(page.getByTestId('item-row-it-pr-windows')).toHaveCount(1);
+  });
+
+  test('an old Call mode link shows the list', async ({ page }) => {
+    await page.goto('#/waiting?mode=call&as=dominic&today=2026-09-17');
+    await expect(page.getByTestId('waiting-on')).toBeVisible();
+    await expect(page.getByTestId('waiting-group-overdue')).toBeVisible();
+    await expect(page.getByTestId('waiting-mode')).toHaveCount(0);
+    await expect(page.locator('[data-testid^="call-item-"]')).toHaveCount(0);
+    await page.goto('#/calls?as=dom&today=2026-09-17');
+    await expect(page).toHaveURL(/#\/waiting/);
+    await expect(page).not.toHaveURL(/mode=call/);
+    await expect(page.getByTestId('waiting-group-overdue')).toBeVisible();
   });
 });

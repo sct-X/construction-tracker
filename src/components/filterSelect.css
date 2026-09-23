@@ -29,8 +29,3 @@
   width: 100%;
   min-height: var(--tap);
 }
-
-/* The List | Call switch sits level with the header's buttons on every width. */
-.page-header__actions .seg {
-  align-self: center;
-}

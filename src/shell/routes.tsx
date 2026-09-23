@@ -97,7 +97,7 @@ export const ROUTES: RouteDef[] = [
   { path: '/deliveries', screen: 'deliveries', title: 'Deliveries', stage: 3, element: <Deliveries /> },
   { path: '/items/new', screen: 'item', title: 'New item', stage: 4, element: <ItemSheet /> },
   { path: '/items/:id', screen: 'item', title: 'Item', stage: 4, element: <ItemSheet /> },
-  { path: '/calls', screen: 'waiting', title: 'Waiting on', stage: 4, element: <Redirect to="/waiting" set={{ mode: 'call' }} /> },
+  { path: '/calls', screen: 'waiting', title: 'Waiting on', stage: 4, element: <Redirect to="/waiting" /> },
   { path: '/shipments', screen: 'shipments', title: 'Shipments', stage: 2, element: <Shipments /> },
   { path: '/shipments/:id', screen: 'jobShipment', title: 'Shipment', stage: 2, element: <ShipmentRoute /> },
   { path: '/jobs/:id/shipments', screen: 'jobShipments', title: 'Shipments', stage: 2, element: <JobShipmentsRoute /> },

@@ -1,7 +1,6 @@
 /**
  * A filter as a dropdown: one label, one <select>, the first option meaning
- * "everything". Every filtered screen (waiting on, photos, activity, the call
- * mode) uses this, so a filter looks and works the same wherever it sits.
+ * "everything". Every filtered screen (waiting on, photos, activity) uses this, so a filter looks and works the same wherever it sits.
  *
  *   <FilterSelect label="Job" value={job ?? ''} onChange={...} testId="waiting-filter-job"
  *     options={[{ value: '', label: 'All jobs' }, ...jobs.map(...)]} />

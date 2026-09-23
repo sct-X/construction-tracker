@@ -1,54 +1,52 @@
 /**
- * Waiting-on list (UI_PLAN 3.8, wireframe "Waiting-on list, phone"): the one
- * list of everything that can hold a job up, built for Raff to tick off with
- * a thumb between calls. `#/waiting?owner=me` is his home.
+ * Waiting on: one list of everything that can hold a job up, the same on the
+ * phone and the desktop (the desktop is only wider). `#/waiting?owner=me` is
+ * Raff's home, titled My items.
  *
- *   [Anyone v]  [All jobs v]  [All types v]          List | Call
+ *   Waiting on
+ *   12 to act on, 4 overdue
+ *   [ Everyone | Mine ]  [All jobs v]
  *
- *   9  Overdue                        <- a plate: the one loud thing
- *   ! Act by Mon 10 Aug, overdue by 5 weeks   Ordered or booked
- *   Windows  Park Rd                      Material
- *   waiting on HiHaus, with you
- *   Call  Set date                        [Mark confirmed]
+ *   Overdue 4
+ *   ┌──────────────────────────────────────────────────────┐
+ *   │ Glazing certificate                                 >│
+ *   │ 64-66 Park Rd · waiting on Glassworks, with Dominic  │
+ *   │ ! Act by Mon 10 Aug, overdue by 5 weeks              │
+ *   │ (Call Glassworks)       Set date  [Mark requested]   │
+ *   └──────────────────────────────────────────────────────┘
+ *   This week 3
+ *   Later 18
  *
- *   2  This week  14-20 Sep
- *   1  Next week  21-27 Sep
- *   18 Later                              show
- *   11 Done                               show
- *
- * Groups are by act-by date (the reminder date) while an item is to do, then
- * by its expected date: Overdue is exactly what is past its date (isOverdue,
- * the Overview's red count); then this week, next week, later; done items sit
- * collapsed at the foot. Filters are dropdowns: owner (anyone / mine / a
- * person), job, type; the side is automatic. The Call mode (`?mode=call`,
- * admin and partners) is the same list worked as a phone call with one
- * person: their fortnight, one action per row, Finish the call. Every row is the shared <ItemRow> (a link to
- * the item sheet) with one action that moves the status forward, labelled
- * with exactly what it does. The desktop draws the same rows as a table with
- * the extra columns. Alec never reaches this screen (the guard refuses the
- * site role); his deliveries list is his version.
+ * Overdue is exactly isOverdue (the Overview's red count); the rest go by
+ * their key date: this week, then later (and anything without a date). Each
+ * row opens the item sheet; its controls are Call (a tel: link naming the
+ * trade, or the person it is with, when they have a number), Set date (wide
+ * screens only; the phone sets it on the sheet), and the one button that
+ * moves the status on. Booking asks for the expected date first.
+ * Done items leave the list. Alec never reaches this screen (the guard
+ * refuses the site role); his deliveries list is his version.
  */
-import { useMemo, useState, type MouseEvent, type ReactNode } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
 import { FilterBar, FilterSelect } from '../components/FilterSelect';
-import CallList from './CallList';
-import { WaitingMode } from '../components/WaitingMode';
-import type { Item, ItemStatus, ItemType, Job, Person, Trade } from '../domain/types';
-import { ITEM_STATUS_LABELS, ITEM_TYPE_LABELS } from '../domain/types';
+import type { Item, ItemStatus, Job, Person, Trade } from '../domain/types';
 import type { ItemForecast, JobForecast } from '../domain/forecast';
 import { isOverdue } from '../domain/forecast';
-import { addCalendarDays, formatShort, formatShortRelative, formatWeekRange, lastMonday, relativeDate } from '../domain/dates';
+import { addCalendarDays, formatShortRelative, lastMonday } from '../domain/dates';
 import { BOOKED_NEEDS_DATE, needsExpectedDate, nextStatus } from '../domain/itemFlow';
-import { ITEM_TYPE_WORDS, ItemRow, ItemRowList, itemWhenWords } from '../components/ItemRow';
 import { StatusText, type Tone } from '../components/StatusText';
-import { useLayout } from '../shell/AppShell';
 import { PageHeader } from '../shell/PageHeader';
+import { useLayout } from '../shell/AppShell';
 import './waitingOn.css';
 
-export type GroupKey = 'overdue' | 'this-week' | 'next-week' | 'later' | 'done';
+export type GroupKey = 'overdue' | 'this-week' | 'later';
 
-const GROUP_ORDER: GroupKey[] = ['overdue', 'this-week', 'next-week', 'later', 'done'];
+const GROUPS: { key: GroupKey; title: string }[] = [
+  { key: 'overdue', title: 'Overdue' },
+  { key: 'this-week', title: 'This week' },
+  { key: 'later', title: 'Later' },
+];
 
 /**
  * The date an open item is grouped and sorted by: the act-by date (the
@@ -61,41 +59,33 @@ export function keyDate(item: Item, f: ItemForecast | undefined): string | undef
 }
 
 /**
- * Which group an item sits in. Overdue is exactly isOverdue (the Overview's
- * red count); anything else goes by its key date, a key date already gone
- * (an arrival still to be ticked off) sitting in this week.
+ * Which group an open item sits in. Overdue is exactly isOverdue; anything
+ * else due before next Monday (an arrival already gone but not ticked off
+ * included) is this week; the rest, and anything without a date, is later.
  */
 export function groupFor(item: Item, f: ItemForecast | undefined, today: string): GroupKey {
-  if (item.status === 'done') return 'done';
   if (f && isOverdue(f, today)) return 'overdue';
   const key = keyDate(item, f);
-  if (!key) return 'later';
-  const monday = lastMonday(today);
-  const nextMon = addCalendarDays(monday, 7);
-  const afterNext = addCalendarDays(monday, 14);
-  if (key < nextMon) return 'this-week';
-  if (key < afterNext) return 'next-week';
+  if (key && key < addCalendarDays(lastMonday(today), 7)) return 'this-week';
   return 'later';
 }
 
 /**
- * The row's one date phrase, relative to today, replacing the shared row's
- * default: "Act by Mon 10 Aug, overdue by 5 weeks" while the item is to do,
- * then "Expected Wed 16 Sep, yesterday". A late item keeps the calculator's
- * own late phrase (undefined leaves the default in place). Red only when
- * isOverdue says so.
+ * The row's one date phrase, always with its relative time. Red (late) only
+ * when isOverdue says so, and then the words say "overdue" too.
  */
-export function rowWhenWords(item: Item, f: ItemForecast | undefined, today: string): { text: string; tone: Tone } | undefined {
-  if (!f || f.isLate || item.status === 'done') return undefined;
-  if (item.status !== 'to_do') {
-    // Needed-by and expected both gone, still not ticked off: overdue on the needed-by.
-    if (f.neededBy && isOverdue(f, today)) return { text: `Needed ${formatShortRelative(f.neededBy, today, { deadline: true })}`, tone: 'late' };
-    const when = f.expected ?? f.neededBy;
-    if (!when) return undefined;
-    return { text: `${f.expected ? 'Expected' : 'Needed'} ${formatShortRelative(when, today, { deadline: !f.expected })}`, tone: isOverdue(f, today) ? 'late' : 'plain' };
+export function whenWords(item: Item, f: ItemForecast | undefined, today: string): { text: string; tone: Tone } | null {
+  if (!f) return { text: 'No date', tone: 'muted' };
+  if (isOverdue(f, today)) {
+    if (item.status === 'to_do' && f.actBy && f.actBy < today) return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: 'late' };
+    if (f.neededBy) return { text: `Needed ${formatShortRelative(f.neededBy, today, { deadline: true })}`, tone: 'late' };
   }
-  if (!f.actBy) return undefined;
-  return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: isOverdue(f, today) ? 'late' : 'plain' };
+  // Expected after it is needed, both still ahead: a clash in plain words, never red.
+  if (f.isLate && f.expected) return { text: `Expected ${formatShortRelative(f.expected, today)}, ${f.lateText}`, tone: 'plain' };
+  if (item.status === 'to_do' && f.actBy) return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: 'plain' };
+  if (f.expected) return { text: `Expected ${formatShortRelative(f.expected, today)}`, tone: 'plain' };
+  if (f.neededBy) return { text: `Needed ${formatShortRelative(f.neededBy, today, { deadline: true })}`, tone: 'plain' };
+  return { text: 'No date', tone: 'muted' };
 }
 
 interface Row {
@@ -105,87 +95,59 @@ interface Row {
   group: GroupKey;
 }
 
-function groupTitle(key: GroupKey, today: string): { title: string; sub?: string } {
-  const monday = lastMonday(today);
-  switch (key) {
-    case 'overdue':
-      return { title: 'Overdue' };
-    case 'this-week':
-      return { title: 'This week', sub: formatWeekRange(monday) };
-    case 'next-week':
-      return {
-        title: 'Next week',
-        sub: formatWeekRange(addCalendarDays(monday, 7)),
-      };
-    case 'later':
-      return { title: 'Later' };
-    case 'done':
-      return { title: 'Done' };
-  }
+/** phone: the call glyph, drawn like the chrome's (24px grid, 1.7 stroke). */
+function PhoneGlyph() {
+  return (
+    <svg className="wrow__glyph" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6.6 3.8h2.6l1.5 4-1.9 1.3a11 11 0 0 0 6.1 6.1l1.3-1.9 4 1.5v2.6a2 2 0 0 1-2.2 2A16.3 16.3 0 0 1 4.6 6a2 2 0 0 1 2-2.2Z" />
+    </svg>
+  );
 }
 
 export default function WaitingOn() {
   const api = useApi();
-  const { personId, role, today } = useSession();
-  const layout = useLayout();
+  const { personId, today, offline } = useSession();
   const [params, setParams] = useSearchParams();
+  // The phone keeps each row to Call and the status step; Set date lives on the item sheet there.
+  const wide = useLayout() === 'desktop';
 
+  // `?mode=call` (the old Call mode) and `?type=` are ignored: there is one list.
   const ownerParam = params.get('owner'); // "me" or a person id
   const jobParam = params.get('job');
-  const typeParam = params.get('type') as ItemType | null;
-  const callMode = params.get('mode') === 'call' && (role === 'admin' || role === 'partner');
 
-  const data = useQuery((api) => {
+  const { jobs, items, forecasts, people, trades } = useQuery((api) => {
     const jobs = api.listJobs();
-    const items = api.listItems({ includeDone: true });
     const forecasts = new Map<string, JobForecast | undefined>();
     for (const j of jobs) forecasts.set(j.id, api.getForecast(j.id));
-    return { jobs, items, forecasts, people: api.listPeople(), trades: api.listTrades() };
+    return { jobs, items: api.listItems(), forecasts, people: api.listPeople(), trades: api.listTrades() };
   }, []);
-  const { jobs, items, forecasts, people, trades } = data;
-  const { offline } = useSession();
-  const tradeOf = (r: Row): Trade | undefined => (r.item.tradeId ? trades.find((t) => t.id === r.item.tradeId) : undefined);
-  // Inline "Set date": which row is editing its expected date, and the draft.
-  // `book` is set when "Mark booked" asked for the date first: saving then books it too.
+
+  // Inline date: which row is editing its expected date, and the draft.
+  // `book` is set when the status button asked for the date first: saving then books it too.
   const [dating, setDating] = useState<{ id: string; value: string; book?: ItemStatus; problem?: boolean } | null>(null);
-  const nameOf = (pid?: string) => people.find((p: Person) => p.id === pid)?.shortName;
 
   const ownerId = ownerParam === 'me' ? personId : (ownerParam ?? undefined);
+  const personOf = (pid?: string): Person | undefined => people.find((p) => p.id === pid);
 
   const rows = useMemo<Row[]>(() => {
     const jobById = new Map(jobs.map((j) => [j.id, j]));
     return items
-      .filter((i) => (!ownerId || i.ownerId === ownerId) && (!jobParam || i.jobId === jobParam) && (!typeParam || i.type === typeParam))
+      .filter((i) => i.status !== 'done' && (!ownerId || i.ownerId === ownerId) && (!jobParam || i.jobId === jobParam))
       .map((item) => {
         const f = forecasts.get(item.jobId)?.items[item.id];
-        return {
-          item,
-          f,
-          job: jobById.get(item.jobId),
-          group: groupFor(item, f, today),
-        };
+        return { item, f, job: jobById.get(item.jobId), group: groupFor(item, f, today) };
       })
-      .sort((a, b) => {
-        if (a.group === 'done' && b.group === 'done') return (b.item.doneAt ?? '').localeCompare(a.item.doneAt ?? '');
-        const ka = keyDate(a.item, a.f) ?? '9999';
-        const kb = keyDate(b.item, b.f) ?? '9999';
-        return ka.localeCompare(kb) || a.item.title.localeCompare(b.item.title);
-      });
-  }, [items, forecasts, jobs, ownerId, jobParam, typeParam, today]);
+      .sort((a, b) => (keyDate(a.item, a.f) ?? '9999').localeCompare(keyDate(b.item, b.f) ?? '9999') || a.item.title.localeCompare(b.item.title));
+  }, [items, forecasts, jobs, ownerId, jobParam, today]);
 
-  const groups = GROUP_ORDER.map((key) => ({
-    key,
-    rows: rows.filter((r) => r.group === key),
-  }));
-  const openCount = rows.filter((r) => r.group !== 'done').length;
+  const groups = GROUPS.map((g) => ({ ...g, rows: rows.filter((r) => r.group === g.key) }));
   const overdueCount = groups[0].rows.length;
-  const typesPresent = Array.from(new Set(items.map((i) => i.type))) as ItemType[];
-  const typeOrder = (Object.keys(ITEM_TYPE_LABELS) as ItemType[]).filter((t) => typesPresent.includes(t));
 
   const setParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(params);
     if (value) next.set(key, value);
     else next.delete(key);
+    next.delete('mode');
     setParams(next, { replace: true });
   };
 
@@ -203,7 +165,7 @@ export default function WaitingOn() {
     if (!dating) return;
     const item = items.find((i) => i.id === dating.id);
     const bookedNow = !!dating.book || item?.status === 'booked';
-    if (bookedNow && !dating.value && !item?.shipmentId) {
+    if (offline || (bookedNow && !dating.value && !item?.shipmentId)) {
       setDating({ ...dating, problem: true });
       return;
     }
@@ -213,113 +175,105 @@ export default function WaitingOn() {
   };
 
   const jobFilter = jobParam ? jobs.find((j) => j.id === jobParam) : undefined;
-  const addHref = `/items/new${jobParam ? `?job=${jobParam}` : ''}`;
-  const title = ownerParam === 'me' ? 'My items' : 'Waiting on';
+  const otherOwner = ownerParam && ownerParam !== 'me' ? personOf(ownerParam) : undefined;
+  const title = ownerParam === 'me' ? 'My items' : otherOwner ? `${otherOwner.shortName}'s items` : 'Waiting on';
   const meta =
-    openCount === 0
-      ? 'Nothing waiting.'
-      : `${openCount} to act on${overdueCount ? `, ${overdueCount} overdue` : ''}${jobFilter ? ` on ${jobFilter.name}` : ''}`;
+    rows.length === 0 ? 'Nothing waiting' : `${rows.length} to act on${overdueCount ? `, ${overdueCount} overdue` : ''}${jobFilter ? ` on ${jobFilter.name}` : ''}`;
 
-  const ownerOptions = [
-    { value: '', label: 'Anyone' },
-    { value: 'me', label: 'Mine' },
-    ...(role === 'builder' ? [] : people.filter((p) => p.id !== personId).map((p) => ({ value: p.id, label: p.shortName }))),
-  ];
-  const filters = (
-    <FilterBar testId="waiting-filters">
-      <FilterSelect label="Owner" value={ownerParam ?? ''} options={ownerOptions} onChange={(v) => setParam('owner', v || null)} testId="waiting-filter-owner" />
-      <FilterSelect label="Job" value={jobParam ?? ''} options={[{ value: '', label: 'All jobs' }, ...jobs.map((j) => ({ value: j.id, label: j.name }))]} onChange={(v) => setParam('job', v || null)} testId="waiting-filter-job" />
-      <FilterSelect
-        label="Type"
-        value={typeParam ?? ''}
-        options={[{ value: '', label: 'All types' }, ...typeOrder.map((t) => ({ value: t, label: ITEM_TYPE_LABELS[t] }))]}
-        onChange={(v) => setParam('type', v || null)}
-        testId="waiting-filter-type"
-      />
-    </FilterBar>
-  );
+  /** Who to ring: the trade on the item, else the person it is with (never yourself). */
+  const callFor = (item: Item): { name: string; phone: string } | undefined => {
+    const trade: Trade | undefined = item.tradeId ? trades.find((t) => t.id === item.tradeId) : undefined;
+    if (trade?.phone) return { name: trade.name, phone: trade.phone };
+    const owner = item.ownerId !== personId ? personOf(item.ownerId) : undefined;
+    if (owner?.phone) return { name: owner.shortName, phone: owner.phone };
+    return undefined;
+  };
 
-  /** The row's controls: the one filled status button, with Call (a tel: link when the trade has a number) and Set date as quiet text beside it. */
-  const actionsFor = (r: Row): ReactNode => {
-    const next = nextStatus(r.item);
-    if (!next) return null;
-    const trade = tradeOf(r);
-    const canSetDate = !r.item.shipmentId;
-    if (dating?.id === r.item.id) {
-      return (
-        <span className="waiting__act waiting__act--dating">
-          <label className="sr-only" htmlFor={`waiting-date-${r.item.id}`}>
-            Expected date
-          </label>
-          <input
-            id={`waiting-date-${r.item.id}`}
-            type="date"
-            className="waiting__date"
-            value={dating.value}
-            onChange={(e) => setDating({ ...dating, value: e.target.value, problem: false })}
-            disabled={offline}
-            data-testid={`item-date-input-${r.item.id}`}
-          />
-          <button type="button" className="btn btn--fill btn--desktop waiting__advance" onClick={saveDate} data-testid={`item-date-save-${r.item.id}`}>
-            {dating.book ? next.label : 'Save date'}
-          </button>
-          <button type="button" className="btn btn--ghost btn--desktop waiting__quiet-btn" onClick={() => setDating(null)} data-testid={`item-date-cancel-${r.item.id}`}>
-            Cancel
-          </button>
-          {(dating.book || dating.problem) && (
-            <span role="alert">
-              <StatusText tone="amber" testId={`item-date-problem-${r.item.id}`}>
-                {offline ? 'Needs signal' : BOOKED_NEEDS_DATE}
-              </StatusText>
-            </span>
-          )}
-        </span>
-      );
-    }
+  const renderRow = (r: Row) => {
+    const { item, f, job } = r;
+    const next = nextStatus(item);
+    const when = whenWords(item, f, today);
+    const call = callFor(item);
+    const owner = item.ownerId === personId ? 'you' : personOf(item.ownerId)?.shortName;
+    const sameOwner = !!item.waitingOn && item.waitingOn === personOf(item.ownerId)?.shortName;
+    const who = [item.waitingOn ? `waiting on ${item.waitingOn}` : '', owner && !sameOwner ? `with ${owner}` : ''].filter(Boolean).join(', ');
+    const detail = [jobFilter ? '' : job?.name, who].filter(Boolean).join(' · ');
+    const isDating = dating?.id === item.id;
+    const canSetDate = wide && !item.shipmentId;
+
     return (
-      <span className="waiting__act">
-        {(trade?.phone || canSetDate) && (
-          <span className="waiting__act-more">
-            {trade?.phone && (
-              <a
-                className="btn btn--ghost btn--desktop waiting__call"
-                href={`tel:${trade.phone.replace(/\s+/g, '')}`}
-                data-testid={`item-call-${r.item.id}`}
-                title={`${trade.name}, ${trade.phone}`}
-              >
-                Call
+      <li key={item.id} className={`wrow${isDating ? ' wrow--dating' : ''}`} data-testid={`item-row-${item.id}`} data-overdue={r.group === 'overdue' || undefined}>
+        <Link to={`/items/${item.id}`} className="wrow__open" data-testid={`item-open-${item.id}`}>
+          <span className="wrow__title">{item.title}</span>
+          {detail && <span className="wrow__detail">{detail}</span>}
+          {when && (
+            <StatusText tone={when.tone} plain className="wrow__when" testId={`item-when-${item.id}`}>
+              {when.text}
+            </StatusText>
+          )}
+        </Link>
+        <span className="chevron wrow__chevron" aria-hidden="true" />
+
+        {isDating && next ? (
+          <div className="wrow__actions wrow__actions--dating">
+            <label className="sr-only" htmlFor={`waiting-date-${item.id}`}>
+              Expected date
+            </label>
+            <input
+              id={`waiting-date-${item.id}`}
+              type="date"
+              className="input wrow__date"
+              value={dating.value}
+              onChange={(e) => setDating({ ...dating, value: e.target.value, problem: false })}
+              disabled={offline}
+              data-testid={`item-date-input-${item.id}`}
+            />
+            <button type="button" className="btn wrow__btn wrow__btn--strong" onClick={saveDate} data-testid={`item-date-save-${item.id}`}>
+              {dating.book ? next.label : 'Save date'}
+            </button>
+            <button type="button" className="btn btn--ghost wrow__btn" onClick={() => setDating(null)} data-testid={`item-date-cancel-${item.id}`}>
+              Cancel
+            </button>
+            {(dating.book || dating.problem || offline) && (
+              <p className="wrow__problem" role="alert">
+                <StatusText tone="amber" plain testId={`item-date-problem-${item.id}`}>
+                  {offline ? 'Needs signal' : BOOKED_NEEDS_DATE}
+                </StatusText>
+              </p>
+            )}
+          </div>
+        ) : next ? (
+          <div className="wrow__actions">
+            {call && (
+              <a className="btn btn--tinted wrow__btn wrow__call" href={`tel:${call.phone.replace(/\s+/g, '')}`} aria-label={`Call ${call.name}, ${call.phone}`} data-testid={`item-call-${item.id}`}>
+                <PhoneGlyph />
+                <span className="wrow__call-name">Call {call.name}</span>
               </a>
             )}
-            {canSetDate &&
-              (offline ? (
-                <span className="waiting__needs-signal">Date needs signal</span>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--desktop waiting__quiet-btn"
-                  onClick={() => setDating({ id: r.item.id, value: r.item.expectedDate ?? '' })}
-                  data-testid={`item-set-date-${r.item.id}`}
-                >
-                  Set date
-                </button>
-              ))}
-          </span>
-        )}
-        <button type="button" className="btn btn--fill btn--desktop waiting__advance" onClick={() => advance(r.item)} data-testid={`item-advance-${r.item.id}`}>
-          {next.label}
-        </button>
-      </span>
+            <span className="wrow__trail">
+              {canSetDate &&
+                (offline ? (
+                  <span className="wrow__quiet">Date needs signal</span>
+                ) : (
+                  <button type="button" className="btn btn--ghost wrow__btn" onClick={() => setDating({ id: item.id, value: item.expectedDate ?? '' })} data-testid={`item-set-date-${item.id}`}>
+                    Set date
+                  </button>
+                ))}
+              <button type="button" className="btn wrow__btn wrow__btn--strong" onClick={() => advance(item)} data-testid={`item-advance-${item.id}`}>
+                {next.label}
+              </button>
+            </span>
+          </div>
+        ) : null}
+      </li>
     );
   };
 
-  const emptyWords = (
-    <p className="waiting__empty" data-testid="waiting-empty">
-      Nothing waiting
-      {jobFilter ? ` on ${jobFilter.name}` : ownerParam === 'me' ? ' with you' : ''}.
-    </p>
-  );
-
-  if (callMode) return <CallList />;
+  const ownerSeg = [
+    { value: '', label: 'Everyone' },
+    { value: 'me', label: 'Mine' },
+    ...(otherOwner ? [{ value: otherOwner.id, label: otherOwner.shortName }] : []),
+  ];
 
   return (
     <main className="page waiting" data-testid="waiting-on">
@@ -328,215 +282,58 @@ export default function WaitingOn() {
         meta={meta}
         back={jobFilter ? { to: `/jobs/${jobFilter.id}`, label: jobFilter.name } : undefined}
         actions={
-          <>
-            <WaitingMode mode="list" />
-            <Link to={addHref} className="btn btn--desktop" data-testid="waiting-add">
-              Add item
-            </Link>
-          </>
+          <Link to={`/items/new${jobParam ? `?job=${jobParam}` : ''}`} className={wide ? 'btn btn--desktop' : 'btn btn--ghost waiting__add'} data-testid="waiting-add">
+            Add item
+          </Link>
         }
       />
-      {filters}
 
-      {layout === 'phone' ? (
-        <div className="waiting__groups">
-          {openCount === 0 && emptyWords}
-          {groups.map(({ key, rows }) => {
-            if (rows.length === 0 && key !== 'done') return null;
-            const t = groupTitle(key, today);
-            const list = (withAction: boolean) => (
-              <ItemRowList>
-                {rows.map((r) => (
-                  <ItemRow
-                    key={r.item.id}
-                    item={r.item}
-                    forecast={r.f}
-                    ownerName={nameOf(r.item.ownerId)}
-                    href={`/items/${r.item.id}`}
-                    context={jobFilter ? undefined : r.job?.name}
-                    when={withAction ? rowWhenWords(r.item, r.f, today) : undefined}
-                    action={withAction ? actionsFor(r) : undefined}
-                  />
-                ))}
-              </ItemRowList>
-            );
-            // Later and Done fold away: the thumb list is this fortnight.
-            if (key === 'done' || key === 'later') {
-              return (
-                <details key={key} className={`waiting__group waiting__group--${key} waiting__group--folded`} data-testid={`waiting-group-${key}`}>
-                  <summary className="waiting__group-head">
-                    <span className="waiting__group-count">{rows.length}</span>
-                    <span className="waiting__group-title">{t.title}</span>
-                    <span className="waiting__group-toggle waiting__group-toggle--closed">show</span>
-                    <span className="waiting__group-toggle waiting__group-toggle--open">hide</span>
-                  </summary>
-                  {rows.length === 0 ? <p className="waiting__quiet">Nothing done yet.</p> : list(key === 'later')}
-                </details>
-              );
-            }
-            return (
-              <section key={key} className={`waiting__group waiting__group--${key}`} data-testid={`waiting-group-${key}`} aria-label={t.title}>
-                <h2 className="waiting__group-head">
-                  <span className="waiting__group-count">{rows.length}</span>
-                  <span className="waiting__group-title">{t.title}</span>
-                  {t.sub && <span className="waiting__group-sub">{t.sub}</span>}
-                </h2>
-                {list(true)}
-              </section>
-            );
-          })}
-        </div>
+      <FilterBar testId="waiting-filters">
+        <span className="seg waiting__owner" role="group" aria-label="Whose items" data-testid="waiting-filter-owner">
+          {ownerSeg.map((o) => (
+            <button
+              key={o.value || 'all'}
+              type="button"
+              className="seg__btn"
+              aria-pressed={(ownerParam ?? '') === o.value}
+              onClick={() => setParam('owner', o.value || null)}
+              data-testid={`waiting-owner-${o.value || 'all'}`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </span>
+        <FilterSelect
+          label="Job"
+          value={jobParam ?? ''}
+          options={[{ value: '', label: 'All jobs' }, ...jobs.map((j) => ({ value: j.id, label: j.name }))]}
+          onChange={(v) => setParam('job', v || null)}
+          testId="waiting-filter-job"
+          className="waiting__job"
+        />
+      </FilterBar>
+
+      {rows.length === 0 ? (
+        <p className="waiting__empty" data-testid="waiting-empty">
+          Nothing waiting{jobFilter ? ` on ${jobFilter.name}` : ownerParam === 'me' ? ' with you' : ''}.
+        </p>
       ) : (
         <div className="waiting__groups">
-          {openCount === 0 && emptyWords}
-          {openCount > 0 && (
-            <div className="waiting__scroll">
-              <table className="table waiting__table">
-                <thead>
-                  <tr>
-                    <th scope="col">Act by</th>
-                    <th scope="col">Item</th>
-                    <th scope="col">Waiting on</th>
-                    <th scope="col">Needed by</th>
-                    <th scope="col">Expected</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">
-                      <span className="sr-only">Action</span>
-                    </th>
-                  </tr>
-                </thead>
-                {groups
-                  .filter((g) => g.key !== 'done' && g.rows.length > 0)
-                  .map(({ key, rows }) => {
-                    const t = groupTitle(key, today);
-                    return (
-                      <tbody key={key} className={`waiting__tgroup waiting__tgroup--${key}`} data-testid={`waiting-group-${key}`}>
-                        <tr className="waiting__grouprow">
-                          <th scope="rowgroup" colSpan={7}>
-                            <span className="waiting__group-count">{rows.length}</span>
-                            <span className="waiting__group-title">{t.title}</span>
-                            {t.sub && <span className="waiting__group-sub">{t.sub}</span>}
-                          </th>
-                        </tr>
-                        {rows.map((r) => (
-                          <TableRow key={r.item.id} row={r} today={today} ownerName={nameOf(r.item.ownerId)} action={actionsFor(r)} />
-                        ))}
-                      </tbody>
-                    );
-                  })}
-              </table>
-            </div>
+          {groups.map(({ key, title, rows }) =>
+            rows.length === 0 ? null : (
+              <section key={key} className="group waiting__group" aria-labelledby={`waiting-${key}-title`} data-testid={`waiting-group-${key}`}>
+                <h2 id={`waiting-${key}-title`} className="group__header group__header--large waiting__group-head">
+                  {title}
+                  <span className="waiting__count" data-testid={`waiting-count-${key}`}>
+                    {rows.length}
+                  </span>
+                </h2>
+                <ul className="group__list waiting__list">{rows.map(renderRow)}</ul>
+              </section>
+            ),
           )}
-          <details className="waiting__group waiting__group--done" data-testid="waiting-group-done">
-            <summary className="waiting__group-head">
-              <span className="waiting__group-count">{groups[4].rows.length}</span>
-              <span className="waiting__group-title">Done</span>
-              <span className="waiting__group-toggle waiting__group-toggle--closed">show</span>
-              <span className="waiting__group-toggle waiting__group-toggle--open">hide</span>
-            </summary>
-            {groups[4].rows.length === 0 ? (
-              <p className="waiting__quiet">Nothing done yet.</p>
-            ) : (
-              <table className="table waiting__table">
-                <tbody>
-                  {groups[4].rows.map((r) => (
-                    <TableRow key={r.item.id} row={r} today={today} ownerName={nameOf(r.item.ownerId)} action={null} />
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </details>
         </div>
       )}
     </main>
-  );
-}
-
-function TableRow({ row, today, ownerName, action }: { row: Row; today: string; ownerName?: string; action: ReactNode }) {
-  const { item, f, job } = row;
-  const { personId } = useSession();
-  const navigate = useNavigate();
-  const open = item.status !== 'done';
-  // The whole row opens the item; the link inside and the button keep their own targets.
-  const onRowClick = (e: MouseEvent<HTMLTableRowElement>) => {
-    if ((e.target as HTMLElement).closest('a, button')) return;
-    navigate(`/items/${item.id}`);
-  };
-  const actPassed = !!f?.actBy && f.actBy < today && item.status === 'to_do';
-  const late = f?.isLate ? itemWhenWords(f, item.status, today) : null;
-  // Expected after needed is plain words; red only for what is past its date.
-  const overdue = !!f && isOverdue(f, today);
-  const lead = f?.leadTimeWeeks ?? item.leadTimeWeeks ?? 0;
-  const owner = item.ownerId === personId ? 'you' : ownerName;
-  const who = [item.waitingOn, owner ? `with ${owner}` : ''].filter(Boolean).join(', ');
-  // The act-by column reads date first: the figure, then how far off it is and the lead that set it.
-  const actAgo = open && f?.actBy ? relativeDate(f.actBy, today, { deadline: item.status === 'to_do' }) : '';
-  const actUnder = [actAgo, lead ? `${lead} wk lead` : ''].filter(Boolean);
-  return (
-    <tr className="waiting__row" data-testid={`item-row-${item.id}`} onClick={onRowClick}>
-      <td className="waiting__cell-act num">
-        {f?.actBy ? (
-          <>
-            <span className={`waiting__actby${actPassed ? ' waiting__actby--late' : ''}${!open ? ' waiting__actby--quiet' : ''}`}>
-              {actPassed ? <span className="waiting__mark" aria-hidden="true">!</span> : null}
-              {formatShort(f.actBy)}
-            </span>
-            {actUnder.map((w) => (
-              <span key={w} className={`waiting__cell-ago${actPassed ? ' waiting__cell-ago--late' : ''}`}>
-                {w}
-              </span>
-            ))}
-          </>
-        ) : (
-          <span className="waiting__actby waiting__actby--none">No date</span>
-        )}
-      </td>
-      <th scope="row" className="waiting__cell-item">
-        <Link to={`/items/${item.id}`} className="waiting__title">
-          {item.title}
-        </Link>
-        <span className="waiting__under">
-          {ITEM_TYPE_WORDS[item.type]}
-          {job ? `, ${job.name}` : ''}
-        </span>
-      </th>
-      <td className="waiting__cell-wrap">{who}</td>
-      <td className="num">
-        {f?.neededBy ? (
-          <>
-            {formatShort(f.neededBy)}
-            {!(late && !f.expected) && <span className="waiting__cell-ago">{relativeDate(f.neededBy, today, { deadline: open })}</span>}
-          </>
-        ) : (
-          ''
-        )}
-      </td>
-      <td className="num">
-        {late && f && !f.expected ? (
-          <>
-            <StatusText tone={overdue ? 'late' : 'plain'} plain={!overdue} className="waiting__chip">
-              No date
-            </StatusText>
-            <span className={`waiting__cell-ago${overdue ? ' waiting__cell-ago--late' : ''}`}>{`needed ${formatShort(f.neededBy!)}, ${f.lateText}`}</span>
-          </>
-        ) : late && f?.expected ? (
-          <>
-            {formatShort(f.expected)}
-            <span className="waiting__cell-ago">{`${relativeDate(f.expected, today)}, ${f.lateText}`}</span>
-          </>
-        ) : f?.expected ? (
-          <>
-            {formatShort(f.expected)}
-            <span className="waiting__cell-ago">{relativeDate(f.expected, today)}</span>
-          </>
-        ) : (
-          ''
-        )}
-      </td>
-      <td className="waiting__cell-status" data-testid={`item-status-word-${item.id}`}>
-        {ITEM_STATUS_LABELS[item.status]}
-      </td>
-      <td className="waiting__cell-action">{action}</td>
-    </tr>
   );
 }

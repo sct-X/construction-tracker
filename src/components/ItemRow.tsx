@@ -1,6 +1,6 @@
 /**
  * One compact waiting-on item, the same row wherever an item is listed
- * (job overview, step detail, and Stage 4's waiting-on list and call list).
+ * (job overview, step detail). Waiting on draws its own inset grouped row.
  *
  *   type · title
  *   waiting on X, with Raff                 act by Mon 10 Aug   [To do]
@@ -60,7 +60,7 @@ export interface ItemRowProps {
   href?: string;
   /** Extra words on the right of the title, e.g. the job name on a cross-job list. */
   context?: string;
-  /** A control on the right, outside the link (Stage 4's status advance, Finish call). */
+  /** A control on the right, outside the link (a status advance). */
   action?: ReactNode;
   /**
    * Replaces the row's one date phrase (the waiting-on list says "Act by

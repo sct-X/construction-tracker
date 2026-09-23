@@ -14,12 +14,13 @@
  * Opened from a job's Shipments tab (`/jobs/:id/shipments/:shipmentId`) it
  * keeps the job around it: back goes to that job's Shipments tab.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { ActivityEntry, Item, ShipmentStatus } from '../domain/types';
 import { ITEM_STATUS_LABELS, SHIPMENT_STATUS_LABELS, SHIPMENT_STATUS_ORDER } from '../domain/types';
 import type { EtaPreview, ItemForecast } from '../domain/forecast';
+import { isOverdue } from '../domain/forecast';
 import { formatDayMonth, formatLong, formatShort, formatShortRelative, formatTime, isISODate, relativeDate } from '../domain/dates';
 import { BigNumber } from '../components/BigNumber';
 import { EtaImpact } from '../components/EtaImpact';
@@ -79,7 +80,9 @@ export default function ShipmentDetail() {
     );
   }
 
+  // Alec (site) reads a shipment from his job's Shipments tab: no ETA editor, no history, no item sheet.
   const canEdit = role === 'admin' || role === 'partner' || role === 'builder';
+  const canSeeHistory = api.canSee('activity');
   const locked = offline || !canEdit;
   const openItems = rows.filter((r) => r.item.status !== 'done');
   const neededBy = openItems.map((r) => r.forecast?.neededBy).filter((d): d is string => !!d).sort()[0];
@@ -191,6 +194,7 @@ export default function ShipmentDetail() {
         )}
       </section>
 
+      {canEdit && (
       <section className="shipment__eta" aria-labelledby="shipment-eta-heading">
         <h2 id="shipment-eta-heading" className="shipment__heading">
           New ETA
@@ -224,6 +228,7 @@ export default function ShipmentDetail() {
           </>
         )}
       </section>
+      )}
 
       <section className="shipment__items" aria-labelledby="shipment-items-heading">
         <h2 id="shipment-items-heading" className="shipment__heading">
@@ -258,6 +263,7 @@ export default function ShipmentDetail() {
         )}
       </section>
 
+      {canSeeHistory && (
       <section className="shipment__history" aria-labelledby="shipment-history-heading">
         <h2 id="shipment-history-heading" className="shipment__heading">
           History
@@ -280,14 +286,17 @@ export default function ShipmentDetail() {
           </ol>
         )}
       </section>
+      )}
     </main>
   );
 }
 
 function ItemStatus({ row }: { row: LinkedRow }) {
   const { item, forecast } = row;
+  const { today } = useSession();
   if (item.status === 'done') return <StatusText tone="muted">Done</StatusText>;
-  if (forecast?.lateText) return <StatusText tone="late">{forecast.lateText}</StatusText>;
+  // Expected after needed is plain words; red only when the item is past its date.
+  if (forecast?.lateText) return <StatusText tone={isOverdue(forecast, today) ? 'late' : 'plain'}>{forecast.lateText}</StatusText>;
   return <StatusText tone="plain">{ITEM_STATUS_LABELS[item.status]}</StatusText>;
 }
 
@@ -315,6 +324,7 @@ function DateCell({ iso, deadline }: { iso?: string; deadline?: boolean }) {
 }
 
 function ItemsTable({ rows, onUnlink }: { rows: LinkedRow[]; onUnlink: Unlink }) {
+  const canOpenItem = useApi().canSee('item');
   return (
     <table className="table shipment__table">
       <thead>
@@ -336,13 +346,17 @@ function ItemsTable({ rows, onUnlink }: { rows: LinkedRow[]; onUnlink: Unlink })
         {rows.map((row) => (
           <tr key={row.item.id} data-testid={`shipment-item-${row.item.id}`}>
             <td>
-              <Link to={`/items/${row.item.id}`} className="shipment__item-link">
-                {row.item.title}
-              </Link>
+              {canOpenItem ? (
+                <Link to={`/items/${row.item.id}`} className="shipment__item-link">
+                  {row.item.title}
+                </Link>
+              ) : (
+                row.item.title
+              )}
             </td>
             <td>{row.ownerName ?? <span className="shipment__muted">Nobody</span>}</td>
             <td className="num">
-              <DateCell iso={row.forecast?.actBy} deadline={row.item.status === 'to_do' || row.item.status === 'booked'} />
+              <DateCell iso={row.forecast?.actBy} deadline={row.item.status === 'to_do'} />
             </td>
             <td className="num">
               <DateCell iso={row.forecast?.neededBy} deadline={row.item.status !== 'done'} />
@@ -370,13 +384,24 @@ function ItemsTable({ rows, onUnlink }: { rows: LinkedRow[]; onUnlink: Unlink })
   );
 }
 
+/** A linked item's card: a link to the item sheet, or a plain card for Alec, who has none. */
+function ItemCard({ id, children }: { id: string; children: ReactNode }) {
+  const canOpenItem = useApi().canSee('item');
+  if (!canOpenItem) return <div className="shipment__item-card">{children}</div>;
+  return (
+    <Link to={`/items/${id}`} className="shipment__item-card">
+      {children}
+    </Link>
+  );
+}
+
 function ItemsList({ rows, onUnlink }: { rows: LinkedRow[]; onUnlink: Unlink }) {
   const { today } = useSession();
   return (
     <ul className="shipment__list">
       {rows.map((row) => (
         <li key={row.item.id} className="shipment__list-row" data-testid={`shipment-item-${row.item.id}`}>
-          <Link to={`/items/${row.item.id}`} className="shipment__item-card">
+          <ItemCard id={row.item.id}>
             <div className="shipment__item-top">
               <span className="shipment__item-title">{row.item.title}</span>
               <span data-testid={`shipment-item-status-${row.item.id}`}>
@@ -385,7 +410,7 @@ function ItemsList({ rows, onUnlink }: { rows: LinkedRow[]; onUnlink: Unlink }) 
             </div>
             <div className="shipment__item-meta">
               <span>{row.ownerName ?? 'Nobody'}</span>
-              {row.forecast?.actBy && <span className="num">act by {formatShortRelative(row.forecast.actBy, today, { deadline: row.item.status === 'to_do' || row.item.status === 'booked' })}</span>}
+              {row.forecast?.actBy && <span className="num">act by {formatShortRelative(row.forecast.actBy, today, { deadline: row.item.status === 'to_do' })}</span>}
               {row.forecast?.expected && (
                 <span className="num" data-testid={`shipment-item-expected-${row.item.id}`}>
                   expected {formatShortRelative(row.forecast.expected, today)}
@@ -393,7 +418,7 @@ function ItemsList({ rows, onUnlink }: { rows: LinkedRow[]; onUnlink: Unlink }) 
               )}
               {row.item.status !== 'done' && row.forecast?.lateText && <span>{ITEM_STATUS_LABELS[row.item.status]}</span>}
             </div>
-          </Link>
+          </ItemCard>
           <UnlinkButton id={row.item.id} onUnlink={onUnlink} />
         </li>
       ))}

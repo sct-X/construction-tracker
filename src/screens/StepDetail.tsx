@@ -17,6 +17,7 @@ import type { StepStatusResult } from '../data/api';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { Item, Job, Person, Requirement, Stage, Step } from '../domain/types';
 import type { JobForecast, StepForecast } from '../domain/forecast';
+import { isStepOverdue } from '../domain/forecast';
 import { formatLong, formatShortRelative } from '../domain/dates';
 import { stepWhenWords } from '../components/gantt/Gantt';
 import { BigNumber } from '../components/BigNumber';
@@ -127,12 +128,12 @@ export default function StepDetail() {
             size="row"
             value={sf ? span(sf.forecastStart, sf.forecastEnd) : 'No dates yet'}
             label={sf ? `Forecast, ${stepWhenWords(sf, today)}` : 'Forecast'}
-            tone={sf && sf.plannedStart && sf.lateDays > 0 ? 'late' : undefined}
+            tone={sf && sf.plannedStart && isStepOverdue(sf, today) ? 'late' : undefined}
             testId="step-forecast"
             className="step__figure"
           />
           {sf && sf.plannedStart && (
-            <StatusText tone={sf.lateDays > 0 ? 'late' : sf.lateDays < 0 ? 'ok' : 'muted'} testId="step-late">
+            <StatusText tone={isStepOverdue(sf, today) ? 'late' : sf.lateDays > 0 ? 'plain' : sf.lateDays < 0 ? 'ok' : 'muted'} testId="step-late">
               {lateWords(sf)}
             </StatusText>
           )}

@@ -22,16 +22,17 @@ test.describe('Flow a: the overview', () => {
 
     // Beatty St: the tiler is the top waiting-on line with its lateness in words; freshness is quiet words, never amber.
     await expect(page.getByTestId('overview-stage-beatty')).toHaveText('Rough-in');
-    await expect(page.getByTestId('overview-item-it-bt-tiler')).toContainText('expected 5 Oct, in 2 weeks, 7 days late');
+    await expect(page.getByTestId('overview-item-it-bt-tiler')).toContainText('expected 5 Oct, in 2 weeks, 7 days after needed');
     await expect(page.getByTestId('overview-fresh-beatty')).toContainText('Last confirmed 9 days ago');
     await expect(page.getByTestId('overview-fresh-beatty')).toHaveAttribute('data-tone', 'muted');
 
     // The red cue: only a job with something past its date carries "N overdue", as a late chip.
-    // Park Rd (tile choice needed 14 Sep, plumber and council act-bys gone) and Seaview (timber act-by gone) do.
-    await expect(page.getByTestId('overview-overdue-park-rd')).toHaveText('!4 overdue');
+    // Park Rd (tile choice needed 14 Sep, glazing certificate act-by gone, both still to do) is the only one:
+    // every booking carries an expected date, so a booked plumber, council request or timber order is never overdue.
+    await expect(page.getByTestId('overview-overdue-park-rd')).toHaveText('!2 overdue');
     await expect(page.getByTestId('overview-overdue-park-rd')).toHaveAttribute('data-tone', 'late');
-    await expect(park).toHaveAttribute('data-overdue', '4');
-    await expect(page.getByTestId('overview-overdue-seaview')).toHaveText('!1 overdue');
+    await expect(park).toHaveAttribute('data-overdue', '2');
+    await expect(page.getByTestId('overview-overdue-seaview')).toHaveCount(0);
     // Beatty's tiler is expected after it is needed (a future clash), not past its date: no cue, no red line.
     await expect(page.getByTestId('overview-overdue-beatty')).toHaveCount(0);
     await expect(page.getByTestId('job-row-beatty')).not.toHaveAttribute('data-overdue', /.*/);
@@ -40,7 +41,7 @@ test.describe('Flow a: the overview', () => {
     const tile = page.locator('.overview__item--late', { has: page.getByTestId('overview-item-it-pr-tile-choice') });
     await expect(tile).toContainText('overdue by 3 days');
     // Design jobs have nothing past its date and no amber: the oldest item is plain words.
-    await expect(page.locator('[data-testid^="overview-overdue-"]')).toHaveCount(2);
+    await expect(page.locator('[data-testid^="overview-overdue-"]')).toHaveCount(1);
     await expect(page.locator('#root [data-tone="amber"]')).toHaveCount(0);
 
     // Seaview St: the slab inspection is a hold point with empty photo sets.
@@ -86,7 +87,7 @@ test.describe('Flow a: the overview', () => {
     await page.goto('#/overview?as=norm&today=2026-09-17&side=side-norm');
     await expect(page.getByTestId('overview-stage-hunts-12')).toHaveText('Lock-up');
     await expect(page.getByTestId('overview-stage-north-rd')).toHaveText('First floor');
-    await expect(page.getByTestId('overview-item-it-h12-windows')).toContainText('expected 28 Sep, in 11 days, 7 days late');
+    await expect(page.getByTestId('overview-item-it-h12-windows')).toContainText('expected 28 Sep, in 11 days, 7 days after needed');
     await expect(page.getByTestId('job-row-park-rd')).toHaveCount(0);
     // Back to the main side so the persisted session does not leak.
     await page.goto('#/overview?as=norm&today=2026-09-17&side=side-nd');

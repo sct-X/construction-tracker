@@ -47,3 +47,15 @@ export function nextStatus(item: Pick<Item, 'type' | 'status'>): NextStep | null
 export function advanceLabel(item: Pick<Item, 'type' | 'status'>): string | null {
   return nextStatus(item)?.label ?? null;
 }
+
+/** The words every screen shows when "booked" is refused for want of a date. */
+export const BOOKED_NEEDS_DATE = 'Ordered or booked needs an expected date.';
+
+/**
+ * Booked (ordered, requested) means a date is on the way: an item may only
+ * be booked with an expected date, its own or its shipment's ETA. True when
+ * moving `item` to `status` would break that.
+ */
+export function needsExpectedDate(item: Pick<Item, 'shipmentId' | 'expectedDate'>, status: ItemStatus): boolean {
+  return status === 'booked' && !item.shipmentId && !item.expectedDate;
+}

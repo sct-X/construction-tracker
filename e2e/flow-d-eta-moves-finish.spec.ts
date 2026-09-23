@@ -35,21 +35,24 @@ test.describe('Flow d: the ETA moves the finish', () => {
     // Nothing saved yet: the hero still says 26 Oct.
     await expect(page.getByTestId('shipment-eta')).toContainText('Mon 26 Oct 2026');
 
-    // 4. Save new ETA. 5. The linked items now read 14 days late, expected 16 Nov.
+    // 4. Save new ETA. 5. The linked items now read 14 days after needed, expected 16 Nov.
     await page.getByTestId('shipment-save-eta').click();
     await expect(page.getByTestId('shipment-eta')).toContainText('Mon 16 Nov 2026');
     await expect(page.getByTestId('shipment-timing')).toContainText('ETA 2 weeks after needed');
     await expect(page.getByTestId('shipment-eta-preview')).toHaveCount(0);
     for (const id of ['it-pr-windows', 'it-pr-sliding-doors', 'it-pr-glazing-cert']) {
       await expect(page.getByTestId(`shipment-item-expected-${id}`)).toContainText('Mon 16 Nov');
-      await expect(page.getByTestId(`shipment-item-status-${id}`)).toContainText('14 days late');
+      await expect(page.getByTestId(`shipment-item-status-${id}`)).toContainText('14 days after needed');
     }
+    // Expected after needed is a clash between two future dates: plain words, never red.
+    await expect(page.getByTestId('shipment-timing')).not.toHaveAttribute('data-tone', 'late');
+    await expect(page.getByTestId('shipment-item-status-it-pr-windows').locator('[data-tone]')).toHaveAttribute('data-tone', 'plain');
     // 8. The activity feed records who changed it, from what, to what.
     await expect(page.getByTestId('shipment-history').locator('li').first()).toContainText('Park Rd windows ETA changed 26 Oct to 16 Nov (Dominic)');
 
     // 6. The overview's waiting-on lines carry the lateness; the step detail says why it starts 16 Nov.
     await page.goto('#/overview');
-    await expect(page.getByTestId('overview-item-it-pr-windows')).toContainText('expected 16 Nov, in 8 weeks, 14 days late');
+    await expect(page.getByTestId('overview-item-it-pr-windows')).toContainText('expected 16 Nov, in 8 weeks, 14 days after needed');
     expect(await page.locator('#root').innerText()).not.toMatch(/Mar 2027|\$/);
     await page.goto('#/steps/pr-install-windows');
     await expect(page.getByTestId('step-forecast')).toContainText('Mon 16 Nov 2026');

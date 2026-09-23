@@ -26,6 +26,7 @@ import type { TrackerApi } from '../data/api';
 import { useApi, useQuery, useSession } from '../data/context';
 import { ITEM_STATUS_LABELS, SHIPMENT_STATUS_LABELS, type Item, type ItemStatus, type ShipmentStatus } from '../domain/types';
 import { addCalendarDays, formatShort, formatShortRelative, formatWeekRange, lastMonday } from '../domain/dates';
+import { isOverdue } from '../domain/forecast';
 import { StatusText, type Tone } from '../components/StatusText';
 import { PageHeader } from '../shell/PageHeader';
 import './deliveries.css';
@@ -44,8 +45,10 @@ export interface Delivery {
   /** Status in words: "Ordered", "Confirmed", "Shipped", "Delivered". */
   status: string;
   delivered: boolean;
-  /** The calculator's lateness against the step that needs it, e.g. "3 days late". */
+  /** The calculator's lateness against the step that needs it, e.g. "3 days after needed". */
   lateText?: string;
+  /** Past its date (isOverdue): the only case the row is red. */
+  overdue?: boolean;
   /** Shipment rows: what is in the container. */
   contents: string[];
   /** Shipment rows: the material items still open, marked done on delivery. */
@@ -105,6 +108,7 @@ export function collectDeliveries(api: TrackerApi, today: string, jobId?: string
         status: SHIPMENT_WORDS[sh.status],
         delivered,
         lateText: delivered ? undefined : late[0]?.lateText,
+        overdue: !delivered && linked.some((i) => !!forecast?.items[i.id] && isOverdue(forecast.items[i.id], today)),
         contents: linked.map((i) => i.title),
         openItemIds: open.map((i) => i.id),
       });
@@ -127,6 +131,7 @@ export function collectDeliveries(api: TrackerApi, today: string, jobId?: string
         status: ITEM_WORDS[it.status],
         delivered,
         lateText: delivered ? undefined : f?.isLate ? f.lateText : undefined,
+        overdue: !delivered && !!f && isOverdue(f, today),
         contents: [],
         openItemIds: [],
       });
@@ -177,7 +182,8 @@ export function deliveryWhen(d: Delivery, today: string): { text: string; tone: 
   if (d.delivered) return { text: d.expected ? `Delivered ${formatShortRelative(d.expected, today)}` : 'Delivered', tone: 'ok' };
   if (!d.expected) return { text: 'No date yet', tone: 'muted' };
   const when = formatShortRelative(d.expected, today);
-  if (d.lateText) return { text: `Expected ${when}, ${d.lateText}`, tone: 'late' };
+  // Expected after needed is plain words; red only when past its date.
+  if (d.lateText) return { text: `Expected ${when}, ${d.lateText}`, tone: d.overdue ? 'late' : 'plain' };
   if (d.expected < today) return { text: `Expected ${when}, not marked delivered`, tone: 'plain' };
   return { text: `Expected ${when}`, tone: 'plain' };
 }

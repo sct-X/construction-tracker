@@ -199,12 +199,14 @@ export default function CallList() {
   const touched = (jobId: string) => changedIds(jobId).size;
 
   // ---- actions, each writing through the api and folding the row in words ----
-  const advance = (item: Item, status: ItemStatus, confirmedFor?: string) => {
-    if (status === 'confirmed' && confirmedFor && confirmedFor !== item.expectedDate) api.setItemExpectedDate(item.id, confirmedFor);
+  // `date` is the day it is confirmed for, or the expected date a booking carries.
+  const advance = (item: Item, status: ItemStatus, date?: string) => {
+    if ((status === 'confirmed' || status === 'booked') && date && date !== item.expectedDate) api.setItemExpectedDate(item.id, date);
     api.updateItemStatus(item.id, status);
     // The folded sentence uses the button's own words ("Mark requested" -> "requested"), so the flow reads the same everywhere.
     const label = (nextStatus(item)?.label ?? 'Mark done').replace(/^Mark /, '').toLowerCase();
-    const words = `${label}${status === 'confirmed' && confirmedFor ? ` for ${formatShortRelative(confirmedFor, today)}` : ''}`;
+    const when = date ? (status === 'confirmed' ? ` for ${formatShortRelative(date, today)}` : status === 'booked' ? `, expected ${formatShortRelative(date, today)}` : '') : '';
+    const words = `${label}${when}`;
     setHandled((h) => ({ ...h, [item.id]: { item, words: <>{words}</> } }));
   };
 

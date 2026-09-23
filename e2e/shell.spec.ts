@@ -60,12 +60,10 @@ function layoutFor(page: Page, as: string): Layout {
   return (page.viewportSize()?.width ?? 1280) < 768 ? 'phone' : 'desktop';
 }
 
-/** Labels of every nav-* link in the primary nav and, on desktop, the setup group; job sub-links excluded. */
+/** Labels of every nav-* link in the primary nav and, on desktop, the setup group. */
 async function navLabels(page: Page): Promise<string[]> {
   const links = page.locator('[data-testid="primary-nav"] [data-testid^="nav-"], [data-testid="setup-nav"] [data-testid^="nav-"]');
-  const ids = await links.evaluateAll((els) => els.map((el) => el.getAttribute('data-testid') ?? ''));
-  const texts = await links.allTextContents();
-  return texts.filter((_, i) => !ids[i].startsWith('nav-job-')).map((t) => t.trim());
+  return (await links.allTextContents()).map((t) => t.trim());
 }
 
 test.describe('Shell: navigation and landing per role', () => {
@@ -82,6 +80,15 @@ test.describe('Shell: navigation and landing per role', () => {
       await expect(page.getByTestId('nav-settings')).toBeVisible();
     });
   }
+
+  test('the desktop sidebar lists no jobs: the job switcher moves between them', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'the sidebar is desktop only');
+    await page.goto('#/jobs/park-rd?as=dom&side=side-nd&today=2026-09-17');
+    await expect(page.getByTestId('sidebar')).toBeVisible();
+    await expect(page.getByTestId('sidebar').locator('[data-testid^="nav-job-"]')).toHaveCount(0);
+    await expect(page.getByTestId('sidebar')).not.toContainText('31 Seaview St');
+    await expect(page.getByTestId('job-switcher')).toHaveValue('park-rd');
+  });
 
   test('the side switcher shows for Dominic and Norm only; nobody else sees a side name at all', async ({ page }) => {
     for (const as of ['dominic', 'norm']) {

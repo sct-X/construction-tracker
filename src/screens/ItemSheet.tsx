@@ -40,6 +40,8 @@ import { StatusText } from '../components/StatusText';
 import NotFound from './NotFound';
 import { PageHeader } from '../shell/PageHeader';
 import { shipmentHref } from '../shell/nav';
+import { isOverdue } from '../domain/forecast';
+import { BOOKED_NEEDS_DATE, needsExpectedDate } from '../domain/itemFlow';
 import './itemSheet.css';
 
 interface Draft {
@@ -180,6 +182,7 @@ export default function ItemSheet() {
     if (!step && !draft.neededBy) out.push(isBuild ? 'Pick a step, or set a needed-by date.' : 'Set a needed-by date.');
     if (lead === null) out.push('Lead time is whole weeks, 0 or more.');
     if (draft.status === 'confirmed' && draft.confirmedDate && draft.confirmedDate > today) out.push('The confirmed date is after today.');
+    if (needsExpectedDate({ shipmentId: shipment?.id, expectedDate: draft.expectedDate || undefined }, draft.status)) out.push(BOOKED_NEEDS_DATE);
     return out;
   };
 
@@ -208,12 +211,14 @@ export default function ItemSheet() {
       return;
     }
     const before = item!;
+    const patch: ItemPatch = { ...common, jobId: draft.jobId };
+    if (draft.status === 'confirmed') patch.confirmedDate = draft.confirmedDate || before.confirmedDate || today;
+    // Fields first, so a booking lands with its expected date already on it.
+    api.updateItem(before.id, patch);
     if (draft.status !== before.status) {
       api.updateItemStatus(before.id, draft.status, draft.status === 'confirmed' ? draft.confirmedDate || today : undefined);
     }
-    const patch: ItemPatch = { ...common, jobId: draft.jobId };
-    if (draft.status === 'confirmed') patch.confirmedDate = draft.confirmedDate || before.confirmedDate || today;
-    const after = api.updateItem(before.id, patch);
+    const after = api.getItem(before.id) ?? before;
     setDraft(draftFrom(after, params, personId));
     setSaved(true);
   };
@@ -245,9 +250,9 @@ export default function ItemSheet() {
       label={
         draft.status === 'done'
           ? 'Done'
-          : `${relativeDate(actBy, today, { deadline: draft.status === 'to_do' || draft.status === 'booked' })}${neededBy ? `: needed ${formatShort(neededBy)}${step ? ` for ${step.name}` : ''}, minus ${leadWeeks} week${leadWeeks === 1 ? '' : 's'}` : ''}`
+          : `${relativeDate(actBy, today, { deadline: draft.status === 'to_do' })}${neededBy ? `: needed ${formatShort(neededBy)}${step ? ` for ${step.name}` : ''}, minus ${leadWeeks} week${leadWeeks === 1 ? '' : 's'}` : ''}`
       }
-      tone={actByPassed && (draft.status === 'to_do' || draft.status === 'booked') ? 'late' : undefined}
+      tone={actByPassed && draft.status === 'to_do' ? 'late' : undefined}
       testId="item-act-by"
     />
   ) : (
@@ -274,7 +279,7 @@ export default function ItemSheet() {
       <section className="sheet__figure" aria-label="Act by">
         {actByFigure}
         {savedForecast?.isLate && (
-          <StatusText tone="late" testId="item-late">
+          <StatusText tone={isOverdue(savedForecast, today) ? 'late' : 'plain'} plain={!isOverdue(savedForecast, today)} testId="item-late">
             {savedForecast.expected ? `Expected ${formatShortRelative(savedForecast.expected, today)}` : `Needed ${formatShort(savedForecast.neededBy!)}, nothing expected`},{' '}
             {savedForecast.lateText}
           </StatusText>
@@ -443,7 +448,7 @@ export default function ItemSheet() {
                 {expectedFromShipment ? formatLongRelative(expectedFromShipment, today) : 'No ETA yet'}
                 <span className="sheet__derived-from">
                   Comes from shipment:{' '}
-                  <Link to={shipmentHref(role, shipment)} data-testid="item-shipment-link">
+                  <Link to={shipmentHref(shipment)} data-testid="item-shipment-link">
                     {shipment.name}
                   </Link>
                 </span>

@@ -30,7 +30,7 @@ export { TEMPLATE_DUPLEX } from './template';
 export { HUNTS_12, HUNTS_14, NORTH_RD } from './eastwood';
 
 /** Bump when the seed changes shape or numbers, so stale localStorage reseeds. */
-export const SEED_VERSION = 4;
+export const SEED_VERSION = 5;
 
 /** Thu 17 Sep 2026: the default "today" for the dev bar and every test. */
 export const DEFAULT_TODAY = '2026-09-17';

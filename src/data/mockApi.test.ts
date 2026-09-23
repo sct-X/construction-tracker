@@ -41,10 +41,44 @@ describe('money and the site role through the API', () => {
     const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dom', today: DEFAULT_TODAY } });
     const rows = api.getOverviewRows();
     const by = (id: string) => rows.find((r) => r.jobId === id)!;
-    expect(by(PARK_RD).overdue).toBe(4);
-    expect(by(SEAVIEW).overdue).toBe(1);
+    // Park Rd: the glazing certificate and the tile choice, both still to do past their act-by.
+    expect(by(PARK_RD).overdue).toBe(2);
+    expect(by(SEAVIEW).overdue).toBe(0);
     expect(by(BEATTY).overdue).toBe(0);
-    expect(by(BEATTY).waitingOn[0].isLate).toBe(true); // the tiler is "7 days late", expected after needed, not overdue
+    expect(by(BEATTY).waitingOn[0].isLate).toBe(true); // the tiler is "7 days after needed", a future clash, not overdue
+    expect(by(BEATTY).waitingOn[0].lateText).toBe('7 days after needed');
+    const total = rows.reduce((n, r) => n + r.overdue, 0);
+    expect(total).toBe(2);
+  });
+});
+
+describe('booked needs an expected date', () => {
+  const fresh = () => createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', today: DEFAULT_TODAY } });
+
+  it('every booked item in the seed has an expected date, its own or its shipment\'s', () => {
+    for (const side of ['side-nd', 'side-norm']) {
+      const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dominic', sideId: side, today: DEFAULT_TODAY } });
+      for (const item of api.listItems({ status: 'booked' })) {
+        expect(item.expectedDate ?? item.shipmentId, item.id).toBeTruthy();
+      }
+    }
+  });
+
+  it('refuses booked without a date, and takes it once the date is set', () => {
+    const api = fresh();
+    const it = api.listItems({ status: 'to_do' }).find((i) => !i.shipmentId && !i.expectedDate)!;
+    expect(() => api.updateItemStatus(it.id, 'booked')).toThrow('Ordered or booked needs an expected date.');
+    expect(api.getItem(it.id)!.status).toBe('to_do');
+    api.setItemExpectedDate(it.id, '2026-10-01');
+    expect(api.updateItemStatus(it.id, 'booked').status).toBe('booked');
+  });
+
+  it('refuses a new item added as booked without a date; a shipment ETA counts as its date', () => {
+    const api = fresh();
+    expect(() => api.addItem({ jobId: PARK_RD, type: 'trade', title: 'Book electrician', neededBy: '2026-10-20', status: 'booked' })).toThrow();
+    expect(api.addItem({ jobId: PARK_RD, type: 'trade', title: 'Book electrician', neededBy: '2026-10-20', status: 'booked', expectedDate: '2026-10-19' }).status).toBe('booked');
+    const linked = api.addItem({ jobId: PARK_RD, type: 'material', title: 'Window hardware', status: 'to_do', shipmentId: 'sh-park-windows', neededBy: '2026-11-01' });
+    expect(api.updateItemStatus(linked.id, 'booked').status).toBe('booked');
   });
 });
 

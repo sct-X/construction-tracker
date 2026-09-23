@@ -4,9 +4,13 @@ import { expect, test } from '@playwright/test';
  * Dom's brief, change 2: Shipments moves inside the job for partners and
  * admin. Each job page gets a Shipments tab with only that job's shipments,
  * a shipment opened there keeps the job around it, and the ETA change that
- * moves the later steps works from there. Builder and site are unchanged.
+ * moves the later steps works from there. Raff (builder) gets the same tab;
+ * Alec (site) gets it too, read only, beside his Deliveries.
  * Today is Thu 17 Sep 2026.
  */
+
+/** The desktop sidebar keeps the side-wide Shipments link; the phone tab bar has none. */
+const testInfoIsDesktop = (page: import('@playwright/test').Page) => (page.viewportSize()?.width ?? 1280) >= 768;
 
 const tabLabels = (page: import('@playwright/test').Page) => page.getByTestId('job-tabs').locator('a').allTextContents();
 
@@ -39,7 +43,7 @@ test.describe('Shipments inside the job', () => {
     await expect(page.getByTestId('shipment-eta-preview')).toContainText('Install windows would start Mon 16 Nov, not Mon 2 Nov');
     await page.getByTestId('shipment-save-eta').click();
     await expect(page.getByTestId('shipment-eta')).toContainText('Mon 16 Nov 2026');
-    await expect(page.getByTestId('shipment-item-status-it-pr-windows')).toContainText('14 days late');
+    await expect(page.getByTestId('shipment-item-status-it-pr-windows')).toContainText('14 days after needed');
 
     // Back goes to the job's Shipments tab, which shows the new ETA.
     await page.locator('.page-header__back').click();
@@ -77,14 +81,37 @@ test.describe('Shipments inside the job', () => {
     await page.getByTestId('dev-reset').click();
   });
 
-  test('builder and site job pages have no Shipments tab, and the builder keeps the global detail', async ({ page }) => {
+  test('Raff gets the same Shipments tab, and an old shipment link opens inside its job', async ({ page }) => {
     await page.goto('#/jobs/park-rd?as=raff&today=2026-09-17');
-    expect((await tabLabels(page)).map((t) => t.trim())).toEqual(['Overview', 'Program', 'Waiting on', 'Photos', 'Notes']);
+    expect((await tabLabels(page)).map((t) => t.trim())).toEqual(['Overview', 'Program', 'Waiting on', 'Shipments', 'Photos', 'Notes']);
+    await page.getByTestId('job-tab-shipments').click();
+    await expect(page).toHaveURL(/#\/jobs\/park-rd\/shipments$/);
+    await expect(page.getByTestId('shipment-row-sh-park-windows')).toBeVisible();
     await page.goto('#/shipments/sh-park-windows?as=raff&today=2026-09-17');
-    await expect(page).toHaveURL(/#\/shipments\/sh-park-windows/);
-    await expect(page.locator('.page-header__back')).toHaveAttribute('href', '#/shipments');
+    await expect(page).toHaveURL(/#\/jobs\/park-rd\/shipments\/sh-park-windows/);
+    await expect(page.locator('.page-header__back')).toHaveAttribute('href', '#/jobs/park-rd/shipments');
+    // The phone bottom nav carries no Shipments tab for him.
+    await expect(page.getByTestId('primary-nav').getByTestId('nav-shipments')).toHaveCount(testInfoIsDesktop(page) ? 1 : 0);
+  });
 
+  test('Alec gets the Shipments tab beside his Deliveries, read only, with no money', async ({ page }) => {
     await page.goto('#/jobs/park-rd?as=alec&today=2026-09-17');
-    expect((await tabLabels(page)).map((t) => t.trim())).toEqual(['Today', 'Program', 'Photos', 'Deliveries']);
+    expect((await tabLabels(page)).map((t) => t.trim())).toEqual(['Today', 'Program', 'Shipments', 'Photos', 'Deliveries']);
+    await page.getByTestId('job-tab-shipments').click();
+    await expect(page).toHaveURL(/#\/jobs\/park-rd\/shipments$/);
+    await expect(page.locator('[data-testid^="shipment-row-"]')).toHaveCount(1);
+    await expect(page.getByTestId('shipment-add')).toHaveCount(0);
+    await page.getByTestId('shipment-row-sh-park-windows').click({ position: { x: 5, y: 5 } });
+    await expect(page).toHaveURL(/#\/jobs\/park-rd\/shipments\/sh-park-windows$/);
+    await expect(page.getByTestId('shipment-eta')).toContainText('Mon 26 Oct 2026');
+    await expect(page.getByTestId('shipment-eta-input')).toHaveCount(0);
+    await expect(page.getByTestId('shipment-link-items')).toHaveCount(0);
+    await expect(page.getByTestId('shipment-item-it-pr-windows')).toBeVisible();
+    await expect(page.getByTestId('shipment-item-it-pr-windows').locator('a')).toHaveCount(0);
+    expect(await page.locator('body').innerText()).not.toContain('$');
+    // No switcher for the site role, and the side-wide list stays shut.
+    await expect(page.getByTestId('job-switcher')).toHaveCount(0);
+    await page.goto('#/shipments?as=alec&today=2026-09-17');
+    await expect(page.getByTestId('no-access')).toBeVisible();
   });
 });

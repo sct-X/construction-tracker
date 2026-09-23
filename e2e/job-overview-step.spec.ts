@@ -74,6 +74,8 @@ test.describe('Step detail', () => {
   test('Beatty overview lists stages with planned and forecast spans in words', async ({ page }) => {
     await page.goto('#/jobs/beatty?as=dominic&today=2026-09-17');
     await expect(page.getByTestId('job-stage-bt-st-tiling')).toContainText('7 days late');
+    // Planned to end 9 Oct, still ahead: plain words, never the late red.
+    await expect(page.getByTestId('job-stage-bt-st-tiling').locator('[data-tone="late"]')).toHaveCount(0);
     await expect(page.getByTestId('job-stage-bt-st-tiling')).toContainText('planned');
   });
 

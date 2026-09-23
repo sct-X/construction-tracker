@@ -16,8 +16,9 @@
  *   18 Later                              show
  *   11 Done                               show
  *
- * Groups are by act-by date (the reminder date): Overdue is act-by passed or
- * the item already late; then this week, next week, later; done items sit
+ * Groups are by act-by date (the reminder date) while an item is to do, then
+ * by its expected date: Overdue is exactly what is past its date (isOverdue,
+ * the Overview's red count); then this week, next week, later; done items sit
  * collapsed at the foot. Filters are dropdowns: owner (anyone / mine / a
  * person), job, type; the side is automatic. The Call mode (`?mode=call`,
  * admin and partners) is the same list worked as a phone call with one
@@ -33,11 +34,12 @@ import { useApi, useQuery, useSession } from '../data/context';
 import { FilterBar, FilterSelect } from '../components/FilterSelect';
 import CallList from './CallList';
 import { WaitingMode } from '../components/WaitingMode';
-import type { Item, ItemType, Job, Person, Trade } from '../domain/types';
+import type { Item, ItemStatus, ItemType, Job, Person, Trade } from '../domain/types';
 import { ITEM_STATUS_LABELS, ITEM_TYPE_LABELS } from '../domain/types';
 import type { ItemForecast, JobForecast } from '../domain/forecast';
+import { isOverdue } from '../domain/forecast';
 import { addCalendarDays, formatShort, formatShortRelative, formatWeekRange, lastMonday, relativeDate } from '../domain/dates';
-import { nextStatus } from '../domain/itemFlow';
+import { BOOKED_NEEDS_DATE, needsExpectedDate, nextStatus } from '../domain/itemFlow';
 import { ITEM_TYPE_WORDS, ItemRow, ItemRowList, itemWhenWords } from '../components/ItemRow';
 import { StatusText, type Tone } from '../components/StatusText';
 import { useLayout } from '../shell/AppShell';
@@ -50,21 +52,24 @@ const GROUP_ORDER: GroupKey[] = ['overdue', 'this-week', 'next-week', 'later', '
 
 /**
  * The date an open item is grouped and sorted by: the act-by date (the
- * reminder) until it is confirmed, then the date it is expected or needed,
- * since the acting is done and only the arrival is left.
+ * reminder) while it is still to do, then the date it is expected or needed,
+ * since once it is booked the acting is done and only the arrival is left.
  */
 export function keyDate(item: Item, f: ItemForecast | undefined): string | undefined {
   if (!f) return undefined;
-  return item.status === 'confirmed' ? (f.expected ?? f.neededBy) : f.actBy;
+  return item.status === 'to_do' ? f.actBy : (f.expected ?? f.neededBy);
 }
 
-/** Which group an item sits in. Overdue: late, or its key date has passed. */
+/**
+ * Which group an item sits in. Overdue is exactly isOverdue (the Overview's
+ * red count); anything else goes by its key date, a key date already gone
+ * (an arrival still to be ticked off) sitting in this week.
+ */
 export function groupFor(item: Item, f: ItemForecast | undefined, today: string): GroupKey {
   if (item.status === 'done') return 'done';
-  if (f?.isLate) return 'overdue';
+  if (f && isOverdue(f, today)) return 'overdue';
   const key = keyDate(item, f);
   if (!key) return 'later';
-  if (key < today) return 'overdue';
   const monday = lastMonday(today);
   const nextMon = addCalendarDays(monday, 7);
   const afterNext = addCalendarDays(monday, 14);
@@ -75,19 +80,20 @@ export function groupFor(item: Item, f: ItemForecast | undefined, today: string)
 
 /**
  * The row's one date phrase, relative to today, replacing the shared row's
- * default: "Act by Mon 10 Aug, overdue by 5 weeks" until the item is
- * confirmed, then "Expected Wed 16 Sep, yesterday". A late item keeps the calculator's
- * own late phrase (undefined leaves the default in place).
+ * default: "Act by Mon 10 Aug, overdue by 5 weeks" while the item is to do,
+ * then "Expected Wed 16 Sep, yesterday". A late item keeps the calculator's
+ * own late phrase (undefined leaves the default in place). Red only when
+ * isOverdue says so.
  */
 export function rowWhenWords(item: Item, f: ItemForecast | undefined, today: string): { text: string; tone: Tone } | undefined {
   if (!f || f.isLate || item.status === 'done') return undefined;
-  if (item.status === 'confirmed') {
+  if (item.status !== 'to_do') {
     const when = f.expected ?? f.neededBy;
     if (!when) return undefined;
-    return { text: `${f.expected ? 'Expected' : 'Needed'} ${formatShortRelative(when, today, { deadline: !f.expected })}`, tone: when < today && !f.expected ? 'late' : 'plain' };
+    return { text: `${f.expected ? 'Expected' : 'Needed'} ${formatShortRelative(when, today, { deadline: !f.expected })}`, tone: isOverdue(f, today) ? 'late' : 'plain' };
   }
   if (!f.actBy) return undefined;
-  return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: f.actBy < today ? 'late' : 'plain' };
+  return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: isOverdue(f, today) ? 'late' : 'plain' };
 }
 
 interface Row {
@@ -138,7 +144,8 @@ export default function WaitingOn() {
   const { offline } = useSession();
   const tradeOf = (r: Row): Trade | undefined => (r.item.tradeId ? trades.find((t) => t.id === r.item.tradeId) : undefined);
   // Inline "Set date": which row is editing its expected date, and the draft.
-  const [dating, setDating] = useState<{ id: string; value: string } | null>(null);
+  // `book` is set when "Mark booked" asked for the date first: saving then books it too.
+  const [dating, setDating] = useState<{ id: string; value: string; book?: ItemStatus; problem?: boolean } | null>(null);
   const nameOf = (pid?: string) => people.find((p: Person) => p.id === pid)?.shortName;
 
   const ownerId = ownerParam === 'me' ? personId : (ownerParam ?? undefined);
@@ -182,11 +189,24 @@ export default function WaitingOn() {
 
   const advance = (item: Item) => {
     const next = nextStatus(item);
-    if (next) api.updateItemStatus(item.id, next.status);
+    if (!next) return;
+    // Booked needs an expected date: ask for it inline instead of saving.
+    if (needsExpectedDate(item, next.status)) {
+      setDating({ id: item.id, value: '', book: next.status });
+      return;
+    }
+    api.updateItemStatus(item.id, next.status);
   };
   const saveDate = () => {
     if (!dating) return;
+    const item = items.find((i) => i.id === dating.id);
+    const bookedNow = !!dating.book || item?.status === 'booked';
+    if (bookedNow && !dating.value && !item?.shipmentId) {
+      setDating({ ...dating, problem: true });
+      return;
+    }
     api.setItemExpectedDate(dating.id, dating.value || undefined);
+    if (dating.book) api.updateItemStatus(dating.id, dating.book);
     setDating(null);
   };
 
@@ -234,15 +254,23 @@ export default function WaitingOn() {
             type="date"
             className="waiting__date"
             value={dating.value}
-            onChange={(e) => setDating({ id: r.item.id, value: e.target.value })}
+            onChange={(e) => setDating({ ...dating, value: e.target.value, problem: false })}
+            disabled={offline}
             data-testid={`item-date-input-${r.item.id}`}
           />
           <button type="button" className="btn btn--fill btn--desktop waiting__advance" onClick={saveDate} data-testid={`item-date-save-${r.item.id}`}>
-            Save date
+            {dating.book ? next.label : 'Save date'}
           </button>
           <button type="button" className="btn btn--ghost btn--desktop waiting__quiet-btn" onClick={() => setDating(null)} data-testid={`item-date-cancel-${r.item.id}`}>
             Cancel
           </button>
+          {(dating.book || dating.problem) && (
+            <span role="alert">
+              <StatusText tone="amber" testId={`item-date-problem-${r.item.id}`}>
+                {offline ? 'Needs signal' : BOOKED_NEEDS_DATE}
+              </StatusText>
+            </span>
+          )}
         </span>
       );
     }
@@ -432,13 +460,15 @@ function TableRow({ row, today, ownerName, action }: { row: Row; today: string; 
     if ((e.target as HTMLElement).closest('a, button')) return;
     navigate(`/items/${item.id}`);
   };
-  const actPassed = open && !!f?.actBy && f.actBy < today && item.status !== 'confirmed';
+  const actPassed = !!f?.actBy && f.actBy < today && item.status === 'to_do';
   const late = f?.isLate ? itemWhenWords(f, item.status, today) : null;
+  // Expected after needed is plain words; red only for what is past its date.
+  const overdue = !!f && isOverdue(f, today);
   const lead = f?.leadTimeWeeks ?? item.leadTimeWeeks ?? 0;
   const owner = item.ownerId === personId ? 'you' : ownerName;
   const who = [item.waitingOn, owner ? `with ${owner}` : ''].filter(Boolean).join(', ');
   // The act-by column reads date first: the figure, then how far off it is and the lead that set it.
-  const actAgo = open && f?.actBy ? relativeDate(f.actBy, today, { deadline: item.status !== 'confirmed' }) : '';
+  const actAgo = open && f?.actBy ? relativeDate(f.actBy, today, { deadline: item.status === 'to_do' }) : '';
   const actUnder = [actAgo, lead ? `${lead} wk lead` : ''].filter(Boolean);
   return (
     <tr className="waiting__row" data-testid={`item-row-${item.id}`} onClick={onRowClick}>
@@ -480,14 +510,17 @@ function TableRow({ row, today, ownerName, action }: { row: Row; today: string; 
         )}
       </td>
       <td className="num">
-        {late && f ? (
+        {late && f && !f.expected ? (
           <>
-            <StatusText tone="late" className="waiting__chip">
-              {f.expected ? formatShort(f.expected) : 'No date'}
+            <StatusText tone={overdue ? 'late' : 'plain'} plain={!overdue} className="waiting__chip">
+              No date
             </StatusText>
-            <span className="waiting__cell-ago waiting__cell-ago--late">
-              {f.expected ? `${relativeDate(f.expected, today)}, ${f.lateText}` : `needed ${formatShort(f.neededBy!)}, ${f.lateText}`}
-            </span>
+            <span className={`waiting__cell-ago${overdue ? ' waiting__cell-ago--late' : ''}`}>{`needed ${formatShort(f.neededBy!)}, ${f.lateText}`}</span>
+          </>
+        ) : late && f?.expected ? (
+          <>
+            {formatShort(f.expected)}
+            <span className="waiting__cell-ago">{`${relativeDate(f.expected, today)}, ${f.lateText}`}</span>
           </>
         ) : f?.expected ? (
           <>

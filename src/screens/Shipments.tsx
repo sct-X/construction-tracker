@@ -8,9 +8,10 @@
  * the job, so the partner can price a slipping ETA at a glance; it draws
  * nothing when the field is absent.
  *
- * With `jobId` it is the job's Shipments tab (`/jobs/:id/shipments`, partners
- * and admin): only that job's shipments, no Job column, rows open inside the
- * job, and a new shipment starts on this job.
+ * With `jobId` it is the job's Shipments tab (`/jobs/:id/shipments`, every
+ * role; Alec reads it without the add form): only that job's shipments, no
+ * Job column, and a new shipment starts on this job. Rows always open inside
+ * the shipment's job.
  */
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, type FormEvent, type MouseEvent } from 'react';
@@ -44,11 +45,15 @@ export function gapWords(days: number): string {
   return `${n} ${n === 1 ? 'day' : 'days'}`;
 }
 
-/** The ETA read against the earliest needed-by, in words. */
+/**
+ * The ETA read against the earliest needed-by, in words. An ETA after the
+ * needed-by is a clash between two dates, not something past its date, so
+ * it is plain words, never red (Dom's brief: red means overdue only).
+ */
 export function timing(eta: string, neededBy?: string): { tone: Tone; text: string } {
   if (!neededBy) return { tone: 'muted', text: 'Nothing waiting on it' };
   const gap = calendarDaysBetween(neededBy, eta);
-  if (gap > 0) return { tone: 'late', text: `ETA ${gapWords(gap)} after needed` };
+  if (gap > 0) return { tone: 'plain', text: `ETA ${gapWords(gap)} after needed` };
   if (gap === 0) return { tone: 'plain', text: 'ETA on the day it is needed' };
   return { tone: 'ok', text: `ETA ${gapWords(gap)} before needed` };
 }
@@ -66,12 +71,6 @@ function useRows(jobId?: string): ShipmentRow[] {
       })
       .sort((a, b) => (a.shipment.eta < b.shipment.eta ? -1 : a.shipment.eta > b.shipment.eta ? 1 : 0));
   }, [jobId]);
-}
-
-/** Where a row opens: inside the job on the job's tab, else wherever the role's shipments live. */
-function useHref(inJob: boolean) {
-  const { role } = useSession();
-  return (shipment: Shipment) => (inJob ? `/jobs/${shipment.jobId}/shipments/${shipment.id}` : shipmentHref(role, shipment));
 }
 
 export default function Shipments({ jobId }: { jobId?: string } = {}) {
@@ -119,7 +118,6 @@ export default function Shipments({ jobId }: { jobId?: string } = {}) {
 function AddShipment({ jobId: fixedJobId, onDone }: { jobId?: string; onDone: () => void }) {
   const api = useApi();
   const navigate = useNavigate();
-  const href = useHref(!!fixedJobId);
   const jobs = useQuery((api) => api.listJobs({ kind: 'build' }), []);
   const [name, setName] = useState('');
   const [supplier, setSupplier] = useState('');
@@ -133,7 +131,7 @@ function AddShipment({ jobId: fixedJobId, onDone }: { jobId?: string; onDone: ()
     if (!ready) return;
     const sh = api.addShipment({ jobId, name: name.trim(), supplier: supplier.trim() || undefined, status, eta });
     onDone();
-    navigate(href(sh));
+    navigate(shipmentHref(sh));
   }
 
   return (
@@ -210,8 +208,7 @@ function useRowNav(href: (s: Shipment) => string) {
 
 function ShipmentTable({ rows, inJob }: { rows: ShipmentRow[]; inJob: boolean }) {
   const { today } = useSession();
-  const href = useHref(inJob);
-  const go = useRowNav(href);
+  const go = useRowNav(shipmentHref);
   return (
     <table className="table table--rows shipments__table">
       <thead>
@@ -230,7 +227,7 @@ function ShipmentTable({ rows, inJob }: { rows: ShipmentRow[]; inJob: boolean })
           return (
             <tr key={shipment.id} className="shipments__row" data-testid={`shipment-row-${shipment.id}`} onClick={go(shipment)}>
               <td className="shipments__cell-name">
-                <Link to={href(shipment)} className="shipments__name" data-testid={`shipment-link-${shipment.id}`}>
+                <Link to={shipmentHref(shipment)} className="shipments__name" data-testid={`shipment-link-${shipment.id}`}>
                   {shipment.name}
                 </Link>
                 {shipment.supplier && <span className="shipments__supplier">{shipment.supplier}</span>}
@@ -270,14 +267,13 @@ function ShipmentTable({ rows, inJob }: { rows: ShipmentRow[]; inJob: boolean })
 
 function ShipmentCards({ rows, inJob }: { rows: ShipmentRow[]; inJob: boolean }) {
   const { today } = useSession();
-  const href = useHref(inJob);
   return (
     <ul className="shipments__cards">
       {rows.map(({ shipment, job, items, neededBy }) => {
         const t = timing(shipment.eta, neededBy);
         return (
           <li key={shipment.id}>
-            <Link to={href(shipment)} className="shipments__card plate" data-testid={`shipment-row-${shipment.id}`}>
+            <Link to={shipmentHref(shipment)} className="shipments__card plate" data-testid={`shipment-row-${shipment.id}`}>
               <div className="shipments__card-top">
                 <span className="shipments__name">{shipment.name}</span>
                 <span className="shipments__card-status-word" data-testid={`shipment-status-text-${shipment.id}`}>

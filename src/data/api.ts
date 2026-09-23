@@ -523,6 +523,8 @@ export type ScreenKey =
   | 'item'
   | 'shipments'
   | 'shipment'
+  | 'jobShipments'
+  | 'jobShipment'
   | 'photos'
   | 'upload'
   | 'queue'
@@ -545,8 +547,12 @@ export const SCREEN_ACCESS: Record<ScreenKey, Role[]> = {
   waiting: ['admin', 'partner', 'builder'],
   deliveries: ['site'],
   item: ['admin', 'partner', 'builder'],
+  /** The side-wide Shipments list (desktop sidebar). */
   shipments: ['admin', 'partner', 'builder'],
   shipment: ['admin', 'partner', 'builder'],
+  /** A job's Shipments tab and a shipment opened in it. Shipments carry no money, so the site role reads them too. */
+  jobShipments: ['admin', 'partner', 'builder', 'site'],
+  jobShipment: ['admin', 'partner', 'builder', 'site'],
   photos: ['admin', 'partner', 'builder', 'site'],
   upload: ['admin', 'partner', 'builder', 'site'],
   queue: ['admin', 'partner', 'builder', 'site'],

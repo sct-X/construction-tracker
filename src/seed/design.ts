@@ -47,7 +47,7 @@ export const designStages: Stage[] = [
 
 export const designItems: Item[] = [
   // West St: with council, 2 outstanding, oldest 23 days
-  item({ id: 'it-ws-fire', job: 'west-st', type: 'consultant_report', title: 'Fire engineering report, revision B', waitingOn: 'Lote Consulting', owner: P.dominic, neededBy: '2026-09-25', lead: 0, status: 'booked', created: '2026-08-25', notes: 'Council wants the FECDR with the BCA report. Draft rev B came 9 Sep.' }),
+  item({ id: 'it-ws-fire', job: 'west-st', type: 'consultant_report', title: 'Fire engineering report, revision B', waitingOn: 'Lote Consulting', owner: P.dominic, neededBy: '2026-09-25', lead: 0, status: 'booked', expected: '2026-09-23', created: '2026-08-25', notes: 'Council wants the FECDR with the BCA report. Draft rev B came 9 Sep.' }),
   item({ id: 'it-ws-portal', job: 'west-st', type: 'council_request', title: 'Check the planning portal for a request for information', waitingOn: 'Northern Beaches Council', owner: P.dominic, neededBy: '2026-09-25', lead: 0, status: 'to_do', created: '2026-09-03', notes: 'DA2026/1058, PAN-664169. Fees paid 17 Aug.' }),
   item({ id: 'it-ws-lodge', job: 'west-st', type: 'council_request', title: 'Lodge DA', waitingOn: 'Northern Beaches Council', owner: P.dominic, neededBy: '2026-08-14', lead: 0, status: 'done', created: '2026-07-01', doneAt: '2026-08-07' }),
   item({ id: 'it-ws-affordable', job: 'west-st', type: 'decision', title: 'Affordable housing mix', waitingOn: 'Dom', owner: P.dom, neededBy: '2026-07-20', lead: 0, status: 'done', created: '2026-07-06', doneAt: '2026-07-17' }),

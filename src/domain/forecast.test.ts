@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { ForecastBundle } from './forecast';
-import { forecastJob, holdPointCheck, holdPointRefusalText, isOverdue, previewEtaChange } from './forecast';
+import { forecastJob, holdPointCheck, holdPointRefusalText, isOverdue, isStageOverdue, isStepOverdue, previewEtaChange } from './forecast';
 import type { Item, Job, Photo, PhotoCategory, Stage, Step, StepLink } from './types';
 import {
   addCalendarWeeks,
@@ -114,7 +114,7 @@ describe('rules 1 to 4 on a hand-built job', () => {
       expect(f.items[id].neededBy).toBe('2026-11-02');
       expect(f.items[id].actBy).toBe('2026-08-10');
       expect(f.items[id].lateDays).toBe(14);
-      expect(f.items[id].lateText).toBe('14 days late');
+      expect(f.items[id].lateText).toBe('14 days after needed');
     }
     // the installer booking is needed when the step can actually start
     expect(f.items.installer.neededBy).toBe('2026-11-16');
@@ -184,10 +184,12 @@ describe('rule 7: freshness', () => {
 
 describe('overdue: past its date, the one red signal', () => {
   const today = '2026-09-23';
-  it('counts an act-by gone while to do, or booked with nothing expected', () => {
+  it('counts an act-by gone while still to do; a booking has acted and carries its expected date', () => {
     expect(isOverdue({ status: 'to_do', actBy: '2026-09-21', neededBy: '2026-10-12' }, today)).toBe(true);
-    expect(isOverdue({ status: 'booked', actBy: '2026-09-07', neededBy: '2026-10-05' }, today)).toBe(true);
+    expect(isOverdue({ status: 'to_do', actBy: '2026-09-21', neededBy: '2026-10-12', expected: '2026-10-05' }, today)).toBe(true);
     expect(isOverdue({ status: 'booked', actBy: '2026-09-07', neededBy: '2026-10-05', expected: '2026-10-01' }, today)).toBe(false);
+    // A booking expected after it is needed is a clash between two future dates: plain words, not overdue.
+    expect(isOverdue({ status: 'booked', actBy: '2026-09-07', neededBy: '2026-10-05', expected: '2026-10-12' }, today)).toBe(false);
     expect(isOverdue({ status: 'confirmed', actBy: '2026-09-07', neededBy: '2026-10-05', expected: '2026-10-01' }, today)).toBe(false);
   });
   it('counts a needed-by gone with nothing expected', () => {
@@ -198,6 +200,23 @@ describe('overdue: past its date, the one red signal', () => {
     expect(isOverdue({ status: 'to_do', actBy: today, neededBy: '2026-10-12' }, today)).toBe(false);
     expect(isOverdue({ status: 'confirmed', actBy: '2026-09-01', neededBy: '2026-09-28', expected: '2026-10-05' }, today)).toBe(false);
     expect(isOverdue({ status: 'done', actBy: '2026-09-01', neededBy: '2026-09-10' }, today)).toBe(false);
+  });
+});
+
+describe('steps and stages: red only once past their planned date', () => {
+  const today = '2026-09-23';
+  it('a step forecast late with its planned dates still ahead is not overdue', () => {
+    expect(isStepOverdue({ status: 'not_started', plannedStart: '2026-10-01', plannedEnd: '2026-10-05', lateDays: 7 }, today)).toBe(false);
+    expect(isStageOverdue({ status: 'not_started', plannedEnd: '2026-10-05', lateDays: 7 }, today)).toBe(false);
+  });
+  it('a step that should have started, or ended, and has not is overdue', () => {
+    expect(isStepOverdue({ status: 'not_started', plannedStart: '2026-09-21', plannedEnd: '2026-10-05', lateDays: 7 }, today)).toBe(true);
+    expect(isStepOverdue({ status: 'in_progress', plannedStart: '2026-09-01', plannedEnd: '2026-09-22', lateDays: 3 }, today)).toBe(true);
+    expect(isStageOverdue({ status: 'in_progress', plannedEnd: '2026-09-22', lateDays: 3 }, today)).toBe(true);
+  });
+  it('never a done step, or one on plan', () => {
+    expect(isStepOverdue({ status: 'done', plannedStart: '2026-09-01', plannedEnd: '2026-09-05', lateDays: 3 }, today)).toBe(false);
+    expect(isStepOverdue({ status: 'in_progress', plannedStart: '2026-09-01', plannedEnd: '2026-09-22', lateDays: 0 }, today)).toBe(false);
   });
 });
 

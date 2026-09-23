@@ -1,13 +1,13 @@
 /**
- * Per-role navigation (Dom's brief, change 2): partners and admin find
- * shipments inside each job, so their phone bottom nav is Overview and
- * Waiting on. Builder and site navs are unchanged.
+ * Per-role navigation (Dom's brief, change 2): every role finds shipments
+ * inside each job, so no phone bottom nav carries a Shipments tab. The
+ * desktop sidebar keeps the side-wide list.
  */
 import { describe, expect, it } from 'vitest';
 import { createMockApi } from '../data/mockApi';
 import { MemoryStorage } from '../data/storage';
 import { DEFAULT_TODAY } from '../seed';
-import { jobSectionHref, jobSwitcherFor, phoneTabs, shipmentHref, shipmentsInJob, sidebarMain } from './nav';
+import { jobSectionHref, jobSwitcherFor, phoneTabs, shipmentHref, sidebarMain } from './nav';
 
 function apiAs(personId: string) {
   return createMockApi({ storage: new MemoryStorage(), session: { personId, today: DEFAULT_TODAY } });
@@ -25,7 +25,7 @@ describe('phone bottom nav per role', () => {
     expect(labels('dominic')).toEqual(['Overview', 'Waiting on']);
   });
 
-  it('builder and site navs are unchanged', () => {
+  it('builder and site navs carry no Shipments tab', () => {
     expect(labels('raff')).toEqual(['My items', 'Jobs', '+ Photos']);
     expect(labels('alec')).toEqual(['Today', 'Jobs']);
   });
@@ -37,13 +37,26 @@ describe('phone bottom nav per role', () => {
 
 describe('where a shipment opens', () => {
   const sh = { id: 'sh-park-windows', jobId: 'park-rd' };
-  it('inside its job for partners and admin, globally for builders', () => {
-    expect(shipmentsInJob('partner')).toBe(true);
-    expect(shipmentsInJob('admin')).toBe(true);
-    expect(shipmentsInJob('builder')).toBe(false);
-    expect(shipmentHref('partner', sh)).toBe('/jobs/park-rd/shipments/sh-park-windows');
-    expect(shipmentHref('admin', sh)).toBe('/jobs/park-rd/shipments/sh-park-windows');
-    expect(shipmentHref('builder', sh)).toBe('/shipments/sh-park-windows');
+  it('inside its job, for every role', () => {
+    expect(shipmentHref(sh)).toBe('/jobs/park-rd/shipments/sh-park-windows');
+  });
+
+  it("the site role reads a job's shipments but not the side-wide list", () => {
+    const alec = apiAs('alec');
+    expect(alec.canSee('jobShipments')).toBe(true);
+    expect(alec.canSee('jobShipment')).toBe(true);
+    expect(alec.canSee('shipments')).toBe(false);
+    for (const p of ['raff', 'dom', 'dominic']) {
+      const api = apiAs(p);
+      expect(api.canSee('jobShipments') && api.canSee('jobShipment') && api.canSee('shipments')).toBe(true);
+    }
+  });
+
+  it('a shipment read by the site role carries no money', () => {
+    const alec = apiAs('alec');
+    const sh = alec.getShipment('sh-park-windows')!;
+    expect(JSON.stringify(sh)).not.toMatch(/Cost/);
+    expect(alec.listShipments('park-rd').length).toBeGreaterThan(0);
   });
 
   it('a job scoped list holds only that job', () => {
@@ -56,10 +69,10 @@ describe('where a shipment opens', () => {
 });
 
 describe('the job switcher (Dom\'s brief, change 1)', () => {
-  it('is on partner and admin job pages only', () => {
+  it('is on partner, admin and builder job pages; never the site role', () => {
     expect(jobSwitcherFor('partner')).toBe(true);
     expect(jobSwitcherFor('admin')).toBe(true);
-    expect(jobSwitcherFor('builder')).toBe(false);
+    expect(jobSwitcherFor('builder')).toBe(true);
     expect(jobSwitcherFor('site')).toBe(false);
   });
 

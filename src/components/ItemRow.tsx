@@ -6,7 +6,7 @@
  *   waiting on X, with Raff                 act by Mon 10 Aug   [To do]
  *
  * Dates are words from the calculator (act-by, needed-by, expected, late),
- * never a bare colour: "Expected Mon 5 Oct, in 12 days, 7 days late". The row is a link when
+ * never a bare colour: "Expected Mon 5 Oct, in 12 days, 7 days after needed". The row is a link when
  * `href` is given (Alec has no item screen, so his rows are plain). An
  * optional `action` (a button) sits to the right, outside the link.
  */
@@ -35,10 +35,12 @@ export const ITEM_TYPE_WORDS: Record<ItemType, string> = {
 export function itemWhenWords(f: ItemForecast | undefined, status: ItemStatus, today: string): { text: string; tone: Tone } | null {
   if (!f) return null;
   const open = status !== 'done';
-  if (f.isLate && f.expected) return { text: `Expected ${formatShortRelative(f.expected, today)}, ${f.lateText}`, tone: 'late' };
+  // An act-by gone while still to do is overdue even with a date expected: say so first.
+  if (f.actByPassed && f.actBy) return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: 'late' };
+  // Expected after it is needed: two future dates that clash, plain words, never red.
+  if (f.isLate && f.expected) return { text: `Expected ${formatShortRelative(f.expected, today)}, ${f.lateText}`, tone: 'plain' };
   // lateText here is the relative time itself ("overdue by 3 days").
   if (f.isLate && f.neededBy) return { text: `Needed ${formatShort(f.neededBy)}, ${f.lateText}`, tone: 'late' };
-  if (f.actByPassed && f.actBy) return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: 'late' };
   if (f.expected && open) return { text: `Expected ${formatShortRelative(f.expected, today)}`, tone: 'plain' };
   if (status === 'to_do' && f.actBy) return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: 'plain' };
   if (f.neededBy) return { text: `Needed ${formatShortRelative(f.neededBy, today, { deadline: open })}`, tone: 'plain' };

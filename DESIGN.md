@@ -238,7 +238,7 @@ Radius by element size: 4px for chips, inputs and small controls; 8px for button
 - **Disabled:** 50% opacity, not-allowed cursor; the words beside it say why ("Needs signal").
 
 ### Navigation
-- **Desktop sidebar:** plate, "Tracker" wordmark in Barlow 700, links 38px with an 8px radius; hover and current both step to raised, current in the text colour. Jobs nest under Jobs with a 1px line-strong rule. Setup group under a hairline. Bell and person at the foot.
+- **Desktop sidebar:** plate, "Tracker" wordmark in Barlow 700, links 38px with an 8px radius; hover and current both step to raised, current in the text colour. No per-job list: the job switcher at the top of each job page moves between jobs. Setup group under a hairline. Bell and person at the foot.
 - **Phone:** plate top bar (side name in Barlow 700, bell, person), plate tab bar with 56px text tabs; the current tab is the text colour with a 2px top rule in the same colour. Never orange.
 
 ### Tables

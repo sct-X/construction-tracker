@@ -95,6 +95,8 @@ test.describe('Program: desktop Gantt', () => {
     await page.getByTestId('shipment-save-eta').click();
     await page.goto('#/jobs/park-rd/program?as=dominic&today=2026-09-17');
     await expect(page.getByTestId('gantt-late-pr-install-windows')).toContainText('14 days late');
+    // Planned 2 Nov, still ahead: late against the plan but not past its date, so plain words, not red.
+    await expect(page.getByTestId('gantt-late-pr-install-windows').locator('[data-tone]')).toHaveAttribute('data-tone', 'plain');
     await expect(page.getByTestId('gantt-planned-pr-install-windows')).toHaveAttribute('data-moved', 'true');
     // Late only shows just the moved chain.
     await page.getByTestId('program-view-late').click();

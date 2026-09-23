@@ -74,8 +74,8 @@ export const parkRdItems: Item[] = [
   item({ id: 'it-pr-external-doors', job: J, type: 'material', title: 'Order external doors', waitingOn: 'Door supplier', owner: P.raff, step: 'pr-external-doors', requirement: 'pr-rq-external-doors', lead: 6, status: 'to_do', created: '2026-08-10' }),
 
   // ---- External works ----
-  item({ id: 'it-pr-sw-plumber', job: J, type: 'trade', title: 'Book plumber for stormwater', waitingOn: 'First Call Plumbing Solutions', trade: 'tr-firstcall', owner: P.raff, step: 'pr-stormwater', requirement: 'pr-rq-sw-plumber', lead: 2, status: 'booked', created: '2026-08-24', notes: 'Pencilled in, not confirmed.' }),
-  item({ id: 'it-pr-sw-council', job: J, type: 'council_request', title: 'Stormwater connection approval', waitingOn: 'Hunters Hill Council', owner: P.dominic, step: 'pr-stormwater', lead: 3, status: 'booked', created: '2026-08-14', notes: 'Lodged 21 Aug. Council says two weeks.' }),
+  item({ id: 'it-pr-sw-plumber', job: J, type: 'trade', title: 'Book plumber for stormwater', waitingOn: 'First Call Plumbing Solutions', trade: 'tr-firstcall', owner: P.raff, step: 'pr-stormwater', requirement: 'pr-rq-sw-plumber', lead: 2, status: 'booked', expected: '2026-09-21', created: '2026-08-24', notes: 'Pencilled in, not confirmed.' }),
+  item({ id: 'it-pr-sw-council', job: J, type: 'council_request', title: 'Stormwater connection approval', waitingOn: 'Hunters Hill Council', owner: P.dominic, step: 'pr-stormwater', lead: 3, status: 'booked', expected: '2026-09-18', created: '2026-08-14', notes: 'Lodged 21 Aug. Council says two weeks.' }),
   item({ id: 'it-pr-sw-insp', job: J, type: 'inspection', title: 'Stormwater inspection', waitingOn: 'Certex Approvals', trade: 'tr-certex', owner: P.raff, step: 'pr-stormwater-insp', lead: 1, status: 'to_do', created: '2026-08-24' }),
   item({ id: 'it-pr-landscaper', job: J, type: 'trade', title: 'Book landscaper', waitingOn: 'Landscaper, to be quoted', owner: P.raff, step: 'pr-landscaping', requirement: 'pr-rq-landscaper', lead: 4, status: 'to_do', created: '2026-08-24' }),
 

@@ -10,8 +10,8 @@
 import type { ReactElement } from 'react';
 import { Navigate, useLocation, useParams } from 'react-router-dom';
 import type { ScreenKey } from '../data/api';
-import { useQuery, useSession } from '../data/context';
-import { shipmentHref, shipmentsInJob } from './nav';
+import { useQuery } from '../data/context';
+import { shipmentHref } from './nav';
 import DailyNotes from '../screens/DailyNotes';
 import Deliveries from '../screens/Deliveries';
 import DesignChecklist from '../screens/DesignChecklist';
@@ -63,15 +63,14 @@ function JobShipmentsRoute() {
 }
 
 /**
- * `/shipments/:id`: partners and admin are forwarded into the shipment's job
- * so old links and notifications land with the job around them; builders keep
- * the global detail.
+ * `/shipments/:id`: every role is forwarded into the shipment's job so old
+ * links and notifications land with the job around it. An unknown id shows
+ * the detail's own "No shipment" words.
  */
 function ShipmentRoute() {
   const { id = '' } = useParams();
-  const { role } = useSession();
   const shipment = useQuery((api) => api.getShipment(id), [id]);
-  if (shipment && shipmentsInJob(role)) return <Redirect to={shipmentHref(role, shipment)} />;
+  if (shipment) return <Redirect to={shipmentHref(shipment)} />;
   return <ShipmentDetail />;
 }
 
@@ -100,9 +99,9 @@ export const ROUTES: RouteDef[] = [
   { path: '/items/:id', screen: 'item', title: 'Item', stage: 4, element: <ItemSheet /> },
   { path: '/calls', screen: 'waiting', title: 'Waiting on', stage: 4, element: <Redirect to="/waiting" set={{ mode: 'call' }} /> },
   { path: '/shipments', screen: 'shipments', title: 'Shipments', stage: 2, element: <Shipments /> },
-  { path: '/shipments/:id', screen: 'shipment', title: 'Shipment', stage: 2, element: <ShipmentRoute /> },
-  { path: '/jobs/:id/shipments', screen: 'shipments', title: 'Shipments', stage: 2, element: <JobShipmentsRoute /> },
-  { path: '/jobs/:id/shipments/:shipmentId', screen: 'shipment', title: 'Shipment', stage: 2, element: <ShipmentDetail /> },
+  { path: '/shipments/:id', screen: 'jobShipment', title: 'Shipment', stage: 2, element: <ShipmentRoute /> },
+  { path: '/jobs/:id/shipments', screen: 'jobShipments', title: 'Shipments', stage: 2, element: <JobShipmentsRoute /> },
+  { path: '/jobs/:id/shipments/:shipmentId', screen: 'jobShipment', title: 'Shipment', stage: 2, element: <ShipmentDetail /> },
   { path: '/jobs/:id/photos', screen: 'photos', title: 'Photos', stage: 3, element: <PhotoGallery /> },
   { path: '/jobs/:id/upload', screen: 'upload', title: 'Upload photos', stage: 3, element: <PhotoUpload /> },
   { path: '/queue', screen: 'queue', title: 'Upload queue', stage: 3, element: <UploadQueue /> },

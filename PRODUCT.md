@@ -14,7 +14,7 @@ web
 
 - **Dom and Norm (partners).** Open the app on Overview. They want to see, per job, what's late, what's next and what the job is waiting on. They scan; they don't read.
 - **Dominic (admin).** Same view as the partners plus setup: templates and new job, trades, people and roles, program editing. On both sides.
-- **Raff (builder).** Phone, between calls on site or in the ute. Opens on My items (his waiting-on items): dated actions to book, order or chase, ticked off as they're done. Also sees jobs, shipments, photos and notes; no setup, no Call mode.
+- **Raff (builder).** Phone, between calls on site or in the ute. Opens on My items (his waiting-on items): dated actions to book, order or chase, ticked off as they're done. Also sees jobs (with the job switcher and each job's Shipments tab), photos and notes; no setup, no Call mode.
 - **Alec (site hand).** Phone, gloves on, patchy reception. Opens on Today for the last build job he opened: today's plan, this week's deliveries, notes, and before-cover photos uploaded into named categories. Build jobs only. Never sees money.
 
 Two "sides" (Norm and Dom; Norm) partition the data. Only Dominic and Norm are on both and get the side switcher; everyone else never sees a side name.
@@ -39,8 +39,9 @@ Dates are derived, not typed: lead times, shipment ETAs and step links roll forw
 - Stack: Vite + React + TypeScript, hash routing, no backend (mock data layer behind one API interface), Vitest, Playwright. SPEC.md (locked) holds rules, roles and mock data.
 - Overview (home for partners and admin, jobs index for everyone): per job its stage, the next steps with dates and next hold point, the top waiting-on items, and freshness. No screen shows a finish date or money; the calculator stays underneath only to produce act-by and needed-by dates.
 - Waiting on is its own bottom tab, with a Call mode for partners and admin. The bell (notifications) sits top right.
-- Partner/admin bottom tabs: Overview, Waiting on. Shipments lives inside each job page as a tab (`/jobs/:id/shipments`, that job's shipments only; old `/shipments/:id` links forward into the job); the desktop sidebar keeps the side-wide Shipments list. Builder: My items, Jobs, + Photos, with the global Shipments list. Site: Today, Jobs.
-- Partner and admin job pages (overview, Program, Shipments, Photos, Notes) open with the job's name as a dropdown of every job on the side (`src/shell/JobHeader.tsx`); picking one opens the same page on that job, or its overview when it has no such page. Builder and site job pages keep a plain title.
+- Partner/admin bottom tabs: Overview, Waiting on. Builder: My items, Jobs, + Photos. Site: Today, Jobs. Shipments lives inside each job page as a tab for every role (`/jobs/:id/shipments`, that job's shipments only; old `/shipments/:id` links forward into the job); the site role reads it without editing, beside his Deliveries. The desktop sidebar keeps the side-wide Shipments list and lists no jobs.
+- Partner, admin and builder job pages (overview, Program, Shipments, Photos, Notes) open with the job's name as a dropdown of every job on the side (`src/shell/JobHeader.tsx`); picking one opens the same page on that job, or its overview when it has no such page. Site job pages keep a plain title.
+- An item can only be ordered or booked with an expected date (its own, or its shipment's ETA); the item sheet, Waiting on and Call mode ask for it in words before saving, and the data layer refuses it too. So a booking is never overdue by its act-by; red is left for what is still to do past its act-by, or needed with nothing expected. "Expected Mon 5 Oct, 7 days after needed" (two future dates that clash) is plain words everywhere, as is a step forecast later than its plan while its planned dates are still ahead.
 - Hold points refuse completion until required photo categories are filled; the refusal names the empty categories.
 - Money fields are stripped by the data layer for the site role; nothing is hidden with CSS.
 - Sign-in is a person list with no password; signed out is a real state.

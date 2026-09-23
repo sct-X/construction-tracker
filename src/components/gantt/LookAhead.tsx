@@ -7,6 +7,7 @@
  * anything late further out, and the rest fold away.
  */
 import type { ItemForecast, JobForecast, StepForecast } from '../../domain/forecast';
+import { isOverdue, isStepOverdue } from '../../domain/forecast';
 import type { Item, Step } from '../../domain/types';
 import { ITEM_STATUS_LABELS } from '../../domain/types';
 import { addCalendarDays, formatShort, formatShortRelative, formatWeekRange, lastMonday, weekday } from '../../domain/dates';
@@ -132,7 +133,7 @@ export function LookAhead({ forecast, steps, items, today }: Props) {
                       <span className="lookahead__stage">{stageName.get(s.stageId)}</span>
                     </span>
                     <span className="lookahead__line">
-                      <StatusText tone="late">
+                      <StatusText tone={isStepOverdue(s, today) ? 'late' : 'plain'}>
                         moved to {formatShortRelative(s.forecastStart, today)}, {lateText(s.lateDays)}
                       </StatusText>
                     </span>
@@ -228,7 +229,7 @@ function StepRow({
         <span className="lookahead__line">{line}</span>
         {step.lateDays > 0 && (
           <span className="lookahead__line">
-            <StatusText tone="late" testId={`lookahead-late-${step.stepId}`}>
+            <StatusText tone={isStepOverdue(step, today) ? 'late' : 'plain'} testId={`lookahead-late-${step.stepId}`}>
               planned {formatShort(step.plannedStart ?? step.forecastStart)}, now {formatShortRelative(step.forecastStart, today)}, {lateText(step.lateDays)}
             </StatusText>
           </span>
@@ -240,8 +241,9 @@ function StepRow({
           return (
             <span className="lookahead__line" key={it.id}>
               {f?.isLate ? (
-                <StatusText tone="late">
-                  needs {what}, {f.lateText}
+                <StatusText tone={isOverdue(f, today) ? 'late' : 'plain'}>
+                  needs {what}, {f.expected ? `expected ${formatShortRelative(f.expected, today)}, ` : ''}
+                  {f.lateText}
                 </StatusText>
               ) : (
                 <StatusText tone="plain">

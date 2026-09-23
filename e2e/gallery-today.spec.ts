@@ -72,7 +72,9 @@ test.describe('Deliveries', () => {
     await expect(page.getByTestId('deliveries-group-late')).toContainText('Cladding');
 
     // Late against the step is words too, and the windows container is under Later.
-    await expect(page.getByTestId('delivery-it-sv-slab-steel')).toContainText('4 days late');
+    await expect(page.getByTestId('delivery-it-sv-slab-steel')).toContainText('Expected Fri 18 Sep, tomorrow, 4 days after needed');
+    // Expected after needed is plain words, not the late red.
+    await expect(page.getByTestId('delivery-it-sv-slab-steel').locator('[data-tone="late"]')).toHaveCount(0);
     await expect(page.getByTestId('deliveries-group-later').getByTestId('delivery-sh-park-windows')).toContainText('Expected Mon 26 Oct');
     await expect(page.getByTestId('delivery-sh-park-windows')).toContainText('Windows, Sliding doors');
 

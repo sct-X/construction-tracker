@@ -154,7 +154,7 @@ function waitingDetail(w: WaitingOnRow, today: string): string {
   if (w.expected && !actOverdue) parts.push(`expected ${formatDayMonth(w.expected)}, ${relativeDate(w.expected, today)}`);
   // Needed-by passed with nothing expected: lateText is the relative time ("overdue by 3 days").
   else if (!w.expected && w.neededBy && w.isLate) parts.push(`needed ${formatDayMonth(w.neededBy)}`);
-  else if (w.actBy) parts.push(`act by ${formatDayMonth(w.actBy)}, ${relativeDate(w.actBy, today, { deadline: w.status === 'to_do' || w.status === 'booked' })}`);
+  else if (w.actBy) parts.push(`act by ${formatDayMonth(w.actBy)}, ${relativeDate(w.actBy, today, { deadline: w.status === 'to_do' })}`);
   if (w.lateText) parts.push(w.lateText);
   return parts.join(', ');
 }

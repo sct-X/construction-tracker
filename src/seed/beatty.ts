@@ -75,7 +75,7 @@ export const beattyItems: Item[] = [
   item({ id: 'it-bt-workszone', job: J, type: 'council_request', title: 'Works zone permit', waitingOn: 'Northern Beaches Council', owner: P.dominic, neededBy: '2026-04-14', lead: 0, status: 'done', created: '2026-03-16', doneAt: '2026-04-14', notes: 'PERM2026/00630, runs to 14 Dec.' }),
   item({ id: 'it-bt-tapin', job: J, type: 'trade', title: 'Sydney Water tap-in', waitingOn: 'Multitask Civil', trade: 'tr-multitask', owner: P.raff, neededBy: '2026-08-14', lead: 2, status: 'done', created: '2026-06-22', doneAt: '2026-08-12' }),
   item({ id: 'it-bt-driveway', job: J, type: 'decision', title: 'Driveway civils: kerb and layback detail', waitingOn: 'Dominic', owner: P.dominic, neededBy: '2026-10-16', lead: 0, status: 'to_do', created: '2026-09-14', notes: 'Site meeting 14 Sep with the civils crew.' }),
-  item({ id: 'it-bt-defect', job: J, type: 'defect', title: 'Leaking window flashing, bedroom 2', waitingOn: 'Build Solid Carpentry', trade: 'tr-buildsolid', owner: P.raff, neededBy: '2026-10-09', lead: 0, status: 'booked', created: '2026-09-11' }),
+  item({ id: 'it-bt-defect', job: J, type: 'defect', title: 'Leaking window flashing, bedroom 2', waitingOn: 'Build Solid Carpentry', trade: 'tr-buildsolid', owner: P.raff, neededBy: '2026-10-09', lead: 0, status: 'booked', expected: '2026-09-24', created: '2026-09-11' }),
 ];
 
 export const beattyNotes: DailyNote[] = [

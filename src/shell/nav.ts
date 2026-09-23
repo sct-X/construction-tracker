@@ -32,9 +32,9 @@ export function homeFor(role: Role, api: TrackerApi): string {
 }
 
 /**
- * Phone bottom tabs, left to right, per UI_PLAN section 2. Partners and admin
- * get Overview and Waiting on only: Shipments lives inside each job (Dom's
- * brief, change 2), at `/jobs/:id/shipments`.
+ * Phone bottom tabs, left to right, per UI_PLAN section 2. No role has a
+ * Shipments tab: shipments live inside each job (Dom's brief, change 2), at
+ * `/jobs/:id/shipments`.
  */
 export function phoneTabs(role: Role, api: TrackerApi): NavItem[] {
   const jobId = currentJobId(api);
@@ -82,14 +82,12 @@ export function sidebarSetup(api: TrackerApi): NavItem[] {
   return items.filter((t) => !t.screen || api.canSee(t.screen));
 }
 
-/** Roles whose shipments live inside the job (`/jobs/:id/shipments`). Builders keep the global list. */
-export function shipmentsInJob(role: Role): boolean {
-  return role === 'partner' || role === 'admin';
-}
-
-/** Where a shipment opens for this role: inside its job for partners and admin, else the global detail. */
-export function shipmentHref(role: Role, shipment: { id: string; jobId: string }): string {
-  return shipmentsInJob(role) ? `/jobs/${shipment.jobId}/shipments/${shipment.id}` : `/shipments/${shipment.id}`;
+/**
+ * Where a shipment opens: inside its job (`/jobs/:id/shipments/:shipmentId`)
+ * for every role. The desktop sidebar keeps the side-wide list at `/shipments`.
+ */
+export function shipmentHref(shipment: { id: string; jobId: string }): string {
+  return `/jobs/${shipment.jobId}/shipments/${shipment.id}`;
 }
 
 export function isHere(item: NavItem, pathname: string): boolean {
@@ -100,11 +98,11 @@ export function isHere(item: NavItem, pathname: string): boolean {
 export type JobSection = 'overview' | 'program' | 'shipments' | 'photos' | 'notes';
 
 /**
- * Roles whose job pages open with the job switcher (Dom's brief, change 1).
- * Builder and site job pages keep their plain title.
+ * Roles whose job pages open with the job switcher (Dom's brief, change 1):
+ * partners, admin and the builder. Site job pages keep their plain title.
  */
 export function jobSwitcherFor(role: Role): boolean {
-  return role === 'partner' || role === 'admin';
+  return role !== 'site';
 }
 
 /**

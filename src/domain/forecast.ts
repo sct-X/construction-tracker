@@ -122,8 +122,9 @@ export interface ItemForecast {
   /** Days since the item was created (design checklists, "oldest 23 days"). */
   daysSitting: number;
   /**
-   * "7 days late" when expected after it is needed; "overdue by 3 days" when
-   * needed-by has passed with nothing expected. Undefined when not late.
+   * "7 days after needed" when expected after it is needed (plain words, not
+   * overdue); "overdue by 3 days" when needed-by has passed with nothing
+   * expected. Undefined when not late.
    */
   lateText?: string;
 }
@@ -440,8 +441,9 @@ function forecastDesignJob(bundle: ForecastBundle, freshness: Freshness): JobFor
   };
 }
 
-function lateText(days: number): string {
-  return `${days} day${days === 1 ? '' : 's'} late`;
+/** "7 days after needed": the gap between an expected date and the needed-by. */
+function afterNeededText(days: number): string {
+  return `${days} day${days === 1 ? '' : 's'} after needed`;
 }
 
 interface StartCandidate {
@@ -588,7 +590,7 @@ function forecastBuildJob(bundle: ForecastBundle, freshness: Freshness): JobFore
         // A gap between two dates (arrives after it is needed), not a date against today.
         lateDays = calendarDaysBetween(neededBy, exp.date);
         isLate = true;
-        itemLateText = lateText(lateDays);
+        itemLateText = afterNeededText(lateDays);
       } else if (!exp.date && neededBy < today) {
         lateDays = calendarDaysBetween(neededBy, today);
         isLate = true;
@@ -994,10 +996,13 @@ export interface WaitingOnRow {
 /**
  * Past its date today, the one test behind every red "overdue" in the app:
  * an open item whose needed-by has gone with nothing expected, or whose
- * act-by has gone while it is still to do (or booked with nothing expected).
- * These are exactly the dates relativeDate words as "overdue by". An item
- * expected after it is needed ("7 days late") is a clash between two future
- * dates, not overdue, and a date coming up soon is never overdue.
+ * act-by has gone while it is still to do. These are exactly the dates
+ * relativeDate words as "overdue by". A booked item always carries an
+ * expected date (the item sheet, the waiting-on list and Call mode refuse
+ * "booked" without one), so booking is the act and its act-by is spent. An
+ * item expected after it is needed ("expected Mon 5 Oct, 7 days after
+ * needed") is a clash between two future dates, not overdue, and a date
+ * coming up soon is never overdue.
  */
 export function isOverdue(
   f: { status: ItemStatus; actBy?: string; neededBy?: string; expected?: string },
@@ -1005,11 +1010,27 @@ export function isOverdue(
 ): boolean {
   if (f.status === 'done') return false;
   if (f.neededBy && f.neededBy < today && !f.expected) return true;
-  if (f.actBy && f.actBy < today) {
-    if (f.status === 'to_do') return true;
-    if (f.status === 'booked' && !f.expected) return true;
-  }
-  return false;
+  return f.status === 'to_do' && !!f.actBy && f.actBy < today;
+}
+
+/**
+ * A step past its own planned date and still not done: planned to start
+ * before today and not started, or planned to end before today. A step
+ * forecast later than its plan with both dates still ahead ("7 days late")
+ * is plain words, never red.
+ */
+export function isStepOverdue(
+  s: { status: StepStatus; plannedStart?: string; plannedEnd?: string; lateDays: number },
+  today: string,
+): boolean {
+  if (s.status === 'done' || s.lateDays <= 0) return false;
+  if (s.status === 'not_started' && s.plannedStart && s.plannedStart < today) return true;
+  return !!s.plannedEnd && s.plannedEnd < today;
+}
+
+/** A stage past its planned end and not done (see isStepOverdue). */
+export function isStageOverdue(s: { status: StageStatus; plannedEnd?: string; lateDays: number }, today: string): boolean {
+  return s.status !== 'done' && s.lateDays > 0 && !!s.plannedEnd && s.plannedEnd < today;
 }
 
 /** How many of a job's open items are overdue (see isOverdue). */

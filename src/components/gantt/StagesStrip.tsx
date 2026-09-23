@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef } from 'react';
 import type { JobForecast } from '../../domain/forecast';
+import { isStageOverdue, isStepOverdue } from '../../domain/forecast';
 import { calendarDaysBetween, formatDayMonth, formatShort, formatShortRelative } from '../../domain/dates';
 import { StatusText } from '../StatusText';
 import { lateText } from './Gantt';
@@ -101,7 +102,7 @@ export function StagesList({ forecast, today }: Props) {
                 {s.lateDays > 0 && (
                   <>
                     {' '}
-                    <StatusText tone="late" plain>
+                    <StatusText tone={isStageOverdue(s, today) ? 'late' : 'plain'} plain>
                       {lateText(s.lateDays)}
                     </StatusText>
                   </>
@@ -116,7 +117,7 @@ export function StagesList({ forecast, today }: Props) {
                 {late.map((st) => (
                   <li key={st.stepId}>
                     <a href={`#/steps/${st.stepId}`} className="stages__late-link">
-                      <StatusText tone="late">
+                      <StatusText tone={isStepOverdue(st, today) ? 'late' : 'plain'} plain={!isStepOverdue(st, today)}>
                         {st.name}: {lateText(st.lateDays)}, now {formatShortRelative(st.forecastStart, today)}
                       </StatusText>
                     </a>

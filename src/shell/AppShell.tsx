@@ -4,8 +4,9 @@
  *  - Phone (below 768px, and always for the site role): a top bar with the
  *    side switcher, the bell and the person, a bottom tab bar with 56px
  *    targets, and the offline bar under the top bar.
- *  - Desktop: one left sidebar (side switcher, main group, the jobs under
- *    Jobs, a Setup group, then the bell and the person at the foot).
+ *  - Desktop: one left sidebar (side switcher, main group, a Setup group,
+ *    then the bell and the person at the foot). Jobs are reached from the
+ *    Overview and moved between with the job switcher on each job page.
  *
  * Every nav item carries `data-testid="nav-<name>"`; the tab bar and the
  * sidebar's main list are `data-testid="primary-nav"`.
@@ -97,8 +98,6 @@ function DesktopChrome({ pathname }: { pathname: string }) {
   const { person } = useSession();
   const main = useQuery((api) => sidebarMain(api), []);
   const setup = useQuery((api) => sidebarSetup(api), []);
-  const jobs = useQuery((api) => api.listJobs(), []);
-  const showJobs = main.some((m) => m.id === 'overview');
   return (
     <aside className="sidebar" data-testid="sidebar">
       <div className="sidebar__brand">
@@ -106,29 +105,10 @@ function DesktopChrome({ pathname }: { pathname: string }) {
         <SideSwitcher className="sidebar__side" />
       </div>
       <nav className="sidebar__nav" data-testid="primary-nav" aria-label="Main">
+        {/* No per-job list here: the job switcher at the top of every job page moves between jobs. */}
         {main.map((item) => (
           <div key={item.id}>
             <NavLinkItem item={item} pathname={pathname} className="sidebar__link" />
-            {item.id === 'overview' && showJobs && jobs.length > 0 && (
-              <ul className="sidebar__jobs">
-                {jobs.map((j) => {
-                  const here = matchPath('/jobs/:id/*', pathname)?.params.id === j.id || matchPath('/jobs/:id', pathname)?.params.id === j.id;
-                  return (
-                    <li key={j.id}>
-                      <Link
-                        to={`/jobs/${j.id}`}
-                        className="sidebar__job"
-                        data-testid={`nav-job-${j.id}`}
-                        aria-current={here ? 'page' : undefined}
-                      >
-                        <span className="sidebar__job-name">{j.name}</span>
-                        {j.kind === 'design' && <span className="sidebar__job-kind">design</span>}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
           </div>
         ))}
       </nav>

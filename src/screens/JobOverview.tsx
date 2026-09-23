@@ -14,7 +14,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { Item, Job, Person, Photo } from '../domain/types';
 import type { JobForecast, StageForecast } from '../domain/forecast';
-import { topWaitingOn } from '../domain/forecast';
+import { isStageOverdue, topWaitingOn } from '../domain/forecast';
 import { formatDayMonth, formatShort, formatShortRelative, relativeDate } from '../domain/dates';
 import { BigNumber } from '../components/BigNumber';
 import { HoldPointCheck, readinessWords } from '../components/HoldPointCheck';
@@ -23,7 +23,6 @@ import { StatusText } from '../components/StatusText';
 import AlecToday from './AlecToday';
 import NotFound from './NotFound';
 import { JobHeader } from '../shell/JobHeader';
-import { shipmentsInJob } from '../shell/nav';
 import './jobOverview.css';
 
 interface Data {
@@ -86,6 +85,8 @@ export default function JobOverview() {
     ? [
         { label: 'Today', to: `/jobs/${id}`, here: true },
         { label: 'Program', to: `/jobs/${id}/program` },
+        // Shipments live inside the job for every role (Dom's brief, change 2); Alec keeps Deliveries too.
+        { label: 'Shipments', to: `/jobs/${id}/shipments` },
         { label: 'Photos', to: `/jobs/${id}/photos` },
         { label: 'Deliveries', to: '/deliveries' },
       ]
@@ -93,8 +94,7 @@ export default function JobOverview() {
         { label: 'Overview', to: `/jobs/${id}`, here: true },
         { label: 'Program', to: `/jobs/${id}/program` },
         { label: 'Waiting on', to: `/waiting?job=${id}` },
-        // Partners and admin keep shipments inside the job (Dom's brief, change 2).
-        ...(shipmentsInJob(role) ? [{ label: 'Shipments', to: `/jobs/${id}/shipments` }] : []),
+        { label: 'Shipments', to: `/jobs/${id}/shipments` },
         { label: 'Photos', to: `/jobs/${id}/photos` },
         { label: 'Notes', to: `/jobs/${id}/notes` },
       ];
@@ -201,7 +201,7 @@ export default function JobOverview() {
                           {s.isLate && s.status !== 'done' && (
                             <>
                               {' '}
-                              <StatusText tone="late" plain className="job__stage-late">
+                              <StatusText tone={isStageOverdue(s, today) ? 'late' : 'plain'} plain className="job__stage-late">
                                 {s.lateDays} day{s.lateDays === 1 ? '' : 's'} late
                               </StatusText>
                             </>

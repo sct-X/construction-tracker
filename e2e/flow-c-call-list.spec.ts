@@ -35,13 +35,14 @@ test.describe('Flow c: the call list', () => {
     await expect(page.getByTestId('call-phone-it-sv-pump')).toHaveAttribute('href', 'tel:0491570157');
     await expect(page.getByTestId('call-action-it-sv-pump')).toHaveText('Mark booked');
 
-    // The windows items: booked 5 weeks past their act-by, expected from the shipment.
+    // The windows items: ordered on time and expected from the shipment, so the act-by is spent, not overdue.
     const windows = page.getByTestId('call-item-it-pr-windows');
     await expect(windows).toContainText('Windows');
     await expect(page.getByTestId('call-actby-it-pr-windows')).toHaveText('Mon 10 Aug');
-    await expect(windows).toContainText('act by, overdue by 5 weeks');
-    // "overdue by" always travels in the late red, never amber or muted (booked items included).
-    await expect(page.getByTestId('call-actby-it-pr-windows')).toHaveClass(/callitem__act-date--late/);
+    await expect(windows).toContainText('act by, 5 weeks ago');
+    // A booking carries its expected date: no red "overdue by" on it.
+    await expect(page.getByTestId('call-actby-it-pr-windows')).toHaveClass(/callitem__act-date--muted/);
+    await expect(windows).not.toContainText('overdue');
     await expect(windows).toContainText('Ordered or booked');
     await expect(windows).toContainText('Expected Mon 26 Oct');
     await expect(page.getByTestId('call-action-it-pr-windows')).toHaveText('Mark confirmed');
@@ -56,15 +57,23 @@ test.describe('Flow c: the call list', () => {
     await expect(page.getByTestId('calls-finish-park-rd')).toHaveCount(0);
     expect(await page.locator('#root').innerText()).not.toContain('$');
 
-    // 3. Raff says the pump is booked: the row folds into "Done this call".
+    // 3. Raff says the pump is booked. Booked needs an expected date: Mark booked asks for it first.
     await page.getByTestId('call-action-it-sv-pump').click();
+    await expect(page.getByTestId('call-booking-it-sv-pump')).toBeVisible();
+    await page.getByTestId('call-book-it-sv-pump').click();
+    await expect(page.getByTestId('call-book-problem-it-sv-pump')).toHaveText('!Ordered or booked needs an expected date.');
+    await expect(page.getByTestId('call-item-it-sv-pump')).toBeVisible();
+    await page.getByTestId('call-book-date-it-sv-pump').fill('2026-10-02');
+    await page.getByTestId('call-book-it-sv-pump').click();
     await expect(page.getByTestId('call-item-it-sv-pump')).toHaveCount(0);
     await expect(page.getByTestId('calls-done-seaview')).toContainText('Done this call');
     await expect(page.getByTestId('call-done-it-sv-pump')).toContainText('Book concrete pump');
-    await expect(page.getByTestId('call-done-it-sv-pump')).toContainText('booked');
+    await expect(page.getByTestId('call-done-it-sv-pump')).toContainText('booked, expected Fri 2 Oct, in 2 weeks');
 
     // 4. The plasterer is booked, and has confirmed for the 23rd: Mark confirmed asks for the date.
-    await page.getByTestId('call-action-it-pr-plasterer').click(); // to do -> booked
+    await page.getByTestId('call-action-it-pr-plasterer').click(); // to do -> booked, with its expected date
+    await page.getByTestId('call-book-date-it-pr-plasterer').fill('2026-09-23');
+    await page.getByTestId('call-book-it-pr-plasterer').click();
     await expect(page.getByTestId('call-done-it-pr-plasterer')).toContainText('booked');
     await page.getByTestId('call-reopen-it-pr-plasterer').click();
     await expect(page.getByTestId('call-action-it-pr-plasterer')).toHaveText('Mark confirmed');
@@ -126,7 +135,7 @@ test.describe('Flow c: the call list', () => {
     await expect(page.getByTestId('calls-fresh-beatty')).toContainText('confirmed today');
     await expect(page.getByTestId('call-item-it-sv-pump')).toContainText('Ordered or booked');
     await expect(page.getByTestId('call-action-it-sv-pump')).toHaveText('Mark confirmed');
-    await expect(page.getByTestId('call-item-it-bt-tiler')).toContainText('Expected Mon 12 Oct, in 3 weeks, 14 days late');
+    await expect(page.getByTestId('call-item-it-bt-tiler')).toContainText('Expected Mon 12 Oct, in 3 weeks, 14 days after needed');
 
     // Reset through the dev bar so the seed is back.
     await page.getByTestId('dev-reset').click();
@@ -196,8 +205,14 @@ test.describe('Flow c: the call list', () => {
     await openMore(page, 'it-sv-pump');
     await expect(page.getByTestId('call-expected-it-sv-pump')).toBeDisabled();
     await expect(page.getByTestId('call-item-it-sv-pump')).toContainText('Needs signal');
+    // Booking needs an expected date, and a date needs signal: the pump waits.
     await page.getByTestId('call-action-it-sv-pump').click();
-    await expect(page.getByTestId('call-done-it-sv-pump')).toContainText('booked');
+    await expect(page.getByTestId('call-book-date-it-sv-pump')).toBeDisabled();
+    await expect(page.getByTestId('call-booking-it-sv-pump')).toContainText('Needs signal');
+    // A tick that needs no new date still works: the booked plumber is confirmed.
+    await page.getByTestId('call-action-it-pr-sw-plumber').click();
+    await page.getByTestId('call-confirm-it-pr-sw-plumber').click();
+    await expect(page.getByTestId('call-done-it-pr-sw-plumber')).toContainText('confirmed');
     await page.getByTestId('dev-reset').click();
   });
 
@@ -207,6 +222,10 @@ test.describe('Flow c: the call list', () => {
     await expect(page.getByTestId('calls-keys')).toBeVisible();
     await expect(page.getByTestId('call-item-it-sv-pump')).toHaveAttribute('aria-current', 'true');
     await page.keyboard.press('b');
+    // B asks for the expected date the booking needs, then books it.
+    await expect(page.getByTestId('call-book-date-it-sv-pump')).toBeFocused();
+    await page.getByTestId('call-book-date-it-sv-pump').fill('2026-10-02');
+    await page.getByTestId('call-book-it-sv-pump').click();
     await expect(page.getByTestId('call-done-it-sv-pump')).toContainText('booked');
     await expect(page.getByTestId('call-item-it-sv-slab-insp')).toHaveAttribute('aria-current', 'true');
     await page.keyboard.press('s');

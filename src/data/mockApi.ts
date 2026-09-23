@@ -48,6 +48,7 @@ import {
   formatShortRelative,
 } from '../domain/dates';
 import { slipCostFor, stripMoney } from '../domain/money';
+import { BOOKED_NEEDS_DATE, needsExpectedDate } from '../domain/itemFlow';
 import { buildSeed, SEED_VERSION } from '../seed';
 import type { CopyTemplateInput, JobListOptions, Listener, NextStep, NewPhotoInput, OverviewRow, ProgramPreview, ScreenKey, StepStatusResult, TrackerApi } from './api';
 import { NOTIFICATION_PREF_KEYS, SCREEN_ACCESS } from './api';
@@ -925,6 +926,7 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
     },
     addItem(input) {
       const job = requireJob(input.jobId);
+      if (needsExpectedDate(input, input.status ?? 'to_do')) throw new Error(BOOKED_NEEDS_DATE);
       if (input.stepId) {
         const step = d().steps.find((s) => s.id === input.stepId);
         if (!step || step.jobId !== job.id) throw new Error(`Step ${input.stepId} is not on ${job.name}`);
@@ -956,6 +958,7 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
     },
     updateItem(id, patch) {
       const item = requireItem(id);
+      if (patch.status && needsExpectedDate({ ...item, ...patch }, patch.status)) throw new Error(BOOKED_NEEDS_DATE);
       const before = { ...item };
       Object.assign(item, patch);
       if (patch.status === 'done' && before.status !== 'done') item.doneAt = session.today;
@@ -979,6 +982,8 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
     },
     updateItemStatus(id, status, confirmedDate) {
       const item = requireItem(id);
+      // Booked means a date is on the way (Dom's brief): refuse it without one.
+      if (status !== item.status && needsExpectedDate(item, status)) throw new Error(BOOKED_NEEDS_DATE);
       const from = item.status;
       item.status = status;
       if (status === 'confirmed') item.confirmedDate = confirmedDate ?? session.today;

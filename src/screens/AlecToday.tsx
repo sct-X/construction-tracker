@@ -18,6 +18,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery, useSession } from '../data/context';
 import type { StepForecast } from '../domain/forecast';
+import { isStepOverdue } from '../domain/forecast';
 import { addCalendarDays, formatShortRelative, formatWeekRange, lastMonday, weekday, workingDaysBetween } from '../domain/dates';
 import { HoldPointCheck, readinessWords } from '../components/HoldPointCheck';
 import { StatusText } from '../components/StatusText';
@@ -187,7 +188,7 @@ export default function AlecToday({ jobId }: { jobId: string }) {
                       {s.status === 'in_progress' ? ', started' : ''}
                     </span>
                     {s.lateDays > 0 && (
-                      <StatusText tone="late" className="today__step-late">
+                      <StatusText tone={isStepOverdue(s, today) ? 'late' : 'plain'} plain={!isStepOverdue(s, today)} className="today__step-late">
                         {s.lateDays} day{s.lateDays === 1 ? '' : 's'} late
                       </StatusText>
                     )}

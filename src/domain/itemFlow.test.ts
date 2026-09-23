@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advanceLabel, nextStatus } from './itemFlow';
+import { advanceLabel, needsExpectedDate, nextStatus } from './itemFlow';
 
 describe('item flow: one status path for every list', () => {
   it("words each type's first move exactly, then confirmed, then done", () => {
@@ -20,5 +20,15 @@ describe('item flow: one status path for every list', () => {
     for (const type of ['decision', 'manual_reminder', 'condition_of_consent'] as const) {
       expect(nextStatus({ type, status: 'to_do' })).toEqual({ status: 'done', label: 'Mark done' });
     }
+  });
+});
+
+describe('booked needs an expected date', () => {
+  it('asks for a date only when moving to booked with no date and no shipment', () => {
+    expect(needsExpectedDate({}, 'booked')).toBe(true);
+    expect(needsExpectedDate({ expectedDate: '2026-10-01' }, 'booked')).toBe(false);
+    expect(needsExpectedDate({ shipmentId: 'sh-park-windows' }, 'booked')).toBe(false);
+    expect(needsExpectedDate({}, 'confirmed')).toBe(false);
+    expect(needsExpectedDate({}, 'done')).toBe(false);
   });
 });

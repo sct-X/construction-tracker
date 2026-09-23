@@ -12,6 +12,7 @@
  */
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { JobForecast, StepForecast } from '../../domain/forecast';
+import { isStageOverdue, isStepOverdue } from '../../domain/forecast';
 import type { Step } from '../../domain/types';
 import { addCalendarDays, formatLong, formatShort, relativeDate } from '../../domain/dates';
 import { StatusText } from '../StatusText';
@@ -249,13 +250,14 @@ export function Gantt({ forecast, steps, today, view = 'all', dense, onSelectSte
 
             {rows.map((row, i) =>
               row.kind === 'stage' ? (
-                <StageBandRow key={row.key} row={row} scale={scale} top={i * rowH} />
+                <StageBandRow key={row.key} row={row} scale={scale} top={i * rowH} today={today} />
               ) : (
                 <StepBarRow
                   key={row.key}
                   row={row}
                   scale={scale}
                   top={i * rowH}
+                  today={today}
                   names={names}
                   active={active === row.step.stepId || (activeStep?.waitsFor.includes(row.step.stepId) ?? false)}
                   onActive={setActive}
@@ -307,8 +309,10 @@ export function Gantt({ forecast, steps, today, view = 'all', dense, onSelectSte
   );
 }
 
-function StageBandRow({ row, scale, top }: { row: StageRow; scale: TimeScale; top: number }) {
+function StageBandRow({ row, scale, top, today }: { row: StageRow; scale: TimeScale; top: number; today: string }) {
   const { stage } = row;
+  // Behind plan with its dates still ahead is plain words; red only once past its planned end.
+  const overdue = isStageOverdue(stage, today);
   const has = stage.forecastStart && stage.forecastEnd;
   return (
     <div className="gantt__row gantt__row--stage" style={{ top }} data-testid={`gantt-stage-${stage.stageId}`}>
@@ -325,7 +329,7 @@ function StageBandRow({ row, scale, top }: { row: StageRow; scale: TimeScale; to
             />
             {stage.lateDays > 0 && (
               <span className="gantt__late" style={{ left: scale.x(stage.forecastEnd!) + scale.pxPerDay + 8 }}>
-                <StatusText tone="late" plain>
+                <StatusText tone={overdue ? 'late' : 'plain'} plain>
                   {lateText(stage.lateDays)}
                 </StatusText>
               </span>
@@ -341,6 +345,7 @@ function StepBarRow({
   row,
   scale,
   top,
+  today,
   names,
   active,
   onActive,
@@ -351,6 +356,7 @@ function StepBarRow({
   row: StepRow;
   scale: TimeScale;
   top: number;
+  today: string;
   names: Map<string, string>;
   active: boolean;
   onActive: (id: string | null) => void;
@@ -428,7 +434,7 @@ function StepBarRow({
         })()}
         {step.lateDays > 0 && (
           <span className="gantt__late" style={{ left: (hold ? fx + scale.pxPerDay / 2 + 9 : fx + fw) + 8 }} data-testid={`gantt-late-${step.stepId}`}>
-            <StatusText tone="late" plain>
+            <StatusText tone={isStepOverdue(step, today) ? 'late' : 'plain'} plain>
               {lateText(step.lateDays)}
             </StatusText>
           </span>

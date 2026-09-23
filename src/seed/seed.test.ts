@@ -76,7 +76,7 @@ describe('Park Rd', () => {
     const windows = moved.items['it-pr-windows'];
     expect(windows.neededBy).toBe('2026-11-02');
     expect(windows.lateDays).toBe(14);
-    expect(windows.lateText).toBe('14 days late');
+    expect(windows.lateText).toBe('14 days after needed');
     for (const id of ['it-pr-sliding-doors', 'it-pr-glazing-cert']) {
       expect(moved.items[id].neededBy).toBe('2026-11-02');
       expect(moved.items[id].isLate).toBe(true);
@@ -235,7 +235,7 @@ describe('Beatty St', () => {
     expect(tiler.expected).toBe('2026-10-05');
     expect(tiler.neededBy).toBe('2026-09-28');
     expect(tiler.isLate).toBe(true);
-    expect(tiler.lateText).toBe('7 days late');
+    expect(tiler.lateText).toBe('7 days after needed');
     expect(f.freshness.daysUnconfirmed).toBe(9);
     expect(f.freshness.amber).toBe(true);
     expect(f.freshness.text).toBe('Last confirmed 9 days ago');

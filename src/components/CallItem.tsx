@@ -19,7 +19,7 @@ import type { Item, ItemStatus, Step, Trade } from '../domain/types';
 import { ITEM_STATUS_LABELS } from '../domain/types';
 import type { ItemForecast } from '../domain/forecast';
 import { calendarDaysBetween, formatShort, formatShortRelative, relativeDate } from '../domain/dates';
-import { nextStatus } from '../domain/itemFlow';
+import { BOOKED_NEEDS_DATE, needsExpectedDate, nextStatus } from '../domain/itemFlow';
 import { ITEM_TYPE_WORDS } from './ItemRow';
 import { StatusText, type Tone } from './StatusText';
 import './callItem.css';
@@ -43,8 +43,11 @@ export interface CallItemProps {
   /** The row keyboard shortcuts act on (desktop). */
   current?: boolean;
   handled?: Handled;
-  /** Primary action: move the status forward (confirm carries the date the trade is coming). */
-  onAdvance: (status: ItemStatus, confirmedFor?: string) => void;
+  /**
+   * Primary action: move the status forward. Confirm carries the date the
+   * trade is coming; booking carries the expected date it must have.
+   */
+  onAdvance: (status: ItemStatus, date?: string) => void;
   onExpected: (date: string) => void;
   onNote: (text: string) => void;
   onSkip: () => void;
@@ -58,6 +61,11 @@ export function CallItem(props: CallItemProps) {
   const phone = layout === 'phone';
   const [confirming, setConfirming] = useState(false);
   const [confirmFor, setConfirmFor] = useState(item.expectedDate ?? f?.neededBy ?? today);
+  // Booking without a date on the way asks for the expected date first (Dom's brief).
+  const [booking, setBooking] = useState(false);
+  const [bookFor, setBookFor] = useState('');
+  const [bookProblem, setBookProblem] = useState(false);
+  const bookRef = useRef<HTMLInputElement>(null);
   const [note, setNote] = useState(item.notes ?? '');
   const [more, setMore] = useState(false);
   const confirmRef = useRef<HTMLInputElement>(null);
@@ -74,7 +82,21 @@ export function CallItem(props: CallItemProps) {
       setTimeout(() => confirmRef.current?.focus(), 0);
       return;
     }
+    if (needsExpectedDate(item, next.status)) {
+      setBooking(true);
+      setTimeout(() => bookRef.current?.focus(), 0);
+      return;
+    }
     props.onAdvance(next.status);
+  };
+  const bookNow = () => {
+    if (!next || !bookFor) {
+      setBookProblem(true);
+      return;
+    }
+    props.onAdvance(next.status, bookFor);
+    setBooking(false);
+    setBookProblem(false);
   };
   const confirmNow = () => {
     props.onAdvance('confirmed', offline ? undefined : confirmFor);
@@ -122,10 +144,11 @@ export function CallItem(props: CallItemProps) {
   let actWords = 'No act-by date';
   if (actBy) {
     const n = calendarDaysBetween(actBy, today);
-    actWords = `act by, ${relativeDate(actBy, today, { deadline: item.status === 'to_do' || item.status === 'booked' })}`;
-    // Red only when the words say "overdue by" (act-by gone, still to do or booked);
-    // an act-by today or coming up is plain, never an amber "soon".
-    if (n > 0 && (item.status === 'to_do' || item.status === 'booked')) actTone = 'late';
+    actWords = `act by, ${relativeDate(actBy, today, { deadline: item.status === 'to_do' })}`;
+    // Red only when the words say "overdue by" (act-by gone, still to do: see
+    // isOverdue); a booked item has acted and carries its expected date. An
+    // act-by today or coming up is plain, never an amber "soon".
+    if (n > 0 && item.status === 'to_do') actTone = 'late';
     else if (n > 0) actTone = 'muted';
   }
 
@@ -136,7 +159,7 @@ export function CallItem(props: CallItemProps) {
       : null;
   const expectedWords = f?.expected
     ? f.isLate && f.lateText
-      ? { text: `Expected ${formatShortRelative(f.expected, today)}, ${f.lateText}`, tone: 'late' as Tone }
+      ? { text: `Expected ${formatShortRelative(f.expected, today)}, ${f.lateText}`, tone: 'plain' as Tone }
       : { text: `Expected ${formatShortRelative(f.expected, today)}`, tone: 'plain' as Tone }
     : f?.isLate && f.lateText
       ? { text: `Nothing expected yet, ${f.lateText}`, tone: 'late' as Tone }
@@ -224,7 +247,7 @@ export function CallItem(props: CallItemProps) {
       </div>
 
       <div className="callitem__do">
-        {next && !confirming && (
+        {next && !confirming && !booking && (
           <button type="button" className="btn btn--desktop callitem__primary" onClick={advance} data-testid={`call-action-${id}`}>
             {next.label}
           </button>
@@ -254,7 +277,52 @@ export function CallItem(props: CallItemProps) {
             </span>
           </div>
         )}
-        {!confirming && (
+        {booking && next && (
+          <div className="callitem__confirm" data-testid={`call-booking-${id}`}>
+            <label className="callitem__field">
+              <span className="callitem__field-label">Expected</span>
+              <input
+                ref={bookRef}
+                type="date"
+                className="callitem__input"
+                value={bookFor}
+                onChange={(e) => {
+                  setBookFor(e.target.value);
+                  setBookProblem(false);
+                }}
+                disabled={offline}
+                data-testid={`call-book-date-${id}`}
+              />
+              {offline ? (
+                <span className="callitem__hint">Needs signal</span>
+              ) : (
+                bookProblem && (
+                  <span role="alert">
+                    <StatusText tone="amber" testId={`call-book-problem-${id}`}>
+                      {BOOKED_NEEDS_DATE}
+                    </StatusText>
+                  </span>
+                )
+              )}
+            </label>
+            <span className="callitem__confirm-btns">
+              <button type="button" className="btn btn--fill btn--desktop" onClick={bookNow} data-testid={`call-book-${id}`}>
+                {next.label}
+              </button>
+              <button
+                type="button"
+                className="callitem__text-btn"
+                onClick={() => {
+                  setBooking(false);
+                  setBookProblem(false);
+                }}
+              >
+                Not yet
+              </button>
+            </span>
+          </div>
+        )}
+        {!confirming && !booking && (
           <button type="button" className="callitem__text-btn callitem__more-toggle" onClick={() => setMore((m) => !m)} aria-expanded={more} data-testid={`call-more-toggle-${id}`}>
             {more ? 'Less' : 'Date, note, skip'}
           </button>

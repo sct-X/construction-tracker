@@ -33,7 +33,7 @@ import type {
 } from '../domain/types';
 import { ITEM_STATUS_LABELS, ITEM_STATUS_ORDER, SHIPMENT_STATUS_LABELS } from '../domain/types';
 import type { EtaPreview, ForecastBundle, JobForecast } from '../domain/forecast';
-import { forecastJob, holdPointCheck, holdPointReadinessWords, holdPointRefusalText, overdueCount, previewEtaChange, topWaitingOn } from '../domain/forecast';
+import { forecastJob, holdPointCheck, holdPointReadinessWords, holdPointRefusalText, overdueCount, previewEtaChange } from '../domain/forecast';
 import {
   addCalendarWeeks,
   calendarDaysBetween,
@@ -50,7 +50,7 @@ import {
 import { slipCostFor, stripMoney } from '../domain/money';
 import { BOOKED_NEEDS_DATE, needsExpectedDate } from '../domain/itemFlow';
 import { buildSeed, SEED_VERSION } from '../seed';
-import type { CopyTemplateInput, JobListOptions, Listener, NextStep, NewPhotoInput, OverviewRow, ProgramPreview, ScreenKey, StepStatusResult, TrackerApi } from './api';
+import type { CopyTemplateInput, JobListOptions, Listener, NewPhotoInput, OverviewRow, ProgramPreview, ScreenKey, StepStatusResult, TrackerApi } from './api';
 import { NOTIFICATION_PREF_KEYS, SCREEN_ACCESS } from './api';
 import type { NotificationPrefs } from './api';
 import { defaultStorage, type KeyValueStorage } from './storage';
@@ -1338,49 +1338,26 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
     getOverviewRows() {
       if (!api.canSee('overview')) return [];
       const rows: OverviewRow[] = [];
+      const oldestDays = new Map<string, number>();
       for (const job of visibleJobs()) {
         const f = rawForecast(job.id);
         if (!f) continue;
-        const items = d().items.filter((i) => i.jobId === job.id);
-        const oldest = f.checklist?.outstandingItems[0];
-        const stageName = new Map(f.stages.map((st) => [st.stageId, st.name]));
-        // The next few steps: anything not done, the running one first, then by start date.
-        const nextSteps: NextStep[] = Object.values(f.steps)
-          .filter((st) => st.status !== 'done')
-          .sort((a, b) => (a.status === 'in_progress' ? -1 : b.status === 'in_progress' ? 1 : 0) || a.forecastStart.localeCompare(b.forecastStart))
-          .slice(0, 3)
-          .map((st) => ({
-            stepId: st.stepId,
-            name: st.name,
-            stageName: stageName.get(st.stageId) ?? '',
-            start: st.forecastStart,
-            status: st.status,
-            isHoldPoint: st.isHoldPoint,
-          }));
-        const nextStage = f.checklist ? f.stages.find((st) => st.status === 'not_started') : undefined;
+        oldestDays.set(job.id, f.checklist?.oldestDays ?? -1);
         rows.push({
           jobId: job.id,
           name: job.name,
           kind: job.kind,
-          path: job.path,
-          freshness: f.freshness,
+          stages: f.stages.map((st) => ({ stageId: st.stageId, name: st.name, status: st.status })),
+          currentStageId: f.currentStageId,
           currentStageName: f.currentStageName,
-          nextSteps,
-          waitingOn: job.kind === 'build' ? topWaitingOn(f, items) : [],
-          nextHoldPoint: f.nextHoldPoint,
           overdue: overdueCount(f),
-          nextStageName: nextStage?.name,
-          outstanding: f.checklist?.outstanding,
-          oldestDays: f.checklist?.oldestDays,
-          oldestItemTitle: oldest?.title,
-          oldestItemWaitingOn: oldest?.waitingOn,
         });
       }
       // Builds first, in the side's own order; design jobs after, the longest-waiting first.
       rows.sort((a, b) => {
         if (a.kind !== b.kind) return a.kind === 'build' ? -1 : 1;
         if (a.kind === 'build') return 0;
-        return (b.oldestDays ?? -1) - (a.oldestDays ?? -1) || a.name.localeCompare(b.name);
+        return oldestDays.get(b.jobId)! - oldestDays.get(a.jobId)! || a.name.localeCompare(b.name);
       });
       return scoped(rows);
     },

@@ -18,7 +18,6 @@ import type { JobForecast } from '../domain/forecast';
 import { ItemRow, ItemRowList } from '../components/ItemRow';
 import { StatusText, type Tone } from '../components/StatusText';
 import { ClockGlyph } from '../components/QueueBadge';
-import { outstandingWords as overviewOutstanding } from './Overview';
 import { JobHeader } from '../shell/JobHeader';
 import NotFound from './NotFound';
 import './designChecklist.css';
@@ -34,11 +33,17 @@ interface Data {
   people: Person[];
 }
 
-/** "2 outstanding, oldest 23 days" / "Nothing outstanding": the overview's own helper, so the two screens always agree. */
+/**
+ * "2 outstanding, oldest 23 days" / "Nothing outstanding", in plain words
+ * whatever the age: how long something has sat is not a date it has missed,
+ * so it is never coloured.
+ */
 export function outstandingWords(f?: JobForecast): { count: number; rest: string; tone: Tone } {
-  const { tone, text } = overviewOutstanding(f?.checklist?.outstanding, f?.checklist?.oldestDays);
-  const m = /^(\d+) (.*)$/.exec(text);
-  return m ? { count: Number(m[1]), rest: m[2], tone } : { count: 0, rest: text, tone };
+  const outstanding = f?.checklist?.outstanding;
+  const oldestDays = f?.checklist?.oldestDays;
+  if (!outstanding) return { count: 0, rest: 'Nothing outstanding', tone: 'muted' };
+  const rest = oldestDays === null || oldestDays === undefined ? 'outstanding' : `outstanding, oldest ${oldestDays} day${oldestDays === 1 ? '' : 's'}`;
+  return { count: outstanding, rest, tone: 'plain' };
 }
 
 /** "outstanding 23 days", in plain words: time sitting is not a missed date, so never coloured. */

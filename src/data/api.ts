@@ -34,13 +34,14 @@ import type {
   ShipmentStatus,
   Side,
   Stage,
+  StageStatus,
   Step,
   StepLink,
   StepStatus,
   Trade,
   Weather,
 } from '../domain/types';
-import type { EtaPreview, Freshness, HoldPointCheck, JobForecast, WaitingOnRow } from '../domain/forecast';
+import type { EtaPreview, HoldPointCheck, JobForecast } from '../domain/forecast';
 import type { Session } from './session';
 import type { QueuedPhoto } from './photoQueue';
 
@@ -56,37 +57,24 @@ export interface SignInOption {
   roles: { side: Side; role: Role }[];
 }
 
-export interface NextStep {
-  stepId: string;
+/** One stage on an overview card's progress bar. */
+export interface OverviewStage {
+  stageId: string;
   name: string;
-  stageName: string;
-  /** The date the step is expected to start; undefined when the program has no dates. */
-  start?: string;
-  status: StepStatus;
-  isHoldPoint: boolean;
+  status: StageStatus;
 }
 
-/** One job on the overview: where it is, what comes next, what it waits on, how fresh that is. */
+/** One job on the overview: its stages as a bar, where it is, and how many of its items are overdue. */
 export interface OverviewRow {
   jobId: string;
   name: string;
   kind: JobKind;
-  path?: ApprovalPath;
-  freshness: Freshness;
+  /** Every stage in order, for the progress bar. */
+  stages: OverviewStage[];
+  currentStageId?: string;
   currentStageName?: string;
-  /** Builds: the next few steps not yet done, in date order, the running one first. */
-  nextSteps: NextStep[];
-  /** Top three: late first, then soonest act-by within 14 days. */
-  waitingOn: WaitingOnRow[];
-  nextHoldPoint?: HoldPointCheck;
-  /** Open items past their date (forecast isOverdue); drives the red cue on the card. */
+  /** Open items past their date (forecast overdueCount); the card's one red cue. */
   overdue: number;
-  /** Design jobs. */
-  nextStageName?: string;
-  outstanding?: number;
-  oldestDays?: number | null;
-  oldestItemTitle?: string;
-  oldestItemWaitingOn?: string;
 }
 
 export type StepStatusResult =

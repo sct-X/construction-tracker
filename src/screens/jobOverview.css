@@ -1,12 +1,13 @@
 /*
   Build job overview.
 
-  The finish date is the hero figure (44px phone, 60px desktop) with its late
-  words beside it. Under it a readout row of row-scale figures: slip, holding,
-  stage, then the freshness words and the one hi-vis action. The body is two
-  columns on the desktop (hold point and the stage ladder; what the job is
-  waiting on), one column of plates on the phone. Sections separate by tone
-  and space, never by a rule; hairlines live inside the lists only.
+  Partners, admin and the builder: a progress plate (the stage's name as a
+  Title 2, "Stage 5 of 8", the large stage bar, then the next hold point as a
+  cell), then two inset grouped lists, Overdue and Trades on this week, and
+  the Confirm program row at the foot. Red is only the overdue dates.
+
+  Alec keeps his page: Today, the stage as a figure, the stage ladder and
+  the latest photos, as plates on the phone.
 */
 
 /* Tabs: the shell's tab-bar idiom, text with a 2px rule under the current one */
@@ -58,35 +59,6 @@
   align-items: baseline;
   gap: var(--space-3) var(--space-4);
 }
-.job__facts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: var(--space-5) var(--space-10);
-}
-.job__slip-link {
-  display: inline-block;
-  color: inherit;
-  text-decoration: none;
-  border-radius: var(--radius-sm);
-}
-.job__slip-link:hover .bignumber__value {
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 6px;
-  text-decoration-color: var(--line-strong);
-}
-.job__confirm {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3) var(--space-4);
-  padding-bottom: 2px; /* sits on the labels' baseline row */
-}
-.job__needs-signal {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-}
 
 /* ---- body ---- */
 .job__body {
@@ -115,39 +87,6 @@
   align-items: center;
   min-height: 32px;
 }
-.shell--phone .job__more a,
-.shell--phone .job__hp-name {
-  min-height: var(--tap);
-}
-.shell--phone .job__hp-name {
-  display: inline-flex;
-  align-items: center;
-}
-
-/* hold point */
-.job__hp-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-1) var(--space-3);
-}
-.job__hp-name {
-  font-size: var(--text-lg);
-  font-weight: var(--weight-medium);
-  color: var(--text);
-  text-decoration: none;
-}
-.job__hp-name:hover {
-  text-decoration: underline;
-  text-decoration-color: var(--line-strong);
-}
-.job__hp-when {
-  color: var(--text-secondary);
-}
-.job__hp-ready {
-  margin: var(--space-2) 0 var(--space-3);
-}
-
 /* the stage ladder */
 .job__stages {
   display: flex;
@@ -238,15 +177,6 @@
     gap: var(--space-5);
     margin-bottom: var(--space-8);
   }
-  .job__facts {
-    gap: var(--space-4) var(--space-8);
-  }
-  .job__confirm {
-    width: 100%;
-  }
-  .job__confirm .btn {
-    flex: 1 1 100%;
-  }
   .job__body,
   .job__col {
     gap: var(--space-3);
@@ -265,10 +195,6 @@
   .job__photo {
     background: var(--raised);
   }
-  .job__section .itemrow--link:hover {
-    background: var(--raised);
-    box-shadow: 0 0 0 var(--space-2) var(--raised);
-  }
 }
 
 @media (min-width: 768px) {
@@ -279,5 +205,175 @@
   .shell--desktop .job__photo-strip {
     grid-template-columns: repeat(6, minmax(0, 1fr));
     max-width: 720px;
+  }
+}
+
+/* ---- partners, admin, builder: timing first ---- */
+.job__timing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  max-width: 760px;
+}
+
+/* progress: the stage, where it sits among the rest, the next hold point */
+.job__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-4) 0;
+  border-radius: var(--radius-lg);
+  background: var(--plate);
+  overflow: hidden;
+}
+.job__progress-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+}
+.job__stage-title {
+  font-family: var(--font-display);
+  font-size: var(--type-title-2);
+  font-weight: var(--weight-bold);
+  line-height: 1.2;
+  color: var(--text);
+}
+.job__stage-of {
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.job__hp {
+  position: relative;
+  margin: 0 calc(-1 * var(--space-4));
+}
+.job__hp::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--space-4);
+  right: 0;
+  border-top: 0.5px solid var(--line);
+  z-index: 1;
+}
+.job__hp-cell {
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+.job__hp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.job__hp-label {
+  font-size: var(--type-footnote);
+  color: var(--text-muted);
+}
+.job__hp-name {
+  font-size: var(--type-headline);
+  font-weight: var(--weight-semibold);
+}
+.job__hp-when {
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+}
+.job__hp-photos.status {
+  align-self: flex-start;
+  margin-top: var(--space-1);
+  font-size: var(--type-footnote);
+}
+.job__hp-none {
+  min-height: var(--tap-min);
+  display: flex;
+  align-items: center;
+  padding: 11px var(--space-4);
+  color: var(--text-muted);
+}
+
+/* the lists */
+.job__group .group__header--large {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.job__group-count {
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+/* The row is the link: keep the inset separator on the li pairs. */
+.job__li {
+  position: relative;
+}
+.job__li + .job__li::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--space-4);
+  right: 0;
+  border-top: 0.5px solid var(--line);
+  z-index: 1;
+}
+.job__row {
+  align-items: center;
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+.job__row-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.job__row-title {
+  font-size: var(--type-body);
+  font-weight: var(--weight-semibold);
+  line-height: 1.3;
+}
+.job__row-detail {
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+}
+.job__row-late.status {
+  padding: 0;
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-medium);
+  color: var(--late-ink);
+  white-space: normal;
+}
+.job__row-when {
+  font-size: var(--type-subhead);
+  color: var(--text);
+}
+.job__none {
+  color: var(--text-muted);
+}
+
+/* confirm program: the week's one action, quiet at the foot */
+.job__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+  padding: 0 var(--space-1);
+}
+.job__needs-signal {
+  flex-basis: 100%;
+  font-size: var(--type-footnote);
+  color: var(--text-muted);
+}
+
+@media (max-width: 767.98px) {
+  .job__timing {
+    gap: var(--space-6);
+  }
+  .job__confirm-btn {
+    flex: 1 1 100%;
   }
 }

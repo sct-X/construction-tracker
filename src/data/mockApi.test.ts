@@ -32,9 +32,9 @@ describe('money and the site role through the API', () => {
     expect(rows[0].jobId).toBe(PARK_RD); // builds in the side's order
     const beatty = rows.find((r) => r.jobId === BEATTY)!;
     expect(beatty.currentStageName).toBe('Rough-in');
-    expect(beatty.nextSteps[0].name).toBe('Rough-in, whole stage');
-    expect(beatty.nextSteps.map((s) => s.name)).toContain('Tiling, whole stage');
-    expect(beatty.nextSteps.find((s) => s.name === 'Tiling, whole stage')!.start).toBe('2026-10-05');
+    // Every stage in order for the card's progress bar, the current one among them.
+    expect(beatty.stages.length).toBeGreaterThan(1);
+    expect(beatty.stages.find((s) => s.stageId === beatty.currentStageId)!.name).toBe('Rough-in');
   });
 
   it('counts overdue items per job: past their date only, so Beatty (a future clash) has none', () => {
@@ -46,8 +46,6 @@ describe('money and the site role through the API', () => {
     expect(by(PARK_RD).overdue).toBe(4);
     expect(by(SEAVIEW).overdue).toBe(0);
     expect(by(BEATTY).overdue).toBe(0);
-    expect(by(BEATTY).waitingOn[0].isLate).toBe(true); // the tiler is "7 days after needed", a future clash, not overdue
-    expect(by(BEATTY).waitingOn[0].lateText).toBe('7 days after needed');
     const total = rows.reduce((n, r) => n + r.overdue, 0);
     expect(total).toBe(4);
   });

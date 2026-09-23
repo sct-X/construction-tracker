@@ -191,19 +191,19 @@ test.describe('Shell: navigation and landing per role', () => {
 });
 
 test.describe('Overview', () => {
-  test('Dominic sees builds and design jobs with stage, next steps, waiting-on and freshness words, and never a date of finish or a dollar', async ({ page }) => {
+  test('Dominic sees builds and design jobs with stage and overdue count, and never a date of finish or a dollar', async ({ page }) => {
     await page.goto('#/overview?as=dominic&side=side-nd&today=2026-09-17');
     for (const id of ['park-rd', 'seaview', 'beatty', 'west-st', 'tollbar', 'lower-beach', 'john-st']) {
       await expect(page.getByTestId(`job-row-${id}`)).toBeVisible();
     }
     const park = page.getByTestId('job-row-park-rd');
     await expect(park).toContainText('Lock-up');
-    await expect(park).toContainText('Last confirmed 2 days ago');
+    await expect(park).toContainText('4 overdue');
     const text = await page.locator('#root').innerText();
     expect(text).not.toContain('$');
     expect(text).not.toContain('26 Feb 2027');
     expect(text).not.toContain('Slip');
-    await expect(page.getByTestId('job-row-west-st')).toContainText('2 outstanding, oldest 23 days');
+    await expect(page.getByTestId('job-row-west-st')).toContainText('Nothing overdue');
     await expect(page.getByTestId('overview-stage-west-st')).toContainText('Pending approval');
     await expect(page.getByTestId('jobs-new')).toBeVisible();
   });
@@ -220,7 +220,7 @@ test.describe('Overview', () => {
 
   test('tapping a row opens the job', async ({ page }) => {
     await page.goto('#/overview?as=raff&side=side-nd');
-    await page.getByTestId('job-row-seaview').click({ position: { x: 5, y: 5 } });
+    await page.getByTestId('job-row-seaview').click();
     await expect(page).toHaveURL(/#\/jobs\/seaview$/);
     await expect(page.locator('h1')).toContainText('31 Seaview St');
   });

@@ -84,14 +84,13 @@ test.describe('Templates and new job', () => {
     await expect(page.getByTestId('job-overview')).toContainText('12 Smith St');
     await expect(page.getByTestId('job-stage')).toContainText('Site establishment');
 
-    // Overview: the new job with its stage and first steps, confirmed today.
+    // Overview: the new job with its stage on the bar and nothing overdue.
     await page.goto('#/overview');
     const row = page.getByTestId(`job-row-${jobId}`);
     await expect(row).toBeVisible();
     await expect(row).toContainText('12 Smith St');
-    await expect(row).toContainText('Site setup and fencing');
-    await expect(row).toContainText('Mon 5 Oct');
-    await expect(row).toContainText('Last confirmed today');
+    await expect(page.getByTestId(`overview-stage-${jobId}`)).toHaveText('Site establishment');
+    await expect(row).toContainText('Nothing overdue');
     expect(await row.innerText()).not.toContain('$');
 
     // The program has the template's steps, dated from 5 Oct.

@@ -163,8 +163,8 @@ test.describe('Photo gallery', () => {
     await expect(page.locator('[data-testid^="gallery-photo-"]')).toHaveCount(20);
   });
 
-  test('the overview strip links into the gallery and opens the photo', async ({ page }) => {
-    await page.goto('#/jobs/park-rd?as=dominic&today=2026-09-17');
+  test("Alec's latest photos strip links into the gallery and opens the photo", async ({ page }) => {
+    await page.goto('#/jobs/park-rd?as=alec&today=2026-09-17');
     const strip = page.getByTestId('overview-latest-photos');
     await expect(strip.locator('img')).toHaveCount(6);
     await expect(page.getByTestId('overview-all-photos')).toHaveText('All 20 photos');

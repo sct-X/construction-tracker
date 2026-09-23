@@ -1,0 +1,30 @@
+/*
+  The stage bar: equal segments with a 3px gap. Done is grey, the current
+  stage is the label colour, stages ahead sit in a pale trough. Slim on the
+  overview cards (4px), large on the job page (10px). No tint: orange is for
+  what you can act on, and red is kept for overdue.
+*/
+.stagebar {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+}
+.stagebar__seg {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--steel-200);
+}
+.stagebar__seg--done {
+  background: var(--steel-500);
+}
+.stagebar__seg--current {
+  background: var(--text);
+}
+.stagebar--large {
+  gap: 4px;
+}
+.stagebar--large .stagebar__seg {
+  height: 10px;
+}

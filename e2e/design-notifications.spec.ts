@@ -9,10 +9,9 @@ async function reset(page: Page) {
 }
 
 test.describe('Design checklist as Dominic', () => {
-  test('West St shows 2 outstanding, oldest 23 days, matching the jobs list', async ({ page }) => {
+  test('West St shows 2 outstanding, oldest 23 days, and its stage on the jobs list', async ({ page }) => {
     await page.goto('#/jobs?as=dominic&side=side-nd&today=2026-09-17');
-    const listWords = (await page.getByTestId('job-row-west-st').innerText()).replace(/\s+/g, ' ');
-    expect(listWords).toContain('2 outstanding, oldest 23 days');
+    await expect(page.getByTestId('overview-stage-west-st')).toHaveText('Pending approval');
 
     await page.goto('#/jobs/west-st?as=dominic&today=2026-09-17');
     await expect(page.getByTestId('checklist')).toBeVisible();

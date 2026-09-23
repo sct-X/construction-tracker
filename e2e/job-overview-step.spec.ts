@@ -4,9 +4,11 @@ import { expect, test } from '@playwright/test';
 // Today is Thu 17 Sep 2026. Runs at both projects (phone and desktop).
 
 test.describe('Build job overview', () => {
-  test('Dominic sees Park Rd stage and freshness, and confirms the program', async ({ page }) => {
+  test('Dominic sees Park Rd: the stage bar, the next hold point, every overdue item, the trades on this week, and confirms the program', async ({ page }) => {
     await page.goto('#/jobs/park-rd?as=dominic&today=2026-09-17');
-    await expect(page.getByTestId('job-stage')).toContainText('Lock-up');
+    await expect(page.getByTestId('job-stage')).toHaveText('Lock-up');
+    await expect(page.getByTestId('job-stage-of')).toHaveText('Stage 5 of 8');
+    await expect(page.getByTestId('job-stage-bar').locator('[data-state="current"]')).toHaveCount(1);
     await expect(page.getByTestId('job-fresh')).toHaveText('Last confirmed 2 days ago');
     // No finish date, slip, why-it-moved or money on the page.
     await expect(page.getByTestId('job-finish')).toHaveCount(0);
@@ -16,12 +18,32 @@ test.describe('Build job overview', () => {
     expect(text).not.toContain('$');
     expect(text).not.toContain('26 Feb 2027');
 
-    // Next hold point with its photo-set readiness in words.
-    await expect(page.getByTestId('job-next-holdpoint')).toContainText('required photo set');
+    // Next hold point with its date and, compactly, its photo sets.
+    const hp = page.getByTestId('job-next-holdpoint');
+    await expect(hp).toContainText('Stormwater inspection');
+    await expect(hp).toContainText('Mon 12 Oct, in 3 weeks');
+    await expect(page.getByTestId('job-holdpoint-readiness')).toContainText('required photo set');
 
-    // Top waiting-on items, each a row, and a link to the full list for this job.
-    await expect(page.getByTestId('job-waiting-list').locator('li')).toHaveCount(5);
-    await expect(page.getByTestId('job-waiting-all')).toHaveAttribute('href', '#/waiting?job=park-rd');
+    // Every overdue item, the same 4 as the Overview's count, most overdue first, each in red words.
+    const overdue = page.locator('[data-testid^="job-overdue-it-"]');
+    await expect(overdue).toHaveCount(4);
+    await expect(page.getByTestId('job-overdue-count')).toHaveText('4');
+    await expect(overdue.first()).toContainText('Glazing energy compliance certificate');
+    await expect(page.getByTestId('job-overdue-it-pr-tile-choice')).toContainText('overdue by 3 days');
+    await expect(page.getByTestId('job-overdue-it-pr-tile-choice').locator('[data-tone="late"]')).toHaveCount(1);
+    // Items that are open but not overdue live in Waiting on, not here.
+    await expect(page.getByTestId('job-overdue')).not.toContainText('Windows');
+    await expect(page.getByTestId('job-waiting-list')).toHaveCount(0);
+
+    // Trades on this week: on site now or booked in within the next seven days.
+    const trades = page.getByTestId('job-trades');
+    await expect(trades).toContainText('First Call Plumbing Solutions');
+    await expect(page.getByTestId('job-trade-pr-stormwater')).toContainText('Mon 21 Sep, in 4 days');
+
+    // An overdue row opens the item sheet.
+    await page.getByTestId('job-overdue-it-pr-tile-choice').click();
+    await expect(page).toHaveURL(/#\/items\/it-pr-tile-choice$/);
+    await page.goBack();
 
     // Confirm program stamps today and the words change.
     await page.getByTestId('job-confirm').click();
@@ -29,11 +51,11 @@ test.describe('Build job overview', () => {
     await expect(page.getByTestId('job-fresh')).toHaveAttribute('data-tone', 'muted');
   });
 
-  test('Beatty St shows its stage, the tiler moving the tiling stage, and quiet freshness words', async ({ page }) => {
+  test('Beatty St shows its stage, a calm Nothing overdue, and quiet freshness words', async ({ page }) => {
     await page.goto('#/jobs/beatty?as=dominic&today=2026-09-17');
-    await expect(page.getByTestId('job-stage')).toContainText('Rough-in');
-    await expect(page.getByTestId('job-stage-bt-st-tiling')).toContainText('5 Oct to 16 Oct');
-    await expect(page.getByTestId('job-stage-bt-st-tiling')).toContainText('planned 28 Sep to 9 Oct');
+    await expect(page.getByTestId('job-stage')).toHaveText('Rough-in');
+    await expect(page.getByTestId('job-overdue-none')).toHaveText('Nothing overdue');
+    await expect(page.locator('[data-testid^="job-overdue-it-"]')).toHaveCount(0);
     await expect(page.getByTestId('job-fresh')).toHaveAttribute('data-tone', 'muted');
     await expect(page.getByTestId('job-fresh')).toContainText('9 days ago');
     expect(await page.locator('#root').innerText()).not.toContain('$');
@@ -71,8 +93,10 @@ test.describe('Step detail', () => {
     await expect(page.getByTestId('step-status')).toHaveText('Not started');
   });
 
-  test('Beatty overview lists stages with planned and forecast spans in words', async ({ page }) => {
-    await page.goto('#/jobs/beatty?as=dominic&today=2026-09-17');
+  test("Beatty's stage ladder (Alec's job page) gives planned and forecast spans in words", async ({ page }) => {
+    await page.goto('#/jobs/beatty?as=alec&today=2026-09-17');
+    await expect(page.getByTestId('job-stage-bt-st-tiling')).toContainText('5 Oct to 16 Oct');
+    await expect(page.getByTestId('job-stage-bt-st-tiling')).toContainText('planned 28 Sep to 9 Oct');
     await expect(page.getByTestId('job-stage-bt-st-tiling')).toContainText('7 days late');
     // Planned to end 9 Oct, still ahead: plain words, never the late red.
     await expect(page.getByTestId('job-stage-bt-st-tiling').locator('[data-tone="late"]')).toHaveCount(0);

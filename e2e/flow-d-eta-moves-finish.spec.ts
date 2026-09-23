@@ -50,9 +50,9 @@ test.describe('Flow d: the ETA moves the finish', () => {
     // 8. The activity feed records who changed it, from what, to what.
     await expect(page.getByTestId('shipment-history').locator('li').first()).toContainText('Park Rd windows ETA changed 26 Oct to 16 Nov (Dominic)');
 
-    // 6. The overview's waiting-on lines carry the lateness; the step detail says why it starts 16 Nov.
+    // 6. The waiting-on list carries the lateness in plain words (a future clash is not overdue); the step detail says why it starts 16 Nov.
     await page.goto('#/overview');
-    await expect(page.getByTestId('overview-item-it-pr-windows')).toContainText('expected 16 Nov, in 8 weeks, 14 days after needed');
+    await expect(page.getByTestId('overview-overdue-park-rd')).toHaveText('!4 overdue');
     expect(await page.locator('#root').innerText()).not.toMatch(/Mar 2027|\$/);
     await page.goto('#/steps/pr-install-windows');
     await expect(page.getByTestId('step-forecast')).toContainText('Mon 16 Nov 2026');

@@ -121,11 +121,11 @@ test.describe('Flow c: the call list', () => {
     await expect(page.getByTestId('calls-summary-beatty')).toContainText('Book tiler: expected moved to Mon 12 Oct');
     await expect(page.getByTestId('calls-summary-beatty')).toContainText('Order tiles: note added');
 
-    // 8. Each job's last confirmed date is today; Beatty's "9 days ago" clears on the overview.
-    await page.goto('#/overview');
+    // 8. Each job's last confirmed date is today; Beatty's "9 days ago" clears on its job page.
     for (const id of ['park-rd', 'seaview', 'beatty']) {
-      await expect(page.getByTestId(`overview-fresh-${id}`)).toHaveText('Last confirmed today');
-      await expect(page.getByTestId(`overview-fresh-${id}`)).toHaveAttribute('data-tone', 'muted');
+      await page.goto(`#/jobs/${id}`);
+      await expect(page.getByTestId('job-fresh')).toHaveText('Last confirmed today');
+      await expect(page.getByTestId('job-fresh')).toHaveAttribute('data-tone', 'muted');
     }
 
     // The statuses and dates were written (the activity entries per job are unit-tested in mockApi.test.ts).

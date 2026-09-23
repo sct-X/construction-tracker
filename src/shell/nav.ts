@@ -31,7 +31,11 @@ export function homeFor(role: Role, api: TrackerApi): string {
   }
 }
 
-/** Phone bottom tabs, left to right, per UI_PLAN section 2. */
+/**
+ * Phone bottom tabs, left to right, per UI_PLAN section 2. Partners and admin
+ * get Overview and Waiting on only: Shipments lives inside each job (Dom's
+ * brief, change 2), at `/jobs/:id/shipments`.
+ */
 export function phoneTabs(role: Role, api: TrackerApi): NavItem[] {
   const jobId = currentJobId(api);
   const jobPath = jobId ? `/jobs/${jobId}` : '/jobs';
@@ -48,12 +52,10 @@ export function phoneTabs(role: Role, api: TrackerApi): NavItem[] {
     partner: [
       { id: 'overview', label: 'Overview', to: '/overview', screen: 'overview', match: ['/overview', '/jobs'] },
       { id: 'waiting', label: 'Waiting on', to: '/waiting', screen: 'waiting', match: ['/waiting', '/items'] },
-      { id: 'shipments', label: 'Shipments', to: '/shipments', screen: 'shipments', match: ['/shipments'] },
     ],
     admin: [
       { id: 'overview', label: 'Overview', to: '/overview', screen: 'overview', match: ['/overview', '/jobs'] },
       { id: 'waiting', label: 'Waiting on', to: '/waiting', screen: 'waiting', match: ['/waiting', '/items'] },
-      { id: 'shipments', label: 'Shipments', to: '/shipments', screen: 'shipments', match: ['/shipments'] },
     ],
   };
   return all[role].filter((t) => !t.screen || api.canSee(t.screen));
@@ -78,6 +80,16 @@ export function sidebarSetup(api: TrackerApi): NavItem[] {
     { id: 'people', label: 'People and roles', to: '/people', screen: 'people', match: ['/people'] },
   ];
   return items.filter((t) => !t.screen || api.canSee(t.screen));
+}
+
+/** Roles whose shipments live inside the job (`/jobs/:id/shipments`). Builders keep the global list. */
+export function shipmentsInJob(role: Role): boolean {
+  return role === 'partner' || role === 'admin';
+}
+
+/** Where a shipment opens for this role: inside its job for partners and admin, else the global detail. */
+export function shipmentHref(role: Role, shipment: { id: string; jobId: string }): string {
+  return shipmentsInJob(role) ? `/jobs/${shipment.jobId}/shipments/${shipment.id}` : `/shipments/${shipment.id}`;
 }
 
 export function isHere(item: NavItem, pathname: string): boolean {

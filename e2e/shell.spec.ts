@@ -15,7 +15,7 @@ const PEOPLE: { as: string; role: string; home: RegExp; nav: Record<Layout, stri
     role: 'admin',
     home: /#\/overview$/,
     nav: {
-      phone: ['Overview', 'Waiting on', 'Shipments'],
+      phone: ['Overview', 'Waiting on'],
       desktop: ['Overview', 'Waiting on', 'Shipments', 'Notifications', 'Templates and new job', 'Trades', 'People and roles'],
     },
   },
@@ -24,7 +24,7 @@ const PEOPLE: { as: string; role: string; home: RegExp; nav: Record<Layout, stri
     role: 'partner',
     home: /#\/overview$/,
     nav: {
-      phone: ['Overview', 'Waiting on', 'Shipments'],
+      phone: ['Overview', 'Waiting on'],
       desktop: ['Overview', 'Waiting on', 'Shipments', 'Notifications', 'Templates and new job', 'Trades'],
     },
   },
@@ -33,7 +33,7 @@ const PEOPLE: { as: string; role: string; home: RegExp; nav: Record<Layout, stri
     role: 'partner',
     home: /#\/overview$/,
     nav: {
-      phone: ['Overview', 'Waiting on', 'Shipments'],
+      phone: ['Overview', 'Waiting on'],
       desktop: ['Overview', 'Waiting on', 'Shipments', 'Notifications', 'Templates and new job', 'Trades'],
     },
   },
@@ -158,6 +158,8 @@ test.describe('Shell: navigation and landing per role', () => {
       '/calls',
       '/shipments',
       '/shipments/sh-park-windows',
+      '/jobs/park-rd/shipments',
+      '/jobs/park-rd/shipments/sh-park-windows',
       '/jobs/park-rd/photos',
       '/jobs/park-rd/upload',
       '/queue',

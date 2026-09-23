@@ -17,6 +17,7 @@ const PATHS = [...registry.matchAll(/^\s*\{ path: '(\/[^']*)'/gm)].map((m) => m[
 
 /** Real seed ids in place of route params. */
 const IDS: Record<string, string> = {
+  '/jobs/:id/shipments/:shipmentId': 'park-rd',
   '/jobs/:id': 'park-rd',
   '/steps/:id': 'pr-install-windows',
   '/items/:id': 'it-pr-windows',
@@ -27,7 +28,7 @@ const IDS: Record<string, string> = {
 
 function concrete(path: string): string {
   for (const [prefix, id] of Object.entries(IDS)) {
-    if (path.startsWith(prefix)) return path.replace(':id', id);
+    if (path.startsWith(prefix)) return path.replace(':id', id).replace(':shipmentId', 'sh-park-windows');
   }
   if (path.includes(':')) throw new Error(`no seed id for ${path}`);
   return path;

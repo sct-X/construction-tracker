@@ -10,6 +10,9 @@
  * "Why it moved" reads. Linked items take their expected date from the ETA in
  * the calculator (ItemForecast.expectedFromShipmentId); this screen only
  * shows it. Offline the screen is read-only ("Needs signal").
+ *
+ * Opened from a job's Shipments tab (`/jobs/:id/shipments/:shipmentId`) it
+ * keeps the job around it: back goes to that job's Shipments tab.
  */
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -34,7 +37,10 @@ interface LinkedRow {
 
 export default function ShipmentDetail() {
   const api = useApi();
-  const { id = '' } = useParams();
+  const params = useParams();
+  // In a job: `/jobs/:id/shipments/:shipmentId`; global: `/shipments/:id`.
+  const id = params.shipmentId ?? params.id ?? '';
+  const inJobId = params.shipmentId ? params.id : undefined;
   const { offline, role, today } = useSession();
   const layout = useLayout();
   const shipment = useQuery((api) => api.getShipment(id), [id]);
@@ -65,7 +71,7 @@ export default function ShipmentDetail() {
   if (!shipment) {
     return (
       <main className="page shipment" data-testid="shipment-detail">
-        <PageHeader title="Shipment" back={{ to: '/shipments', label: 'Shipments' }} />
+        <PageHeader title="Shipment" back={inJobId ? { to: `/jobs/${inJobId}/shipments`, label: 'Shipments' } : { to: '/shipments', label: 'Shipments' }} />
         <p className="shipment__empty" data-testid="shipment-missing">
           No shipment with that id on this side.
         </p>
@@ -117,7 +123,7 @@ export default function ShipmentDetail() {
     <main className="page shipment" data-testid="shipment-detail">
       <PageHeader
         title={shipment.name}
-        back={{ to: '/shipments', label: 'Shipments' }}
+        back={inJobId ? { to: `/jobs/${shipment.jobId}/shipments`, label: 'Shipments' } : { to: '/shipments', label: 'Shipments' }}
         meta={
           <>
             {supplierLine ? `${supplierLine} for ` : 'For '}

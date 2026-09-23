@@ -39,6 +39,7 @@ import { ItemTypePicker } from '../components/ItemTypePicker';
 import { StatusText } from '../components/StatusText';
 import NotFound from './NotFound';
 import { PageHeader } from '../shell/PageHeader';
+import { shipmentHref } from '../shell/nav';
 import './itemSheet.css';
 
 interface Draft {
@@ -442,7 +443,7 @@ export default function ItemSheet() {
                 {expectedFromShipment ? formatLongRelative(expectedFromShipment, today) : 'No ETA yet'}
                 <span className="sheet__derived-from">
                   Comes from shipment:{' '}
-                  <Link to={`/shipments/${shipment.id}`} data-testid="item-shipment-link">
+                  <Link to={shipmentHref(role, shipment)} data-testid="item-shipment-link">
                     {shipment.name}
                   </Link>
                 </span>

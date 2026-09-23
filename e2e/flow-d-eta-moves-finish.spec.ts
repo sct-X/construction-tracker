@@ -14,7 +14,8 @@ test.describe('Flow d: the ETA moves the finish', () => {
     await expect(page.getByTestId('shipment-items-sh-park-windows')).toContainText('3 items');
     await expect(page.getByTestId('shipment-timing-sh-park-windows')).toContainText('ETA 1 week before needed');
     await page.getByTestId('shipment-row-sh-park-windows').click({ position: { x: 5, y: 5 } });
-    await expect(page).toHaveURL(/#\/shipments\/sh-park-windows$/);
+    // Partners and admin open a shipment inside its job (Dom's brief, change 2).
+    await expect(page).toHaveURL(/#\/jobs\/park-rd\/shipments\/sh-park-windows$/);
 
     await expect(page.getByTestId('shipment-eta')).toContainText('Mon 26 Oct 2026');
     await expect(page.getByTestId('shipment-status-in_production')).toHaveAttribute('aria-pressed', 'true');
@@ -83,7 +84,7 @@ test.describe('Flow d: the ETA moves the finish', () => {
     await page.getByTestId('shipment-add-status-in_production').click();
     await page.getByTestId('shipment-add-eta').fill('2026-11-20');
     await page.getByTestId('shipment-add-save').click();
-    await expect(page).toHaveURL(/#\/shipments\/sh-/);
+    await expect(page).toHaveURL(/#\/jobs\/park-rd\/shipments\/sh-/);
     await expect(page.getByTestId('shipment-eta')).toContainText('Fri 20 Nov 2026');
     await expect(page.getByTestId('shipment-status-in_production')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByTestId('shipment-timing')).toHaveText('Nothing waiting on it');

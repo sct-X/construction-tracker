@@ -7,6 +7,10 @@
  * as a colour alone. The one money figure is what a week of lateness costs
  * the job, so the partner can price a slipping ETA at a glance; it draws
  * nothing when the field is absent.
+ *
+ * With `jobId` it is the job's Shipments tab (`/jobs/:id/shipments`, partners
+ * and admin): only that job's shipments, no Job column, rows open inside the
+ * job, and a new shipment starts on this job.
  */
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, type FormEvent, type MouseEvent } from 'react';
@@ -17,6 +21,7 @@ import { calendarDaysBetween, formatDayMonthYear, formatShort, isISODate, minDat
 import { StatusText, type Tone } from '../components/StatusText';
 import { PageHeader } from '../shell/PageHeader';
 import { useLayout } from '../shell/AppShell';
+import { shipmentHref } from '../shell/nav';
 import './shipments.css';
 
 export interface ShipmentRow {
@@ -47,11 +52,11 @@ export function timing(eta: string, neededBy?: string): { tone: Tone; text: stri
   return { tone: 'ok', text: `ETA ${gapWords(gap)} before needed` };
 }
 
-function useRows(): ShipmentRow[] {
+function useRows(jobId?: string): ShipmentRow[] {
   return useQuery<ShipmentRow[]>((api) => {
     const jobs = new Map(api.listJobs().map((j) => [j.id, j]));
     return api
-      .listShipments()
+      .listShipments(jobId)
       .map((shipment) => {
         const items = api.listItems({ shipmentId: shipment.id });
         const forecast = api.getForecast(shipment.jobId);
@@ -59,13 +64,20 @@ function useRows(): ShipmentRow[] {
         return { shipment, job: jobs.get(shipment.jobId), items, neededBy };
       })
       .sort((a, b) => (a.shipment.eta < b.shipment.eta ? -1 : a.shipment.eta > b.shipment.eta ? 1 : 0));
-  }, []);
+  }, [jobId]);
 }
 
-export default function Shipments() {
+/** Where a row opens: inside the job on the job's tab, else wherever the role's shipments live. */
+function useHref(inJob: boolean) {
+  const { role } = useSession();
+  return (shipment: Shipment) => (inJob ? `/jobs/${shipment.jobId}/shipments/${shipment.id}` : shipmentHref(role, shipment));
+}
+
+export default function Shipments({ jobId }: { jobId?: string } = {}) {
   const { side, role, offline } = useSession();
   const layout = useLayout();
-  const rows = useRows();
+  const rows = useRows(jobId);
+  const job = useQuery((api) => (jobId ? api.getJob(jobId) : undefined), [jobId]);
   const [adding, setAdding] = useState(false);
   const count = rows.length === 1 ? '1 shipment' : `${rows.length} shipments`;
   const canAdd = role === 'admin' || role === 'partner' || role === 'builder';
@@ -78,17 +90,21 @@ export default function Shipments() {
     ) : undefined;
 
   return (
-    <main className="page shipments" data-testid="shipments-list">
-      <PageHeader title="Shipments" meta={`${count} on ${side.name}`} actions={addButton} />
-      {adding && <AddShipment onDone={() => setAdding(false)} />}
+    <main className="page shipments" data-testid="shipments-list" data-job={jobId}>
+      {job ? (
+        <PageHeader title={job.name} meta={count} actions={addButton} back={{ to: `/jobs/${job.id}`, label: job.name }} />
+      ) : (
+        <PageHeader title="Shipments" meta={`${count} on ${side.name}`} actions={addButton} />
+      )}
+      {adding && <AddShipment jobId={jobId} onDone={() => setAdding(false)} />}
       {rows.length === 0 ? (
         <p className="shipments__empty" data-testid="shipments-empty">
           No shipments being tracked.
         </p>
       ) : layout === 'desktop' ? (
-        <ShipmentTable rows={rows} />
+        <ShipmentTable rows={rows} inJob={!!jobId} />
       ) : (
-        <ShipmentCards rows={rows} />
+        <ShipmentCards rows={rows} inJob={!!jobId} />
       )}
     </main>
   );
@@ -99,13 +115,14 @@ export default function Shipments() {
  * Saves through api.addShipment and opens the new shipment so items can be
  * linked there. Dates need signal, so the form is not offered offline.
  */
-function AddShipment({ onDone }: { onDone: () => void }) {
+function AddShipment({ jobId: fixedJobId, onDone }: { jobId?: string; onDone: () => void }) {
   const api = useApi();
   const navigate = useNavigate();
+  const href = useHref(!!fixedJobId);
   const jobs = useQuery((api) => api.listJobs({ kind: 'build' }), []);
   const [name, setName] = useState('');
   const [supplier, setSupplier] = useState('');
-  const [jobId, setJobId] = useState(jobs[0]?.id ?? '');
+  const [jobId, setJobId] = useState(fixedJobId ?? jobs[0]?.id ?? '');
   const [status, setStatus] = useState<ShipmentStatus>('design');
   const [eta, setEta] = useState('');
   const ready = name.trim().length > 0 && jobId !== '' && isISODate(eta);
@@ -115,7 +132,7 @@ function AddShipment({ onDone }: { onDone: () => void }) {
     if (!ready) return;
     const sh = api.addShipment({ jobId, name: name.trim(), supplier: supplier.trim() || undefined, status, eta });
     onDone();
-    navigate(`/shipments/${sh.id}`);
+    navigate(href(sh));
   }
 
   return (
@@ -133,18 +150,20 @@ function AddShipment({ onDone }: { onDone: () => void }) {
         </label>
         <input id="shipment-add-supplier" className="input" value={supplier} data-testid="shipment-add-supplier" onChange={(e) => setSupplier(e.target.value)} />
       </div>
-      <div className="field">
-        <span className="field__label" id="shipment-add-job-label">
-          Job
-        </span>
-        <div className="seg shipments__seg" role="group" aria-labelledby="shipment-add-job-label">
-          {jobs.map((j) => (
-            <button key={j.id} type="button" className="seg__btn" aria-pressed={j.id === jobId} data-testid={`shipment-add-job-${j.id}`} onClick={() => setJobId(j.id)}>
-              {j.name}
-            </button>
-          ))}
+      {!fixedJobId && (
+        <div className="field">
+          <span className="field__label" id="shipment-add-job-label">
+            Job
+          </span>
+          <div className="seg shipments__seg" role="group" aria-labelledby="shipment-add-job-label">
+            {jobs.map((j) => (
+              <button key={j.id} type="button" className="seg__btn" aria-pressed={j.id === jobId} data-testid={`shipment-add-job-${j.id}`} onClick={() => setJobId(j.id)}>
+                {j.name}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       <div className="field">
         <span className="field__label" id="shipment-add-status-label">
           Status
@@ -180,23 +199,24 @@ function itemsWords(n: number): string {
 }
 
 /** Whole rows are targets; links inside keep their own. */
-function useRowNav() {
+function useRowNav(href: (s: Shipment) => string) {
   const navigate = useNavigate();
-  return (id: string) => (e: MouseEvent<HTMLElement>) => {
+  return (s: Shipment) => (e: MouseEvent<HTMLElement>) => {
     if ((e.target as HTMLElement).closest('a, button')) return;
-    navigate(`/shipments/${id}`);
+    navigate(href(s));
   };
 }
 
-function ShipmentTable({ rows }: { rows: ShipmentRow[] }) {
+function ShipmentTable({ rows, inJob }: { rows: ShipmentRow[]; inJob: boolean }) {
   const { today } = useSession();
-  const go = useRowNav();
+  const href = useHref(inJob);
+  const go = useRowNav(href);
   return (
     <table className="table table--rows shipments__table">
       <thead>
         <tr>
           <th scope="col">Shipment</th>
-          <th scope="col">Job</th>
+          {!inJob && <th scope="col">Job</th>}
           <th scope="col">Status</th>
           <th scope="col">ETA</th>
           <th scope="col">Needed by</th>
@@ -207,14 +227,14 @@ function ShipmentTable({ rows }: { rows: ShipmentRow[] }) {
         {rows.map(({ shipment, job, items, neededBy }) => {
           const t = timing(shipment.eta, neededBy);
           return (
-            <tr key={shipment.id} className="shipments__row" data-testid={`shipment-row-${shipment.id}`} onClick={go(shipment.id)}>
+            <tr key={shipment.id} className="shipments__row" data-testid={`shipment-row-${shipment.id}`} onClick={go(shipment)}>
               <td className="shipments__cell-name">
-                <Link to={`/shipments/${shipment.id}`} className="shipments__name" data-testid={`shipment-link-${shipment.id}`}>
+                <Link to={href(shipment)} className="shipments__name" data-testid={`shipment-link-${shipment.id}`}>
                   {shipment.name}
                 </Link>
                 {shipment.supplier && <span className="shipments__supplier">{shipment.supplier}</span>}
               </td>
-              <td className="shipments__cell-job">{job?.name ?? 'No job'}</td>
+              {!inJob && <td className="shipments__cell-job">{job?.name ?? 'No job'}</td>}
               <td>
                 <span data-testid={`shipment-status-text-${shipment.id}`}>{SHIPMENT_STATUS_LABELS[shipment.status]}</span>
               </td>
@@ -247,15 +267,16 @@ function ShipmentTable({ rows }: { rows: ShipmentRow[] }) {
   );
 }
 
-function ShipmentCards({ rows }: { rows: ShipmentRow[] }) {
+function ShipmentCards({ rows, inJob }: { rows: ShipmentRow[]; inJob: boolean }) {
   const { today } = useSession();
+  const href = useHref(inJob);
   return (
     <ul className="shipments__cards">
       {rows.map(({ shipment, job, items, neededBy }) => {
         const t = timing(shipment.eta, neededBy);
         return (
           <li key={shipment.id}>
-            <Link to={`/shipments/${shipment.id}`} className="shipments__card plate" data-testid={`shipment-row-${shipment.id}`}>
+            <Link to={href(shipment)} className="shipments__card plate" data-testid={`shipment-row-${shipment.id}`}>
               <div className="shipments__card-top">
                 <span className="shipments__name">{shipment.name}</span>
                 <span className="shipments__card-status-word" data-testid={`shipment-status-text-${shipment.id}`}>
@@ -280,7 +301,7 @@ function ShipmentCards({ rows }: { rows: ShipmentRow[] }) {
               </div>
               <div className="shipments__card-mid">
                 <span data-testid={`shipment-items-${shipment.id}`}>
-                  {itemsWords(items.length)} for {job?.name ?? 'no job'}
+                  {inJob ? itemsWords(items.length) : `${itemsWords(items.length)} for ${job?.name ?? 'no job'}`}
                 </span>
               </div>
             </Link>

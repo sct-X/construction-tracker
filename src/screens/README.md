@@ -23,6 +23,8 @@ typed route the role can't see shows "You don't have access to this".
 | 11 | Waiting on, Call mode (`#/calls` forwards here) | `#/waiting?mode=call` | `waiting` | A P | 4 |
 | 12 | Shipments list | `#/shipments` | `shipments` | A P B | 2 |
 | 13 | Shipment detail with ETA impact preview | `#/shipments/:id` | `shipment` | A P B | 2 |
+| 12a | Job Shipments tab (partner, admin) | `#/jobs/:id/shipments` | `shipments` | A P B | 2 |
+| 13a | Shipment detail inside the job; `#/shipments/:id` forwards here for A and P | `#/jobs/:id/shipments/:shipmentId` | `shipment` | A P B | 2 |
 | 14 | Photos: gallery | `#/jobs/:id/photos` | `photos` | A P B S | 3 |
 | 15 | Photo upload | `#/jobs/:id/upload` | `upload` | A P B S | 3 |
 | 16 | Upload queue | `#/queue` | `queue` | A P B S | 3 |

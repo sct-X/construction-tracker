@@ -23,6 +23,7 @@ import { StatusText } from '../components/StatusText';
 import AlecToday from './AlecToday';
 import NotFound from './NotFound';
 import { PageHeader } from '../shell/PageHeader';
+import { shipmentsInJob } from '../shell/nav';
 import './jobOverview.css';
 
 interface Data {
@@ -92,6 +93,8 @@ export default function JobOverview() {
         { label: 'Overview', to: `/jobs/${id}`, here: true },
         { label: 'Program', to: `/jobs/${id}/program` },
         { label: 'Waiting on', to: `/waiting?job=${id}` },
+        // Partners and admin keep shipments inside the job (Dom's brief, change 2).
+        ...(shipmentsInJob(role) ? [{ label: 'Shipments', to: `/jobs/${id}/shipments` }] : []),
         { label: 'Photos', to: `/jobs/${id}/photos` },
         { label: 'Notes', to: `/jobs/${id}/notes` },
       ];
@@ -112,7 +115,7 @@ export default function JobOverview() {
 
       <nav className="job__tabs" aria-label="Job sections" data-testid="job-tabs">
         {tabs.map((t) => (
-          <Link key={t.label} to={t.to} className="job__tab" aria-current={t.here ? 'page' : undefined}>
+          <Link key={t.label} to={t.to} className="job__tab" data-testid={`job-tab-${t.label.toLowerCase().replace(/\s+/g, '-')}`} aria-current={t.here ? 'page' : undefined}>
             {t.label}
           </Link>
         ))}

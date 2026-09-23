@@ -39,8 +39,8 @@ Dates are derived, not typed: lead times, shipment ETAs and step links roll forw
 - Stack: Vite + React + TypeScript, hash routing, no backend (mock data layer behind one API interface), Vitest, Playwright. SPEC.md (locked) holds rules, roles and mock data.
 - Overview (home for partners and admin, jobs index for everyone): per job its stage, the next steps with dates and next hold point, the top waiting-on items, and freshness. No screen shows a finish date or money; the calculator stays underneath only to produce act-by and needed-by dates.
 - Waiting on is its own bottom tab, with a Call mode for partners and admin. The bell (notifications) sits top right.
-- Current partner/admin bottom tabs: Overview, Waiting on, Shipments. Builder: My items, Jobs, + Photos. Site: Today, Jobs.
-- Planned direction for partner and admin only (not yet built): bottom nav becomes Overview and Waiting on; Shipments moves into each job page as a tab; a job dropdown at the top of each job page switches jobs. Builder and site views stay as they are for now.
+- Partner/admin bottom tabs: Overview, Waiting on. Shipments lives inside each job page as a tab (`/jobs/:id/shipments`, that job's shipments only; old `/shipments/:id` links forward into the job); the desktop sidebar keeps the side-wide Shipments list. Builder: My items, Jobs, + Photos, with the global Shipments list. Site: Today, Jobs.
+- Planned direction for partner and admin only (not yet built): a job dropdown at the top of each job page switches jobs. Builder and site views stay as they are for now.
 - Hold points refuse completion until required photo categories are filled; the refusal names the empty categories.
 - Money fields are stripped by the data layer for the site role; nothing is hidden with CSS.
 - Sign-in is a person list with no password; signed out is a real state.

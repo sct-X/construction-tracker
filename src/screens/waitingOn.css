@@ -356,8 +356,8 @@
   color: var(--text);
   white-space: nowrap;
 }
-.waiting__actby--amber {
-  color: var(--amber-ink);
+.waiting__actby--late {
+  color: var(--late-ink);
 }
 .waiting__actby--quiet,
 .waiting__actby--none {
@@ -377,9 +377,6 @@
   font-size: var(--text-xs);
   color: var(--text-muted);
   white-space: normal;
-}
-.waiting__cell-ago--amber {
-  color: var(--amber-ink);
 }
 .waiting__cell-ago--late {
   color: var(--late-ink);

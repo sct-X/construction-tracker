@@ -33,7 +33,7 @@ import type {
 } from '../domain/types';
 import { ITEM_STATUS_LABELS, ITEM_STATUS_ORDER, SHIPMENT_STATUS_LABELS } from '../domain/types';
 import type { EtaPreview, ForecastBundle, JobForecast } from '../domain/forecast';
-import { forecastJob, holdPointCheck, holdPointReadinessWords, holdPointRefusalText, previewEtaChange, topWaitingOn } from '../domain/forecast';
+import { forecastJob, holdPointCheck, holdPointReadinessWords, holdPointRefusalText, overdueCount, previewEtaChange, topWaitingOn } from '../domain/forecast';
 import {
   addCalendarWeeks,
   calendarDaysBetween,
@@ -1363,6 +1363,7 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
           nextSteps,
           waitingOn: job.kind === 'build' ? topWaitingOn(f, items) : [],
           nextHoldPoint: f.nextHoldPoint,
+          overdue: overdueCount(f),
           nextStageName: nextStage?.name,
           outstanding: f.checklist?.outstanding,
           oldestDays: f.checklist?.oldestDays,

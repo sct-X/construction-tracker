@@ -29,12 +29,12 @@ test.describe('Build job overview', () => {
     await expect(page.getByTestId('job-fresh')).toHaveAttribute('data-tone', 'muted');
   });
 
-  test('Beatty St shows its stage, the tiler moving the tiling stage, and amber freshness', async ({ page }) => {
+  test('Beatty St shows its stage, the tiler moving the tiling stage, and quiet freshness words', async ({ page }) => {
     await page.goto('#/jobs/beatty?as=dominic&today=2026-09-17');
     await expect(page.getByTestId('job-stage')).toContainText('Rough-in');
     await expect(page.getByTestId('job-stage-bt-st-tiling')).toContainText('5 Oct to 16 Oct');
     await expect(page.getByTestId('job-stage-bt-st-tiling')).toContainText('planned 28 Sep to 9 Oct');
-    await expect(page.getByTestId('job-fresh')).toHaveAttribute('data-tone', 'amber');
+    await expect(page.getByTestId('job-fresh')).toHaveAttribute('data-tone', 'muted');
     await expect(page.getByTestId('job-fresh')).toContainText('9 days ago');
     expect(await page.locator('#root').innerText()).not.toContain('$');
   });

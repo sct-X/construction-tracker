@@ -15,7 +15,8 @@
  *     Slip cost = slip / 7 x weekly holding cost, to the nearest $10.
  *  5. Working days: Mon-Fri minus the shutdown list (dates.ts).
  *  6. Hold point: every required photo category needs one uploaded photo.
- *  7. A job goes amber after 7 days unconfirmed.
+ *  7. A job is flagged (freshness.amber) after 7 days unconfirmed; it drives
+ *     the admin notification only, and is shown in quiet words, never amber.
  *  9. Design jobs: stages as a checklist, no steps, no forecast.
  */
 import type {
@@ -988,6 +989,32 @@ export interface WaitingOnRow {
   lateText?: string;
   actByPassed: boolean;
   status: ItemStatus;
+}
+
+/**
+ * Past its date today, the one test behind every red "overdue" in the app:
+ * an open item whose needed-by has gone with nothing expected, or whose
+ * act-by has gone while it is still to do (or booked with nothing expected).
+ * These are exactly the dates relativeDate words as "overdue by". An item
+ * expected after it is needed ("7 days late") is a clash between two future
+ * dates, not overdue, and a date coming up soon is never overdue.
+ */
+export function isOverdue(
+  f: { status: ItemStatus; actBy?: string; neededBy?: string; expected?: string },
+  today: string,
+): boolean {
+  if (f.status === 'done') return false;
+  if (f.neededBy && f.neededBy < today && !f.expected) return true;
+  if (f.actBy && f.actBy < today) {
+    if (f.status === 'to_do') return true;
+    if (f.status === 'booked' && !f.expected) return true;
+  }
+  return false;
+}
+
+/** How many of a job's open items are overdue (see isOverdue). */
+export function overdueCount(forecast: JobForecast): number {
+  return Object.values(forecast.items).filter((f) => isOverdue(f, forecast.today)).length;
 }
 
 /**

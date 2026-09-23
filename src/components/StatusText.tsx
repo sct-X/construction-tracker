@@ -2,9 +2,12 @@
  * Status words with a wash behind them. The words carry the meaning; the
  * colour only agrees with them, so "14 days late" reads the same in
  * greyscale. Late and amber text get a leading "!" as the wireframes show.
+ * Late is for things past their date only. Amber is never a date or
+ * urgency signal: it is kept for "can't do this yet" states (no signal, a
+ * failed upload, a hold point's empty photo sets).
  *
  *   <StatusText tone="late" testId="jobs-late-park-rd">14 days late</StatusText>
- *   <StatusText tone="amber">Unconfirmed 9 days</StatusText>
+ *   <StatusText tone="amber">Didn't send</StatusText>
  *   <StatusText tone="ok">On plan</StatusText>
  *   <StatusText tone="muted">Last confirmed 2 days ago</StatusText>
  *   <StatusText tone="plain">1 outstanding, oldest 4 days</StatusText>   (body text, no wash)

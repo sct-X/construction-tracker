@@ -28,6 +28,8 @@ test.describe('Flow c: the call list', () => {
     await expect(pump).toContainText('Book concrete pump');
     await expect(page.getByTestId('call-actby-it-sv-pump')).toHaveText('Fri 18 Sep');
     await expect(pump).toContainText('act by, tomorrow');
+    // Coming up is plain: no amber "soon".
+    await expect(page.getByTestId('call-actby-it-sv-pump')).toHaveClass(/callitem__act-date--plain/);
     await expect(pump).toContainText('For Pour ground floor slab, Fri 2 Oct');
     await expect(pump).toContainText('Waiting on IR Formwork Constructions');
     await expect(page.getByTestId('call-phone-it-sv-pump')).toHaveAttribute('href', 'tel:0491570157');
@@ -38,6 +40,8 @@ test.describe('Flow c: the call list', () => {
     await expect(windows).toContainText('Windows');
     await expect(page.getByTestId('call-actby-it-pr-windows')).toHaveText('Mon 10 Aug');
     await expect(windows).toContainText('act by, overdue by 5 weeks');
+    // "overdue by" always travels in the late red, never amber or muted (booked items included).
+    await expect(page.getByTestId('call-actby-it-pr-windows')).toHaveClass(/callitem__act-date--late/);
     await expect(windows).toContainText('Ordered or booked');
     await expect(windows).toContainText('Expected Mon 26 Oct');
     await expect(page.getByTestId('call-action-it-pr-windows')).toHaveText('Mark confirmed');
@@ -46,7 +50,7 @@ test.describe('Flow c: the call list', () => {
     await expect(page.getByTestId('call-expected-it-pr-windows')).toBeDisabled();
     await expect(windows).toContainText('Comes from the shipment');
 
-    // Job headers: freshness in words; Beatty is amber. No finish date and no money anywhere.
+    // Job headers: freshness in quiet words (never amber). No finish date and no money anywhere.
     await expect(page.getByTestId('calls-fresh-beatty')).toContainText('unconfirmed 9 days');
     await expect(page.getByTestId('calls-fresh-seaview')).toContainText('confirmed yesterday');
     await expect(page.getByTestId('calls-finish-park-rd')).toHaveCount(0);
@@ -108,7 +112,7 @@ test.describe('Flow c: the call list', () => {
     await expect(page.getByTestId('calls-summary-beatty')).toContainText('Book tiler: expected moved to Mon 12 Oct');
     await expect(page.getByTestId('calls-summary-beatty')).toContainText('Order tiles: note added');
 
-    // 8. Each job's last confirmed date is today; Beatty's amber flag clears on the overview.
+    // 8. Each job's last confirmed date is today; Beatty's "9 days ago" clears on the overview.
     await page.goto('#/overview');
     for (const id of ['park-rd', 'seaview', 'beatty']) {
       await expect(page.getByTestId(`overview-fresh-${id}`)).toHaveText('Last confirmed today');

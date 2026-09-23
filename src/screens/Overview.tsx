@@ -2,8 +2,9 @@
  * The overview: home for Dominic, Dom and Norm, and the jobs index for
  * everyone. One row per job: where it is (stage), what comes next (the next
  * three steps with their dates, the next hold point), what it is waiting on
- * (the top three items), and how fresh that picture is. No forecast finish,
- * no slip, no money: those live nowhere in the app.
+ * (the top three items), and how fresh that picture is. A job with anything
+ * past its date carries one red cue, "2 overdue"; nothing else is coloured.
+ * No forecast finish, no slip, no money: those live nowhere in the app.
  *
  * Desktop: one table per group. Phone: one card per job, the same cells.
  * Design jobs sit below with their stage and outstanding items.
@@ -13,19 +14,26 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { MouseEvent } from 'react';
 import type { OverviewRow } from '../data/api';
 import { useApi, useQuery, useSession } from '../data/context';
-import type { Freshness, WaitingOnRow } from '../domain/forecast';
+import { isOverdue, type Freshness, type WaitingOnRow } from '../domain/forecast';
 import { formatDayMonth, formatShortRelative, relativeDate } from '../domain/dates';
 import { StatusText, type Tone } from '../components/StatusText';
 import { useLayout } from '../shell/AppShell';
 import './overview.css';
 
-/** "2 outstanding, oldest 23 days"; amber once the oldest has sat more than two weeks. */
+/**
+ * "2 outstanding, oldest 23 days", in plain words whatever the age: how long
+ * something has sat is not a date it has missed, so it is never coloured.
+ */
 export function outstandingWords(outstanding?: number, oldestDays?: number | null): { tone: Tone; text: string } {
   if (!outstanding) return { tone: 'muted', text: 'Nothing outstanding' };
   const n = `${outstanding} outstanding`;
   if (oldestDays === null || oldestDays === undefined) return { tone: 'plain', text: n };
-  const text = `${n}, oldest ${oldestDays} day${oldestDays === 1 ? '' : 's'}`;
-  return { tone: oldestDays > 14 ? 'amber' : 'plain', text };
+  return { tone: 'plain', text: `${n}, oldest ${oldestDays} day${oldestDays === 1 ? '' : 's'}` };
+}
+
+/** "2 overdue": the card's one red cue, only when an open item is past its date. */
+export function overdueWords(overdue: number): string | null {
+  return overdue > 0 ? `${overdue} overdue` : null;
 }
 
 export default function Overview() {
@@ -98,6 +106,17 @@ function JobName({ row }: { row: OverviewRow }) {
   );
 }
 
+/** The red cue: a late chip with the count in words, beside the job name. Absent when nothing is past its date. */
+function OverdueCue({ row }: { row: OverviewRow }) {
+  const words = overdueWords(row.overdue);
+  if (!words) return null;
+  return (
+    <StatusText tone="late" className="overview__overdue" testId={`overview-overdue-${row.jobId}`}>
+      {words}
+    </StatusText>
+  );
+}
+
 function StageCell({ row }: { row: OverviewRow }) {
   return (
     <span className="overview__stage" data-testid={`overview-stage-${row.jobId}`}>
@@ -130,9 +149,11 @@ function NextStepsCell({ row }: { row: OverviewRow }) {
 
 function waitingDetail(w: WaitingOnRow, today: string): string {
   const parts: string[] = [];
-  if (w.expected) parts.push(`expected ${formatDayMonth(w.expected)}, ${relativeDate(w.expected, today)}`);
+  // An act-by gone while still to do is overdue even with a date expected: say so first.
+  const actOverdue = w.status === 'to_do' && !!w.actBy && w.actBy < today;
+  if (w.expected && !actOverdue) parts.push(`expected ${formatDayMonth(w.expected)}, ${relativeDate(w.expected, today)}`);
   // Needed-by passed with nothing expected: lateText is the relative time ("overdue by 3 days").
-  else if (w.neededBy && w.isLate) parts.push(`needed ${formatDayMonth(w.neededBy)}`);
+  else if (!w.expected && w.neededBy && w.isLate) parts.push(`needed ${formatDayMonth(w.neededBy)}`);
   else if (w.actBy) parts.push(`act by ${formatDayMonth(w.actBy)}, ${relativeDate(w.actBy, today, { deadline: w.status === 'to_do' || w.status === 'booked' })}`);
   if (w.lateText) parts.push(w.lateText);
   return parts.join(', ');
@@ -144,7 +165,8 @@ function WaitingOnCell({ row, personId }: { row: OverviewRow; personId: string }
   return (
     <ul className="overview__waiting" data-testid={`overview-waiting-${row.jobId}`}>
       {row.waitingOn.map((w) => {
-        const flagged = w.isLate || w.actByPassed;
+        // Red only when past its date; "7 days late" (expected after needed) stays in plain words.
+        const flagged = isOverdue(w, today);
         return (
           <li key={w.itemId} className={flagged ? 'overview__item overview__item--late' : 'overview__item'}>
             <Link to={`/items/${w.itemId}`} className="overview__item-link" data-testid={`overview-item-${w.itemId}`}>
@@ -165,7 +187,7 @@ function WaitingOnCell({ row, personId }: { row: OverviewRow; personId: string }
 
 function FreshCell({ jobId, freshness }: { jobId: string; freshness: Freshness }) {
   return (
-    <StatusText tone={freshness.amber ? 'amber' : 'muted'} className="overview__fresh" testId={`overview-fresh-${jobId}`}>
+    <StatusText tone="muted" className="overview__fresh" testId={`overview-fresh-${jobId}`}>
       {freshness.text}
     </StatusText>
   );
@@ -205,10 +227,11 @@ function BuildTable({ rows, personId }: { rows: OverviewRow[]; personId: string 
       </thead>
       <tbody>
         {rows.map((row) => (
-          <tr key={row.jobId} className="overview__row" data-testid={`job-row-${row.jobId}`} onClick={openJob(row.jobId)}>
+          <tr key={row.jobId} className={row.overdue ? 'overview__row overview__row--overdue' : 'overview__row'} data-overdue={row.overdue || undefined} data-testid={`job-row-${row.jobId}`} onClick={openJob(row.jobId)}>
             <th scope="row" className="overview__cell-job">
               <JobName row={row} />
               <StageCell row={row} />
+              <OverdueCue row={row} />
             </th>
             <td className="overview__cell-next">
               <NextStepsCell row={row} />
@@ -240,9 +263,10 @@ function DesignTable({ rows }: { rows: OverviewRow[] }) {
       </thead>
       <tbody>
         {rows.map((row) => (
-          <tr key={row.jobId} className="overview__row" data-testid={`job-row-${row.jobId}`} onClick={openJob(row.jobId)}>
+          <tr key={row.jobId} className={row.overdue ? 'overview__row overview__row--overdue' : 'overview__row'} data-overdue={row.overdue || undefined} data-testid={`job-row-${row.jobId}`} onClick={openJob(row.jobId)}>
             <th scope="row" className="overview__cell-job">
               <JobName row={row} />
+              <OverdueCue row={row} />
             </th>
             <td className="overview__cell-stage">
               <StageCell row={row} />
@@ -270,10 +294,11 @@ function BuildCards({ rows, personId }: { rows: OverviewRow[]; personId: string 
   return (
     <ul className="overview__cards">
       {rows.map((row) => (
-        <li key={row.jobId} className="overview__card" data-testid={`job-row-${row.jobId}`} onClick={openJob(row.jobId)}>
+        <li key={row.jobId} className={row.overdue ? 'overview__card overview__card--overdue' : 'overview__card'} data-overdue={row.overdue || undefined} data-testid={`job-row-${row.jobId}`} onClick={openJob(row.jobId)}>
           <div className="overview__card-head">
             <JobName row={row} />
             <StageCell row={row} />
+            <OverdueCue row={row} />
           </div>
           <div className="overview__card-block">
             <span className="overview__card-label">Next steps</span>
@@ -295,10 +320,11 @@ function DesignCards({ rows }: { rows: OverviewRow[] }) {
   return (
     <ul className="overview__cards">
       {rows.map((row) => (
-        <li key={row.jobId} className="overview__card overview__card--design" data-testid={`job-row-${row.jobId}`} onClick={openJob(row.jobId)}>
+        <li key={row.jobId} className={row.overdue ? 'overview__card overview__card--design overview__card--overdue' : 'overview__card overview__card--design'} data-overdue={row.overdue || undefined} data-testid={`job-row-${row.jobId}`} onClick={openJob(row.jobId)}>
           <div className="overview__card-head">
             <JobName row={row} />
             <StageCell row={row} />
+            <OverdueCue row={row} />
           </div>
           <p className="overview__outstanding" data-testid={`overview-outstanding-${row.jobId}`}>
             <Outstanding row={row} />

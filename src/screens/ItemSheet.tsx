@@ -246,7 +246,7 @@ export default function ItemSheet() {
           ? 'Done'
           : `${relativeDate(actBy, today, { deadline: draft.status === 'to_do' || draft.status === 'booked' })}${neededBy ? `: needed ${formatShort(neededBy)}${step ? ` for ${step.name}` : ''}, minus ${leadWeeks} week${leadWeeks === 1 ? '' : 's'}` : ''}`
       }
-      tone={actByPassed ? 'amber' : undefined}
+      tone={actByPassed && (draft.status === 'to_do' || draft.status === 'booked') ? 'late' : undefined}
       testId="item-act-by"
     />
   ) : (

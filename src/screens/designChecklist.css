@@ -73,14 +73,6 @@
   font-size: var(--text-lg);
   color: var(--text-secondary);
 }
-.checklist__outstanding--amber .checklist__count {
-  color: var(--amber-ink);
-}
-.checklist__outstanding--amber .checklist__count-words::before {
-  content: '! ';
-  font-weight: var(--weight-bold);
-  color: var(--amber-ink);
-}
 .checklist__outstanding--muted .checklist__count {
   color: var(--text-muted);
 }

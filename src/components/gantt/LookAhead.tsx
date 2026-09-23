@@ -244,7 +244,7 @@ function StepRow({
                   needs {what}, {f.lateText}
                 </StatusText>
               ) : (
-                <StatusText tone="amber">
+                <StatusText tone="plain">
                   needs {what}, {ITEM_STATUS_LABELS[it.status].toLowerCase()}, not confirmed
                 </StatusText>
               )}

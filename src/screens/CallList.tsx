@@ -55,12 +55,12 @@ export function inCallCut(item: Item, actBy: string | undefined, today: string):
   return actBy <= addCalendarWeeks(today, 2);
 }
 
-/** Rule 7 words from the calculator's freshness, reworded for a call: "unconfirmed 9 days" / "confirmed 2 days ago". */
+/** Rule 7 words from the calculator's freshness, reworded for a call: "unconfirmed 9 days" / "confirmed 2 days ago". Quiet words, never amber. */
 function freshWords(f?: JobForecast): { tone: Tone; text: string } | null {
   if (!f) return null;
   const { amber, daysUnconfirmed, lastConfirmed, text } = f.freshness;
-  if (daysUnconfirmed === undefined) return { tone: 'amber', text };
-  if (amber) return { tone: 'amber', text: `unconfirmed ${daysUnconfirmed} days` };
+  if (daysUnconfirmed === undefined) return { tone: 'muted', text };
+  if (amber) return { tone: 'muted', text: `unconfirmed ${daysUnconfirmed} days` };
   if (daysUnconfirmed === 0) return { tone: 'ok', text: 'confirmed today' };
   return { tone: 'muted', text: `confirmed ${relativeDate(lastConfirmed!, f.today)}` };
 }

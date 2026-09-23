@@ -123,11 +123,11 @@ export function CallItem(props: CallItemProps) {
   if (actBy) {
     const n = calendarDaysBetween(actBy, today);
     actWords = `act by, ${relativeDate(actBy, today, { deadline: item.status === 'to_do' || item.status === 'booked' })}`;
-    if (n > 0 && item.status === 'to_do') actTone = 'amber';
+    // Red only when the words say "overdue by" (act-by gone, still to do or booked);
+    // an act-by today or coming up is plain, never an amber "soon".
+    if (n > 0 && (item.status === 'to_do' || item.status === 'booked')) actTone = 'late';
     else if (n > 0) actTone = 'muted';
-    else if (n === 0) actTone = 'amber';
   }
-  if (f?.isLate) actTone = 'late';
 
   const forWords = step
     ? `For ${step.name}${f?.neededBy ? `, ${formatShortRelative(f.neededBy, today, { deadline: item.status !== 'done' })}` : ''}`

@@ -178,7 +178,7 @@ export function deliveryWhen(d: Delivery, today: string): { text: string; tone: 
   if (!d.expected) return { text: 'No date yet', tone: 'muted' };
   const when = formatShortRelative(d.expected, today);
   if (d.lateText) return { text: `Expected ${when}, ${d.lateText}`, tone: 'late' };
-  if (d.expected < today) return { text: `Expected ${when}, not marked delivered`, tone: 'amber' };
+  if (d.expected < today) return { text: `Expected ${when}, not marked delivered`, tone: 'plain' };
   return { text: `Expected ${when}`, tone: 'plain' };
 }
 

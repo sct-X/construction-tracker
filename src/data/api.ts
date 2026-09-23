@@ -79,6 +79,8 @@ export interface OverviewRow {
   /** Top three: late first, then soonest act-by within 14 days. */
   waitingOn: WaitingOnRow[];
   nextHoldPoint?: HoldPointCheck;
+  /** Open items past their date (forecast isOverdue); drives the red cue on the card. */
+  overdue: number;
   /** Design jobs. */
   nextStageName?: string;
   outstanding?: number;

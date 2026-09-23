@@ -36,6 +36,16 @@ describe('money and the site role through the API', () => {
     expect(beatty.nextSteps.map((s) => s.name)).toContain('Tiling, whole stage');
     expect(beatty.nextSteps.find((s) => s.name === 'Tiling, whole stage')!.start).toBe('2026-10-05');
   });
+
+  it('counts overdue items per job: past their date only, so Beatty (a future clash) has none', () => {
+    const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dom', today: DEFAULT_TODAY } });
+    const rows = api.getOverviewRows();
+    const by = (id: string) => rows.find((r) => r.jobId === id)!;
+    expect(by(PARK_RD).overdue).toBe(4);
+    expect(by(SEAVIEW).overdue).toBe(1);
+    expect(by(BEATTY).overdue).toBe(0);
+    expect(by(BEATTY).waitingOn[0].isLate).toBe(true); // the tiler is "7 days late", expected after needed, not overdue
+  });
 });
 
 

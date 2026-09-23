@@ -134,7 +134,7 @@ export default function JobOverview() {
             {!site && (
               <div className="job__facts">
                 <div className="job__confirm">
-                  <StatusText tone={forecast.freshness.amber ? 'amber' : 'muted'} testId="job-fresh">
+                  <StatusText tone="muted" testId="job-fresh">
                     {forecast.freshness.text}
                   </StatusText>
                   <button type="button" className="btn btn--primary btn--desktop" onClick={confirm} disabled={offline} data-testid="job-confirm">

@@ -84,10 +84,10 @@ export function rowWhenWords(item: Item, f: ItemForecast | undefined, today: str
   if (item.status === 'confirmed') {
     const when = f.expected ?? f.neededBy;
     if (!when) return undefined;
-    return { text: `${f.expected ? 'Expected' : 'Needed'} ${formatShortRelative(when, today, { deadline: !f.expected })}`, tone: when < today ? 'amber' : 'plain' };
+    return { text: `${f.expected ? 'Expected' : 'Needed'} ${formatShortRelative(when, today, { deadline: !f.expected })}`, tone: when < today && !f.expected ? 'late' : 'plain' };
   }
   if (!f.actBy) return undefined;
-  return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: f.actBy < today ? 'amber' : 'plain' };
+  return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: f.actBy < today ? 'late' : 'plain' };
 }
 
 interface Row {
@@ -445,12 +445,12 @@ function TableRow({ row, today, ownerName, action }: { row: Row; today: string; 
       <td className="waiting__cell-act num">
         {f?.actBy ? (
           <>
-            <span className={`waiting__actby${actPassed ? ' waiting__actby--amber' : ''}${!open ? ' waiting__actby--quiet' : ''}`}>
+            <span className={`waiting__actby${actPassed ? ' waiting__actby--late' : ''}${!open ? ' waiting__actby--quiet' : ''}`}>
               {actPassed ? <span className="waiting__mark" aria-hidden="true">!</span> : null}
               {formatShort(f.actBy)}
             </span>
             {actUnder.map((w) => (
-              <span key={w} className={`waiting__cell-ago${actPassed ? ' waiting__cell-ago--amber' : ''}`}>
+              <span key={w} className={`waiting__cell-ago${actPassed ? ' waiting__cell-ago--late' : ''}`}>
                 {w}
               </span>
             ))}
@@ -488,13 +488,6 @@ function TableRow({ row, today, ownerName, action }: { row: Row; today: string; 
             <span className="waiting__cell-ago waiting__cell-ago--late">
               {f.expected ? `${relativeDate(f.expected, today)}, ${f.lateText}` : `needed ${formatShort(f.neededBy!)}, ${f.lateText}`}
             </span>
-          </>
-        ) : f?.expected && item.status === 'confirmed' && f.expected < today ? (
-          <>
-            <StatusText tone="amber" className="waiting__chip">
-              {formatShort(f.expected)}
-            </StatusText>
-            <span className="waiting__cell-ago waiting__cell-ago--amber">{relativeDate(f.expected, today)}</span>
           </>
         ) : f?.expected ? (
           <>

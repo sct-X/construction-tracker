@@ -43,7 +43,7 @@ export function timing(eta: string, neededBy?: string): { tone: Tone; text: stri
   if (!neededBy) return { tone: 'muted', text: 'Nothing waiting on it' };
   const gap = calendarDaysBetween(neededBy, eta);
   if (gap > 0) return { tone: 'late', text: `ETA ${gapWords(gap)} after needed` };
-  if (gap === 0) return { tone: 'amber', text: 'ETA on the day it is needed' };
+  if (gap === 0) return { tone: 'plain', text: 'ETA on the day it is needed' };
   return { tone: 'ok', text: `ETA ${gapWords(gap)} before needed` };
 }
 

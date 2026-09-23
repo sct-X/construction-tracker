@@ -38,7 +38,7 @@ export function itemWhenWords(f: ItemForecast | undefined, status: ItemStatus, t
   if (f.isLate && f.expected) return { text: `Expected ${formatShortRelative(f.expected, today)}, ${f.lateText}`, tone: 'late' };
   // lateText here is the relative time itself ("overdue by 3 days").
   if (f.isLate && f.neededBy) return { text: `Needed ${formatShort(f.neededBy)}, ${f.lateText}`, tone: 'late' };
-  if (f.actByPassed && f.actBy) return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: 'amber' };
+  if (f.actByPassed && f.actBy) return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: 'late' };
   if (f.expected && open) return { text: `Expected ${formatShortRelative(f.expected, today)}`, tone: 'plain' };
   if (status === 'to_do' && f.actBy) return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: 'plain' };
   if (f.neededBy) return { text: `Needed ${formatShortRelative(f.neededBy, today, { deadline: open })}`, tone: 'plain' };

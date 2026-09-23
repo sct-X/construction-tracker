@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { ForecastBundle } from './forecast';
-import { forecastJob, holdPointCheck, holdPointRefusalText, previewEtaChange } from './forecast';
+import { forecastJob, holdPointCheck, holdPointRefusalText, isOverdue, previewEtaChange } from './forecast';
 import type { Item, Job, Photo, PhotoCategory, Stage, Step, StepLink } from './types';
 import {
   addCalendarWeeks,
@@ -179,6 +179,25 @@ describe('rule 7: freshness', () => {
     expect(forecastJob(tinyJob({ lastConfirmed: '2026-09-10' })).freshness).toMatchObject({ daysUnconfirmed: 7, amber: false, text: 'Last confirmed 7 days ago' });
     expect(forecastJob(tinyJob({ lastConfirmed: '2026-09-09' })).freshness).toMatchObject({ daysUnconfirmed: 8, amber: true });
     expect(forecastJob(tinyJob({ lastConfirmed: '2026-09-17' })).freshness.text).toBe('Last confirmed today');
+  });
+});
+
+describe('overdue: past its date, the one red signal', () => {
+  const today = '2026-09-23';
+  it('counts an act-by gone while to do, or booked with nothing expected', () => {
+    expect(isOverdue({ status: 'to_do', actBy: '2026-09-21', neededBy: '2026-10-12' }, today)).toBe(true);
+    expect(isOverdue({ status: 'booked', actBy: '2026-09-07', neededBy: '2026-10-05' }, today)).toBe(true);
+    expect(isOverdue({ status: 'booked', actBy: '2026-09-07', neededBy: '2026-10-05', expected: '2026-10-01' }, today)).toBe(false);
+    expect(isOverdue({ status: 'confirmed', actBy: '2026-09-07', neededBy: '2026-10-05', expected: '2026-10-01' }, today)).toBe(false);
+  });
+  it('counts a needed-by gone with nothing expected', () => {
+    expect(isOverdue({ status: 'confirmed', neededBy: '2026-09-21' }, today)).toBe(true);
+  });
+  it('never counts a future date, today, a clash between two future dates, or a done item', () => {
+    expect(isOverdue({ status: 'to_do', actBy: '2026-09-24', neededBy: '2026-10-12' }, today)).toBe(false);
+    expect(isOverdue({ status: 'to_do', actBy: today, neededBy: '2026-10-12' }, today)).toBe(false);
+    expect(isOverdue({ status: 'confirmed', actBy: '2026-09-01', neededBy: '2026-09-28', expected: '2026-10-05' }, today)).toBe(false);
+    expect(isOverdue({ status: 'done', actBy: '2026-09-01', neededBy: '2026-09-10' }, today)).toBe(false);
   });
 });
 

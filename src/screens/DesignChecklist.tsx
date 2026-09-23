@@ -41,9 +41,9 @@ export function outstandingWords(f?: JobForecast): { count: number; rest: string
   return m ? { count: Number(m[1]), rest: m[2], tone } : { count: 0, rest: text, tone };
 }
 
-/** "outstanding 23 days"; amber once past a fortnight, as the jobs list flags it. */
+/** "outstanding 23 days", in plain words: time sitting is not a missed date, so never coloured. */
 export function sittingWords(days: number): { text: string; tone: Tone } {
-  return { text: `outstanding ${days} day${days === 1 ? '' : 's'}`, tone: days > 14 ? 'amber' : 'plain' };
+  return { text: `outstanding ${days} day${days === 1 ? '' : 's'}`, tone: 'plain' };
 }
 
 /** DA goes through council; CDC through a private certifier. */
@@ -152,8 +152,8 @@ export default function DesignChecklist() {
         </div>
         <div className="checklist__facts">
           {freshness && (
-            <StatusText tone={freshness.amber ? 'amber' : 'muted'} testId="checklist-fresh">
-              {freshness.amber && freshness.lastConfirmed ? `Unconfirmed ${freshness.daysUnconfirmed} days` : freshness.text}
+            <StatusText tone="muted" testId="checklist-fresh">
+              {freshness.text}
             </StatusText>
           )}
           {role !== 'site' && (

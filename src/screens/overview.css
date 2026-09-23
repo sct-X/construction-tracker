@@ -6,7 +6,8 @@
   rows sit on the ground with hairlines between them and lift to the plate
   tone on hover; on the phone each job is a plate. Design jobs are a second,
   plainer readout underneath. Orange appears nowhere here except the focus
-  ring and the New job button.
+  ring and the New job button. Red appears only for things past their date:
+  the "N overdue" chip on the job and the overdue waiting-on lines.
 */
 .overview {
   max-width: var(--content-max);
@@ -117,6 +118,20 @@
   font-size: var(--text-xs);
   line-height: 1.6;
   white-space: nowrap;
+}
+
+/* The one red cue: "! 2 overdue" as a late chip beside the job name, only
+   when an open item is past its date. Words and the "!" carry it; the wash
+   only agrees. No coloured edge (DESIGN.md: none thicker than 1px). */
+.overview__overdue {
+  align-self: flex-start;
+}
+.overview__cell-job .overview__overdue {
+  margin-top: var(--space-2);
+}
+.overview__card-head .overview__overdue {
+  margin-left: auto;
+  align-self: center;
 }
 
 .overview__fresh {

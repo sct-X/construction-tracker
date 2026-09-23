@@ -20,11 +20,28 @@ test.describe('Flow a: the overview', () => {
     await expect(page.getByTestId('overview-item-it-pr-tile-choice')).toContainText('With you');
     await expect(page.getByTestId('overview-fresh-park-rd')).toHaveText('Last confirmed 2 days ago');
 
-    // Beatty St: the tiler is the top waiting-on line with its lateness in words; amber freshness.
+    // Beatty St: the tiler is the top waiting-on line with its lateness in words; freshness is quiet words, never amber.
     await expect(page.getByTestId('overview-stage-beatty')).toHaveText('Rough-in');
     await expect(page.getByTestId('overview-item-it-bt-tiler')).toContainText('expected 5 Oct, in 2 weeks, 7 days late');
     await expect(page.getByTestId('overview-fresh-beatty')).toContainText('Last confirmed 9 days ago');
-    await expect(page.getByTestId('overview-fresh-beatty')).toHaveAttribute('data-tone', 'amber');
+    await expect(page.getByTestId('overview-fresh-beatty')).toHaveAttribute('data-tone', 'muted');
+
+    // The red cue: only a job with something past its date carries "N overdue", as a late chip.
+    // Park Rd (tile choice needed 14 Sep, plumber and council act-bys gone) and Seaview (timber act-by gone) do.
+    await expect(page.getByTestId('overview-overdue-park-rd')).toHaveText('!4 overdue');
+    await expect(page.getByTestId('overview-overdue-park-rd')).toHaveAttribute('data-tone', 'late');
+    await expect(park).toHaveAttribute('data-overdue', '4');
+    await expect(page.getByTestId('overview-overdue-seaview')).toHaveText('!1 overdue');
+    // Beatty's tiler is expected after it is needed (a future clash), not past its date: no cue, no red line.
+    await expect(page.getByTestId('overview-overdue-beatty')).toHaveCount(0);
+    await expect(page.getByTestId('job-row-beatty')).not.toHaveAttribute('data-overdue', /.*/);
+    await expect(page.locator('[data-testid="overview-waiting-beatty"] .overview__item--late')).toHaveCount(0);
+    // The overdue line itself is red and says so.
+    const tile = page.locator('.overview__item--late', { has: page.getByTestId('overview-item-it-pr-tile-choice') });
+    await expect(tile).toContainText('overdue by 3 days');
+    // Design jobs have nothing past its date and no amber: the oldest item is plain words.
+    await expect(page.locator('[data-testid^="overview-overdue-"]')).toHaveCount(2);
+    await expect(page.locator('#root [data-tone="amber"]')).toHaveCount(0);
 
     // Seaview St: the slab inspection is a hold point with empty photo sets.
     await expect(page.getByTestId('overview-stage-seaview')).toHaveText('Slab');

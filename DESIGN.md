@@ -165,10 +165,11 @@ A warm off-white ladder (graphite in the dark alternate) with one hi-vis accent 
 
 ### Status (always beside words)
 - **Late** #8f1d1d on #f8e1de. **Amber** #7a4c00 on #fbeccb. **Ok** #23532c on #dcebd9. Dark ink on a light wash, 7:1 or better; in the dark alternate the pairs invert to light ink on a dark wash.
+- **Late is overdue, and only overdue**: something actually past its date, worded "overdue". It is rare on purpose. On the Overview a job with anything overdue carries one late chip beside its name, "! 2 overdue". **Amber is never a date or urgency cue** (no "coming soon", no "unconfirmed for a week"); it is kept for can't-do-this-yet states: no signal, a failed upload, a hold point's empty photo sets, form problems.
 
 ### Named Rules
 **The Thumb Rule.** Orange goes where a thumb lands and nowhere else: one primary action per screen, the focus ring, the today line, the chosen picker row. If a screen has no primary action it has no orange.
-**The Words First Rule.** Late, amber and ok never appear as colour alone; the wash sits behind "14 days late", "Unconfirmed 9 days", "On plan". Late and amber words carry a leading "!" so they read in greyscale.
+**The Words First Rule.** Late, amber and ok never appear as colour alone; the wash sits behind "overdue by 3 days", "Didn't send", "On plan". Late and amber words carry a leading "!" so they read in greyscale.
 **The Tone Not Border Rule.** Regions separate by stepping the ladder (well, ground, plate, raised), not by outlining. Hairlines live inside tables and lists only.
 **The On-Fill Rule.** Text on a steel fill is `--text-on-dark` (dimmed with opacity for a secondary line), never a colour from the text ladder; the ladder flips with the theme, the fill does not.
 

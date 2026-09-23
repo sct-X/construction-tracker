@@ -40,9 +40,6 @@
 .callitem__act-date--late {
   color: var(--late-ink);
 }
-.callitem__act-date--amber {
-  color: var(--amber-ink);
-}
 .callitem__act-date--muted {
   color: var(--text-muted);
 }

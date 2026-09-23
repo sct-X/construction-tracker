@@ -88,6 +88,8 @@ export function groupFor(item: Item, f: ItemForecast | undefined, today: string)
 export function rowWhenWords(item: Item, f: ItemForecast | undefined, today: string): { text: string; tone: Tone } | undefined {
   if (!f || f.isLate || item.status === 'done') return undefined;
   if (item.status !== 'to_do') {
+    // Needed-by and expected both gone, still not ticked off: overdue on the needed-by.
+    if (f.neededBy && isOverdue(f, today)) return { text: `Needed ${formatShortRelative(f.neededBy, today, { deadline: true })}`, tone: 'late' };
     const when = f.expected ?? f.neededBy;
     if (!when) return undefined;
     return { text: `${f.expected ? 'Expected' : 'Needed'} ${formatShortRelative(when, today, { deadline: !f.expected })}`, tone: isOverdue(f, today) ? 'late' : 'plain' };

@@ -63,7 +63,7 @@ export const parkRdItems: Item[] = [
   item({ id: 'it-pr-da-conditions', job: J, type: 'condition_of_consent', title: 'Sediment and erosion controls in place before works', waitingOn: 'Raff', owner: P.raff, step: 'pr-site-setup', lead: 0, status: 'done', created: '2026-05-20', doneAt: '2026-06-01' }),
 
   // ---- Lock-up, current stage ----
-  item({ id: 'it-pr-roof-plumber', job: J, type: 'trade', title: 'Book roofers', waitingOn: 'Build Solid Carpentry', trade: 'tr-buildsolid', owner: P.raff, step: 'pr-roof-plumbing', requirement: 'pr-rq-roof-plumber', lead: 3, status: 'confirmed', expected: '2026-09-14', confirmed: '2026-08-28', created: '2026-08-10' }),
+  item({ id: 'it-pr-roof-plumber', job: J, type: 'trade', title: 'Book roofers', waitingOn: 'Build Solid Carpentry', trade: 'tr-buildsolid', owner: P.raff, step: 'pr-roof-plumbing', requirement: 'pr-rq-roof-plumber', lead: 3, status: 'done', expected: '2026-09-14', confirmed: '2026-08-28', created: '2026-08-10', doneAt: '2026-09-14' }),
   item({ id: 'it-pr-cladder', job: J, type: 'trade', title: 'Book cladders', waitingOn: 'Build Solid Carpentry', trade: 'tr-buildsolid', owner: P.raff, step: 'pr-cladding', requirement: 'pr-rq-cladder', lead: 4, status: 'confirmed', expected: '2026-09-16', confirmed: '2026-08-21', created: '2026-08-10' }),
   item({ id: 'it-pr-cladding', job: J, type: 'material', title: 'Order cladding', waitingOn: 'Cladding supplier', owner: P.raff, step: 'pr-cladding', requirement: 'pr-rq-cladding', lead: 2, status: 'confirmed', expected: '2026-09-15', confirmed: '2026-09-01', created: '2026-08-10', notes: 'One pack short on delivery, supplier chasing.' }),
   // The three shipment-linked items. Their expected date comes from the shipment ETA.

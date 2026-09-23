@@ -41,14 +41,15 @@ describe('money and the site role through the API', () => {
     const api = createMockApi({ storage: new MemoryStorage(), session: { personId: 'dom', today: DEFAULT_TODAY } });
     const rows = api.getOverviewRows();
     const by = (id: string) => rows.find((r) => r.jobId === id)!;
-    // Park Rd: the glazing certificate and the tile choice, both still to do past their act-by.
-    expect(by(PARK_RD).overdue).toBe(2);
+    // Park Rd: the glazing certificate and the tile choice, both still to do past their act-by,
+    // and the cladder and cladding, needed and expected by 16 Sep and still not ticked off.
+    expect(by(PARK_RD).overdue).toBe(4);
     expect(by(SEAVIEW).overdue).toBe(0);
     expect(by(BEATTY).overdue).toBe(0);
     expect(by(BEATTY).waitingOn[0].isLate).toBe(true); // the tiler is "7 days after needed", a future clash, not overdue
     expect(by(BEATTY).waitingOn[0].lateText).toBe('7 days after needed');
     const total = rows.reduce((n, r) => n + r.overdue, 0);
-    expect(total).toBe(2);
+    expect(total).toBe(4);
   });
 });
 

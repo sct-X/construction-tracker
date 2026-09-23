@@ -995,8 +995,9 @@ export interface WaitingOnRow {
 
 /**
  * Past its date today, the one test behind every red "overdue" in the app:
- * an open item whose needed-by has gone with nothing expected, or whose
- * act-by has gone while it is still to do. These are exactly the dates
+ * an open item whose needed-by has gone with nothing expected (or with its
+ * expected date gone too and still not ticked off), or whose act-by has gone
+ * while it is still to do. These are exactly the dates
  * relativeDate words as "overdue by". A booked item always carries an
  * expected date (the item sheet, the waiting-on list and Call mode refuse
  * "booked" without one), so booking is the act and its act-by is spent. An
@@ -1009,7 +1010,7 @@ export function isOverdue(
   today: string,
 ): boolean {
   if (f.status === 'done') return false;
-  if (f.neededBy && f.neededBy < today && !f.expected) return true;
+  if (f.neededBy && f.neededBy < today && (!f.expected || f.expected < today)) return true;
   return f.status === 'to_do' && !!f.actBy && f.actBy < today;
 }
 

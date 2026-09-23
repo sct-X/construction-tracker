@@ -17,7 +17,7 @@ import { addCalendarDays, formatShort, formatWeekRange, lastMonday, relativeDate
 import { NoteEntry, weatherLabel, type NoteDraft } from '../components/NoteEntry';
 import { ClockGlyph, noSignal } from '../components/QueueBadge';
 import { useLayout } from '../shell/AppShell';
-import { PageHeader } from '../shell/PageHeader';
+import { JobHeader } from '../shell/JobHeader';
 import NotFound from './NotFound';
 import './dailyNotes.css';
 
@@ -256,11 +256,16 @@ export default function DailyNotes() {
       </section>
     );
 
+  const noteCount = `${data.notes.length} note${data.notes.length === 1 ? '' : 's'}`;
+
   return (
     <main className={`page notes notes--${layout}`} data-testid="notes">
-      <PageHeader
+      <JobHeader
+        job={job}
+        section="notes"
         title="Daily notes"
-        meta={`${job.name}, ${data.notes.length} note${data.notes.length === 1 ? '' : 's'}`}
+        meta={`${job.name}, ${noteCount}`}
+        switchMeta={`Daily notes, ${noteCount}`}
         back={{ to: `/jobs/${job.id}`, label: job.name }}
       />
       {layout === 'phone' ? (

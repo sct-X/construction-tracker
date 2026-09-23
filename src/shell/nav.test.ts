@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { createMockApi } from '../data/mockApi';
 import { MemoryStorage } from '../data/storage';
 import { DEFAULT_TODAY } from '../seed';
-import { phoneTabs, shipmentHref, shipmentsInJob, sidebarMain } from './nav';
+import { jobSectionHref, jobSwitcherFor, phoneTabs, shipmentHref, shipmentsInJob, sidebarMain } from './nav';
 
 function apiAs(personId: string) {
   return createMockApi({ storage: new MemoryStorage(), session: { personId, today: DEFAULT_TODAY } });
@@ -52,5 +52,28 @@ describe('where a shipment opens', () => {
     expect(new Set(all.map((s) => s.jobId)).size).toBeGreaterThan(1);
     const hunts = api.listShipments('hunts-12');
     expect(hunts.map((s) => s.id)).toEqual(['sh-hunts12-windows']);
+  });
+});
+
+describe('the job switcher (Dom\'s brief, change 1)', () => {
+  it('is on partner and admin job pages only', () => {
+    expect(jobSwitcherFor('partner')).toBe(true);
+    expect(jobSwitcherFor('admin')).toBe(true);
+    expect(jobSwitcherFor('builder')).toBe(false);
+    expect(jobSwitcherFor('site')).toBe(false);
+  });
+
+  it('lands on the same page of the new job when it has one', () => {
+    const seaview = { id: 'seaview', kind: 'build' as const };
+    expect(jobSectionHref('program', seaview)).toBe('/jobs/seaview/program');
+    expect(jobSectionHref('shipments', seaview)).toBe('/jobs/seaview/shipments');
+    expect(jobSectionHref('photos', seaview)).toBe('/jobs/seaview/photos');
+    expect(jobSectionHref('notes', seaview)).toBe('/jobs/seaview/notes');
+    expect(jobSectionHref('overview', seaview)).toBe('/jobs/seaview');
+  });
+
+  it('lands on a design job\'s checklist from any page', () => {
+    const design = { id: 'west-st', kind: 'design' as const };
+    for (const s of ['overview', 'program', 'shipments', 'photos', 'notes'] as const) expect(jobSectionHref(s, design)).toBe('/jobs/west-st');
   });
 });

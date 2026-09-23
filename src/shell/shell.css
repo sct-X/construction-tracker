@@ -378,3 +378,59 @@
     font-size: var(--text-3xl);
   }
 }
+
+/* ---- job switcher (JobHeader): the job's name is the title and a dropdown ---- */
+.page-header__lead {
+  min-width: 0;
+  max-width: 100%;
+}
+.job-switch {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  /* Hang the padding into the gutter so the name lines up with the text below.
+     `left`, not a negative margin: a margin would shrink the width the name gets. */
+  left: calc(-1 * var(--space-2));
+  border-radius: var(--radius-md);
+  transition: background-color var(--motion-fast) var(--ease);
+}
+.job-switch__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: var(--space-2);
+}
+.job-switch__text {
+  min-width: 0;
+}
+.job-switch__chevron {
+  flex: none;
+  width: 24px;
+  max-width: none; /* base.css caps svg at 100% */
+  height: 24px;
+  color: var(--text-secondary);
+}
+/* The native select covers the title: the platform's own picker, keyboard and screen reader. */
+.job-switch__select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px; /* no zoom on focus in iOS Safari */
+}
+.job-switch:hover {
+  background: var(--concrete-100);
+}
+.job-switch:hover .job-switch__chevron {
+  color: var(--text);
+}
+.job-switch:has(.job-switch__select:focus-visible) {
+  box-shadow: var(--focus-ring);
+}

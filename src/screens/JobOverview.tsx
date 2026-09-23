@@ -22,7 +22,7 @@ import { ItemRow, ItemRowList } from '../components/ItemRow';
 import { StatusText } from '../components/StatusText';
 import AlecToday from './AlecToday';
 import NotFound from './NotFound';
-import { PageHeader } from '../shell/PageHeader';
+import { JobHeader } from '../shell/JobHeader';
 import { shipmentsInJob } from '../shell/nav';
 import './jobOverview.css';
 
@@ -111,7 +111,7 @@ export default function JobOverview() {
 
   return (
     <main className={site ? 'page job job--site' : 'page job'} data-testid="job-overview">
-      <PageHeader title={job.name} back={site ? undefined : { to: '/overview', label: 'Overview' }} />
+      <JobHeader job={job} section="overview" back={site ? undefined : { to: '/overview', label: 'Overview' }} />
 
       <nav className="job__tabs" aria-label="Job sections" data-testid="job-tabs">
         {tabs.map((t) => (

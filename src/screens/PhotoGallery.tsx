@@ -26,7 +26,7 @@ import type { Photo, PhotoCategory } from '../domain/types';
 import { formatLongRelative, formatShort, formatTime } from '../domain/dates';
 import { StatusText } from '../components/StatusText';
 import NotFound from './NotFound';
-import { PageHeader } from '../shell/PageHeader';
+import { JobHeader } from '../shell/JobHeader';
 import { FilterBar, FilterSelect } from '../components/FilterSelect';
 import { useLayout } from '../shell/AppShell';
 import './photoGallery.css';
@@ -127,11 +127,16 @@ export default function PhotoGallery() {
     setParam('photo', null);
   };
 
+  const photoWords = `${photos.length === 0 ? 'no photos yet' : plural(photos.length, 'photo')}${queued.length > 0 ? `, ${queued.length} waiting to send` : ''}`;
+
   return (
     <main className="page gallery" data-testid="gallery">
-      <PageHeader
+      <JobHeader
+        job={job}
+        section="photos"
         title="Photos"
-        meta={`${job.name}, ${photos.length === 0 ? 'no photos yet' : plural(photos.length, 'photo')}${queued.length > 0 ? `, ${queued.length} waiting to send` : ''}`}
+        meta={`${job.name}, ${photoWords}`}
+        switchMeta={`Photos, ${photoWords}`}
         back={{ to: `/jobs/${id}`, label: role === 'site' ? 'Today' : job.name }}
         actions={
           <a className="btn btn--primary btn--desktop" href={`#${uploadHref}`} data-testid="gallery-upload">

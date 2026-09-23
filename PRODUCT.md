@@ -40,7 +40,7 @@ Dates are derived, not typed: lead times, shipment ETAs and step links roll forw
 - Overview (home for partners and admin, jobs index for everyone): per job its stage, the next steps with dates and next hold point, the top waiting-on items, and freshness. No screen shows a finish date or money; the calculator stays underneath only to produce act-by and needed-by dates.
 - Waiting on is its own bottom tab, with a Call mode for partners and admin. The bell (notifications) sits top right.
 - Partner/admin bottom tabs: Overview, Waiting on. Shipments lives inside each job page as a tab (`/jobs/:id/shipments`, that job's shipments only; old `/shipments/:id` links forward into the job); the desktop sidebar keeps the side-wide Shipments list. Builder: My items, Jobs, + Photos, with the global Shipments list. Site: Today, Jobs.
-- Planned direction for partner and admin only (not yet built): a job dropdown at the top of each job page switches jobs. Builder and site views stay as they are for now.
+- Partner and admin job pages (overview, Program, Shipments, Photos, Notes) open with the job's name as a dropdown of every job on the side (`src/shell/JobHeader.tsx`); picking one opens the same page on that job, or its overview when it has no such page. Builder and site job pages keep a plain title.
 - Hold points refuse completion until required photo categories are filled; the refusal names the empty categories.
 - Money fields are stripped by the data layer for the site role; nothing is hidden with CSS.
 - Sign-in is a person list with no password; signed out is a real state.

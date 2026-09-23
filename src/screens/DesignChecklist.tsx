@@ -19,7 +19,7 @@ import { ItemRow, ItemRowList } from '../components/ItemRow';
 import { StatusText, type Tone } from '../components/StatusText';
 import { ClockGlyph } from '../components/QueueBadge';
 import { outstandingWords as overviewOutstanding } from './Overview';
-import { PageHeader } from '../shell/PageHeader';
+import { JobHeader } from '../shell/JobHeader';
 import NotFound from './NotFound';
 import './designChecklist.css';
 
@@ -119,8 +119,9 @@ export default function DesignChecklist() {
 
   return (
     <main className="page checklist" data-testid="checklist">
-      <PageHeader
-        title={job.name}
+      <JobHeader
+        job={job}
+        section="overview"
         meta={
           <span className="checklist__meta">
             <span data-testid="checklist-path">{pathWords(job)}</span>

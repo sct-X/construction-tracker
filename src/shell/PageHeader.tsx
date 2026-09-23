@@ -14,10 +14,12 @@ interface Props {
   actions?: ReactNode;
   /** A "back" link for detail screens: { to, label }. */
   back?: { to: string; label: string };
+  /** Replaces the plain h1 (the job switcher on job pages renders its own h1). */
+  titleSlot?: ReactNode;
   children?: ReactNode;
 }
 
-export function PageHeader({ title, meta, actions, back, children }: Props) {
+export function PageHeader({ title, meta, actions, back, titleSlot, children }: Props) {
   return (
     <header className="page-header">
       {back && (
@@ -26,8 +28,8 @@ export function PageHeader({ title, meta, actions, back, children }: Props) {
         </a>
       )}
       <div className="page-header__row">
-        <div>
-          <h1 className="page-header__title">{title}</h1>
+        <div className="page-header__lead">
+          {titleSlot ?? <h1 className="page-header__title">{title}</h1>}
           {meta && <p className="page-header__meta">{meta}</p>}
         </div>
         {actions && <div className="page-header__actions">{actions}</div>}

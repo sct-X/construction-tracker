@@ -95,3 +95,24 @@ export function shipmentHref(role: Role, shipment: { id: string; jobId: string }
 export function isHere(item: NavItem, pathname: string): boolean {
   return item.match.some((m) => pathname === m || pathname.startsWith(m + '/'));
 }
+
+/** The job pages that carry the job switcher, by the path segment after `/jobs/:id`. */
+export type JobSection = 'overview' | 'program' | 'shipments' | 'photos' | 'notes';
+
+/**
+ * Roles whose job pages open with the job switcher (Dom's brief, change 1).
+ * Builder and site job pages keep their plain title.
+ */
+export function jobSwitcherFor(role: Role): boolean {
+  return role === 'partner' || role === 'admin';
+}
+
+/**
+ * Where switching to `job` lands from `section`: the same page on the new
+ * job when it has one, else the job's overview. Design jobs are a checklist
+ * only, so every section lands on the checklist.
+ */
+export function jobSectionHref(section: JobSection, job: { id: string; kind: 'build' | 'design' }): string {
+  if (section === 'overview' || job.kind === 'design') return `/jobs/${job.id}`;
+  return `/jobs/${job.id}/${section}`;
+}

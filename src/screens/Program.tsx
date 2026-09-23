@@ -13,7 +13,7 @@ import { useQuery, useSession } from '../data/context';
 import { Gantt, type GanttView } from '../components/gantt/Gantt';
 import { LookAhead } from '../components/gantt/LookAhead';
 import { StagesList, StagesStrip } from '../components/gantt/StagesStrip';
-import { PageHeader } from '../shell/PageHeader';
+import { JobHeader } from '../shell/JobHeader';
 import { useLayout } from '../shell/AppShell';
 import NotFound from './NotFound';
 import './program.css';
@@ -39,7 +39,7 @@ export default function Program() {
   if (job.kind === 'design') {
     return (
       <main className="page program" data-testid="program">
-        <PageHeader title={job.name} meta="Program" back={{ to: `/jobs/${job.id}`, label: job.name }} />
+        <JobHeader job={job} section="program" meta="Program" back={{ to: `/jobs/${job.id}`, label: job.name }} />
         <p className="page__lede" data-testid="program-design-note">
           {job.name} is a design job: no program, a checklist.{' '}
           <Link to={`/jobs/${job.id}`} data-testid="program-checklist-link">
@@ -104,7 +104,7 @@ export default function Program() {
 
   return (
     <main className="page program" data-testid="program" data-layout={layout}>
-      <PageHeader title={job.name} meta={meta} actions={actions} back={{ to: `/jobs/${job.id}`, label: job.name }} />
+      <JobHeader job={job} section="program" meta={meta} switchMeta={forecast?.currentStageName ? `Program, ${forecast.currentStageName} stage` : 'Program'} actions={actions} back={{ to: `/jobs/${job.id}`, label: job.name }} />
 
       {!hasProgram || !forecast ? (
         <p className="page__lede" data-testid="program-empty">

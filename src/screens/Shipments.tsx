@@ -20,6 +20,7 @@ import { SHIPMENT_STATUS_LABELS, SHIPMENT_STATUS_ORDER } from '../domain/types';
 import { calendarDaysBetween, formatDayMonthYear, formatShort, isISODate, minDate, relativeDate } from '../domain/dates';
 import { StatusText, type Tone } from '../components/StatusText';
 import { PageHeader } from '../shell/PageHeader';
+import { JobHeader } from '../shell/JobHeader';
 import { useLayout } from '../shell/AppShell';
 import { shipmentHref } from '../shell/nav';
 import './shipments.css';
@@ -92,7 +93,7 @@ export default function Shipments({ jobId }: { jobId?: string } = {}) {
   return (
     <main className="page shipments" data-testid="shipments-list" data-job={jobId}>
       {job ? (
-        <PageHeader title={job.name} meta={count} actions={addButton} back={{ to: `/jobs/${job.id}`, label: job.name }} />
+        <JobHeader job={job} section="shipments" meta={count} switchMeta={`Shipments, ${count}`} actions={addButton} back={{ to: `/jobs/${job.id}`, label: job.name }} />
       ) : (
         <PageHeader title="Shipments" meta={`${count} on ${side.name}`} actions={addButton} />
       )}

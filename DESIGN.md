@@ -1,70 +1,100 @@
 ---
-name: Construction Tracker
-description: A surveyor's readout for a builder's Monday, a builder's phone and a site hand's gloves. Light by default, dark as the alternate.
+name: Cruise
+description: An Apple app for keeping a build on time. iOS grouped surfaces, the system face, one orange tint, red only for overdue. Light by default, dark as the alternate.
 colors:
-  ground: "#f4f2ee"
-  well: "#e8e5df"
-  plate: "#fbfaf8"
-  raised: "#ffffff"
+  ground: "#f2f2f7"
+  plate: "#ffffff"
+  raised: "#e9e9ee"
   lifted: "#ffffff"
-  wash: "#e9e6e0"
-  line: "#dcd8d1"
-  line-strong: "#aaa69e"
-  text: "#1b1a17"
-  text-secondary: "#46443f"
-  text-muted: "#66635d"
-  ink: "#14130f"
-  hivis: "#e8730c"
-  hivis-strong: "#d9680a"
-  hivis-ink: "#8a4200"
-  hivis-wash: "#fde9d6"
-  hivis-contrast: "#16110a"
-  steel-fill: "#2f3a44"
-  steel-outline: "#c6cfd7"
-  timber: "#9c7a4b"
-  timber-paper: "#f1e8d8"
-  late-ink: "#8f1d1d"
-  late-bg: "#f8e1de"
-  amber-ink: "#7a4c00"
-  amber-bg: "#fbeccb"
-  ok-ink: "#23532c"
-  ok-bg: "#dcebd9"
+  well: "#e5e5ea"
+  fill: "#e4e4e9"
+  line: "#c6c6c8"
+  line-strong: "#aeaeb2"
+  text: "#1d1d1f"
+  text-secondary: "#48484d"
+  text-muted: "#636366"
+  tint: "#b0501a"
+  tint-fill: "#b0501a"
+  tint-wash: "#fbeee5"
+  on-tint: "#ffffff"
+  logo-accent: "#c1652e"
+  steel-fill: "#3a3a3c"
+  bar: "rgba(249, 249, 251, 0.8)"
+  sidebar: "#f5f5f7"
+  late-ink: "#d70015"
+  late-bg: "#fdecee"
+  ok-ink: "#1e7b34"
+  ok-bg: "#e8f5ea"
 typography:
-  display:
-    fontFamily: "Barlow Semi Condensed, Avenir Next Condensed, Arial Narrow, system-ui, sans-serif"
-    fontSize: "clamp(2.75rem, 5vw, 3.75rem)"
+  large-title:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Display, SF Pro Text, system-ui, Segoe UI, sans-serif"
+    fontSize: "2.125rem"
     fontWeight: 700
-    lineHeight: 1.05
-    letterSpacing: "-0.01em"
-  figure:
-    fontFamily: "Barlow Semi Condensed, Avenir Next Condensed, Arial Narrow, system-ui, sans-serif"
-    fontSize: "2rem"
+    lineHeight: 1.2
+    letterSpacing: "-0.012em"
+  title-1:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Display, system-ui, sans-serif"
+    fontSize: "1.75rem"
+    fontWeight: 700
+    lineHeight: 1.15
+    letterSpacing: "-0.012em"
+  title-2:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Display, system-ui, sans-serif"
+    fontSize: "1.375rem"
+    fontWeight: 700
+    lineHeight: 1.2
+    letterSpacing: "normal"
+  title-3:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Display, system-ui, sans-serif"
+    fontSize: "1.25rem"
     fontWeight: 600
-    lineHeight: 1.05
-    letterSpacing: "-0.01em"
-  title:
-    fontFamily: "Barlow Semi Condensed, Avenir Next Condensed, Arial Narrow, system-ui, sans-serif"
-    fontSize: "1.875rem"
+    lineHeight: 1.25
+    letterSpacing: "normal"
+  headline:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, system-ui, sans-serif"
+    fontSize: "1.0625rem"
     fontWeight: 600
-    lineHeight: 1.05
-    letterSpacing: "-0.01em"
+    lineHeight: 1.3
+    letterSpacing: "normal"
   body:
-    fontFamily: "Atkinson Hyperlegible Next, system-ui, sans-serif"
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, system-ui, sans-serif"
+    fontSize: "1.0625rem"
+    fontWeight: 400
+    lineHeight: 1.35
+    letterSpacing: "normal"
+  callout:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, system-ui, sans-serif"
     fontSize: "1rem"
     fontWeight: 400
-    lineHeight: 1.45
+    lineHeight: 1.35
     letterSpacing: "normal"
-  label:
-    fontFamily: "Atkinson Hyperlegible Next, system-ui, sans-serif"
-    fontSize: "0.875rem"
-    fontWeight: 500
-    lineHeight: 1.4
+  subhead:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, system-ui, sans-serif"
+    fontSize: "0.9375rem"
+    fontWeight: 400
+    lineHeight: 1.35
+    letterSpacing: "normal"
+  footnote:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, system-ui, sans-serif"
+    fontSize: "0.8125rem"
+    fontWeight: 400
+    lineHeight: 1.35
+    letterSpacing: "normal"
+  caption:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, system-ui, sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 400
+    lineHeight: 1.3
     letterSpacing: "normal"
 rounded:
-  sm: "4px"
-  md: "8px"
-  lg: "12px"
-  nested: "6px"
+  sm: "6px"
+  md: "10px"
+  row: "8px"
+  segment: "9px"
+  thumb: "7px"
+  button: "12px"
+  lg: "14px"
+  sheet: "16px"
   pill: "999px"
 spacing:
   "1": "4px"
@@ -78,36 +108,48 @@ spacing:
   "12": "48px"
   "16": "64px"
 components:
-  button-primary:
-    backgroundColor: "{colors.hivis}"
-    textColor: "{colors.hivis-contrast}"
-    rounded: "{rounded.md}"
+  button-filled:
+    backgroundColor: "{colors.tint-fill}"
+    textColor: "{colors.on-tint}"
+    rounded: "{rounded.button}"
     padding: "0 20px"
     height: "56px"
-  button-primary-hover:
-    backgroundColor: "{colors.hivis-strong}"
-    textColor: "{colors.hivis-contrast}"
-  button-secondary:
+  button-gray:
+    backgroundColor: "{colors.fill}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.button}"
+    padding: "0 20px"
+    height: "56px"
+  button-tinted:
+    backgroundColor: "{colors.tint-wash}"
+    textColor: "{colors.tint}"
+    rounded: "{rounded.button}"
+    padding: "0 20px"
+    height: "56px"
+  button-plain:
     backgroundColor: "transparent"
-    textColor: "{colors.text}"
-    rounded: "{rounded.md}"
+    textColor: "{colors.tint}"
+    rounded: "{rounded.button}"
     padding: "0 20px"
-    height: "56px"
-  button-secondary-hover:
-    backgroundColor: "{colors.raised}"
+  segmented:
+    backgroundColor: "{colors.fill}"
     textColor: "{colors.text}"
-  button-fill:
-    backgroundColor: "{colors.steel-fill}"
-    textColor: "{colors.text}"
-    rounded: "{rounded.md}"
-    padding: "0 20px"
+    rounded: "{rounded.segment}"
+    padding: "2px"
+    height: "32px"
   input:
-    backgroundColor: "{colors.raised}"
+    backgroundColor: "{colors.plate}"
     textColor: "{colors.text}"
     rounded: "{rounded.md}"
     padding: "0 16px"
     height: "56px"
-  plate:
+  cell:
+    backgroundColor: "{colors.plate}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.md}"
+    padding: "11px 16px"
+    height: "44px"
+  card:
     backgroundColor: "{colors.plate}"
     textColor: "{colors.text}"
     rounded: "{rounded.lg}"
@@ -117,9 +159,9 @@ components:
     textColor: "{colors.late-ink}"
     rounded: "{rounded.sm}"
     padding: "2px 8px"
-  status-amber:
-    backgroundColor: "{colors.amber-bg}"
-    textColor: "{colors.amber-ink}"
+  status-neutral:
+    backgroundColor: "{colors.fill}"
+    textColor: "{colors.text}"
     rounded: "{rounded.sm}"
     padding: "2px 8px"
   status-ok:
@@ -129,154 +171,148 @@ components:
     padding: "2px 8px"
 ---
 
-# Design System: Construction Tracker
+# Design System: Cruise
 
 ## Overview
 
-**Creative North Star: "The surveyor's readout"**
+**Creative North Star: "If Apple made it"**
 
-Every site starts with the surveyor: a graphite instrument on a tripod, orange-flagged pegs, a readout of precise figures that were measured rather than typed. This app is that instrument for the money side of a build. The screen is an instrument face on which the forecast finish and the slip are the readout digits, and everything else (job names, holding costs, the three things a job is waiting on, when it was last confirmed) is the quiet engraving around them. Nothing is decorated; the hierarchy is carried by size and by a three-step ladder of text, and surfaces separate by tone rather than by borders.
+Cruise should feel like an app Apple would ship: the Human Interface Guidelines translated honestly to the web. The ground is iOS's grouped grey, content sits in white cells and cards with continuous-feeling corners, the type is the system face in Apple's text styles, and the chrome is translucent material that lets the content scroll under it behind a hairline. One tint colour, the Cruise orange, marks what you can act on and where you are; red is kept for things that are actually overdue. Nothing is decorated, nothing at rest casts a shadow, and motion is short and eases out without bounce.
 
-It ships light by the client's decision: a warm off-white ground (never pure white for the page), plates a step lighter, the well a step darker, dark ink figures. The same roles map onto a graphite ladder as the dark alternate (My settings: Light, Dark, Match device), so every screen is drawn once from tokens and reads in either. The single accent is the hi-vis orange of a vest and a peg flag, and it appears only where a thumb should land: the one primary action on a screen, the focus ring, the today line on the program, the chosen row of a picker. It is never a heading, never a status, never "you are here".
+It is calm on purpose. Dom scans; he doesn't read. So hierarchy comes from Apple's type ramp (a large title, headlines, secondary and tertiary labels), grouping comes from white cells on the grey ground, and colour is so rare that the red of an overdue item is the first thing the eye finds.
 
-The redesign replaced a cream ledger with a condensed system face and sentences everywhere. Confirmed rejections: gradient cards, eyebrow labels, stock imagery, sentences that restate what the figure already says, a dev bar that dominates the phone.
+Light is the default; dark uses iOS's true-black ground with elevated greys (My settings: Light, Dark, Match device). Every screen is drawn from tokens and never branches on the theme.
+
+Replaced (23 Sep 2026): the "surveyor's readout" world (Barlow Semi Condensed and Atkinson Hyperlegible Next, a warm off-white ladder, hi-vis orange buttons with dark ink, amber for can't-do-yet states). Its fonts are no longer loaded.
 
 **Key Characteristics:**
-- Numbers are the largest type on partner screens; a title is smaller than the figures beneath it.
-- Tonal surfaces (well, ground, plate, raised, lifted): never pure white for the page, never #000; hairlines only inside a table.
-- Words carry every status; the wash only agrees with them. The Monday screen reads printed in greyscale.
-- Two faces: a signage grotesque for figures and titles, a legibility face for words; both self-hosted.
-- One accent with a short job list; 56px targets on the site role's screens.
+- iOS grouped surfaces: grey ground, white cells and cards; dark mode is true black with #1c1c1e cells.
+- The system face (SF Pro on Apple devices) in Apple's text styles; no web font ships.
+- One tint, the Cruise orange deepened to #b0501a so it reads as text; the logo dot keeps its own #c1652e.
+- Red is overdue and only overdue. No amber anywhere.
+- Translucent, blurred nav bar and tab bar; a macOS source list on the desktop.
+- 44px minimum targets, 56px on the site role's screens and every primary control on the phone.
 
 ## Colors
 
-A warm off-white ladder (graphite in the dark alternate) with one hi-vis accent and three status inks that read as words first. Light values below; dark values in tokens.css under `[data-theme='dark']`.
+Light values below; dark values live in tokens.css under `[data-theme='dark']`.
 
-### Primary
-- **Hi-vis** (#e8730c, the vest; #ff8c26 in dark): the single accent. Fills the one primary button per screen (dark ink #16110a on it, 6.9:1), draws the focus ring (#d9680a in light so it holds on the off-white), the today line on the program and the ring on a chosen picker row. **Hi-vis strong** (#d9680a) is its hover; **hi-vis ink** (#8a4200) is orange as text on the **hi-vis wash** (#fde9d6), used for the today label on the program only. Orange is never small text on the light ground (3.2:1).
+### Tint
+- **Tint** (#b0501a; #ff9a52 in dark): the Cruise orange as an iOS tint colour. Plain buttons and back buttons, the selected tab's glyph and label, the current row's glyph in the sidebar, the focus ring, the bell count, the today line on the program. 4.7:1 on the ground, 5.2:1 on white.
+- **Tint fill** (#b0501a; #b8541c in dark) under **on-tint** white (5.2:1 / 4.9:1): the filled button, one per screen. **Tint wash** (#fbeee5; #3a2414): tinted buttons and text selection.
+- **Logo accent** (#c1652e; #eb6a2e): the dot in the Cruise mark only. It is too light for text, so it never is.
 
-### Neutral
-- **Ground** (#f4f2ee): the page, a warm off-white. **Well** (#e8e5df): sunk regions (the dev bar, the chart ground, the desktop frame behind the site role's phone column).
-- **Plate** (#fbfaf8): the sidebar, the phone chrome, a card on the phone, a hovered table row. **Raised** (#ffffff): inputs, chips, a hovered plate. **Lifted** (#ffffff): menus, sheets, the floating buzz, always with a shadow. **Wash** (#e9e6e0): the segmented trough, row bands, hover on the ground.
-- **Line** (#dcd8d1) hairlines inside tables and between list rows; **line strong** (#aaa69e) input and button outlines.
-- **Text** (#1b1a17, 15:1), **secondary** (#46443f, 9:1), **muted** (#66635d, 5.6:1): the ladder. **Ink** (#14130f): dark text on the orange button.
-- **Steel fill** (#2f3a44): a dark fill that takes light text (`--text-on-dark`, #f4f2ee) for pressed segments, chosen pickers, "you are here" and forecast bars. Anything drawn on a steel fill uses `--text-on-dark`, never the text ladder, so it reads in both themes.
-- **Timber** (#9c7a4b) and **timber paper** (#f1e8d8): the planned-position outline on the program and note paper. A warm neutral, never a second accent.
+### Neutral (iOS system colours, made solid for AA)
+- **Ground** (#f2f2f7; #000): systemGroupedBackground, the page.
+- **Plate** (#fff; #1c1c1e): secondarySystemGroupedBackground, cells, cards, fields.
+- **Raised** (#e9e9ee; #2c2c2e): a pressed or hovered cell, a chip. **Lifted** (#fff; #2c2c2e): banners, menus, with the one shadow. **Well** (#e5e5ea; #0e0e10): sunk regions (the dev bar, the chart ground, the frame round the site role's phone column).
+- **Fill** (#e4e4e9; #26262a): tertiarySystemFill, the segmented trough, gray buttons, neutral chips.
+- **Separator** (#c6c6c8; #38383a) at 0.5px, inset to the text; **line strong** (#aeaeb2; #545458) for scrollbars and field hover.
+- **Label** (#1d1d1f; #f5f5f7), **secondary label** (#48484d; #c7c7cc), **tertiary label** (#636366; #98989f). Every pair is 4.5:1 or better on ground, plate and raised in its theme.
+- **Steel fill** (#3a3a3c; #636366) with white text: the chosen half of a pair or picker. Text on it is always `--text-on-dark` (#fff).
 
 ### Status (always beside words)
-- **Late** #8f1d1d on #f8e1de. **Amber** #7a4c00 on #fbeccb. **Ok** #23532c on #dcebd9. Dark ink on a light wash, 7:1 or better; in the dark alternate the pairs invert to light ink on a dark wash.
-- **Late is overdue, and only overdue**: something actually past its date, worded "overdue". It is rare on purpose. On the Overview a job with anything overdue carries one late chip beside its name, "! 2 overdue". **Amber is never a date or urgency cue** (no "coming soon", no "unconfirmed for a week"); it is kept for can't-do-this-yet states: no signal, a failed upload, a hold point's empty photo sets, form problems.
+- **Late** #d70015 on #fdecee (#ff6961 on #3a1d1d in dark): overdue, and only overdue, worded "overdue" and led by "!".
+- **Ok** #1e7b34 on #e8f5ea (#30d158 on #17311f): done, on plan, received. Always with the words.
+- **No amber.** Can't-do-yet states (no signal, a failed upload, a hold point's empty photo sets, form problems) are label text on the neutral fill with a leading "!". The `--amber-*` token names survive only so older screen CSS resolves to that neutral.
 
 ### Named Rules
-**The Thumb Rule.** Orange goes where a thumb lands and nowhere else: one primary action per screen, the focus ring, the today line, the chosen picker row. If a screen has no primary action it has no orange.
-**The Words First Rule.** Late, amber and ok never appear as colour alone; the wash sits behind "overdue by 3 days", "Didn't send", "On plan". Late and amber words carry a leading "!" so they read in greyscale.
-**The Tone Not Border Rule.** Regions separate by stepping the ladder (well, ground, plate, raised), not by outlining. Hairlines live inside tables and lists only.
-**The On-Fill Rule.** Text on a steel fill is `--text-on-dark` (dimmed with opacity for a secondary line), never a colour from the text ladder; the ladder flips with the theme, the fill does not.
+**The Tint Rule.** Orange means "you can act here" or "you are here": the filled button, plain buttons, the selected tab, the current sidebar glyph, focus. One filled button per screen. Never a heading, never a status, never decoration.
+**The Red Rule.** Red is overdue. If it isn't past its date, it isn't red.
+**The Words First Rule.** Colour agrees with words, never replaces them; late and neutral warnings carry a "!" so they read in greyscale.
+**The On-Fill Rule.** Text on the steel fill or the tint fill is white from a token, never the label ladder.
 
 ## Typography
 
-**Display Font:** Barlow Semi Condensed (with Avenir Next Condensed, Arial Narrow, system-ui)
-**Body Font:** Atkinson Hyperlegible Next (with system-ui)
+**Face:** the system stack, `-apple-system, BlinkMacSystemFont, "SF Pro Text"/"SF Pro Display", system-ui, sans-serif`. On an iPhone, iPad or Mac that is SF Pro with its optical sizes; elsewhere it is the platform's own UI face. Nothing is downloaded, so there is no flash of fallback text and nothing to precache.
 
-**Character:** Barlow comes from the world of road and site signage: a low-contrast grotesque, semi condensed here so "Fri 26 Feb 2027" leads a five-column table without crowding it, with tabular figures. Atkinson Hyperlegible Next was drawn for legibility at a distance and in bad light, which is a phone in the sun in gloves; its unmistakable glyphs (the slashed zero, the tailed l) are a deliberate trait of the readout, not a flaw. Both are self-hosted under `public/fonts` as latin-only WOFF2 (68 KB together), loaded with `font-display: swap` and precached by the service worker so the app reads the same offline. Neither is Inter, Geist, Space Grotesk or Roboto.
+### Text styles (iOS Dynamic Type at the Large default)
+- **Large Title** (34, bold): the page title (`.page-header__title`), the job switcher's name.
+- **Title 1** (28, bold): row figures on the phone (`<BigNumber size="row">`). **Title 2** (22), **Title 3** (20, semibold): section titles and card titles.
+- **Headline** (17, semibold): a cell's title, the side name in the nav bar.
+- **Body** (17): words, buttons. **Callout** (16). **Subhead** (15): secondary lines, chips, sidebar rows, tables.
+- **Footnote** (13): group headers, field labels, table headers, segment labels on the desktop. **Caption** (12) and **Caption 2** (11): counts and tab bar labels.
+- The one hero figure on a job or shipment screen stays larger than any title: 44px on the phone, 56px on the desktop (`.display`, `<BigNumber size="hero">`).
 
-### Hierarchy
-- **Display** (700, 44px phone / 60px desktop, 1.05): the screen's one hero figure (a job's forecast finish, a shipment's ETA). `.display` in base.css, `<BigNumber size="hero">`.
-- **Figure** (600, 30px phone / 32px desktop, 1.05): a row's readout (Monday's finish and slip). `<BigNumber size="row">`.
-- **Title** (600, 22px on a readout screen, up to 30/32px on a screen with a hero figure, 1.05): the page title. Always a step below the figures beneath it.
-- **Body** (400, 16px, 1.45): words; measure 64ch.
-- **Label** (500, 14px, 1.4): column headers, chip words, secondary lines. Sentence case; never tracked, never uppercase.
-- **Small** (400, 12px): counts and the dev bar.
+Legacy size tokens map onto these: `--text-xs` caption, `--text-sm` subhead, `--text-md` body, `--text-lg` title 3, `--text-xl` title 2, `--text-2xl` title 1, `--text-3xl` large title.
 
 ### Named Rules
-**The Figures Lead Rule.** On a partner screen the largest type is a number or a date, never a heading.
-**The Two Words Rule.** A label is one or two words. A sentence on a screen must be a fact the UI cannot show otherwise (see docs/COPY_RULES.md).
+**The Two Words Rule.** A label is one or two words; a sentence on a screen is a fact the UI cannot show otherwise (docs/COPY_RULES.md).
+**The Sentence Case Rule.** Group headers and labels are sentence case footnotes. Never uppercase, never tracked.
 
 ## Layout
 
-Desktop: a 236px plate sidebar beside the ground; content up to 1200px with a 32px gutter, tables with 20px row padding and hairlines. Phone (below 768px, and always for the site role): a 56px plate top bar, content with a 16px gutter, a 56px plate tab bar; lists become plates with 16px padding stacked 8px apart. Spacing is a 4px scale (4, 8, 12, 16, 20, 24, 32, 40, 48, 64). More space above a heading than below it: groups are 48px apart, a group title sits 12px above its table. The site role on a wide window gets the phone column at 480px on the well.
+Spacing on a 4px grid, with 8, 16 and 20 doing most of the work. Phone (below 768px, and always for the site role): a 52px translucent nav bar, a 16px gutter, a large title, inset grouped content with 16px inside cells, a 56px translucent tab bar. Desktop: a 240px source list beside the grouped ground, content to 1200px with a 32px gutter. More space above a group than inside it. The site role on a wide window gets the phone column at 480px on the well.
 
 ## Elevation & Depth
 
-Tonal layering, with one exception. Depth is conveyed by stepping the ladder: well, ground, plate, raised, lifted. Nothing at rest has a shadow. The floating buzz (the in-app stand-in for a phone notification) and future menus and sheets sit on lifted with the one shadow in the system.
+Flat at rest. Grouping is tonal: white cells on the grey ground (in dark, #1c1c1e on black). The bars are material, not shadow: translucent fill, `backdrop-filter: saturate(180%) blur(20px)`, a 0.5px hairline edge; without backdrop-filter they fall back to a solid bar colour.
 
 ### Shadow Vocabulary
-- **Float** (`box-shadow: 0 12px 32px rgba(20, 19, 15, 0.16), 0 2px 6px rgba(20, 19, 15, 0.1)`; deeper in dark): menus, sheets, toasts, the buzz. Nothing else.
-
-### Named Rules
-**The Flat-At-Rest Rule.** Surfaces are flat; hover steps one rung up the ladder; only floating things cast a shadow.
+- **Float** (`0 10px 30px rgba(0,0,0,.12), 0 1px 3px rgba(0,0,0,.08)`; deeper in dark): the notification banner (the buzz), menus. Nothing else.
+- **Segment thumb** (`0 3px 8px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.04)`): the chosen segment's thumb, as on iOS.
 
 ## Shapes
 
-Radius by element size: 4px for chips, inputs and small controls; 8px for buttons and plates on the desktop; 12px for phone plates, sheets and the buzz; 6px for a control nested inside an 8px trough (a segment inside `.seg`); pill for counts. Borders are 1px hairlines and appear on outlined buttons and inputs only. No coloured edges thicker than 1px on rows, cards or callouts; a callout is a wash with a radius. Icons are hand-drawn inline SVG at 1.6px stroke, 20px, no icon library.
+Radius by element size: 6px chips; 7px a segment thumb inside its 9px trough; 8px source-list rows and pop-up buttons; 10px cells, fields, inset grouped lists and desktop plates; 12px buttons; 14px cards on the phone; 16px banners and sheets; pill for counts. Where the browser supports `corner-shape`, buttons, plates, fields, segments, chips and grouped lists draw as superellipses (continuous corners); elsewhere they are plain radii. Separators are 0.5px and inset to the text. Glyphs are SF-Symbols-like inline SVG on a 24px grid at a 1.7 stroke with round caps (`src/shell/icons.tsx`); the tab bar fills a glyph's solid parts when its tab is selected.
 
 ## Components
 
-### Buttons
-- **Shape:** 8px radius, 56px tall on the phone and on every primary action, 40px for desktop-only secondary controls (`.btn--desktop`).
-- **Primary (`.btn--primary`):** hi-vis fill, dark ink text (#16110a), bold. One per screen.
-- **Secondary (`.btn`):** transparent with a line-strong outline, text colour; hover fills raised.
-- **Fill (`.btn--fill`):** steel fill with light text, for the pressed half of a pair or a quiet confirm.
-- **Ghost (`.btn--ghost`):** text only, secondary colour, for links that need a tap target.
-- **Segmented (`.seg` / `.seg__btn`):** a wash trough with a steel-filled pressed segment (`aria-pressed`, light text), 34px on the desktop, 56px on the phone.
-- **Focus:** the focus ring everywhere (`0 0 0 2px ground, 0 0 0 4px --focus`, the darker orange in light); inset on full-width rows.
+### Buttons (`.btn`)
+- **Gray (`.btn`)**: fill with label text; the everyday secondary action.
+- **Filled (`.btn--primary`)**: tint fill, white semibold. One per screen. Disabled is gray with tertiary text, not dim orange.
+- **Tinted (`.btn--tinted`)**: tint wash with tint text, a quieter call to action.
+- **Chosen (`.btn--fill`)**: steel fill, white text: the pressed half of a pair.
+- **Plain (`.btn--ghost`)**: tint text, no fill.
+- 56px on the phone, 12px radius; `.btn--desktop` is 36px, 10px radius, subhead size, on wide screens. Pressed dims to 80% opacity; no scale, no bounce.
 
-### Chips
-- **Style (`<StatusText>`):** words on a wash, 14px medium, 4px radius, 2px 8px padding. Tones late, amber, ok; muted and plain drop the wash.
-- **State:** never interactive; a chip is a fact.
+### Segmented control (`.seg`, `.seg__btn`)
+A fill trough with 2px padding, 9px radius (12px on the phone, with a 10px thumb); the chosen segment (`aria-pressed="true"`) is a thumb (white in light, #636366 in dark) with the segment shadow and semibold label. 32px with footnote labels on the desktop, 56px with subhead labels on the phone.
 
-### Cards / Containers
-- **Corner Style:** 12px on the phone (`.plate`), 8px on the desktop.
-- **Background:** plate; raised on hover or press.
-- **Shadow Strategy:** none.
-- **Border:** none.
-- **Internal Padding:** 16px, 20px below the last line.
+### Lists and cells (`.group`, `.group__list`, `.cell`, `.cell--link`, `.chevron`)
+Inset grouped: a footnote header 16px in, a white list with a 10px radius, 44px cells with 11/16px padding, separators inset 16px, a disclosure `chevron.right` in the separator grey on `.cell--link`. `ItemRow` lists use the same hairline and switch from stacked to one line only when the list itself is at least 560px wide (a container query).
 
-### Inputs / Fields
-- **Style:** raised fill, line-strong 1px outline, 4px radius for native controls and 8px for `.input`, 56px tall on the phone (40px with `.input--desktop`). Selects draw their own chevron.
-- **Focus:** the outline turns hi-vis; no glow.
-- **Disabled:** 50% opacity, not-allowed cursor; the words beside it say why ("Needs signal").
+### Chips (`<StatusText>`)
+Subhead medium on a wash, 6px radius, 2px 8px padding. Tones: late (red, "overdue"), amber (now neutral fill, label text), ok (green), muted and plain (no wash). A chip is a fact, never a control.
+
+### Fields (`.input`, `.field`, native controls)
+White field (#1c1c1e in dark), a 1px separator border, 10px radius, 56px on the phone and 36px with `.input--desktop`. Labels are footnotes in tertiary label above the field. Focus turns the border tint and adds the focus ring. A `<select>` draws SF's `chevron.up.chevron.down` like a pop-up button.
 
 ### Navigation
-- **Desktop sidebar:** plate, "Tracker" wordmark in Barlow 700, links 38px with an 8px radius; hover and current both step to raised, current in the text colour. No per-job list: the job switcher at the top of each job page moves between jobs. Setup group under a hairline. Bell and person at the foot.
-- **Phone:** plate top bar (side name in Barlow 700, bell, person), plate tab bar with 56px text tabs; the current tab is the text colour with a 2px top rule in the same colour. Never orange.
+- **Phone nav bar (`.topbar`)**: translucent material, 52px, the Cruise mark at left, the side switcher (a gray pop-up button) for Dominic and Norm, then the bell and the person as 44px label-coloured glyphs; the bell's count is a tint badge.
+- **Phone tab bar (`.tabbar`)**: translucent material, a 26px glyph over an 11px label; the selected tab is tint with its glyph filled, the rest tertiary label. Glyphs: Overview `square.grid.2x2`, Waiting on `clock`, My items `checklist`, Jobs `house`, Today `calendar`, + Photos `camera`.
+- **Desktop sidebar (`.sidebar`)**: a macOS source list, #f5f5f7 (#1c1c1e dark) with a hairline right edge; 34px rows with a 20px glyph, a rounded neutral selection fill and a tint glyph on the current row; "Setup" as a caption header; bell and person at the foot.
+- **Large title (`.page-header`)**: an iOS back button (a `chevron.left` and the previous page's name in tint) above the Large Title and a subhead meta line.
+- **Job switcher (`JobHeader`)**: the job's name as the Large Title with a `chevron.down` in a small filled disc, the platform's own native menu laid over it. Hover tints the disc; press dims the whole title.
 
-### Tables
-- **Style (`.table`):** 14px, hairline rows, 20px row padding on Monday, header words muted and regular. Rows are pointer targets (`.table--rows`) and step to plate on hover. Figures in a table are `<BigNumber size="row">` with their in-cell label hidden because the column header names it.
+### Banner (the buzz)
+A lifted card with the float shadow and a 16px radius at the foot of the screen, a filled tint button and a gray dismiss. It slides up 12px over 280ms with an ease-out curve.
 
-### The Readout (signature)
-`<BigNumber>`: a figure in Barlow with a two-word label under it in muted 14px. At `size="row"` it is the unit of the Monday table and of every phone card's first line; at `size="hero"` it is the one big figure on a job or shipment screen. Tone (late, amber, ok, muted) colours the figure only when its words say so.
-
-### The Dev Bar
-A 36px well strip above the shell, 12px muted text, controls at 26px, an orange dot beside "dev"; the same in both themes. It collapses to a 24px tag (remembered per browser) and scrolls sideways on a phone rather than wrapping.
-
-### The Offline Bar
-A 32px amber wash with a dot and one short line: "No signal. Showing what loaded at 1:09pm. Changes queue until it returns." Never a modal, never red.
+### Offline bar
+A thin neutral fill under the nav bar, a grey dot and one footnote line. Never red, never amber, never a modal.
 
 ## Motion
 
-One authored moment: the buzz slides up 12px over 220ms with `cubic-bezier(0.2, 0, 0, 1)` when a notification arrives. Everything else is a 120ms background or colour step answering hover or press. No entrance animations on sections. `prefers-reduced-motion: reduce` collapses every animation and transition to 0.01ms.
+150ms colour and opacity steps answer hover and press; the banner's 280ms slide-up is the one authored moment. Curves ease out (`cubic-bezier(0.22, 1, 0.36, 1)` for arrivals, `cubic-bezier(0.25, 0.1, 0.25, 1)` for state changes); nothing bounces or overshoots. `prefers-reduced-motion: reduce` collapses every animation and transition to 0.01ms.
 
 ## Theming
 
-Light is the default on `:root`; the dark alternate lives under `:root[data-theme='dark']` with the same role names. The shell sets `data-theme` on `<html>` from the session (`theme: light | dark | system`, My settings "Look", `?theme=` in the hash for tests); "system" follows `prefers-color-scheme`. `color-scheme` is set per theme so native controls follow. Screens never branch on the theme: they use roles.
+Light is the default on `:root`; the dark alternate lives under `:root[data-theme='dark']` with the same role names. The shell sets `data-theme` on `<html>` from the session (`theme: light | dark | system`, My settings "Look", `?theme=` in the hash for tests); "system" follows `prefers-color-scheme`. `color-scheme` is set per theme so native controls follow.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** set the figure larger than the title on any screen that has a figure; `--text-3xl` (32px) for rows, `--text-display` for the hero.
-- **Do** step the ladder for regions (well, ground, plate, raised) and reserve hairlines for table and list rows.
-- **Do** draw text on a steel fill with `--text-on-dark` so it survives both themes.
-- **Do** put every status in words with the chip behind them; add "!" for late and amber.
-- **Do** keep one hi-vis control per screen, 56px tall, dark ink on orange.
-- **Do** use `.btn`, `.seg`, `.input`, `.table`, `.plate` from base.css before writing screen CSS.
-- **Do** keep labels to one or two words and delete sentences that restate the UI (docs/COPY_RULES.md).
-- **Do** render nothing (label included) when money is absent; `<Money>` already does.
+- **Do** start from `.btn`, `.seg`, `.input`, `.field`, `.group`/`.cell`, `.table`, `.plate` and the text-style tokens before writing screen CSS.
+- **Do** put content in white cells or cards on the grouped ground, with inset hairline separators.
+- **Do** keep one filled tint button per screen; use gray or plain buttons for everything else.
+- **Do** pair every status colour with words, and keep red for overdue.
+- **Do** give every date its relative time ("Mon 28 Sep, in 5 days").
+- **Do** keep targets at 44px, 56px on the site role's screens.
 
 ### Don't:
-- **Don't** use orange for headings, "you are here", status or decoration.
-- **Don't** use pure white for the page, a gradient anywhere, or a shadow on anything that does not float.
-- **Don't** add eyebrow labels, uppercase tracking, middle-dot meta strings, or an arrow after a link.
+- **Don't** load a web font or name one; the system face is the type.
+- **Don't** use amber, a second accent, a gradient, or a shadow on anything that doesn't float.
+- **Don't** use orange for headings, status or decoration.
+- **Don't** add eyebrow labels, uppercase tracking, or a coloured edge thicker than 1px on a row or card.
 - **Don't** hard-code a colour in screen CSS or branch on the theme; every colour is a role from tokens.css.
-- **Don't** put a coloured edge thicker than 1px on a row, card or callout.
-- **Don't** fall back to a system display face; Barlow Semi Condensed is self-hosted and precached.
+- **Don't** add bounce, spring overshoot or entrance animations on sections.

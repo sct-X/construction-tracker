@@ -1,139 +1,166 @@
 /*
-  Construction Tracker: the one token set. Light by default, dark as the alternate.
+  Cruise: the one token set. Light by default, dark as the alternate.
 
-  TOKEN PLAN (design pass, 2026-09-18; DESIGN.md is the long form)
+  TOKEN PLAN (Apple pass, 2026-09-23; DESIGN.md is the long form)
 
-  World: a surveyor's night readout. The screen is a graphite instrument
-  face; the finish date and the slip are the readout digits, everything else
-  is the quiet engraving around them. Surfaces are separated by tone, not by
-  borders. Hi-vis orange is the one accent and it marks where a thumb lands.
+  World: an Apple app. iOS grouped surfaces (a grey ground, white cells),
+  the system face, one tint colour (the Cruise orange, deepened until it
+  reads as text), red only for overdue. Chrome is translucent material over
+  the content with a hairline edge. Nothing at rest has a shadow.
 
-  Surfaces, a tonal ladder (light: a warm off-white, never #fff for the page;
-  dark: graphite, never #000):
+  Surfaces (iOS grouped backgrounds):
                 light      dark
-    ground      #f4f2ee    #131517   the page
-    well        #e8e5df    #0f1113   sunk: the dev bar, the chart ground, the phone frame
-    plate       #fbfaf8    #1a1d20   a row band, the sidebar, cards on the phone
-    raised      #ffffff    #212529   inputs, chips, a hovered plate
-    lifted      #ffffff    #2a2f34   menus, sheets, the floating buzz (with a shadow)
-    wash        #e9e6e0    #22262a   hover wash, row band, the segmented trough (concrete-100)
-    line        #dcd8d1    #2a3035   hairline;  line-strong #aaa69e / #3f474f
-  Text, a three-step ladder (the only hierarchy besides size), all AA+:
-    light: text #1b1a17 (15:1)  secondary #46443f (9:1)  muted #66635d (5.6:1)
-    dark:  text #eef0f2 (14:1)  secondary #b9c0c7 (9:1)  muted #8b939c (5.4:1)
-  The one accent:
-    hi-vis #e8730c on light (the vest), #ff8c26 on dark; dark ink on it for
-    buttons (#16110a: 6.9:1 light, 9:1 dark). Orange as small text is never
-    used on light (3.2:1); "hivis-ink" is the dark orange for that. Jobs: the
-    primary action on a screen, the focus ring, the today line on the
-    program, the chosen picker row. Never a heading, never "you are here",
-    never a status.
-  Status, always with words ("14 days late", "Unconfirmed 9 days"):
-    light: dark ink on a light wash   late #8f1d1d/#f8e1de  amber #7a4c00/#fbeccb  ok #23532c/#dcebd9
-    dark:  light ink on a dark wash   late #ff8a80/#3b1f1d  amber #f3b94c/#362a10  ok #7fd6a4/#17311f
-  Legacy scale names (concrete, steel, timber) are kept so every screen keeps
-  rendering; they now map onto the ladder above. Steel fills stay mid-tone so
-  light text on them still reads. Timber is the warm neutral for planned
-  outlines and note paper.
+    ground      #f2f2f7    #000000   systemGroupedBackground: the page
+    plate       #ffffff    #1c1c1e   secondarySystemGroupedBackground: cells, cards, the sidebar list
+    raised      #e9e9ee    #2c2c2e   a pressed or hovered cell, a chip, the fill under a count
+    lifted      #ffffff    #2c2c2e   menus, banners, floating things (with a shadow)
+    well        #e5e5ea    #0e0e10   sunk: the dev bar, the chart ground, the frame around the phone column
+    fill        #e4e4e9    #26262a   tertiarySystemFill: the segmented trough, gray buttons
+  Separators: line #c6c6c8 / #38383a (opaque separator); line-strong #aeaeb2 / #545458.
+  Labels (all AA on the ground, the cell and the raised fill):
+    light: label #1d1d1f  secondaryLabel #48484d  tertiaryLabel #636366
+    dark:  label #f5f5f7  secondaryLabel #c7c7cc  tertiaryLabel #98989f
+  Tint (the Cruise orange as an iOS tint colour, used sparingly):
+    light: tint #b0501a (text 4.7:1 on the ground; white on it 5.2:1)
+    dark:  tint #ff9a52 as text/icons (8:1), tint-fill #b8541c under white text
+    The logo's own dot keeps #c1652e / #eb6a2e.
+  Red: overdue, and only overdue. light #d70015 on #fdecee; dark #ff6961 on #3a1d1d.
+  Green: done / on plan, always with the words. light #1e7b34; dark #30d158.
+  No amber: the old amber names now resolve to label on a neutral fill.
 
-  Type: Barlow Semi Condensed (600/700) for every figure and title: a
-  signage grotesque from the world of road and site signs, tabular figures,
-  narrow enough that "Fri 26 Feb 2027" leads a six-column table. Atkinson
-  Hyperlegible Next (variable 400-800) for words: drawn for legibility at a
-  distance and in bad light, which is a phone in the sun in gloves. Both
-  self-hosted from /fonts, latin only, 68 KB together, font-display: swap.
+  Type: the system face (SF Pro on Apple platforms, the platform UI face
+  elsewhere); no web font is loaded. iOS text styles: Large Title 34,
+  Title 1 28, Title 2 22, Title 3 20, Headline 17 semibold, Body 17,
+  Callout 16, Subhead 15, Footnote 13, Caption 12.
 
-  Layout: one column of plates on the phone, tables on the desktop, the same
-  cells. Spacing on a 4px scale; radius 4 / 8 / 12 by element size; shadow
-  only on things that float. Motion answers an action and is dropped under
-  reduced motion.
+  Shape: continuous-feeling radii, 6 chips, 10 cells and controls, 12
+  buttons, 14 cards, 16 banners. 8/16/20 spacing. 44px minimum targets,
+  56px on the site role's screens and every primary control on the phone.
+  Motion: 150ms state changes, a 280ms ease-out arrival, no bounce, dropped under reduced motion.
 */
 
 :root,
 :root[data-theme='light'] {
   color-scheme: light;
 
-  /* ---- the tonal ladder ---- */
-  --well: #e8e5df;
-  --ground: #f4f2ee;
-  --plate: #fbfaf8;
-  --raised: #ffffff;
+  /* ---- surfaces: iOS grouped backgrounds ---- */
+  --ground: #f2f2f7;
+  --plate: #ffffff;
+  --raised: #e9e9ee;
   --lifted: #ffffff;
+  --well: #e5e5ea;
+  --fill: #e4e4e9; /* tertiarySystemFill: segmented trough, gray buttons */
+  --fill-strong: #d8d8dd; /* a pressed gray button */
+  --field-bg: #ffffff; /* text fields and selects */
+  --segment-on: #ffffff; /* the chosen segment's thumb */
+  --segment-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04);
 
-  /* legacy scales, remapped onto the ladder (names kept for every screen) */
+  /* legacy scales, remapped (names kept so every screen keeps rendering) */
   --concrete-050: var(--ground);
-  --concrete-100: #e9e6e0; /* hover wash, row band, the segmented trough */
-  --concrete-200: #d6d2ca; /* hairline, quiet borders */
-  --concrete-400: #8a8780;
-  --concrete-600: #66635d;
-  --concrete-800: #37352f;
-  --ink: #14130f; /* the darkest thing: dark ink on the orange button */
+  --concrete-100: var(--fill);
+  --concrete-200: #d1d1d6;
+  --concrete-400: #8e8e93; /* systemGray */
+  --concrete-600: #636366;
+  --concrete-800: #3a3a3c;
+  --ink: #1d1d1f;
 
-  --steel-100: #e2e7eb; /* light band */
-  --steel-200: #c6cfd7; /* band edge, outlines */
-  --steel-500: #52626f; /* secondary fill, quiet borders */
-  --steel-700: #2f3a44; /* a fill that takes light text (11:1) */
-  --steel-900: #1f272e; /* a deeper fill that takes light text */
+  --steel-100: #ececf0;
+  --steel-200: #d1d1d6;
+  --steel-500: #8e8e93;
+  --steel-700: #3a3a3c; /* a chosen fill that takes white text (11:1) */
+  --steel-900: #1d1d1f;
 
-  --timber-100: #f1e8d8; /* note paper */
-  --timber-300: #d8c2a2;
-  --timber-500: #9c7a4b; /* planned outline on the program */
+  --timber-100: #f2f2f7; /* note paper: the grouped grey */
+  --timber-300: #c7c7cc;
+  --timber-500: #8e8e93; /* planned outline on the program */
 
-  /* ---- the one accent ---- */
-  --hivis: #e8730c;
+  /* ---- the tint (the Cruise orange) ---- */
+  --tint: #b0501a; /* text, icons, the selected tab */
+  --tint-fill: #b0501a; /* filled buttons, under white text */
+  --tint-fill-pressed: #9a4516;
+  --tint-wash: #fbeee5; /* tinted buttons, selection */
+  --on-tint: #ffffff;
   --logo-accent: #c1652e; /* the dot in the Cruise mark */
-  --hivis-strong: #d9680a; /* hover */
-  --hivis-ink: #8a4200; /* orange as text: dark enough for AA on the wash and the ground */
-  --hivis-100: #fde9d6; /* the orange wash */
-  --hivis-contrast: #16110a; /* text on the orange button */
-  --focus: #d9680a;
+
+  --hivis: var(--tint-fill);
+  --hivis-strong: var(--tint-fill-pressed);
+  --hivis-ink: var(--tint);
+  --hivis-100: var(--tint-wash);
+  --hivis-contrast: var(--on-tint);
+  --focus: var(--tint);
 
   /* ---- status: ink for the words, bg for the wash ---- */
-  --late-ink: #8f1d1d;
-  --late-bg: #f8e1de;
-  --amber-ink: #7a4c00;
-  --amber-bg: #fbeccb;
-  --ok-ink: #23532c;
-  --ok-bg: #dcebd9;
+  --late-ink: #d70015;
+  --late-bg: #fdecee;
+  --amber-ink: var(--text); /* no amber: can't-do-yet states are label on a neutral fill, with a "!" */
+  --amber-bg: var(--fill);
+  --ok-ink: #1e7b34;
+  --ok-bg: #e8f5ea;
 
   /* ---- roles ---- */
   --bg: var(--ground);
   --surface: var(--plate);
   --surface-raised: var(--raised);
-  --line: #dcd8d1;
-  --line-strong: #aaa69e;
-  --text: #1b1a17;
-  --text-secondary: #46443f;
-  --text-muted: #66635d;
-  --text-on-dark: #f4f2ee; /* text on steel fills */
+  --line: #c6c6c8; /* opaque separator */
+  --line-strong: #aeaeb2;
+  --text: #1d1d1f; /* label */
+  --text-secondary: #48484d; /* secondaryLabel, solid for AA */
+  --text-muted: #636366; /* tertiaryLabel, solid for AA */
+  --text-on-dark: #ffffff; /* text on steel fills */
   --text-on-fill: var(--text-on-dark);
   --link: var(--text);
   --primary: var(--steel-700); /* pressed toggles, "you are here" fills */
   --primary-hover: var(--steel-900);
-  --accent: var(--hivis);
-  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2366635d' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  --shadow-float: 0 12px 32px rgba(20, 19, 15, 0.16), 0 2px 6px rgba(20, 19, 15, 0.1); /* menus, sheets, the buzz only */
+  --accent: var(--tint);
 
-  /* ---- type ---- */
-  --font-ui: 'Atkinson Hyperlegible Next', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-display: 'Barlow Semi Condensed', 'Avenir Next Condensed', 'Arial Narrow', system-ui, sans-serif;
-  --text-xs: 0.75rem; /* 12 */
-  --text-sm: 0.875rem; /* 14 */
-  --text-md: 1rem; /* 16 */
-  --text-lg: 1.125rem; /* 18 */
-  --text-xl: 1.375rem; /* 22 */
-  --text-2xl: 1.875rem; /* 30: row figures */
-  --text-3xl: 2rem; /* 32: row figures on the desktop */
-  --text-display: 2.75rem; /* 44 on the phone; 60 on the desktop */
-  --leading-tight: 1.05;
-  --leading-body: 1.45;
+  /* ---- bars: translucent material with a hairline ---- */
+  --bar-bg: rgba(249, 249, 251, 0.8);
+  --bar-bg-solid: #f9f9fb; /* no backdrop-filter */
+  --bar-filter: saturate(180%) blur(20px);
+  --bar-line: rgba(60, 60, 67, 0.29);
+  --sidebar-bg: #f5f5f7; /* macOS source list */
+  --sidebar-hover: rgba(0, 0, 0, 0.05);
+  --sidebar-current: rgba(0, 0, 0, 0.085);
+
+  /* SF-style chevrons as images (select, disclosure) */
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='14' viewBox='0 0 10 14'%3E%3Cpath d='M1.5 5L5 1.5 8.5 5M1.5 9L5 12.5 8.5 9' fill='none' stroke='%23636366' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --disclosure-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='14' viewBox='0 0 8 14'%3E%3Cpath d='M1.5 1.5L6.5 7l-5 5.5' fill='none' stroke='%23aeaeb2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08); /* menus, banners only */
+
+  /* ---- type: the system face, iOS text styles ---- */
+  --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, 'Segoe UI', sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, 'Segoe UI', sans-serif;
+  --type-large-title: 2.125rem; /* 34 */
+  --type-title-1: 1.75rem; /* 28 */
+  --type-title-2: 1.375rem; /* 22 */
+  --type-title-3: 1.25rem; /* 20 */
+  --type-headline: 1.0625rem; /* 17 semibold */
+  --type-body: 1.0625rem; /* 17 */
+  --type-callout: 1rem; /* 16 */
+  --type-subhead: 0.9375rem; /* 15 */
+  --type-footnote: 0.8125rem; /* 13 */
+  --type-caption: 0.75rem; /* 12 */
+  --type-caption-2: 0.6875rem; /* 11: tab bar labels */
+
+  /* legacy size names, mapped onto the text styles */
+  --text-xs: var(--type-caption); /* 12 */
+  --text-sm: var(--type-subhead); /* 15 */
+  --text-md: var(--type-body); /* 17 */
+  --text-lg: var(--type-title-3); /* 20 */
+  --text-xl: var(--type-title-2); /* 22 */
+  --text-2xl: var(--type-title-1); /* 28: row figures */
+  --text-3xl: var(--type-large-title); /* 34: row figures on the desktop */
+  --text-display: 2.75rem; /* 44 on the phone; 56 on the desktop: the one hero figure */
+  --leading-tight: 1.12;
+  --leading-body: 1.35;
   --weight-regular: 400;
   --weight-medium: 500;
+  --weight-semibold: 600;
   --weight-bold: 700;
-  --weight-display: 600; /* Barlow Semi Condensed SemiBold: 700 is for the hero only */
-  --tracking-display: -0.01em;
+  --weight-display: 700; /* titles and figures: SF Pro Display Bold */
+  --tracking-display: -0.012em;
 
-  /* ---- spacing: a 4px scale ---- */
+  /* ---- spacing: 4px steps, 8/16/20 used most ---- */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -146,88 +173,99 @@
   --space-16: 64px;
 
   /* ---- shape ---- */
-  --radius-sm: 4px; /* chips, inputs */
-  --radius-md: 8px; /* buttons, plates */
-  --radius-lg: 12px; /* sheets, dialogs, the buzz */
+  --radius-sm: 6px; /* chips, small controls */
+  --radius-md: 10px; /* cells, inputs, desktop plates */
+  --radius-row: 8px; /* a source-list row, a pop-up button */
+  --radius-segment: 9px; /* the segmented trough */
+  --radius-thumb: 7px; /* the segment thumb inside it */
+  --radius-button: 12px;
+  --radius-lg: 14px; /* cards, grouped lists on the phone */
+  --radius-sheet: 16px; /* banners, sheets */
   --radius-pill: 999px;
   --hairline: 1px solid var(--line);
 
   /* ---- controls ---- */
-  --tap: 56px; /* minimum tap target on Alec's screens; every primary control */
-  --control: 40px; /* desktop-only secondary controls */
-  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--focus);
+  --tap: 56px; /* Alec's screens and every primary control on the phone */
+  --tap-min: 44px; /* the iOS minimum */
+  --control: 36px; /* desktop-only secondary controls */
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--focus) 80%, transparent);
 
-  /* ---- motion: answers an action, never decorates ---- */
-  --motion-fast: 120ms;
-  --motion-sheet: 220ms;
-  --ease: cubic-bezier(0.2, 0, 0, 1);
+  /* ---- motion: gentle ease-out, no bounce ---- */
+  --motion-fast: 150ms;
+  --motion-sheet: 280ms;
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* ---- layout ---- */
   --measure: 64ch;
   --gutter: var(--space-4);
   --content-max: 1200px;
-  --sidebar: 236px;
+  --sidebar: 240px;
   /* phone breakpoint: 768px. CSS cannot read a custom property in a media
      query, so write `@media (min-width: 768px)` and keep this comment honest. */
 }
 
-/* The dark alternate: the same roles on a graphite ladder. Switch with
-   <html data-theme="dark">; My settings offers light, dark and system. */
+/* The dark alternate: iOS dark grouped surfaces, true black ground.
+   Switch with <html data-theme="dark">; My settings offers light, dark and system. */
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --well: #0f1113;
-  --ground: #131517;
-  --plate: #1a1d20;
-  --raised: #212529;
-  --lifted: #2a2f34;
+  --ground: #000000;
+  --plate: #1c1c1e;
+  --raised: #2c2c2e;
+  --lifted: #2c2c2e;
+  --well: #0e0e10;
+  --fill: #26262a;
+  --fill-strong: #3a3a3c;
+  --field-bg: #1c1c1e;
+  --segment-on: #636366;
+  --segment-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
   --concrete-050: var(--ground);
-  --concrete-100: #22262a;
-  --concrete-200: #30363c;
-  --concrete-400: #7c848d;
-  --concrete-600: #9aa3ac;
-  --concrete-800: #c4cad1;
-  --ink: #0d0f11;
-  --steel-100: #1f262d;
-  --steel-200: #364049;
-  --steel-500: #5f6f80;
-  --steel-700: #3a4653;
-  --steel-900: #2b333b;
-  --timber-100: #26221d;
-  --timber-300: #4d4231;
-  --timber-500: #b48f60;
-  --hivis: #ff8c26;
+  --concrete-100: var(--fill);
+  --concrete-200: #3a3a3c;
+  --concrete-400: #8e8e93;
+  --concrete-600: #98989f;
+  --concrete-800: #d1d1d6;
+  --ink: #000000;
+  --steel-100: #1c1c1e;
+  --steel-200: #3a3a3c;
+  --steel-500: #636366;
+  --steel-700: #636366; /* a chosen fill that takes white text (6:1) */
+  --steel-900: #48484a;
+  --timber-100: #242426;
+  --timber-300: #48484a;
+  --timber-500: #98989f;
+  --tint: #ff9a52;
+  --tint-fill: #b8541c;
+  --tint-fill-pressed: #a34a18;
+  --tint-wash: #3a2414;
+  --on-tint: #ffffff;
   --logo-accent: #eb6a2e;
-  --hivis-strong: #ffa14d;
-  --hivis-ink: #ffb069;
-  --hivis-100: #3a2612;
-  --hivis-contrast: #16110a;
-  --focus: #ff8c26;
-  --late-ink: #ff8a80;
-  --late-bg: #3b1f1d;
-  --amber-ink: #f3b94c;
-  --amber-bg: #362a10;
-  --ok-ink: #7fd6a4;
+  --late-ink: #ff6961;
+  --late-bg: #3a1d1d;
+  --ok-ink: #30d158;
   --ok-bg: #17311f;
-  --bg: var(--ground);
-  --surface: var(--plate);
-  --surface-raised: var(--raised);
-  --line: #2a3035;
-  --line-strong: #3f474f;
-  --text: #eef0f2;
-  --text-secondary: #b9c0c7;
-  --text-muted: #8b939c;
-  --text-on-dark: #eef0f2;
-  --text-on-fill: var(--text-on-dark);
-  --link: var(--text);
+  --line: #38383a;
+  --line-strong: #545458;
+  --text: #f5f5f7;
+  --text-secondary: #c7c7cc;
+  --text-muted: #98989f;
+  --text-on-dark: #ffffff;
   --primary: var(--steel-700);
-  --primary-hover: #465361;
-  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%238b939c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --primary-hover: #737378;
+  --bar-bg: rgba(22, 22, 24, 0.78);
+  --bar-bg-solid: #161618;
+  --bar-line: rgba(84, 84, 88, 0.65);
+  --sidebar-bg: #1c1c1e;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-current: rgba(255, 255, 255, 0.11);
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='14' viewBox='0 0 10 14'%3E%3Cpath d='M1.5 5L5 1.5 8.5 5M1.5 9L5 12.5 8.5 9' fill='none' stroke='%2398989f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --disclosure-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='14' viewBox='0 0 8 14'%3E%3Cpath d='M1.5 1.5L6.5 7l-5 5.5' fill='none' stroke='%23636366' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 @media (min-width: 768px) {
   :root {
-    --text-display: 3.75rem; /* 60 */
+    --text-display: 3.5rem; /* 56 */
     --gutter: var(--space-8);
   }
 }

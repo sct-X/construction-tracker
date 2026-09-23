@@ -1,189 +1,168 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-17T23:10:00.535735+00:00",
-  "title": "Design System: Construction Tracker",
+  "generatedAt": "2026-09-23T13:54:00.722268+00:00",
+  "title": "Design System: Cruise",
   "extensions": {
     "colorMeta": {
-      "hivis": {
+      "tint": {
         "role": "primary",
-        "displayName": "Hi-vis",
-        "canonical": "#e8730c",
+        "displayName": "Tint",
+        "canonical": "#b0501a",
         "tonalRamp": [
-          "#3a2612",
-          "#6b3f12",
-          "#8a4200",
-          "#b95a0a",
-          "#e8730c",
-          "#f0862a",
-          "#f5a55c",
-          "#fde9d6"
+          "#3a2414",
+          "#6e3210",
+          "#9a4516",
+          "#b0501a",
+          "#c1652e",
+          "#eb6a2e",
+          "#ff9a52",
+          "#fbeee5"
         ]
       },
       "ground": {
         "role": "neutral",
         "displayName": "Ground",
-        "canonical": "#f4f2ee",
+        "canonical": "#f2f2f7",
         "tonalRamp": [
-          "#14130f",
-          "#37352f",
-          "#66635d",
-          "#8a8780",
-          "#aaa69e",
-          "#dcd8d1",
-          "#e8e5df",
-          "#f4f2ee"
+          "#1d1d1f",
+          "#3a3a3c",
+          "#48484d",
+          "#636366",
+          "#8e8e93",
+          "#aeaeb2",
+          "#c6c6c8",
+          "#e5e5ea",
+          "#f2f2f7"
         ]
       },
       "plate": {
         "role": "neutral",
         "displayName": "Plate",
-        "canonical": "#fbfaf8",
+        "canonical": "#ffffff",
         "tonalRamp": [
-          "#14130f",
-          "#37352f",
-          "#66635d",
-          "#8a8780",
-          "#aaa69e",
-          "#e9e6e0",
-          "#f4f2ee",
-          "#fbfaf8"
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#e9e9ee",
+          "#ffffff"
         ]
       },
       "text": {
         "role": "neutral",
-        "displayName": "Text",
-        "canonical": "#1b1a17",
+        "displayName": "Label",
+        "canonical": "#1d1d1f",
         "tonalRamp": [
-          "#14130f",
-          "#1b1a17",
-          "#37352f",
-          "#46443f",
-          "#66635d",
-          "#8a8780",
-          "#aaa69e",
-          "#dcd8d1"
+          "#1d1d1f",
+          "#48484d",
+          "#636366"
         ]
       },
       "steel-fill": {
-        "role": "secondary",
+        "role": "neutral",
         "displayName": "Steel fill",
-        "canonical": "#2f3a44",
+        "canonical": "#3a3a3c",
         "tonalRamp": [
-          "#1f272e",
-          "#2f3a44",
-          "#3a4653",
-          "#52626f",
-          "#7b8b98",
-          "#a9b6c1",
-          "#c6cfd7",
-          "#e2e7eb"
-        ]
-      },
-      "timber": {
-        "role": "tertiary",
-        "displayName": "Timber",
-        "canonical": "#9c7a4b",
-        "tonalRamp": [
-          "#4d4231",
-          "#6e5b3f",
-          "#8f7550",
-          "#9c7a4b",
-          "#b48f60",
-          "#c8a77c",
-          "#d8c2a2",
-          "#f1e8d8"
+          "#3a3a3c",
+          "#636366"
         ]
       },
       "late-ink": {
         "role": "status",
-        "displayName": "Late",
-        "canonical": "#8f1d1d",
+        "displayName": "Overdue",
+        "canonical": "#d70015",
         "tonalRamp": [
-          "#3b1f1d",
-          "#5c2825",
-          "#8f1d1d",
-          "#c94c44",
-          "#ff8a80",
-          "#ffa39b",
-          "#ffc4be",
-          "#f8e1de"
-        ]
-      },
-      "amber-ink": {
-        "role": "status",
-        "displayName": "Amber",
-        "canonical": "#7a4c00",
-        "tonalRamp": [
-          "#362a10",
-          "#5a4318",
-          "#7a4c00",
-          "#b8862a",
-          "#f3b94c",
-          "#f6c973",
-          "#f9db9f",
-          "#fbeccb"
+          "#d70015",
+          "#ff6961",
+          "#fdecee",
+          "#3a1d1d"
         ]
       },
       "ok-ink": {
         "role": "status",
-        "displayName": "Ok",
-        "canonical": "#23532c",
+        "displayName": "Done",
+        "canonical": "#1e7b34",
         "tonalRamp": [
-          "#17311f",
-          "#23532c",
-          "#2f6f3d",
-          "#4fa06a",
-          "#7fd6a4",
-          "#9fe0b9",
-          "#bfe9cf",
-          "#dcebd9"
+          "#1e7b34",
+          "#30d158",
+          "#e8f5ea",
+          "#17311f"
         ]
       }
     },
     "typographyMeta": {
-      "display": {
-        "displayName": "Display",
-        "purpose": "The screen's one hero figure (a finish date, an ETA)."
+      "large-title": {
+        "displayName": "Large Title",
+        "purpose": "The page title and the job switcher's name."
       },
-      "figure": {
-        "displayName": "Figure",
-        "purpose": "A row's readout: Monday's finish and slip; the first line of a phone card."
+      "title-1": {
+        "displayName": "Title 1",
+        "purpose": "Row figures on the phone."
       },
-      "title": {
-        "displayName": "Title",
-        "purpose": "Page titles; never larger than the figures beneath."
+      "title-2": {
+        "displayName": "Title 2",
+        "purpose": "Card titles."
+      },
+      "title-3": {
+        "displayName": "Title 3",
+        "purpose": "Section titles."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "A cell's title."
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Words. Measure 64ch."
+        "purpose": "Words and buttons."
       },
-      "label": {
-        "displayName": "Label",
-        "purpose": "Column headers, chip words, secondary lines. Sentence case, never tracked."
+      "callout": {
+        "displayName": "Callout",
+        "purpose": "Secondary body copy."
+      },
+      "subhead": {
+        "displayName": "Subhead",
+        "purpose": "Secondary lines, chips, sidebar rows, tables."
+      },
+      "footnote": {
+        "displayName": "Footnote",
+        "purpose": "Group headers, field labels, table headers."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Counts and tab bar labels."
       }
     },
     "shadows": [
       {
         "name": "float",
-        "value": "0 12px 32px rgba(20, 19, 15, 0.16), 0 2px 6px rgba(20, 19, 15, 0.1)",
-        "purpose": "Menus, sheets, the buzz. Nothing at rest. Deeper in the dark alternate."
+        "value": "0 10px 30px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08)",
+        "purpose": "The banner (buzz) and menus. Nothing at rest."
+      },
+      {
+        "name": "segment",
+        "value": "0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04)",
+        "purpose": "The chosen segment's thumb."
       }
     ],
     "motion": [
       {
         "name": "motion-fast",
-        "value": "120ms",
-        "purpose": "Hover and press colour steps."
+        "value": "150ms",
+        "purpose": "Hover and press colour and opacity steps."
       },
       {
         "name": "motion-sheet",
-        "value": "220ms",
-        "purpose": "The buzz slide-up; sheets."
+        "value": "280ms",
+        "purpose": "The banner slide-up."
       },
       {
         "name": "ease",
-        "value": "cubic-bezier(0.2, 0, 0, 1)",
-        "purpose": "Every transition; exponential ease-out from a visible default."
+        "value": "cubic-bezier(0.25, 0.1, 0.25, 1)",
+        "purpose": "State changes."
+      },
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Arrivals; no bounce, no overshoot."
       }
     ],
     "breakpoints": [
@@ -193,8 +172,8 @@
       }
     ],
     "focus": {
-      "value": "0 0 0 2px #f4f2ee, 0 0 0 4px #d9680a",
-      "purpose": "Every focusable thing; inset on full-width rows."
+      "value": "0 0 0 3px color-mix(in srgb, #b0501a 80%, transparent)",
+      "purpose": "Every focusable thing; inset on tabs."
     },
     "themes": {
       "default": "light",
@@ -205,92 +184,101 @@
   },
   "components": [
     {
-      "name": "Primary button",
+      "name": "Filled button",
       "kind": "button",
-      "refersTo": "button-primary",
-      "description": "The one hi-vis action on a screen; dark ink on orange.",
-      "html": "<button class=\"ds-btn ds-btn-primary\">Add photos</button>",
-      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;min-height:56px;padding:0 20px;border:1px solid #aaa69e;border-radius:8px;background:transparent;color:#1b1a17;font:500 16px/1.2 'Atkinson Hyperlegible Next',system-ui,sans-serif;transition:background .12s cubic-bezier(.2,0,0,1)}.ds-btn-primary{background:#e8730c;border-color:#e8730c;color:#16110a;font-weight:700}.ds-btn-primary:hover{background:#d9680a;border-color:#d9680a}.ds-btn:focus-visible{outline:none;box-shadow:0 0 0 2px #f4f2ee,0 0 0 4px #d9680a}"
+      "refersTo": "button-filled",
+      "description": "The one tint action on a screen; white semibold on the tint.",
+      "html": "<button class=\"ds-btn ds-btn-filled\">Add photos</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;min-height:56px;padding:0 20px;border:0;border-radius:12px;background:#e4e4e9;color:#1d1d1f;font:500 17px/1.2 -apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;transition:background-color .15s cubic-bezier(.25,.1,.25,1)}.ds-btn:hover{background:#d8d8dd}.ds-btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(176,80,26,.8)}.ds-btn-filled{background:#b0501a;color:#fff;font-weight:600}.ds-btn-filled:hover{background:#9a4516}"
     },
     {
-      "name": "Secondary button",
+      "name": "Gray button",
       "kind": "button",
-      "refersTo": "button-secondary",
-      "description": "Outlined, text colour; hover fills raised.",
+      "refersTo": "button-gray",
+      "description": "The everyday secondary action: fill with label text.",
       "html": "<button class=\"ds-btn\">Keep 26 Oct</button>",
-      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;min-height:56px;padding:0 20px;border:1px solid #aaa69e;border-radius:8px;background:transparent;color:#1b1a17;font:500 16px/1.2 'Atkinson Hyperlegible Next',system-ui,sans-serif;transition:background .12s}.ds-btn:hover{background:#e9e6e0;border-color:#8a8780}.ds-btn:focus-visible{outline:none;box-shadow:0 0 0 2px #f4f2ee,0 0 0 4px #d9680a}"
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;min-height:56px;padding:0 20px;border:0;border-radius:12px;background:#e4e4e9;color:#1d1d1f;font:500 17px/1.2 -apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;transition:background-color .15s cubic-bezier(.25,.1,.25,1)}.ds-btn:hover{background:#d8d8dd}.ds-btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(176,80,26,.8)}"
     },
     {
-      "name": "Segmented toggle",
+      "name": "Plain button",
+      "kind": "button",
+      "refersTo": "button-plain",
+      "description": "Tint text, no fill.",
+      "html": "<button class=\"ds-btn ds-btn-plain\">Set date</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;min-height:56px;padding:0 20px;border:0;border-radius:12px;background:#e4e4e9;color:#1d1d1f;font:500 17px/1.2 -apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;transition:background-color .15s cubic-bezier(.25,.1,.25,1)}.ds-btn:hover{background:#d8d8dd}.ds-btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(176,80,26,.8)}.ds-btn-plain{background:transparent;color:#b0501a}"
+    },
+    {
+      "name": "Segmented control",
       "kind": "chip",
-      "refersTo": "button-fill",
-      "description": "A raised trough; the pressed segment fills steel.",
-      "html": "<span class=\"ds-seg\"><button class=\"ds-seg-btn\" aria-pressed=\"true\">Monday</button><button class=\"ds-seg-btn\">the original plan</button></span>",
-      "css": ".ds-seg{display:inline-flex;padding:3px;border-radius:8px;background:#ffffff}.ds-seg-btn{min-height:34px;padding:0 12px;border:0;border-radius:6px;background:transparent;color:#46443f;font:500 14px/1 'Atkinson Hyperlegible Next',system-ui,sans-serif;cursor:pointer}.ds-seg-btn:hover{color:#1b1a17}.ds-seg-btn[aria-pressed=true]{background:#2f3a44;color:#f4f2ee}.ds-seg-btn:focus-visible{outline:none;box-shadow:0 0 0 2px #ffffff,0 0 0 4px #e8730c}"
+      "refersTo": "segmented",
+      "description": "A gray trough with a white thumb under the chosen segment.",
+      "html": "<div class=\"ds-seg\"><button class=\"ds-seg-b\" aria-pressed=\"true\">List</button><button class=\"ds-seg-b\">Call</button></div>",
+      "css": ".ds-seg{display:inline-flex;gap:2px;padding:2px;border-radius:9px;background:#e4e4e9}.ds-seg-b{min-height:32px;padding:0 12px;border:0;border-radius:7px;background:transparent;color:#1d1d1f;font:500 13px/1 -apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif}.ds-seg-b[aria-pressed=true]{background:#fff;font-weight:600;box-shadow:0 3px 8px rgba(0,0,0,.12),0 1px 1px rgba(0,0,0,.04)}"
     },
     {
       "name": "Input",
       "kind": "input",
       "refersTo": "input",
-      "description": "Raised fill, hairline outline, orange outline on focus.",
-      "html": "<input class=\"ds-input\" placeholder=\"Order windows\" />",
-      "css": ".ds-input{width:100%;min-height:56px;padding:0 16px;border:1px solid #aaa69e;border-radius:8px;background:#ffffff;color:#1b1a17;font:16px 'Atkinson Hyperlegible Next',system-ui,sans-serif;caret-color:#e8730c}.ds-input::placeholder{color:#66635d}.ds-input:focus-visible{outline:none;border-color:#e8730c}"
+      "description": "White field, separator border, 10px radius; focus turns the border tint.",
+      "html": "<input class=\"ds-input\" placeholder=\"Title\">",
+      "css": ".ds-input{min-height:56px;padding:0 16px;border:1px solid #c6c6c8;border-radius:10px;background:#fff;color:#1d1d1f;font:400 17px/1.35 -apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif}.ds-input:focus-visible{outline:none;border-color:#b0501a;box-shadow:0 0 0 3px rgba(176,80,26,.8)}"
+    },
+    {
+      "name": "Inset grouped list",
+      "kind": "list",
+      "refersTo": "cell",
+      "description": "White list on the grey ground; 44px cells, inset hairlines, a disclosure chevron.",
+      "html": "<ul class=\"ds-group\"><li class=\"ds-cell\">Windows<span>26 Oct</span></li><li class=\"ds-cell\">Sliding doors<span>26 Oct</span></li></ul>",
+      "css": ".ds-group{list-style:none;margin:0;padding:0;border-radius:10px;overflow:hidden;background:#fff}.ds-cell{display:flex;justify-content:space-between;min-height:44px;align-items:center;padding:0 16px;font:400 17px -apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;color:#1d1d1f;box-shadow:inset 16px -0.5px 0 #fff,inset 0 -0.5px 0 #c6c6c8}.ds-cell span{color:#636366}"
     },
     {
       "name": "Status chip",
       "kind": "chip",
       "refersTo": "status-late",
-      "description": "Words on a wash; the words carry the meaning.",
-      "html": "<span class=\"ds-status ds-status-late\"><b>!</b> 14 days late</span> <span class=\"ds-status ds-status-amber\"><b>!</b> Unconfirmed 9 days</span> <span class=\"ds-status ds-status-ok\">On plan</span>",
-      "css": ".ds-status{display:inline-flex;gap:.35em;padding:2px 8px;border-radius:4px;font:500 14px/1.4 'Atkinson Hyperlegible Next',system-ui,sans-serif;font-variant-numeric:tabular-nums}.ds-status-late{color:#8f1d1d;background:#f8e1de}.ds-status-amber{color:#7a4c00;background:#fbeccb}.ds-status-ok{color:#23532c;background:#dcebd9}"
+      "description": "Words on a wash; red only for overdue, with a leading '!'.",
+      "html": "<span class=\"ds-chip\">! 4 overdue</span>",
+      "css": ".ds-chip{display:inline-flex;padding:2px 8px;border-radius:6px;background:#fdecee;color:#d70015;font:500 15px/1.4 -apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif}"
     },
     {
-      "name": "Readout",
-      "kind": "custom",
-      "refersTo": "plate",
-      "description": "BigNumber: a figure in Barlow with a two-word label under it.",
-      "html": "<div class=\"ds-plate\"><span class=\"ds-readout\"><span class=\"ds-readout-value\">Fri 4 Dec 2026</span><span class=\"ds-readout-label\">Forecast finish</span></span> <span class=\"ds-readout ds-readout-late\"><span class=\"ds-readout-value\">+5 days, $1,430</span><span class=\"ds-readout-label\">Slip</span></span></div>",
-      "css": ".ds-plate{display:flex;gap:32px;padding:16px;border-radius:12px;background:#fbfaf8}.ds-readout{display:inline-flex;flex-direction:column;gap:2px;color:#1b1a17}.ds-readout-value{font:600 32px/1.05 'Barlow Semi Condensed','Avenir Next Condensed','Arial Narrow',sans-serif;letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap}.ds-readout-label{font:14px/1.2 'Atkinson Hyperlegible Next',system-ui,sans-serif;color:#66635d}.ds-readout-late .ds-readout-value{color:#8f1d1d}"
-    },
-    {
-      "name": "Sidebar nav",
+      "name": "Tab bar",
       "kind": "nav",
-      "refersTo": "plate",
-      "description": "Plate sidebar; current and hover step to raised; never orange.",
-      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link\" aria-current=\"page\">Monday</a><a class=\"ds-nav-link\">Waiting on</a><a class=\"ds-nav-link\">Call list</a><a class=\"ds-nav-link\">Jobs</a></nav>",
-      "css": ".ds-nav{display:flex;flex-direction:column;gap:2px;width:236px;padding:12px;background:#fbfaf8}.ds-nav-link{display:flex;align-items:center;min-height:38px;padding:0 12px;border-radius:8px;color:#46443f;font:500 16px 'Atkinson Hyperlegible Next',system-ui,sans-serif;text-decoration:none;cursor:pointer}.ds-nav-link:hover,.ds-nav-link[aria-current=page]{background:#ffffff;color:#1b1a17}"
+      "refersTo": "tabbar",
+      "description": "Translucent material, a glyph over a label, the selected tab in tint.",
+      "html": "<nav class=\"ds-tabs\"><a aria-current=\"page\">Overview</a><a>Waiting on</a></nav>",
+      "css": ".ds-tabs{display:flex;background:rgba(249,249,251,.8);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid rgba(60,60,67,.29)}.ds-tabs a{flex:1;min-height:56px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;color:#636366;font:500 11px -apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;text-decoration:none}.ds-tabs a[aria-current]{color:#b0501a}"
     }
   ],
   "narrative": {
-    "northStar": "The surveyor's readout",
-    "overview": "An instrument face on which the forecast finish and the slip are the readout digits and everything else is the quiet engraving around them. Light by default on a warm off-white ladder, graphite as the dark alternate; surfaces separate by tone, hierarchy by size and a three-step text ladder. Hi-vis orange appears only where a thumb lands.",
+    "northStar": "If Apple made it",
+    "overview": "The Human Interface Guidelines translated to the web: iOS grouped surfaces, the system face in Apple's text styles, translucent bars with hairline edges, one orange tint used sparingly and red only for overdue. Calm on purpose, so an overdue item is the first thing the eye finds.",
     "keyCharacteristics": [
-      "Numbers are the largest type on partner screens",
-      "Tonal surfaces on a warm off-white ladder (graphite in dark), never pure white for the page, never #000",
-      "Words carry every status; colour only agrees",
-      "Barlow Semi Condensed for figures, Atkinson Hyperlegible Next for words, self-hosted",
-      "One accent with a short job list; 56px targets for gloves"
+      "iOS grouped surfaces: grey ground, white cells; true black in dark",
+      "The system face, no web font",
+      "One tint, the Cruise orange deepened for AA",
+      "Red is overdue only; no amber",
+      "Translucent nav bar and tab bar; a macOS source list on the desktop",
+      "44px targets, 56px for the site role"
     ],
     "rules": [
       {
-        "name": "The Thumb Rule",
-        "body": "Orange goes where a thumb lands and nowhere else: one primary action per screen, the focus ring, the today line, the chosen picker row.",
+        "name": "The Tint Rule",
+        "body": "Orange means you can act here or you are here: the filled button, plain buttons, the selected tab, the current sidebar glyph, focus. One filled button per screen.",
+        "section": "colors"
+      },
+      {
+        "name": "The Red Rule",
+        "body": "Red is overdue. If it isn't past its date, it isn't red.",
         "section": "colors"
       },
       {
         "name": "The Words First Rule",
-        "body": "Late, amber and ok never appear as colour alone; the wash sits behind the words, and late and amber carry a leading '!'.",
+        "body": "Colour agrees with words, never replaces them; warnings carry a leading '!'.",
         "section": "colors"
       },
       {
-        "name": "The Tone Not Border Rule",
-        "body": "Regions separate by stepping the ladder, not by outlining. Hairlines live inside tables and lists only.",
-        "section": "elevation"
-      },
-      {
-        "name": "The Figures Lead Rule",
-        "body": "On a partner screen the largest type is a number or a date, never a heading.",
-        "section": "typography"
+        "name": "The On-Fill Rule",
+        "body": "Text on the steel or tint fill is white from a token, never the label ladder.",
+        "section": "colors"
       },
       {
         "name": "The Two Words Rule",
@@ -298,26 +286,26 @@
         "section": "typography"
       },
       {
-        "name": "The On-Fill Rule",
-        "body": "Text on a steel fill is --text-on-dark, never a colour from the text ladder; the ladder flips with the theme, the fill does not.",
-        "section": "colors"
+        "name": "The Sentence Case Rule",
+        "body": "Group headers and labels are sentence-case footnotes, never uppercase or tracked.",
+        "section": "typography"
       }
     ],
     "dos": [
-      "Do set the figure larger than the title",
-      "Do step the ladder for regions and keep hairlines for rows",
-      "Do put every status in words with the chip behind them",
-      "Do keep one hi-vis control per screen, 56px tall",
-      "Do use .btn, .seg, .input, .table, .plate before writing screen CSS",
-      "Do keep labels to one or two words"
+      "Do start from .btn, .seg, .input, .group/.cell, .table, .plate",
+      "Do put content in white cells on the grouped ground",
+      "Do keep one filled tint button per screen",
+      "Do pair every status colour with words; keep red for overdue",
+      "Do give every date its relative time",
+      "Do keep targets at 44px, 56px for the site role"
     ],
     "donts": [
-      "Don't use orange for headings, you-are-here, status or decoration",
-      "Don't use pure white for the page, a gradient, or a resting shadow",
-      "Don't add eyebrow labels, uppercase tracking or middle-dot meta strings",
+      "Don't load a web font",
+      "Don't use amber, a second accent, a gradient or a resting shadow",
+      "Don't use orange for headings, status or decoration",
+      "Don't add eyebrow labels or uppercase tracking",
       "Don't hard-code a colour in screen CSS",
-      "Don't put a coloured edge thicker than 1px on a row, card or callout",
-      "Don't fall back to a system display face"
+      "Don't add bounce or section entrance animations"
     ]
   }
 }

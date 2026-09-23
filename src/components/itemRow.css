@@ -1,13 +1,14 @@
 /* ItemRow: a fixed type column, then title and who, then the date phrase and
    status. Phone: dates drop under the title. Desktop: one line each.
-   Rows sit on the ground and are separated by a hairline; a flagged row
+   Rows sit on the ground and are separated by an iOS hairline; a flagged row
    carries its words in the late or amber ink, never a coloured edge. */
 .itemrow__list {
   display: flex;
   flex-direction: column;
+  container: itemrows / inline-size;
 }
 .itemrow__li + .itemrow__li {
-  border-top: var(--hairline);
+  border-top: 0.5px solid var(--line);
 }
 .itemrow__li--with-action {
   display: flex;
@@ -91,7 +92,9 @@
 .itemrow__status {
   color: var(--text-muted);
 }
-@media (min-width: 768px) {
+/* One line each only when the list itself is wide: a half-width column on
+   the desktop keeps the stacked phone layout rather than crushing the title. */
+@container itemrows (min-width: 560px) {
   .itemrow {
     grid-template-columns: 5.5em minmax(0, 1fr) auto;
     column-gap: var(--space-3);

@@ -1,12 +1,15 @@
 /**
  * The app shell: per-role navigation around every screen.
  *
- *  - Phone (below 768px, and always for the site role): a top bar with the
- *    side switcher, the bell and the person, a bottom tab bar with 56px
- *    targets, and the offline bar under the top bar.
- *  - Desktop: one left sidebar (side switcher, main group, a Setup group,
- *    then the bell and the person at the foot). Jobs are reached from the
- *    Overview and moved between with the job switcher on each job page.
+ *  - Phone (below 768px, and always for the site role): an iOS nav bar
+ *    (the Cruise mark, the side switcher, the bell and the person) and an
+ *    iOS tab bar (a glyph over a label, the tint for the current tab), both
+ *    translucent material over the content, and the offline bar under the
+ *    nav bar.
+ *  - Desktop: a macOS source list (the logo, side switcher, main group with
+ *    glyphs, a Setup group, then the bell and the person at the foot). Jobs
+ *    are reached from the Overview and moved between with the job switcher
+ *    on each job page.
  *
  * Every nav item carries `data-testid="nav-<name>"`; the tab bar and the
  * sidebar's main list are `data-testid="primary-nav"`.
@@ -23,6 +26,7 @@ import { isHere, phoneTabs, sidebarMain, sidebarSetup, type NavItem } from './na
 import { rememberJob } from './lastJob';
 import { Logo, LogoMark } from './Logo';
 import { usePhoneWidth } from './useNarrow';
+import { BellGlyph, NavIcon, PersonGlyph } from './icons';
 import './shell.css';
 
 export type Layout = 'phone' | 'desktop';
@@ -32,35 +36,12 @@ export function useLayout(): Layout {
   return useContext(LayoutContext);
 }
 
-function BellIcon() {
-  return (
-    <svg className="icon" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
-      <path
-        d="M10 2.5a4.5 4.5 0 0 0-4.5 4.5v3.2L4 13.5h12l-1.5-3.3V7A4.5 4.5 0 0 0 10 2.5Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path d="M8 15.5a2 2 0 0 0 4 0" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PersonIcon() {
-  return (
-    <svg className="icon" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
-      <circle cx="10" cy="7" r="3.4" fill="none" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M3.5 17.5c.8-3.3 3.3-5 6.5-5s5.7 1.7 6.5 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function NavLinkItem({ item, pathname, className }: { item: NavItem; pathname: string; className: string }) {
   const here = isHere(item, pathname);
   return (
     <Link to={item.to} className={className} data-testid={`nav-${item.id}`} aria-current={here ? 'page' : undefined}>
-      {item.label}
+      <NavIcon id={item.id} label={item.label} className={`${className}-icon icon`} />
+      <span className={`${className}-label`}>{item.label}</span>
     </Link>
   );
 }
@@ -77,11 +58,11 @@ function PhoneChrome({ pathname }: { pathname: string }) {
         <SideSwitcher className="topbar__side" />
         <div className="topbar__tools">
           <Link to="/notifications" className="topbar__tool" data-testid="nav-notifications" aria-label="Notifications">
-            <BellIcon />
+            <BellGlyph />
             <BellBadge className="topbar__count" />
           </Link>
           <Link to="/settings" className="topbar__tool" data-testid="nav-settings" aria-label={`${person.shortName}: my settings`}>
-            <PersonIcon />
+            <PersonGlyph />
           </Link>
         </div>
       </header>
@@ -122,11 +103,11 @@ function DesktopChrome({ pathname }: { pathname: string }) {
       )}
       <div className="sidebar__foot">
         <Link to="/notifications" className="sidebar__link sidebar__link--tool sidebar__link--bell" data-testid="nav-notifications" aria-label="Notifications" title="Notifications">
-          <BellIcon />
+          <BellGlyph />
           <BellBadge className="sidebar__count" />
         </Link>
         <Link to="/settings" className="sidebar__link sidebar__link--tool" data-testid="nav-settings">
-          <PersonIcon />
+          <PersonGlyph />
           <span>{person.shortName}</span>
         </Link>
       </div>

@@ -54,8 +54,9 @@ export function JobHeader({ job, section, title, meta, switchMeta, actions, back
 
 function ChevronIcon() {
   return (
-    <svg className="job-switch__chevron" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
-      <path d="M5 7.5l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <svg className="job-switch__chevron" viewBox="0 0 26 26" width="26" height="26" aria-hidden="true">
+      <circle className="job-switch__chevron-disc" cx="13" cy="13" r="13" />
+      <path d="M8.6 11.2 13 15.6l4.4-4.4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

@@ -53,11 +53,12 @@ Dates are derived, not typed: lead times, shipment ETAs and step links roll forw
 
 ## Brand Commitments
 
-- Product name: Cruise, with the Cruise logo.
-- Hi-vis orange is the single accent. [confirmed in SPEC.md]
+- Product name: Cruise, with the Cruise logo (an outlined mark; no font needed).
+- Look and feel: as if Apple made it. Apple Human Interface Guidelines quality translated to the web: calm, clear, iOS grouped surfaces, translucent bars, native-feeling controls. [Scott, 23 Sep 2026, binding]
+- The Cruise logo orange is the single tint colour, used sparingly (the filled button, the selected tab, plain buttons, focus). Red is kept for overdue. No amber. [binding]
+- Type is the system face (SF Pro on Apple devices, the platform's UI face elsewhere); no web font is loaded. This replaces the earlier self-hosted pair. [Scott, 23 Sep 2026]
+- Never load Inter, Geist, Space Grotesk or Roboto as a web font. [binding]
 - Light theme by default; dark and system available from My settings.
-- A self-hosted web font pair is approved. [confirmed]
-- No Inter, Geist, Space Grotesk or Roboto. [binding]
 - No gradient cards, no all-caps eyebrow labels. [confirmed in SPEC.md]
 - Dom's change brief, 23 Sep 2026, verbatim: "This version is about one thing: making sure the timing of each job is on track. Anything that doesn't help me see what's late, what's next and what we're waiting on should be pared back. The app is also a bit text heavy right now, so I'd like it more visual and cleaner overall." [binding]
 - The earlier client brief still stands where it doesn't conflict: "modern easy on the eyes app… sleek. well spaced. not too much writing." [binding]

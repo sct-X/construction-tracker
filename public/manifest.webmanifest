@@ -6,8 +6,8 @@
   "scope": "/construction-tracker/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#f4f2ee",
-  "theme_color": "#f4f2ee",
+  "background_color": "#f2f2f7",
+  "theme_color": "#f2f2f7",
   "icons": [
     { "src": "/construction-tracker/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
     { "src": "/construction-tracker/icons/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }

@@ -1,13 +1,13 @@
 /*
-  App shell. Two layouts, one token set, one world.
+  App shell, drawn to Apple's patterns. Two layouts, one token set.
 
-  Phone: a top bar (side, bell, me) and a bottom tab bar of text labels at
-  56px, both on the plate tone. Desktop: a plate sidebar beside the ground,
-  separated by tone alone, no border. The site role gets the phone layout
+  Phone: an iOS navigation bar (the Cruise mark, the side, the bell, me) and
+  an iOS tab bar (a glyph over a label), both translucent material with a
+  hairline edge, so the content scrolls under them. The current tab takes the
+  tint; the rest are gray. Desktop: a macOS source list beside the grouped
+  ground: a quiet translucent-looking column, a rounded selection fill, the
+  glyph tinted on the current row. The site role gets the phone layout
   centred on a wide window.
-
-  Hi-vis orange is spent on primary actions only; "you are here" is
-  brightness and a raised fill, never colour.
 */
 
 /* ---- frame ---- */
@@ -45,11 +45,21 @@
   }
   .shell--phone {
     min-height: 100dvh;
-    box-shadow: 0 0 0 1px var(--line);
+    box-shadow: 0 0 0 0.5px var(--line);
   }
 }
 
-/* ---- desktop sidebar ---- */
+/* ---- glyphs ---- */
+.icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+.icon__solid {
+  transition: fill var(--motion-fast) var(--ease);
+}
+
+/* ---- desktop sidebar: a macOS source list ---- */
 .sidebar {
   position: sticky;
   top: var(--above);
@@ -57,12 +67,13 @@
   height: calc(100dvh - var(--above));
   display: flex;
   flex-direction: column;
-  background: var(--plate);
+  background: var(--sidebar-bg);
+  border-right: 0.5px solid var(--bar-line);
   padding: var(--space-5) var(--space-3) var(--space-3);
   overflow-y: auto;
 }
 .sidebar__brand {
-  padding: 0 var(--space-3) var(--space-5);
+  padding: 0 var(--space-2) var(--space-5);
 }
 .sidebar__wordmark {
   display: block;
@@ -76,50 +87,67 @@
 .sidebar__setup {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 .sidebar__setup {
   margin-top: var(--space-5);
-  padding-top: var(--space-4);
-  border-top: var(--hairline);
 }
 .sidebar__group {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-medium);
+  font-size: var(--type-caption);
+  font-weight: var(--weight-semibold);
   color: var(--text-muted);
-  padding: 0 var(--space-3) var(--space-2);
+  padding: 0 var(--space-2) var(--space-1);
 }
 .sidebar__link {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  min-height: 38px;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-row);
+  color: var(--text);
   text-decoration: none;
-  font-weight: var(--weight-medium);
-  transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-regular);
+  transition: background-color var(--motion-fast) var(--ease);
+}
+.sidebar__link-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-muted);
+}
+.sidebar__link-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .sidebar__link:hover {
-  background: var(--raised);
-  color: var(--text);
+  background: var(--sidebar-hover);
 }
 .sidebar__link[aria-current='page'] {
-  background: var(--raised);
-  color: var(--text);
+  background: var(--sidebar-current);
+  font-weight: var(--weight-semibold);
+}
+.sidebar__link[aria-current='page'] .sidebar__link-icon {
+  color: var(--tint);
 }
 .sidebar__foot {
   display: flex;
   gap: var(--space-1);
   margin-top: auto;
   padding-top: var(--space-3);
-  border-top: var(--hairline);
+  border-top: 0.5px solid var(--line);
 }
 .sidebar__link--tool {
   flex: 1 1 0;
   min-width: 0;
+  min-height: var(--tap-min);
   color: var(--text-secondary);
+}
+.sidebar__link--tool .icon {
+  width: 22px;
+  height: 22px;
 }
 .sidebar__link--bell {
   flex: 0 0 auto;
@@ -134,10 +162,10 @@
   min-width: 20px;
   padding: 0 6px;
   border-radius: var(--radius-pill);
-  background: var(--text);
-  color: var(--bg);
+  background: var(--tint-fill);
+  color: var(--on-tint);
   font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-semibold);
   line-height: 20px;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -146,16 +174,16 @@
   margin-left: 0;
 }
 
-/* ---- side switcher ---- */
+/* ---- side switcher: a pop-up button ---- */
 .side-switcher select {
   width: 100%;
-  min-height: 36px;
-  padding: 0 var(--space-8) 0 var(--space-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background-color: var(--raised);
+  min-height: 32px;
+  padding: 0 var(--space-8) 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-row);
+  background-color: var(--fill);
   color: var(--text);
-  font-size: var(--text-sm);
+  font-size: var(--type-subhead);
   font-weight: var(--weight-medium);
 }
 .side-name {
@@ -165,7 +193,7 @@
   color: var(--text-secondary);
 }
 
-/* ---- phone top bar and tab bar ---- */
+/* ---- phone: iOS navigation bar ---- */
 .topbar {
   order: 1;
   position: sticky;
@@ -175,9 +203,18 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  min-height: var(--tap);
+  min-height: 52px;
   padding: 0 var(--space-2) 0 var(--gutter);
-  background: var(--plate);
+  background: var(--bar-bg-solid);
+  border-bottom: 0.5px solid var(--bar-line);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .topbar,
+  .tabbar {
+    background: var(--bar-bg);
+    -webkit-backdrop-filter: var(--bar-filter);
+    backdrop-filter: var(--bar-filter);
+  }
 }
 .topbar__mark {
   flex-shrink: 0;
@@ -192,9 +229,8 @@
   max-width: 200px;
 }
 .topbar .side-name {
-  font-family: var(--font-display);
-  font-weight: var(--weight-bold);
-  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  font-size: var(--type-headline);
   color: var(--text);
 }
 .topbar__tools {
@@ -206,50 +242,68 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  min-height: var(--tap);
-  color: var(--text-secondary);
+  width: 44px;
+  min-height: var(--tap-min);
+  color: var(--text);
+  border-radius: var(--radius-md);
+  transition: opacity var(--motion-fast) var(--ease);
+}
+.topbar__tool:active {
+  opacity: 0.5;
 }
 .topbar__count {
   position: absolute;
-  top: 8px;
-  right: 4px;
+  top: 4px;
+  right: 2px;
   line-height: 18px;
   min-width: 18px;
-}
-.icon {
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  font-size: var(--type-caption-2);
 }
 
+/* ---- phone: iOS tab bar ---- */
 .tabbar {
   order: 3;
   position: sticky;
   bottom: 0;
   z-index: 5;
   display: flex;
-  background: var(--plate);
+  background: var(--bar-bg-solid);
+  border-top: 0.5px solid var(--bar-line);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 .tabbar__tab {
   flex: 1 1 0;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   min-height: var(--tap);
-  padding: 0 var(--space-1);
-  border-top: 2px solid transparent;
+  padding: 6px var(--space-1) 4px;
   color: var(--text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--type-caption-2);
   font-weight: var(--weight-medium);
+  letter-spacing: 0.01em;
   text-decoration: none;
   text-align: center;
   transition: color var(--motion-fast) var(--ease);
 }
+.tabbar__tab-icon {
+  width: 26px;
+  height: 26px;
+}
 .tabbar__tab[aria-current='page'] {
-  color: var(--text);
-  border-top-color: var(--text);
+  color: var(--tint);
+}
+.tabbar__tab[aria-current='page'] .icon__solid {
+  fill: currentColor;
+}
+.tabbar__tab:active {
+  opacity: 0.6;
+}
+.tabbar__tab:focus-visible {
+  box-shadow: inset var(--focus-ring);
+  border-radius: var(--radius-md);
 }
 
 /* ---- offline: a thin calm bar under the header ---- */
@@ -258,10 +312,10 @@
   align-items: center;
   gap: var(--space-2);
   min-height: 32px;
-  padding: 4px var(--gutter);
-  background: var(--amber-bg);
-  color: var(--amber-ink);
-  font-size: var(--text-sm);
+  padding: 6px var(--gutter);
+  background: var(--fill);
+  color: var(--text);
+  font-size: var(--type-footnote);
   line-height: 1.4;
 }
 .offline-bar__dot {
@@ -269,7 +323,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: currentColor;
+  background: var(--text-muted);
 }
 
 /* ---- page frame, shared by every screen ---- */
@@ -285,26 +339,34 @@
 .page-header {
   margin-bottom: var(--space-6);
 }
+/* The iOS back button: a chevron.left and the previous page's name, in the tint. */
 .page-header__back {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 5px;
+  max-width: 100%;
   margin-bottom: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  margin-left: -3px;
+  font-size: var(--type-body);
+  color: var(--tint);
   text-decoration: none;
+  transition: opacity var(--motion-fast) var(--ease);
 }
 .page-header__back::before {
   content: '';
-  width: 7px;
-  height: 7px;
-  border-left: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border-left: 2.2px solid currentColor;
+  border-bottom: 2.2px solid currentColor;
   transform: rotate(45deg);
-  margin-right: 2px;
+  margin-left: 4px;
 }
 .page-header__back:hover {
-  color: var(--text);
+  opacity: 0.7;
+}
+.page-header__back:active {
+  opacity: 0.5;
 }
 .shell--phone .page-header__back {
   min-height: 44px;
@@ -316,18 +378,19 @@
   justify-content: space-between;
   gap: var(--space-3) var(--space-4);
 }
+/* The large title: 34 bold, the iOS navigation title in its expanded form. */
 .page-header__title {
   font-family: var(--font-display);
-  font-weight: var(--weight-display);
-  font-size: var(--text-2xl);
-  line-height: var(--leading-tight);
+  font-weight: var(--weight-bold);
+  font-size: var(--type-large-title);
+  line-height: 1.2;
   letter-spacing: var(--tracking-display);
   color: var(--text);
 }
 .page-header__meta {
-  margin-top: var(--space-1);
+  margin-top: 2px;
   color: var(--text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--type-subhead);
 }
 .page-header__actions {
   display: flex;
@@ -340,9 +403,6 @@
   }
   .page-header {
     margin-bottom: var(--space-8);
-  }
-  .page-header__title {
-    font-size: var(--text-3xl);
   }
 }
 
@@ -366,17 +426,24 @@
   align-items: center;
   gap: var(--space-2);
   min-height: 48px;
-  padding: var(--space-2);
+  padding: 2px var(--space-2);
 }
 .job-switch__text {
   min-width: 0;
 }
+/* The menu affordance: SF chevron.down in a small filled circle, as on an iOS title menu. */
 .job-switch__chevron {
   flex: none;
-  width: 24px;
+  width: 26px;
   max-width: none; /* base.css caps svg at 100% */
-  height: 24px;
+  height: 26px;
+  margin-top: 3px;
   color: var(--text-secondary);
+  transition: color var(--motion-fast) var(--ease);
+}
+.job-switch__chevron-disc {
+  fill: var(--fill);
+  transition: fill var(--motion-fast) var(--ease);
 }
 /* The native select covers the title: the platform's own picker, keyboard and screen reader. */
 .job-switch__select {
@@ -392,11 +459,14 @@
   cursor: pointer;
   font-size: 16px; /* no zoom on focus in iOS Safari */
 }
-.job-switch:hover {
-  background: var(--concrete-100);
-}
 .job-switch:hover .job-switch__chevron {
-  color: var(--text);
+  color: var(--tint);
+}
+.job-switch:hover .job-switch__chevron-disc {
+  fill: var(--tint-wash);
+}
+.job-switch:active {
+  opacity: 0.6;
 }
 .job-switch:has(.job-switch__select:focus-visible) {
   box-shadow: var(--focus-ring);

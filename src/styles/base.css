@@ -1,34 +1,11 @@
 /*
-  Reset, fonts, browser surfaces, and the shared primitives every screen
-  builds from. Every colour is a token, so both themes come from tokens.css: .btn, .input, .table, .plate. Tokens live in tokens.css.
+  Reset, browser surfaces, and the shared primitives every screen builds
+  from, drawn to iOS patterns: .btn (filled, gray, tinted, plain), .seg (the
+  segmented control), .input and .field, .group and .cell (inset grouped
+  lists), .table, .plate. Every colour is a token from tokens.css, so both
+  themes come for free. No web font: the system face is the type.
   Screen CSS may extend these; it should not redraw them.
 */
-
-/* ---- fonts: self-hosted, latin only, swap so words show before the file lands ---- */
-@font-face {
-  font-family: 'Atkinson Hyperlegible Next';
-  font-style: normal;
-  font-weight: 400 800;
-  font-display: swap;
-  src: url('/fonts/atkinson-hyperlegible-next-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Barlow Semi Condensed';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('/fonts/barlow-semi-condensed-600-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Barlow Semi Condensed';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('/fonts/barlow-semi-condensed-700-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
 
 /* ---- reset ---- */
 *,
@@ -51,6 +28,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
   min-height: 100vh;
   min-height: 100dvh;
 }
@@ -115,12 +93,12 @@ hr {
 
 /* ---- browser surfaces: the parts we did not draw still carry the world ---- */
 ::selection {
-  background: var(--hivis-100);
+  background: var(--tint-wash);
   color: var(--text);
 }
 :root {
-  accent-color: var(--hivis);
-  caret-color: var(--hivis);
+  accent-color: var(--tint-fill);
+  caret-color: var(--tint);
   scrollbar-color: var(--line-strong) transparent;
   scrollbar-width: thin;
 }
@@ -151,23 +129,28 @@ input[type='date']::-webkit-calendar-picker-indicator {
 :where(select, input:not([type='checkbox'], [type='radio'], [type='range'], [type='file']), textarea) {
   min-height: var(--control);
   padding: 0 var(--space-3);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--field-bg);
   color: var(--text);
-  transition: border-color var(--motion-fast) var(--ease);
+  transition: border-color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
 }
 :where(textarea) {
   padding: var(--space-2) var(--space-3);
   line-height: var(--leading-body);
 }
 :where(select, input, textarea):hover {
-  border-color: var(--concrete-400);
+  border-color: var(--line-strong);
+}
+:where(select, input:not([type='checkbox'], [type='radio']), textarea):focus-visible {
+  border-color: var(--focus);
+  border-radius: var(--radius-md);
 }
 :where(select, input, textarea):disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+/* A select is a pop-up button: the SF chevron.up.chevron.down on the right. */
 :where(select) {
   padding-right: var(--space-8);
   appearance: none;
@@ -196,7 +179,12 @@ input[type='date']::-webkit-calendar-picker-indicator {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---- buttons ---- */
+/* ---- buttons: iOS button styles ----
+   .btn            gray   (fill + label text): the everyday secondary action
+   .btn--primary   filled (tint + white): one per screen
+   .btn--tinted    tinted (tint wash + tint text): a quieter call to action
+   .btn--fill      the chosen half of a pair: a dark neutral fill + white
+   .btn--ghost     plain  (tint text, no fill): a link that needs a tap target */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -204,112 +192,132 @@ input[type='date']::-webkit-calendar-picker-indicator {
   gap: var(--space-2);
   min-height: var(--tap);
   padding: 0 var(--space-5);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
-  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-button);
+  background: var(--fill);
   color: var(--text);
+  font-size: var(--type-body);
   font-weight: var(--weight-medium);
   line-height: 1.2;
   text-decoration: none;
   white-space: nowrap;
-  transition: background var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background-color var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease), opacity var(--motion-fast) var(--ease);
 }
 .btn:hover {
-  background: var(--concrete-100);
-  border-color: var(--concrete-400);
+  background: var(--fill-strong);
 }
 .btn:active {
-  background: var(--raised);
+  background: var(--fill-strong);
+  opacity: 0.8;
 }
 .btn:disabled,
 .btn[aria-disabled='true'] {
   opacity: 0.45;
   cursor: not-allowed;
 }
-/* The one hi-vis control on a screen: dark ink on orange, like the vest. */
 .btn--primary {
-  background: var(--hivis);
-  border-color: var(--hivis);
-  color: var(--hivis-contrast);
-  font-weight: var(--weight-bold);
+  background: var(--tint-fill);
+  color: var(--on-tint);
+  font-weight: var(--weight-semibold);
 }
 .btn--primary:hover {
-  background: var(--hivis-strong);
-  border-color: var(--hivis-strong);
-  color: var(--hivis-contrast);
+  background: var(--tint-fill-pressed);
+  color: var(--on-tint);
 }
 .btn--primary:active {
-  background: var(--hivis);
+  background: var(--tint-fill-pressed);
 }
-/* A primary that can't go yet is grey, not dim orange; the words beside it say why. */
+/* A primary that can't go yet is gray, not dim orange; the words beside it say why. */
 .btn--primary:disabled,
 .btn--primary[aria-disabled='true'] {
   opacity: 1;
-  background: var(--raised);
-  border-color: var(--raised);
+  background: var(--fill);
   color: var(--text-muted);
 }
-/* A quiet filled button: the "pressed" of a toggle pair, or a secondary confirm. */
+.btn--tinted {
+  background: var(--tint-wash);
+  color: var(--tint);
+  font-weight: var(--weight-semibold);
+}
+.btn--tinted:hover {
+  background: var(--tint-wash);
+  opacity: 0.85;
+}
 .btn--fill {
   background: var(--steel-700);
-  border-color: var(--steel-700);
   color: var(--text-on-dark);
 }
 .btn--fill:hover {
   background: var(--primary-hover);
-  border-color: var(--primary-hover);
 }
-/* Text-only: a link that needs a tap target. */
 .btn--ghost {
-  border-color: transparent;
-  color: var(--text-secondary);
+  background: transparent;
+  color: var(--tint);
 }
 .btn--ghost:hover {
-  color: var(--text);
+  background: transparent;
+  opacity: 0.7;
 }
 .btn--small {
   min-height: 36px;
   padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
   font-size: var(--text-sm);
 }
 @media (min-width: 768px) {
   .btn--desktop {
     min-height: var(--control);
     padding: 0 var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: var(--type-subhead);
   }
 }
-/* A toggle pair: [Monday] [the original plan]. Buttons carry aria-pressed. */
+
+/* ---- segmented control (iOS UISegmentedControl) ----
+   A gray trough with a raised thumb under the chosen segment. Buttons carry
+   aria-pressed; a segment can be a link (List | Call). */
 .seg {
   display: inline-flex;
-  padding: 3px;
-  border-radius: var(--radius-md);
-  background: var(--concrete-100);
+  padding: 2px;
+  gap: 2px;
+  border-radius: var(--radius-segment);
+  background: var(--fill);
 }
 .seg__btn {
   display: inline-flex;
   align-items: center;
-  min-height: 34px;
+  justify-content: center;
+  min-height: 32px;
   padding: 0 var(--space-3);
-  text-decoration: none; /* a segment can be a link (List | Call) */
+  text-decoration: none;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-thumb);
   background: transparent;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  color: var(--text);
+  font-size: var(--type-footnote);
   font-weight: var(--weight-medium);
   white-space: nowrap;
-  transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+  transition: background-color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
 }
 .seg__btn:hover {
-  color: var(--text);
+  background: color-mix(in srgb, var(--segment-on) 45%, transparent);
 }
 .seg__btn[aria-pressed='true'] {
-  background: var(--steel-700);
-  color: var(--text-on-dark);
+  background: var(--segment-on);
+  color: var(--text);
+  font-weight: var(--weight-semibold);
+  box-shadow: var(--segment-shadow);
+}
+.shell--phone .seg {
+  border-radius: var(--radius-button);
 }
 .shell--phone .seg__btn {
   min-height: var(--tap); /* every segmented control on Alec's screens meets the tap rule */
   padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--type-subhead);
 }
 
 /* ---- inputs ---- */
@@ -317,29 +325,119 @@ input[type='date']::-webkit-calendar-picker-indicator {
   width: 100%;
   min-height: var(--tap);
   padding: 0 var(--space-4);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  background-color: var(--surface-raised); /* not the shorthand: a <select> keeps its chevron */
+  background-color: var(--field-bg); /* not the shorthand: a <select> keeps its chevron */
   color: var(--text);
 }
 .input:focus-visible {
-  border-color: var(--hivis);
-  box-shadow: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
 }
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
 }
 .field__label {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--text-secondary);
+  padding-left: var(--space-1);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
 }
 @media (min-width: 768px) {
   .input--desktop {
     min-height: var(--control);
   }
+}
+
+/* ---- inset grouped lists (iOS insetGrouped) ----
+   <section class="group"><h2 class="group__header">Builds</h2>
+     <ul class="group__list"><li class="cell cell--link">…</li></ul>
+     <p class="group__footer">…</p></section>
+   Separators are inset to the text, never full width; the last cell has none. */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.group__header {
+  padding: 0 var(--space-4);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+}
+.group__header--large {
+  padding: 0 var(--space-1);
+  font-size: var(--type-title-3);
+  font-weight: var(--weight-bold);
+  color: var(--text);
+}
+.group__list {
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--plate);
+}
+.group__footer {
+  padding: 0 var(--space-4);
+  font-size: var(--type-footnote);
+  color: var(--text-muted);
+}
+.cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+  padding: 11px var(--space-4);
+  color: var(--text);
+  text-decoration: none;
+  background: var(--plate);
+  transition: background-color var(--motion-fast) var(--ease);
+}
+.cell + .cell::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--space-4);
+  right: 0;
+  border-top: 0.5px solid var(--line);
+}
+.cell--link {
+  padding-right: calc(var(--space-4) + 16px);
+  cursor: pointer;
+}
+.cell--link::after {
+  content: '';
+  position: absolute;
+  right: var(--space-4);
+  top: 50%;
+  width: 8px;
+  height: 14px;
+  margin-top: -7px;
+  background: var(--disclosure-chevron) no-repeat center / contain;
+}
+.cell--link:hover {
+  background: color-mix(in srgb, var(--raised) 55%, var(--plate));
+}
+.cell--link:active {
+  background: var(--raised);
+}
+.cell__title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cell__detail {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+/* The SF chevron as an element: <span class="chevron" aria-hidden="true"></span> */
+.chevron {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 14px;
+  background: var(--disclosure-chevron) no-repeat center / contain;
 }
 
 /* ---- tables (desktop) ---- */
@@ -353,7 +451,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
   text-align: left;
   vertical-align: top;
   padding: var(--space-4) var(--space-3);
-  border-bottom: var(--hairline);
+  border-bottom: 0.5px solid var(--line);
 }
 .table th:first-child,
 .table td:first-child {
@@ -366,12 +464,16 @@ input[type='date']::-webkit-calendar-picker-indicator {
 .table thead th {
   padding-top: var(--space-2);
   padding-bottom: var(--space-2);
+  font-size: var(--type-footnote);
   font-weight: var(--weight-regular);
   color: var(--text-muted);
   white-space: nowrap;
 }
 .table tbody th {
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-semibold);
+}
+.table tbody tr {
+  transition: background-color var(--motion-fast) var(--ease);
 }
 .table tbody tr:hover {
   background: var(--plate);
@@ -380,7 +482,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
   cursor: pointer;
 }
 
-/* ---- plates (phone cards, and any bounded region) ---- */
+/* ---- plates (phone cards, and any bounded region): a white card on the grouped ground ---- */
 .plate {
   background: var(--plate);
   border-radius: var(--radius-lg);
@@ -419,8 +521,21 @@ input[type='date']::-webkit-calendar-picker-indicator {
   background: var(--raised);
   color: var(--text);
   font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-semibold);
   font-variant-numeric: tabular-nums;
+}
+
+/* ---- continuous corners where the browser can draw them ---- */
+@supports (corner-shape: superellipse(1.5)) {
+  .btn,
+  .plate,
+  .input,
+  .seg,
+  .seg__btn,
+  .group__list,
+  .status {
+    corner-shape: superellipse(1.5);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

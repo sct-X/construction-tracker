@@ -253,7 +253,7 @@
 }
 .overview__step-link {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(min(9em, 50%), 1fr) minmax(0, max-content);
   column-gap: var(--space-3);
   align-items: baseline;
   color: var(--text-secondary);
@@ -280,7 +280,7 @@
 }
 .overview__step-when {
   color: var(--text-muted);
-  white-space: nowrap;
+  text-align: right;
 }
 .overview__path {
   margin-left: var(--space-2);

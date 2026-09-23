@@ -23,7 +23,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
 import { ClockGlyph, useQueuedPhotos } from '../components/QueueBadge';
 import type { Photo, PhotoCategory } from '../domain/types';
-import { formatLong, formatShort, formatTime } from '../domain/dates';
+import { formatLongRelative, formatShort, formatTime } from '../domain/dates';
 import { StatusText } from '../components/StatusText';
 import NotFound from './NotFound';
 import { PageHeader } from '../shell/PageHeader';
@@ -311,6 +311,7 @@ function PhotoView({
   onDelete: () => void;
   onClose: () => void;
 }) {
+  const { today } = useSession();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -333,7 +334,7 @@ function PhotoView({
       <dl className="gallery__view-facts">
         <div>
           <dt>Taken</dt>
-          <dd data-testid="gallery-view-taken">{formatLong(photo.takenOn)}</dd>
+          <dd data-testid="gallery-view-taken">{formatLongRelative(photo.takenOn, today)}</dd>
         </div>
         <div>
           <dt>Uploaded</dt>

@@ -18,7 +18,7 @@ test.describe('Flow d: the ETA moves the finish', () => {
 
     await expect(page.getByTestId('shipment-eta')).toContainText('Mon 26 Oct 2026');
     await expect(page.getByTestId('shipment-status-in_production')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByTestId('shipment-needed-by')).toHaveText('Needed by Mon 2 Nov');
+    await expect(page.getByTestId('shipment-needed-by')).toHaveText('Needed by Mon 2 Nov, in 6 weeks');
     await expect(page.locator('[data-testid^="shipment-item-it-"]')).toHaveCount(3);
     await expect(page.getByTestId('shipment-item-expected-it-pr-windows')).toContainText('Mon 26 Oct');
     await expect(page.getByTestId('shipment-eta-preview')).toHaveCount(0);
@@ -48,7 +48,7 @@ test.describe('Flow d: the ETA moves the finish', () => {
 
     // 6. The overview's waiting-on lines carry the lateness; the step detail says why it starts 16 Nov.
     await page.goto('#/overview');
-    await expect(page.getByTestId('overview-item-it-pr-windows')).toContainText('expected 16 Nov, 14 days late');
+    await expect(page.getByTestId('overview-item-it-pr-windows')).toContainText('expected 16 Nov, in 8 weeks, 14 days late');
     expect(await page.locator('#root').innerText()).not.toMatch(/Mar 2027|\$/);
     await page.goto('#/steps/pr-install-windows');
     await expect(page.getByTestId('step-forecast')).toContainText('Mon 16 Nov 2026');

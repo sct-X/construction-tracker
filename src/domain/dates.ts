@@ -197,29 +197,37 @@ export function formatWeekRange(mondayISO: string): string {
   return a.mon === b.mon ? `${a.d}-${b.d} ${a.mon}` : `${a.d} ${a.mon}-${b.d} ${b.mon}`;
 }
 
-/** "today", "1 day ago", "9 days ago", "in 3 days". */
-export function relativeDays(fromISO: string, todayISOStr: string): string {
-  const n = calendarDaysBetween(fromISO, todayISOStr);
+/**
+ * How far away or how late a date is, from `today`, in words. The one voice
+ * for relative time everywhere a date is shown ("Mon 28 Sep, in 5 days").
+ *
+ *   today · tomorrow · in 5 days · in 3 weeks
+ *   yesterday · 5 days ago · 5 weeks ago          (a past date that is not a deadline)
+ *   overdue by 1 day · overdue by 5 weeks         (a deadline that has passed)
+ *
+ * `deadline` is for act-by and needed-by dates on work still outstanding:
+ * only those can be overdue. A photo taken, a note written or a delivery
+ * expected in the past is "ago". Past a fortnight it speaks in whole weeks,
+ * because that is how a builder says it.
+ */
+export function relativeDate(iso: string, todayISOStr: string, opts: { deadline?: boolean } = {}): string {
+  const n = calendarDaysBetween(todayISOStr, iso); // positive when iso is in the future
   if (n === 0) return 'today';
-  if (n === 1) return '1 day ago';
-  if (n > 1) return `${n} days ago`;
-  if (n === -1) return 'in 1 day';
-  return `in ${-n} days`;
+  const abs = Math.abs(n);
+  const span = abs >= 14 ? `${Math.floor(abs / 7)} weeks` : `${abs} day${abs === 1 ? '' : 's'}`;
+  if (n > 0) return abs === 1 ? 'tomorrow' : `in ${span}`;
+  if (opts.deadline) return `overdue by ${span}`;
+  return abs === 1 ? 'yesterday' : `${span} ago`;
 }
 
-/**
- * A date relative to today, in words: "today", "yesterday", "tomorrow",
- * "3 days ago", "in 8 days", "5 weeks ago", "in 2 weeks". Past a fortnight
- * it speaks in whole weeks, because that is how a builder says it.
- */
-export function agoWords(iso: string, todayISOStr: string): string {
-  const n = calendarDaysBetween(iso, todayISOStr); // positive when iso is in the past
-  if (n === 0) return 'today';
-  if (n === 1) return 'yesterday';
-  if (n === -1) return 'tomorrow';
-  const abs = Math.abs(n);
-  const span = abs >= 14 ? `${Math.floor(abs / 7)} weeks` : `${abs} days`;
-  return n > 0 ? `${span} ago` : `in ${span}`;
+/** "Mon 21 Sep, overdue by 2 days", "Mon 28 Sep, in 5 days": a short date with its relative time. */
+export function formatShortRelative(iso: string, todayISOStr: string, opts: { deadline?: boolean } = {}): string {
+  return `${formatShort(iso)}, ${relativeDate(iso, todayISOStr, opts)}`;
+}
+
+/** "Fri 26 Feb 2027, in 22 weeks": a long date with its relative time. */
+export function formatLongRelative(iso: string, todayISOStr: string, opts: { deadline?: boolean } = {}): string {
+  return `${formatLong(iso)}, ${relativeDate(iso, todayISOStr, opts)}`;
 }
 
 /** "+14 days", "0", "-3 days" */

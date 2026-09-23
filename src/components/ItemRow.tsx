@@ -6,7 +6,7 @@
  *   waiting on X, with Raff                 act by Mon 10 Aug   [To do]
  *
  * Dates are words from the calculator (act-by, needed-by, expected, late),
- * never a bare colour: "expected 5 Oct, 7 days late". The row is a link when
+ * never a bare colour: "Expected Mon 5 Oct, in 12 days, 7 days late". The row is a link when
  * `href` is given (Alec has no item screen, so his rows are plain). An
  * optional `action` (a button) sits to the right, outside the link.
  */
@@ -15,7 +15,7 @@ import { useSession } from '../data/context';
 import type { Item, ItemStatus, ItemType } from '../domain/types';
 import { ITEM_STATUS_LABELS } from '../domain/types';
 import type { ItemForecast } from '../domain/forecast';
-import { formatShort } from '../domain/dates';
+import { formatShort, formatShortRelative } from '../domain/dates';
 import { StatusText, type Tone } from './StatusText';
 import './itemRow.css';
 
@@ -31,15 +31,17 @@ export const ITEM_TYPE_WORDS: Record<ItemType, string> = {
   manual_reminder: 'Reminder',
 };
 
-/** The one date phrase a row shows, and its tone. */
-export function itemWhenWords(f: ItemForecast | undefined, status: ItemStatus): { text: string; tone: Tone } | null {
+/** The one date phrase a row shows, and its tone. Every date carries its relative time. */
+export function itemWhenWords(f: ItemForecast | undefined, status: ItemStatus, today: string): { text: string; tone: Tone } | null {
   if (!f) return null;
-  if (f.isLate && f.expected) return { text: `Expected ${formatShort(f.expected)}, ${f.lateText}`, tone: 'late' };
+  const open = status !== 'done';
+  if (f.isLate && f.expected) return { text: `Expected ${formatShortRelative(f.expected, today)}, ${f.lateText}`, tone: 'late' };
+  // lateText here is the relative time itself ("overdue by 3 days").
   if (f.isLate && f.neededBy) return { text: `Needed ${formatShort(f.neededBy)}, ${f.lateText}`, tone: 'late' };
-  if (f.actByPassed && f.actBy) return { text: `Act by ${formatShort(f.actBy)}, passed`, tone: 'amber' };
-  if (f.expected && status !== 'done') return { text: `Expected ${formatShort(f.expected)}`, tone: 'plain' };
-  if (status === 'to_do' && f.actBy) return { text: `Act by ${formatShort(f.actBy)}`, tone: 'plain' };
-  if (f.neededBy) return { text: `Needed ${formatShort(f.neededBy)}`, tone: 'plain' };
+  if (f.actByPassed && f.actBy) return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: 'amber' };
+  if (f.expected && open) return { text: `Expected ${formatShortRelative(f.expected, today)}`, tone: 'plain' };
+  if (status === 'to_do' && f.actBy) return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: 'plain' };
+  if (f.neededBy) return { text: `Needed ${formatShortRelative(f.neededBy, today, { deadline: open })}`, tone: 'plain' };
   return null;
 }
 
@@ -65,8 +67,8 @@ export interface ItemRowProps {
 }
 
 export function ItemRow({ item, forecast, ownerName, href, context, action, when: whenOverride, testId }: ItemRowProps) {
-  const { personId } = useSession();
-  const when = whenOverride === undefined ? itemWhenWords(forecast, item.status) : whenOverride;
+  const { personId, today } = useSession();
+  const when = whenOverride === undefined ? itemWhenWords(forecast, item.status, today) : whenOverride;
   const flagged = when?.tone === 'late' || when?.tone === 'amber';
   const owner = item.ownerId && item.ownerId === personId ? 'you' : ownerName;
   const who = [item.waitingOn ? `waiting on ${item.waitingOn}` : '', owner ? `with ${owner}` : ''].filter(Boolean).join(', ');

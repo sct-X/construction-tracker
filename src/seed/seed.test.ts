@@ -140,7 +140,7 @@ describe('Park Rd', () => {
     const tile = f.items['it-pr-tile-choice'];
     expect(tile.neededBy).toBe('2026-09-14');
     expect(tile.isLate).toBe(true);
-    expect(tile.lateText).toBe('3 days late');
+    expect(tile.lateText).toBe('overdue by 3 days');
   });
 
   it('has about 30 items across every item type', () => {

@@ -13,7 +13,7 @@
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { JobForecast, StepForecast } from '../../domain/forecast';
 import type { Step } from '../../domain/types';
-import { addCalendarDays, formatLong, formatShort } from '../../domain/dates';
+import { addCalendarDays, formatLong, formatShort, relativeDate } from '../../domain/dates';
 import { StatusText } from '../StatusText';
 import { makeTimeScale, type TimeScale } from './timeScale';
 import './gantt.css';
@@ -109,8 +109,15 @@ function buildRows(forecast: JobForecast, steps: Step[], view: GanttView, today:
   return rows;
 }
 
-function stepSentence(step: StepForecast, names: Map<string, string>): string {
-  const when = `${formatShort(step.forecastStart)} to ${formatShort(step.forecastEnd)}`;
+/** "starts in 6 weeks", "ends tomorrow", "ended 3 weeks ago": a step's forecast read against today. */
+export function stepWhenWords(step: Pick<StepForecast, 'status' | 'forecastStart' | 'forecastEnd'>, today: string): string {
+  if (step.status === 'not_started') return `starts ${relativeDate(step.forecastStart, today)}`;
+  return `${step.forecastEnd < today ? 'ended' : 'ends'} ${relativeDate(step.forecastEnd, today)}`;
+}
+
+function stepSentence(step: StepForecast, names: Map<string, string>, today?: string): string {
+  const span = `${formatShort(step.forecastStart)} to ${formatShort(step.forecastEnd)}`;
+  const when = today ? `${span}, ${stepWhenWords(step, today)}` : span;
   const waits = step.waitsFor.length ? `Waits for ${step.waitsFor.map((id) => names.get(id) ?? id).join(', ')}.` : '';
   const late = step.lateDays > 0 ? `${lateText(step.lateDays)}: planned ${formatShort(step.plannedStart ?? step.forecastStart)}.` : '';
   return [when + '.', late, waits].filter(Boolean).join(' ');
@@ -273,7 +280,7 @@ export function Gantt({ forecast, steps, today, view = 'all', dense, onSelectSte
       <figcaption className="gantt__caption" data-testid="gantt-caption" aria-live="polite">
         {activeStep ? (
           <>
-            <strong>{activeStep.name}.</strong> {stepSentence(activeStep, names)}
+            <strong>{activeStep.name}.</strong> {stepSentence(activeStep, names, today)}
           </>
         ) : (
           <span className="gantt__legend">

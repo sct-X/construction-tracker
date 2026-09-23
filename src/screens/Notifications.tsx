@@ -16,7 +16,7 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { ActivityEntry, Job, Notification, Person } from '../domain/types';
-import { addCalendarDays, formatLong, formatShort, formatTime } from '../domain/dates';
+import { addCalendarDays, formatLong, formatShort, formatTime, relativeDate } from '../domain/dates';
 import { notificationHref } from '../components/Buzz';
 import { useLayout } from '../shell/AppShell';
 import { PageHeader } from '../shell/PageHeader';
@@ -78,11 +78,11 @@ export default function Notifications() {
     setParams(next, { replace: true });
   };
 
-  /** "Today", "Yesterday", else "Tue 15 Sep". */
+  /** "Today", "Yesterday", else "Tue 15 Sep, 8 days ago". */
   const dayWords = (day: string) => {
     if (day === today) return 'Today';
     if (addCalendarDays(day, 1) === today) return 'Yesterday';
-    return day.slice(0, 4) === today.slice(0, 4) ? formatShort(day) : formatLong(day);
+    return `${day.slice(0, 4) === today.slice(0, 4) ? formatShort(day) : formatLong(day)}, ${relativeDate(day, today)}`;
   };
 
   const notificationsPane = (

@@ -17,7 +17,8 @@ import type { StepStatusResult } from '../data/api';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { Item, Job, Person, Requirement, Stage, Step } from '../domain/types';
 import type { JobForecast, StepForecast } from '../domain/forecast';
-import { formatLong, formatShort } from '../domain/dates';
+import { formatLong, formatShortRelative } from '../domain/dates';
+import { stepWhenWords } from '../components/gantt/Gantt';
 import { BigNumber } from '../components/BigNumber';
 import { HoldPointCheck } from '../components/HoldPointCheck';
 import { useQueuedPhotos } from '../components/QueueBadge';
@@ -56,7 +57,7 @@ function lateWords(sf: StepForecast): string {
 export default function StepDetail() {
   const { id = '' } = useParams();
   const api = useApi();
-  const { role, offline } = useSession();
+  const { role, offline, today } = useSession();
   const data = useQuery<Data | undefined>(
     (api) => {
       const step = api.getStep(id);
@@ -125,7 +126,7 @@ export default function StepDetail() {
           <BigNumber
             size="row"
             value={sf ? span(sf.forecastStart, sf.forecastEnd) : 'No dates yet'}
-            label="Forecast"
+            label={sf ? `Forecast, ${stepWhenWords(sf, today)}` : 'Forecast'}
             tone={sf && sf.plannedStart && sf.lateDays > 0 ? 'late' : undefined}
             testId="step-forecast"
             className="step__figure"
@@ -230,7 +231,7 @@ export default function StepDetail() {
                         <Link to={`/steps/${sid}`} className="step__link" data-testid={`step-waits-${sid}`}>
                           {stepName(sid)}
                         </Link>
-                        {forecast?.steps[sid] && <span className="step__link-when"> ends {formatShort(forecast.steps[sid].forecastEnd)}</span>}
+                        {forecast?.steps[sid] && <span className="step__link-when"> ends {formatShortRelative(forecast.steps[sid].forecastEnd, today)}</span>}
                       </li>
                     ))}
                   </ul>

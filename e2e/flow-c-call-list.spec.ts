@@ -37,7 +37,7 @@ test.describe('Flow c: the call list', () => {
     const windows = page.getByTestId('call-item-it-pr-windows');
     await expect(windows).toContainText('Windows');
     await expect(page.getByTestId('call-actby-it-pr-windows')).toHaveText('Mon 10 Aug');
-    await expect(windows).toContainText('act by, 5 weeks ago');
+    await expect(windows).toContainText('act by, overdue by 5 weeks');
     await expect(windows).toContainText('Ordered or booked');
     await expect(windows).toContainText('Expected Mon 26 Oct');
     await expect(page.getByTestId('call-action-it-pr-windows')).toHaveText('Mark confirmed');
@@ -48,7 +48,7 @@ test.describe('Flow c: the call list', () => {
 
     // Job headers: freshness in words; Beatty is amber. No finish date and no money anywhere.
     await expect(page.getByTestId('calls-fresh-beatty')).toContainText('unconfirmed 9 days');
-    await expect(page.getByTestId('calls-fresh-seaview')).toContainText('confirmed 1 day ago');
+    await expect(page.getByTestId('calls-fresh-seaview')).toContainText('confirmed yesterday');
     await expect(page.getByTestId('calls-finish-park-rd')).toHaveCount(0);
     expect(await page.locator('#root').innerText()).not.toContain('$');
 
@@ -122,7 +122,7 @@ test.describe('Flow c: the call list', () => {
     await expect(page.getByTestId('calls-fresh-beatty')).toContainText('confirmed today');
     await expect(page.getByTestId('call-item-it-sv-pump')).toContainText('Ordered or booked');
     await expect(page.getByTestId('call-action-it-sv-pump')).toHaveText('Mark confirmed');
-    await expect(page.getByTestId('call-item-it-bt-tiler')).toContainText('Expected Mon 12 Oct, 14 days late');
+    await expect(page.getByTestId('call-item-it-bt-tiler')).toContainText('Expected Mon 12 Oct, in 3 weeks, 14 days late');
 
     // Reset through the dev bar so the seed is back.
     await page.getByTestId('dev-reset').click();

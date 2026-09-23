@@ -67,7 +67,7 @@ test.describe('Step detail', () => {
 
     // It starts in November, so "Mark done" today is refused in words (locked decision).
     await page.getByTestId('step-mark-done').click();
-    await expect(page.getByTestId('step-refusal')).toHaveText("This step hasn't started yet; it starts Mon 2 Nov.");
+    await expect(page.getByTestId('step-refusal')).toHaveText("This step hasn't started yet; it starts Mon 2 Nov, in 6 weeks.");
     await expect(page.getByTestId('step-status')).toHaveText('Not started');
   });
 

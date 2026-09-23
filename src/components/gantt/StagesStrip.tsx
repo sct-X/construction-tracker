@@ -6,7 +6,7 @@
  */
 import { useEffect, useRef } from 'react';
 import type { JobForecast } from '../../domain/forecast';
-import { calendarDaysBetween, formatDayMonth, formatShort } from '../../domain/dates';
+import { calendarDaysBetween, formatDayMonth, formatShort, formatShortRelative } from '../../domain/dates';
 import { StatusText } from '../StatusText';
 import { lateText } from './Gantt';
 import './stagesStrip.css';
@@ -31,7 +31,7 @@ function statusWords(stage: JobForecast['stages'][number], today: string): strin
     const week = Math.min(total, Math.max(1, Math.floor(calendarDaysBetween(stage.forecastStart, today) / 7) + 1));
     return `In progress, week ${week} of ${total}`;
   }
-  return stage.forecastStart ? `Starts ${formatShort(stage.forecastStart)}` : 'No dates yet';
+  return stage.forecastStart ? `Starts ${formatShortRelative(stage.forecastStart, today)}` : 'No dates yet';
 }
 
 export function StagesStrip({ forecast }: { forecast: JobForecast }) {
@@ -117,7 +117,7 @@ export function StagesList({ forecast, today }: Props) {
                   <li key={st.stepId}>
                     <a href={`#/steps/${st.stepId}`} className="stages__late-link">
                       <StatusText tone="late">
-                        {st.name}: {lateText(st.lateDays)}, now {formatShort(st.forecastStart)}
+                        {st.name}: {lateText(st.lateDays)}, now {formatShortRelative(st.forecastStart, today)}
                       </StatusText>
                     </a>
                   </li>

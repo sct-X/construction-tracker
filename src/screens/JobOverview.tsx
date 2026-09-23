@@ -15,7 +15,7 @@ import { useApi, useQuery, useSession } from '../data/context';
 import type { Item, Job, Person, Photo } from '../domain/types';
 import type { JobForecast, StageForecast } from '../domain/forecast';
 import { topWaitingOn } from '../domain/forecast';
-import { formatDayMonth, formatShort, relativeDays } from '../domain/dates';
+import { formatDayMonth, formatShort, formatShortRelative, relativeDate } from '../domain/dates';
 import { BigNumber } from '../components/BigNumber';
 import { HoldPointCheck, readinessWords } from '../components/HoldPointCheck';
 import { ItemRow, ItemRowList } from '../components/ItemRow';
@@ -37,10 +37,18 @@ interface Data {
 }
 
 /** The stage's forecast span in words, and its planned span when that differs. */
-function stageWords(s: StageForecast): { when: string; planned?: string } {
-  if (s.status === 'done') return { when: s.forecastEnd ? `Done ${formatDayMonth(s.forecastEnd)}` : 'Done' };
-  const span = s.forecastStart && s.forecastEnd ? `${formatDayMonth(s.forecastStart)} to ${formatDayMonth(s.forecastEnd)}` : undefined;
-  const when = s.status === 'in_progress' ? (s.forecastEnd ? `Under way, ends ${formatDayMonth(s.forecastEnd)}` : 'Under way') : span ?? 'No dates yet';
+function stageWords(s: StageForecast, today: string): { when: string; planned?: string } {
+  if (s.status === 'done') return { when: s.forecastEnd ? `Done ${formatDayMonth(s.forecastEnd)}, ${relativeDate(s.forecastEnd, today)}` : 'Done' };
+  const span =
+    s.forecastStart && s.forecastEnd
+      ? `${formatDayMonth(s.forecastStart)} to ${formatDayMonth(s.forecastEnd)}, starts ${relativeDate(s.forecastStart, today)}`
+      : undefined;
+  const when =
+    s.status === 'in_progress'
+      ? s.forecastEnd
+        ? `Under way, ends ${formatDayMonth(s.forecastEnd)}, ${relativeDate(s.forecastEnd, today)}`
+        : 'Under way'
+      : span ?? 'No dates yet';
   const moved = s.plannedStart && s.plannedEnd && (s.plannedStart !== s.forecastStart || s.plannedEnd !== s.forecastEnd);
   const planned = moved ? `planned ${formatDayMonth(s.plannedStart!)} to ${formatDayMonth(s.plannedEnd!)}` : undefined;
   return { when, planned };
@@ -152,7 +160,7 @@ export default function JobOverview() {
                           {hp.stepName}
                         </Link>
                         <span className="job__hp-when">
-                          {formatShort(hp.forecastStart)}, {relativeDays(hp.forecastStart, today)}
+                          {formatShortRelative(hp.forecastStart, today)}
                           {hpStage ? `, ${hpStage.name} stage` : ''}
                         </span>
                       </p>
@@ -176,7 +184,7 @@ export default function JobOverview() {
                 <ol className="job__stages">
                   {forecast.stages.map((s) => {
                     const current = s.stageId === forecast.currentStageId;
-                    const words = stageWords(s);
+                    const words = stageWords(s, today);
                     return (
                       <li
                         key={s.stageId}

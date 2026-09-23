@@ -9,7 +9,7 @@
 import type { ItemForecast, JobForecast, StepForecast } from '../../domain/forecast';
 import type { Item, Step } from '../../domain/types';
 import { ITEM_STATUS_LABELS } from '../../domain/types';
-import { addCalendarDays, formatShort, formatWeekRange, lastMonday, weekday } from '../../domain/dates';
+import { addCalendarDays, formatShort, formatShortRelative, formatWeekRange, lastMonday, weekday } from '../../domain/dates';
 import { StatusText } from '../StatusText';
 import { HoldDiamond, lateText } from './Gantt';
 import './lookahead.css';
@@ -89,6 +89,7 @@ export function LookAhead({ forecast, steps, items, today }: Props) {
                   needs={itemsByStep.get(s.stepId) ?? []}
                   itemForecasts={forecast.items}
                   trade={tradeOf.get(s.stepId)}
+                  today={today}
                 />
               ))}
               {w.finishes.map((s) => (
@@ -101,6 +102,7 @@ export function LookAhead({ forecast, steps, items, today }: Props) {
                   needs={itemsByStep.get(s.stepId) ?? []}
                   itemForecasts={forecast.items}
                   trade={tradeOf.get(s.stepId)}
+                  today={today}
                 />
               ))}
             </ul>
@@ -131,7 +133,7 @@ export function LookAhead({ forecast, steps, items, today }: Props) {
                     </span>
                     <span className="lookahead__line">
                       <StatusText tone="late">
-                        moved to {formatShort(s.forecastStart)}, {lateText(s.lateDays)}
+                        moved to {formatShortRelative(s.forecastStart, today)}, {lateText(s.lateDays)}
                       </StatusText>
                     </span>
                   </a>
@@ -156,7 +158,7 @@ export function LookAhead({ forecast, steps, items, today }: Props) {
                         <span className="lookahead__stage">{stageName.get(s.stageId)}</span>
                       </span>
                       <span className="lookahead__line lookahead__muted">
-                        Starts {formatShort(s.forecastStart)}, {lengthWords(s.durationDays)}
+                        Starts {formatShortRelative(s.forecastStart, today)}, {lengthWords(s.durationDays)}
                       </span>
                     </a>
                   </li>
@@ -192,8 +194,10 @@ function StepRow({
   needs,
   itemForecasts,
   trade,
+  today,
 }: {
   step: StepForecast;
+  today: string;
   trade?: string;
   week: Week;
   mode: 'starts' | 'finishes';
@@ -225,7 +229,7 @@ function StepRow({
         {step.lateDays > 0 && (
           <span className="lookahead__line">
             <StatusText tone="late" testId={`lookahead-late-${step.stepId}`}>
-              planned {formatShort(step.plannedStart ?? step.forecastStart)}, now {formatShort(step.forecastStart)}, {lateText(step.lateDays)}
+              planned {formatShort(step.plannedStart ?? step.forecastStart)}, now {formatShortRelative(step.forecastStart, today)}, {lateText(step.lateDays)}
             </StatusText>
           </span>
         )}

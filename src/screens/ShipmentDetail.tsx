@@ -17,7 +17,7 @@ import { useApi, useQuery, useSession } from '../data/context';
 import type { ActivityEntry, Item, ShipmentStatus } from '../domain/types';
 import { ITEM_STATUS_LABELS, SHIPMENT_STATUS_LABELS, SHIPMENT_STATUS_ORDER } from '../domain/types';
 import type { EtaPreview, ItemForecast } from '../domain/forecast';
-import { formatDayMonth, formatLong, formatShort, formatTime, isISODate } from '../domain/dates';
+import { formatDayMonth, formatLong, formatShort, formatShortRelative, formatTime, isISODate, relativeDate } from '../domain/dates';
 import { BigNumber } from '../components/BigNumber';
 import { EtaImpact } from '../components/EtaImpact';
 import { StatusText } from '../components/StatusText';
@@ -35,7 +35,7 @@ interface LinkedRow {
 export default function ShipmentDetail() {
   const api = useApi();
   const { id = '' } = useParams();
-  const { offline, role } = useSession();
+  const { offline, role, today } = useSession();
   const layout = useLayout();
   const shipment = useQuery((api) => api.getShipment(id), [id]);
   const job = useQuery((api) => (shipment ? api.getJob(shipment.jobId) : undefined), [shipment?.jobId]);
@@ -133,14 +133,14 @@ export default function ShipmentDetail() {
       />
 
       <section className="shipment__hero">
-        <BigNumber value={formatLong(shipment.eta)} label="ETA" testId="shipment-eta" tone={t.tone === 'late' ? 'late' : undefined} />
+        <BigNumber value={formatLong(shipment.eta)} label={`ETA ${relativeDate(shipment.eta, today)}`} testId="shipment-eta" tone={t.tone === 'late' ? 'late' : undefined} />
         <div className="shipment__timing">
           <StatusText tone={t.tone} testId="shipment-timing">
             {t.text}
           </StatusText>
           {neededBy && (
             <span className="shipment__needed" data-testid="shipment-needed-by">
-              Needed by {formatShort(neededBy)}
+              Needed by {formatShortRelative(neededBy, today, { deadline: true })}
             </span>
           )}
         </div>
@@ -296,6 +296,18 @@ function UnlinkButton({ id, onUnlink }: { id: string; onUnlink: Unlink }) {
   );
 }
 
+/** A date in a table cell with its relative time on a quiet second line. */
+function DateCell({ iso, deadline }: { iso?: string; deadline?: boolean }) {
+  const { today } = useSession();
+  if (!iso) return null;
+  return (
+    <>
+      {formatShort(iso)}
+      <span className="shipment__item-substatus">{relativeDate(iso, today, { deadline })}</span>
+    </>
+  );
+}
+
 function ItemsTable({ rows, onUnlink }: { rows: LinkedRow[]; onUnlink: Unlink }) {
   return (
     <table className="table shipment__table">
@@ -323,10 +335,14 @@ function ItemsTable({ rows, onUnlink }: { rows: LinkedRow[]; onUnlink: Unlink })
               </Link>
             </td>
             <td>{row.ownerName ?? <span className="shipment__muted">Nobody</span>}</td>
-            <td className="num">{row.forecast?.actBy ? formatShort(row.forecast.actBy) : ''}</td>
-            <td className="num">{row.forecast?.neededBy ? formatShort(row.forecast.neededBy) : ''}</td>
+            <td className="num">
+              <DateCell iso={row.forecast?.actBy} deadline={row.item.status === 'to_do' || row.item.status === 'booked'} />
+            </td>
+            <td className="num">
+              <DateCell iso={row.forecast?.neededBy} deadline={row.item.status !== 'done'} />
+            </td>
             <td className="num" data-testid={`shipment-item-expected-${row.item.id}`}>
-              {row.forecast?.expected ? formatShort(row.forecast.expected) : ''}
+              <DateCell iso={row.forecast?.expected} />
             </td>
             <td>
               <span data-testid={`shipment-item-status-${row.item.id}`}>
@@ -349,6 +365,7 @@ function ItemsTable({ rows, onUnlink }: { rows: LinkedRow[]; onUnlink: Unlink })
 }
 
 function ItemsList({ rows, onUnlink }: { rows: LinkedRow[]; onUnlink: Unlink }) {
+  const { today } = useSession();
   return (
     <ul className="shipment__list">
       {rows.map((row) => (
@@ -362,10 +379,10 @@ function ItemsList({ rows, onUnlink }: { rows: LinkedRow[]; onUnlink: Unlink }) 
             </div>
             <div className="shipment__item-meta">
               <span>{row.ownerName ?? 'Nobody'}</span>
-              {row.forecast?.actBy && <span className="num">act by {formatShort(row.forecast.actBy)}</span>}
+              {row.forecast?.actBy && <span className="num">act by {formatShortRelative(row.forecast.actBy, today, { deadline: row.item.status === 'to_do' || row.item.status === 'booked' })}</span>}
               {row.forecast?.expected && (
                 <span className="num" data-testid={`shipment-item-expected-${row.item.id}`}>
-                  expected {formatShort(row.forecast.expected)}
+                  expected {formatShortRelative(row.forecast.expected, today)}
                 </span>
               )}
               {row.item.status !== 'done' && row.forecast?.lateText && <span>{ITEM_STATUS_LABELS[row.item.status]}</span>}

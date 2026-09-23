@@ -22,7 +22,7 @@ test.describe("Alec's Today", () => {
     // The next hold point in words, with its photo readiness.
     const hp = page.getByTestId('today-holdpoint');
     await expect(hp).toContainText('Stormwater inspection');
-    await expect(hp).toContainText('Mon 12 Oct, in 25 days');
+    await expect(hp).toContainText('Mon 12 Oct, in 3 weeks');
     await expect(page.getByTestId('today-holdpoint-readiness')).toContainText('0 of 1 required photo set uploaded');
     await expect(page.getByTestId('holdpoint-add-photos')).toHaveAttribute('href', '#/jobs/park-rd/upload?stage=pr-st-external');
 
@@ -121,7 +121,7 @@ test.describe('Photo gallery', () => {
     await page.getByTestId('gallery-photo-ph-pr-roof-1').click();
     const view = page.getByTestId('gallery-view');
     await expect(view).toBeVisible();
-    await expect(page.getByTestId('gallery-view-taken')).toHaveText('Wed 19 Aug 2026');
+    await expect(page.getByTestId('gallery-view-taken')).toHaveText('Wed 19 Aug 2026, 4 weeks ago');
     await expect(page.getByTestId('gallery-view-who')).toContainText('Alec');
     await expect(page.getByTestId('gallery-view-category')).toHaveText('Roof, Roof complete');
     await expect(page.getByTestId('gallery-delete')).toHaveCount(0);

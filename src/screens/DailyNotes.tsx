@@ -13,7 +13,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { DailyNote } from '../domain/types';
-import { addCalendarDays, agoWords, formatShort, formatWeekRange, lastMonday } from '../domain/dates';
+import { addCalendarDays, formatShort, formatWeekRange, lastMonday, relativeDate } from '../domain/dates';
 import { NoteEntry, weatherLabel, type NoteDraft } from '../components/NoteEntry';
 import { ClockGlyph, noSignal } from '../components/QueueBadge';
 import { useLayout } from '../shell/AppShell';
@@ -134,7 +134,7 @@ export default function DailyNotes() {
         Saved on this phone, waiting to send.
       </span>
     ) : (
-      <span data-testid="note-saved">Saved{saved.id === savedId ? '' : ` ${agoWords(saved.date, today)}`}.</span>
+      <span data-testid="note-saved">Saved{saved.id === savedId ? '' : ` ${relativeDate(saved.date, today)}`}.</span>
     )
   ) : undefined;
 
@@ -176,7 +176,7 @@ export default function DailyNotes() {
                       <span className="notes__day-date display">{formatShort(n.date)}</span>
                       <span className="notes__day-who">
                         {nameOf(n.authorId) ?? 'site'}
-                        {n.date === today ? ', today' : ''}
+                        , {relativeDate(n.date, today)}
                       </span>
                       {n.queued && (
                         <span className="notes__queued notes__day-queued">
@@ -227,6 +227,7 @@ export default function DailyNotes() {
                   <tr key={n.id} data-testid={`note-${n.id}`}>
                     <td className="notes__cell-day">
                       <span className="display notes__day-date">{formatShort(n.date)}</span>
+                      <span className="notes__day-who">{relativeDate(n.date, today)}</span>
                       {n.queued && (
                         <span className="notes__queued notes__day-queued">
                           <ClockGlyph />

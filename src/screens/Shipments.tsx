@@ -13,7 +13,7 @@ import { useState, type FormEvent, type MouseEvent } from 'react';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { Item, Job, Shipment, ShipmentStatus } from '../domain/types';
 import { SHIPMENT_STATUS_LABELS, SHIPMENT_STATUS_ORDER } from '../domain/types';
-import { calendarDaysBetween, formatDayMonthYear, formatShort, isISODate, minDate } from '../domain/dates';
+import { calendarDaysBetween, formatDayMonthYear, formatShort, isISODate, minDate, relativeDate } from '../domain/dates';
 import { StatusText, type Tone } from '../components/StatusText';
 import { PageHeader } from '../shell/PageHeader';
 import { useLayout } from '../shell/AppShell';
@@ -189,6 +189,7 @@ function useRowNav() {
 }
 
 function ShipmentTable({ rows }: { rows: ShipmentRow[] }) {
+  const { today } = useSession();
   const go = useRowNav();
   return (
     <table className="table table--rows shipments__table">
@@ -222,12 +223,19 @@ function ShipmentTable({ rows }: { rows: ShipmentRow[] }) {
                   <span className="shipments__eta num" data-testid={`shipment-eta-${shipment.id}`}>
                     {formatDayMonthYear(shipment.eta)}
                   </span>
+                  <span className="shipments__needed">{relativeDate(shipment.eta, today)}</span>
                   <StatusText tone={t.tone} plain={t.tone === 'ok'} testId={`shipment-timing-${shipment.id}`}>
                     {t.text}
                   </StatusText>
                 </div>
               </td>
-              <td className="num">{neededBy ? formatShort(neededBy) : <span className="shipments__muted">No date</span>}</td>
+              <td className="num">
+                {neededBy ? (
+                  `${formatShort(neededBy)}, ${relativeDate(neededBy, today, { deadline: shipment.status !== 'delivered' })}`
+                ) : (
+                  <span className="shipments__muted">No date</span>
+                )}
+              </td>
               <td className="num" data-testid={`shipment-items-${shipment.id}`}>
                 {itemsWords(items.length)}
               </td>
@@ -240,6 +248,7 @@ function ShipmentTable({ rows }: { rows: ShipmentRow[] }) {
 }
 
 function ShipmentCards({ rows }: { rows: ShipmentRow[] }) {
+  const { today } = useSession();
   return (
     <ul className="shipments__cards">
       {rows.map(({ shipment, job, items, neededBy }) => {
@@ -257,11 +266,16 @@ function ShipmentCards({ rows }: { rows: ShipmentRow[] }) {
                 <span className="shipments__eta num" data-testid={`shipment-eta-${shipment.id}`}>
                   {formatDayMonthYear(shipment.eta)}
                 </span>
+                <span className="shipments__needed">{relativeDate(shipment.eta, today)}</span>
                 <span className="shipments__eta-words">
                   <StatusText tone={t.tone} plain={t.tone === 'ok'} testId={`shipment-timing-${shipment.id}`}>
                     {t.text}
                   </StatusText>
-                  {neededBy && <span className="shipments__needed">needed {formatShort(neededBy)}</span>}
+                  {neededBy && (
+                    <span className="shipments__needed">
+                      needed {formatShort(neededBy)}, {relativeDate(neededBy, today, { deadline: shipment.status !== 'delivered' })}
+                    </span>
+                  )}
                 </span>
               </div>
               <div className="shipments__card-mid">

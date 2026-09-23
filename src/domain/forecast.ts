@@ -44,6 +44,7 @@ import {
   lastMonday,
   maxDate,
   nextWorkingDay,
+  relativeDate,
   snapToWorkingDay,
   stepEnd,
 } from './dates';
@@ -119,7 +120,10 @@ export interface ItemForecast {
   actByPassed: boolean;
   /** Days since the item was created (design checklists, "oldest 23 days"). */
   daysSitting: number;
-  /** "14 days late" or undefined. Colour never carries meaning alone. */
+  /**
+   * "7 days late" when expected after it is needed; "overdue by 3 days" when
+   * needed-by has passed with nothing expected. Undefined when not late.
+   */
   lateText?: string;
 }
 
@@ -298,7 +302,7 @@ export function freshnessFor(job: Job, today: string): Freshness {
   if (!job.lastConfirmed) return { amber: true, text: 'Never confirmed' };
   const days = calendarDaysBetween(job.lastConfirmed, today);
   const amber = days > 7;
-  const when = days === 0 ? 'today' : days === 1 ? '1 day ago' : `${days} days ago`;
+  const when = relativeDate(job.lastConfirmed, today);
   return { lastConfirmed: job.lastConfirmed, daysUnconfirmed: days, amber, text: `Last confirmed ${when}` };
 }
 
@@ -398,7 +402,7 @@ function forecastDesignJob(bundle: ForecastBundle, freshness: Freshness): JobFor
       isLate: overdue,
       actByPassed: !!actBy && actBy < today && i.status === 'to_do',
       daysSitting: calendarDaysBetween(i.createdAt, today),
-      lateText: overdue ? lateText(lateDays) : undefined,
+      lateText: overdue ? relativeDate(neededBy!, today, { deadline: true }) : undefined,
     };
   }
   return {
@@ -577,13 +581,17 @@ function forecastBuildJob(bundle: ForecastBundle, freshness: Freshness): JobFore
     const notDone = item.status !== 'done';
     let lateDays = 0;
     let isLate = false;
+    let itemLateText: string | undefined;
     if (neededBy && notDone) {
       if (exp.date && exp.date > neededBy) {
+        // A gap between two dates (arrives after it is needed), not a date against today.
         lateDays = calendarDaysBetween(neededBy, exp.date);
         isLate = true;
+        itemLateText = lateText(lateDays);
       } else if (!exp.date && neededBy < today) {
         lateDays = calendarDaysBetween(neededBy, today);
         isLate = true;
+        itemLateText = relativeDate(neededBy, today, { deadline: true });
       }
     }
     items[item.id] = {
@@ -600,7 +608,7 @@ function forecastBuildJob(bundle: ForecastBundle, freshness: Freshness): JobFore
       isLate,
       actByPassed: !!actBy && actBy < today && item.status === 'to_do',
       daysSitting: calendarDaysBetween(item.createdAt, today),
-      lateText: isLate ? lateText(lateDays) : undefined,
+      lateText: itemLateText,
     };
   }
 
@@ -979,6 +987,7 @@ export interface WaitingOnRow {
   isLate: boolean;
   lateText?: string;
   actByPassed: boolean;
+  status: ItemStatus;
 }
 
 /**
@@ -1006,6 +1015,7 @@ export function topWaitingOn(forecast: JobForecast, items: Item[], n = 3): Waiti
         isLate: f.isLate,
         lateText: f.lateText,
         actByPassed: f.actByPassed,
+        status: i.status,
         rank,
         key: rank === 0 ? String(1000 - f.lateDays).padStart(4, '0') : f.actBy ?? '9999-99-99',
       };

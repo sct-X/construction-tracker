@@ -12,7 +12,8 @@ import type { ProgramDraft } from '../../data/api';
 import type { StepForecast } from '../../domain/forecast';
 import { formatShort, stepEnd } from '../../domain/dates';
 import type { PhotoCategory, Requirement, Step, StepLink } from '../../domain/types';
-import { lateText } from '../gantt/Gantt';
+import { lateText, stepWhenWords } from '../gantt/Gantt';
+import { useSession } from '../../data/context';
 import { CategoryList } from './CategoryList';
 import { ConfirmDelete } from './ConfirmDelete';
 import { LinkPicker } from './LinkPicker';
@@ -43,6 +44,7 @@ export interface StepFormProps {
 
 export function StepForm(p: StepFormProps) {
   const { step, draft, forecast, dated, disabled } = p;
+  const { today } = useSession();
   const stage = draft.stages.find((s) => s.id === step.stageId);
   const stages = [...draft.stages].sort((a, b) => a.order - b.order);
   const requirements = draft.requirements.filter((r) => r.stepId === step.id);
@@ -120,7 +122,7 @@ export function StepForm(p: StepFormProps) {
           </span>
           {forecast && (
             <span>
-              Forecast <strong>{`${formatShort(forecast.forecastStart)} to ${formatShort(forecast.forecastEnd)}`}</strong>
+              Forecast <strong>{`${formatShort(forecast.forecastStart)} to ${formatShort(forecast.forecastEnd)}`}</strong>, {stepWhenWords(forecast, today)}
               {forecast.lateDays > 0 ? `, ${lateText(forecast.lateDays)}` : ', on plan'}
             </span>
           )}

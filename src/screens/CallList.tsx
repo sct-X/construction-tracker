@@ -22,7 +22,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { Item, ItemStatus, Job, Person, Step, Trade } from '../domain/types';
 import type { JobForecast } from '../domain/forecast';
-import { addCalendarWeeks, formatShort } from '../domain/dates';
+import { addCalendarWeeks, formatShortRelative, relativeDate } from '../domain/dates';
 import { CallItem, type Handled } from '../components/CallItem';
 import { nextStatus } from '../domain/itemFlow';
 import { StatusText, type Tone } from '../components/StatusText';
@@ -58,11 +58,11 @@ export function inCallCut(item: Item, actBy: string | undefined, today: string):
 /** Rule 7 words from the calculator's freshness, reworded for a call: "unconfirmed 9 days" / "confirmed 2 days ago". */
 function freshWords(f?: JobForecast): { tone: Tone; text: string } | null {
   if (!f) return null;
-  const { amber, daysUnconfirmed, text } = f.freshness;
+  const { amber, daysUnconfirmed, lastConfirmed, text } = f.freshness;
   if (daysUnconfirmed === undefined) return { tone: 'amber', text };
   if (amber) return { tone: 'amber', text: `unconfirmed ${daysUnconfirmed} days` };
   if (daysUnconfirmed === 0) return { tone: 'ok', text: 'confirmed today' };
-  return { tone: 'muted', text: `confirmed ${daysUnconfirmed} day${daysUnconfirmed === 1 ? '' : 's'} ago` };
+  return { tone: 'muted', text: `confirmed ${relativeDate(lastConfirmed!, f.today)}` };
 }
 
 /** A short job name for sentences: "64-66 Park Rd" -> "Park Rd". */
@@ -204,13 +204,13 @@ export default function CallList() {
     api.updateItemStatus(item.id, status);
     // The folded sentence uses the button's own words ("Mark requested" -> "requested"), so the flow reads the same everywhere.
     const label = (nextStatus(item)?.label ?? 'Mark done').replace(/^Mark /, '').toLowerCase();
-    const words = `${label}${status === 'confirmed' && confirmedFor ? ` for ${formatShort(confirmedFor)}` : ''}`;
+    const words = `${label}${status === 'confirmed' && confirmedFor ? ` for ${formatShortRelative(confirmedFor, today)}` : ''}`;
     setHandled((h) => ({ ...h, [item.id]: { item, words: <>{words}</> } }));
   };
 
   const setExpected = (item: Item, date: string) => {
     api.setItemExpectedDate(item.id, date);
-    setHandled((h) => ({ ...h, [item.id]: { item, words: <>expected {item.expectedDate ? 'moved' : 'set'} to {formatShort(date)}.</> } }));
+    setHandled((h) => ({ ...h, [item.id]: { item, words: <>expected {item.expectedDate ? 'moved' : 'set'} to {formatShortRelative(date, today)}.</> } }));
   };
 
   const setNote = (item: Item, text: string) => {

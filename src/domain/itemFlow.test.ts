@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { agoWords } from './dates';
 import { advanceLabel, nextStatus } from './itemFlow';
 
 describe('item flow: one status path for every list', () => {
@@ -21,18 +20,5 @@ describe('item flow: one status path for every list', () => {
     for (const type of ['decision', 'manual_reminder', 'condition_of_consent'] as const) {
       expect(nextStatus({ type, status: 'to_do' })).toEqual({ status: 'done', label: 'Mark done' });
     }
-  });
-});
-
-describe('agoWords', () => {
-  const today = '2026-09-17';
-  it('speaks in days inside a fortnight and whole weeks beyond it', () => {
-    expect(agoWords('2026-09-17', today)).toBe('today');
-    expect(agoWords('2026-09-16', today)).toBe('yesterday');
-    expect(agoWords('2026-09-18', today)).toBe('tomorrow');
-    expect(agoWords('2026-09-14', today)).toBe('3 days ago');
-    expect(agoWords('2026-09-25', today)).toBe('in 8 days');
-    expect(agoWords('2026-08-10', today)).toBe('5 weeks ago');
-    expect(agoWords('2026-10-12', today)).toBe('in 3 weeks');
   });
 });

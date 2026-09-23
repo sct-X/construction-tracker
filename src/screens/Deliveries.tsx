@@ -25,7 +25,7 @@ import { Link } from 'react-router-dom';
 import type { TrackerApi } from '../data/api';
 import { useApi, useQuery, useSession } from '../data/context';
 import { ITEM_STATUS_LABELS, SHIPMENT_STATUS_LABELS, type Item, type ItemStatus, type ShipmentStatus } from '../domain/types';
-import { addCalendarDays, calendarDaysBetween, formatShort, formatWeekRange, lastMonday } from '../domain/dates';
+import { addCalendarDays, formatShort, formatShortRelative, formatWeekRange, lastMonday } from '../domain/dates';
 import { StatusText, type Tone } from '../components/StatusText';
 import { PageHeader } from '../shell/PageHeader';
 import './deliveries.css';
@@ -174,13 +174,12 @@ export function groupDeliveries(rows: Delivery[], today: string): DeliveryGroup[
 
 /** The one date sentence a row shows, and its tone. */
 export function deliveryWhen(d: Delivery, today: string): { text: string; tone: Tone } {
-  if (d.delivered) return { text: d.expected ? `Delivered ${formatShort(d.expected)}` : 'Delivered', tone: 'ok' };
+  if (d.delivered) return { text: d.expected ? `Delivered ${formatShortRelative(d.expected, today)}` : 'Delivered', tone: 'ok' };
   if (!d.expected) return { text: 'No date yet', tone: 'muted' };
-  if (d.lateText) return { text: `Expected ${formatShort(d.expected)}, ${d.lateText}`, tone: 'late' };
-  const ago = calendarDaysBetween(d.expected, today);
-  if (ago > 0) return { text: `Expected ${formatShort(d.expected)}, ${ago} day${ago === 1 ? '' : 's'} ago, not marked delivered`, tone: 'amber' };
-  if (ago === 0) return { text: `Expected today, ${formatShort(d.expected)}`, tone: 'plain' };
-  return { text: `Expected ${formatShort(d.expected)}`, tone: 'plain' };
+  const when = formatShortRelative(d.expected, today);
+  if (d.lateText) return { text: `Expected ${when}, ${d.lateText}`, tone: 'late' };
+  if (d.expected < today) return { text: `Expected ${when}, not marked delivered`, tone: 'amber' };
+  return { text: `Expected ${when}`, tone: 'plain' };
 }
 
 /** Marks a delivery as arrived through the API. Shipments take their open material items with them. */

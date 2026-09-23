@@ -18,7 +18,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Item, ItemStatus, Step, Trade } from '../domain/types';
 import { ITEM_STATUS_LABELS } from '../domain/types';
 import type { ItemForecast } from '../domain/forecast';
-import { agoWords, calendarDaysBetween, formatShort } from '../domain/dates';
+import { calendarDaysBetween, formatShort, formatShortRelative, relativeDate } from '../domain/dates';
 import { nextStatus } from '../domain/itemFlow';
 import { ITEM_TYPE_WORDS } from './ItemRow';
 import { StatusText, type Tone } from './StatusText';
@@ -122,7 +122,7 @@ export function CallItem(props: CallItemProps) {
   let actWords = 'No act-by date';
   if (actBy) {
     const n = calendarDaysBetween(actBy, today);
-    actWords = `act by, ${agoWords(actBy, today)}`;
+    actWords = `act by, ${relativeDate(actBy, today, { deadline: item.status === 'to_do' || item.status === 'booked' })}`;
     if (n > 0 && item.status === 'to_do') actTone = 'amber';
     else if (n > 0) actTone = 'muted';
     else if (n === 0) actTone = 'amber';
@@ -130,14 +130,14 @@ export function CallItem(props: CallItemProps) {
   if (f?.isLate) actTone = 'late';
 
   const forWords = step
-    ? `For ${step.name}${f?.neededBy ? `, ${formatShort(f.neededBy)}` : ''}`
+    ? `For ${step.name}${f?.neededBy ? `, ${formatShortRelative(f.neededBy, today, { deadline: item.status !== 'done' })}` : ''}`
     : f?.neededBy
-      ? `Needed ${formatShort(f.neededBy)}`
+      ? `Needed ${formatShortRelative(f.neededBy, today, { deadline: item.status !== 'done' })}`
       : null;
   const expectedWords = f?.expected
     ? f.isLate && f.lateText
-      ? { text: `Expected ${formatShort(f.expected)}, ${f.lateText}`, tone: 'late' as Tone }
-      : { text: `Expected ${formatShort(f.expected)}`, tone: 'plain' as Tone }
+      ? { text: `Expected ${formatShortRelative(f.expected, today)}, ${f.lateText}`, tone: 'late' as Tone }
+      : { text: `Expected ${formatShortRelative(f.expected, today)}`, tone: 'plain' as Tone }
     : f?.isLate && f.lateText
       ? { text: `Nothing expected yet, ${f.lateText}`, tone: 'late' as Tone }
       : null;

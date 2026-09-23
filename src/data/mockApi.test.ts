@@ -71,7 +71,7 @@ describe('mock API', () => {
     if (!early.ok) {
       expect(early.reason).toBe('not_started');
       expect(early.startsOn).toBe('2026-09-28');
-      expect(early.message).toBe("This step hasn't started yet; it starts Mon 28 Sep.");
+      expect(early.message).toBe("This step hasn't started yet; it starts Mon 28 Sep, in 11 days.");
     }
     api.setSession({ today: '2026-09-28' });
     expect(api.setStepStatus('sv-slab-insp', 'done').ok).toBe(true);
@@ -86,7 +86,7 @@ describe('mock API', () => {
     if (!result.ok) {
       expect(result.reason).toBe('not_started');
       expect(result.missingCategories).toEqual([]);
-      expect(result.message).toBe("This step hasn't started yet; it starts Mon 2 Nov.");
+      expect(result.message).toBe("This step hasn't started yet; it starts Mon 2 Nov, in 6 weeks.");
     }
     expect(api.getStep('pr-install-windows')!.status).toBe('not_started');
     expect(api.listActivity({ stepId: 'pr-install-windows' })).toHaveLength(0);

@@ -21,7 +21,7 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { ApprovalPath, JobKind } from '../domain/types';
-import { calendarDaysBetween, formatLong, formatShort, isISODate, nextMonday } from '../domain/dates';
+import { calendarDaysBetween, formatLongRelative, formatShortRelative, isISODate, nextMonday } from '../domain/dates';
 import { PageHeader } from '../shell/PageHeader';
 import { countWords, plural, type TemplateShape } from './Templates';
 import './newJob.css';
@@ -203,7 +203,7 @@ export default function NewJob() {
           <label htmlFor="newjob-start">{kind === 'build' ? 'Start on site' : 'Start'}</label>
           <input id="newjob-start" className="input input--desktop newjob__date" type="date" value={startDate} data-testid="newjob-start" onChange={(e) => setStartDate(e.target.value)} />
           {validStart && preview && preview.startsOn !== startDate && (
-            <span className="newjob__hint">A weekend or the shutdown: work starts {formatShort(preview.startsOn)}.</span>
+            <span className="newjob__hint">A weekend or the shutdown: work starts {formatShortRelative(preview.startsOn, today)}.</span>
           )}
         </div>
 
@@ -242,7 +242,7 @@ export default function NewJob() {
           <div className="newjob__finish" data-testid="newjob-planned-finish" aria-live="polite">
             {preview?.plannedFinish ? (
               <p className="newjob__finish-words" data-testid="newjob-planned-finish-words">
-                {plural(stepsToRun, 'step')}, about {plural(weeks, 'week')}, from {formatLong(preview.startsOn)}
+                {plural(stepsToRun, 'step')}, about {plural(weeks, 'week')}, from {formatLongRelative(preview.startsOn, today)}
                 {fromIndex > 0 && shape ? `, ${plural(preview.stagesDone, 'stage')} before ${shape.stages[fromIndex].name} marked done` : ''}.
               </p>
             ) : (

@@ -5,7 +5,7 @@
  *   Thursday 17 September            <- the day is the hero
  *   Lock-up stage, week 3 of 12
  *   [        Add photos (3)        ]  <- the one hi-vis action, 64px; the queue count is its badge
- *   Next hold point   Stormwater inspection, Mon 12 Oct, in 25 days
+ *   Next hold point   Stormwater inspection, Mon 12 Oct, in 3 weeks
  *                     0 of 1 required photo sets uploaded ... Add photos now
  *   Deliveries        Cladding, Expected Tue 15 Sep, 2 days ago, not marked delivered
  *   On site this week Roof plumbing, Mon to Thu, Roof plumber
@@ -18,7 +18,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery, useSession } from '../data/context';
 import type { StepForecast } from '../domain/forecast';
-import { addCalendarDays, formatShort, formatWeekRange, lastMonday, relativeDays, weekday, workingDaysBetween } from '../domain/dates';
+import { addCalendarDays, formatShortRelative, formatWeekRange, lastMonday, weekday, workingDaysBetween } from '../domain/dates';
 import { HoldPointCheck, readinessWords } from '../components/HoldPointCheck';
 import { StatusText } from '../components/StatusText';
 import { DeliveryRow, collectDeliveries, groupDeliveries } from './Deliveries';
@@ -126,7 +126,7 @@ export default function AlecToday({ jobId }: { jobId: string }) {
                 {hp.stepName}
               </Link>
               <span className="today__hp-when" data-testid="today-holdpoint-when">
-                {formatShort(hp.forecastStart)}, {relativeDays(hp.forecastStart, today)}
+                {formatShortRelative(hp.forecastStart, today)}
                 {hpStage ? `, ${hpStage.name} stage` : ''}
               </span>
             </p>

@@ -45,6 +45,7 @@ import {
   previousWorkingDay,
   snapToWorkingDay,
   stepEnd,
+  formatShortRelative,
 } from '../domain/dates';
 import { slipCostFor, stripMoney } from '../domain/money';
 import { buildSeed, SEED_VERSION } from '../seed';
@@ -824,7 +825,7 @@ export function createMockApi(options: MockApiOptions = {}): TrackerApi {
             reason: 'not_started',
             missingCategories: [],
             startsOn,
-            message: `This step hasn't started yet; it starts ${formatShort(startsOn)}.`,
+            message: `This step hasn't started yet; it starts ${formatShortRelative(startsOn, session.today)}.`,
           };
         }
       }

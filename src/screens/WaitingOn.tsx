@@ -6,7 +6,7 @@
  *   [Anyone v]  [All jobs v]  [All types v]          List | Call
  *
  *   9  Overdue                        <- a plate: the one loud thing
- *   ! Act by Mon 10 Aug, 5 weeks ago      Ordered or booked
+ *   ! Act by Mon 10 Aug, overdue by 5 weeks   Ordered or booked
  *   Windows  Park Rd                      Material
  *   waiting on HiHaus, with you
  *   Call  Set date                        [Mark confirmed]
@@ -36,7 +36,7 @@ import { WaitingMode } from '../components/WaitingMode';
 import type { Item, ItemType, Job, Person, Trade } from '../domain/types';
 import { ITEM_STATUS_LABELS, ITEM_TYPE_LABELS } from '../domain/types';
 import type { ItemForecast, JobForecast } from '../domain/forecast';
-import { addCalendarDays, agoWords, formatShort, formatWeekRange, lastMonday } from '../domain/dates';
+import { addCalendarDays, formatShort, formatShortRelative, formatWeekRange, lastMonday, relativeDate } from '../domain/dates';
 import { nextStatus } from '../domain/itemFlow';
 import { ITEM_TYPE_WORDS, ItemRow, ItemRowList, itemWhenWords } from '../components/ItemRow';
 import { StatusText, type Tone } from '../components/StatusText';
@@ -75,8 +75,8 @@ export function groupFor(item: Item, f: ItemForecast | undefined, today: string)
 
 /**
  * The row's one date phrase, relative to today, replacing the shared row's
- * default: "Act by Mon 10 Aug, 5 weeks ago" until the item is confirmed,
- * then "Expected Wed 16 Sep, yesterday". A late item keeps the calculator's
+ * default: "Act by Mon 10 Aug, overdue by 5 weeks" until the item is
+ * confirmed, then "Expected Wed 16 Sep, yesterday". A late item keeps the calculator's
  * own late phrase (undefined leaves the default in place).
  */
 export function rowWhenWords(item: Item, f: ItemForecast | undefined, today: string): { text: string; tone: Tone } | undefined {
@@ -84,10 +84,10 @@ export function rowWhenWords(item: Item, f: ItemForecast | undefined, today: str
   if (item.status === 'confirmed') {
     const when = f.expected ?? f.neededBy;
     if (!when) return undefined;
-    return { text: `${f.expected ? 'Expected' : 'Needed'} ${formatShort(when)}, ${agoWords(when, today)}`, tone: when < today ? 'amber' : 'plain' };
+    return { text: `${f.expected ? 'Expected' : 'Needed'} ${formatShortRelative(when, today, { deadline: !f.expected })}`, tone: when < today ? 'amber' : 'plain' };
   }
   if (!f.actBy) return undefined;
-  return { text: `Act by ${formatShort(f.actBy)}, ${agoWords(f.actBy, today)}`, tone: f.actBy < today ? 'amber' : 'plain' };
+  return { text: `Act by ${formatShortRelative(f.actBy, today, { deadline: true })}`, tone: f.actBy < today ? 'amber' : 'plain' };
 }
 
 interface Row {
@@ -433,12 +433,12 @@ function TableRow({ row, today, ownerName, action }: { row: Row; today: string; 
     navigate(`/items/${item.id}`);
   };
   const actPassed = open && !!f?.actBy && f.actBy < today && item.status !== 'confirmed';
-  const late = f?.isLate ? itemWhenWords(f, item.status) : null;
+  const late = f?.isLate ? itemWhenWords(f, item.status, today) : null;
   const lead = f?.leadTimeWeeks ?? item.leadTimeWeeks ?? 0;
   const owner = item.ownerId === personId ? 'you' : ownerName;
   const who = [item.waitingOn, owner ? `with ${owner}` : ''].filter(Boolean).join(', ');
   // The act-by column reads date first: the figure, then how far off it is and the lead that set it.
-  const actAgo = open && item.status !== 'confirmed' && f?.actBy ? agoWords(f.actBy, today) : '';
+  const actAgo = open && f?.actBy ? relativeDate(f.actBy, today, { deadline: item.status !== 'confirmed' }) : '';
   const actUnder = [actAgo, lead ? `${lead} wk lead` : ''].filter(Boolean);
   return (
     <tr className="waiting__row" data-testid={`item-row-${item.id}`} onClick={onRowClick}>
@@ -469,24 +469,38 @@ function TableRow({ row, today, ownerName, action }: { row: Row; today: string; 
         </span>
       </th>
       <td className="waiting__cell-wrap">{who}</td>
-      <td className="num">{f?.neededBy ? formatShort(f.neededBy) : ''}</td>
+      <td className="num">
+        {f?.neededBy ? (
+          <>
+            {formatShort(f.neededBy)}
+            {!(late && !f.expected) && <span className="waiting__cell-ago">{relativeDate(f.neededBy, today, { deadline: open })}</span>}
+          </>
+        ) : (
+          ''
+        )}
+      </td>
       <td className="num">
         {late && f ? (
           <>
             <StatusText tone="late" className="waiting__chip">
               {f.expected ? formatShort(f.expected) : 'No date'}
             </StatusText>
-            <span className="waiting__cell-ago waiting__cell-ago--late">{f.expected ? f.lateText : `needed ${formatShort(f.neededBy!)}, ${f.lateText}`}</span>
+            <span className="waiting__cell-ago waiting__cell-ago--late">
+              {f.expected ? `${relativeDate(f.expected, today)}, ${f.lateText}` : `needed ${formatShort(f.neededBy!)}, ${f.lateText}`}
+            </span>
           </>
         ) : f?.expected && item.status === 'confirmed' && f.expected < today ? (
           <>
             <StatusText tone="amber" className="waiting__chip">
               {formatShort(f.expected)}
             </StatusText>
-            <span className="waiting__cell-ago waiting__cell-ago--amber">{agoWords(f.expected, today)}</span>
+            <span className="waiting__cell-ago waiting__cell-ago--amber">{relativeDate(f.expected, today)}</span>
           </>
         ) : f?.expected ? (
-          formatShort(f.expected)
+          <>
+            {formatShort(f.expected)}
+            <span className="waiting__cell-ago">{relativeDate(f.expected, today)}</span>
+          </>
         ) : (
           ''
         )}

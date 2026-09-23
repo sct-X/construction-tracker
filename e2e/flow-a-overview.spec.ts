@@ -22,13 +22,13 @@ test.describe('Flow a: the overview', () => {
 
     // Beatty St: the tiler is the top waiting-on line with its lateness in words; amber freshness.
     await expect(page.getByTestId('overview-stage-beatty')).toHaveText('Rough-in');
-    await expect(page.getByTestId('overview-item-it-bt-tiler')).toContainText('expected 5 Oct, 7 days late');
+    await expect(page.getByTestId('overview-item-it-bt-tiler')).toContainText('expected 5 Oct, in 2 weeks, 7 days late');
     await expect(page.getByTestId('overview-fresh-beatty')).toContainText('Last confirmed 9 days ago');
     await expect(page.getByTestId('overview-fresh-beatty')).toHaveAttribute('data-tone', 'amber');
 
     // Seaview St: the slab inspection is a hold point with empty photo sets.
     await expect(page.getByTestId('overview-stage-seaview')).toHaveText('Slab');
-    await expect(page.getByTestId('overview-step-sv-slab-insp')).toContainText('Mon 28 Sep, 2 photo sets empty');
+    await expect(page.getByTestId('overview-step-sv-slab-insp')).toContainText('Mon 28 Sep, in 11 days, 2 photo sets empty');
 
     // Design jobs: stage and outstanding items (step 8).
     await expect(page.getByTestId('overview-stage-west-st')).toContainText('Pending approval');
@@ -69,7 +69,7 @@ test.describe('Flow a: the overview', () => {
     await page.goto('#/overview?as=norm&today=2026-09-17&side=side-norm');
     await expect(page.getByTestId('overview-stage-hunts-12')).toHaveText('Lock-up');
     await expect(page.getByTestId('overview-stage-north-rd')).toHaveText('First floor');
-    await expect(page.getByTestId('overview-item-it-h12-windows')).toContainText('expected 28 Sep, 7 days late');
+    await expect(page.getByTestId('overview-item-it-h12-windows')).toContainText('expected 28 Sep, in 11 days, 7 days late');
     await expect(page.getByTestId('job-row-park-rd')).toHaveCount(0);
     // Back to the main side so the persisted session does not leak.
     await page.goto('#/overview?as=norm&today=2026-09-17&side=side-nd');

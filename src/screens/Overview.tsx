@@ -14,7 +14,7 @@ import type { MouseEvent } from 'react';
 import type { OverviewRow } from '../data/api';
 import { useApi, useQuery, useSession } from '../data/context';
 import type { Freshness, WaitingOnRow } from '../domain/forecast';
-import { formatDayMonth, formatShort } from '../domain/dates';
+import { formatDayMonth, formatShortRelative, relativeDate } from '../domain/dates';
 import { StatusText, type Tone } from '../components/StatusText';
 import { useLayout } from '../shell/AppShell';
 import './overview.css';
@@ -108,6 +108,7 @@ function StageCell({ row }: { row: OverviewRow }) {
 }
 
 function NextStepsCell({ row }: { row: OverviewRow }) {
+  const { today } = useSession();
   if (row.nextSteps.length === 0) return <span className="overview__quiet">Nothing left</span>;
   const hp = row.nextHoldPoint;
   return (
@@ -117,7 +118,7 @@ function NextStepsCell({ row }: { row: OverviewRow }) {
           <Link to={`/steps/${s.stepId}`} className="overview__step-link" data-testid={`overview-step-${s.stepId}`}>
             <span className="overview__step-name">{s.name}</span>
             <span className="overview__step-when">
-              {s.status === 'in_progress' ? 'under way' : s.start ? formatShort(s.start) : 'no date'}
+              {s.status === 'in_progress' ? 'under way' : s.start ? formatShortRelative(s.start, today) : 'no date'}
               {s.isHoldPoint && hp?.stepId === s.stepId ? (hp.ok ? ', photos ready' : `, ${hp.missingCategories.length} photo set${hp.missingCategories.length === 1 ? '' : 's'} empty`) : ''}
             </span>
           </Link>
@@ -127,17 +128,18 @@ function NextStepsCell({ row }: { row: OverviewRow }) {
   );
 }
 
-function waitingDetail(w: WaitingOnRow): string {
+function waitingDetail(w: WaitingOnRow, today: string): string {
   const parts: string[] = [];
-  if (w.expected) parts.push(`expected ${formatDayMonth(w.expected)}`);
+  if (w.expected) parts.push(`expected ${formatDayMonth(w.expected)}, ${relativeDate(w.expected, today)}`);
+  // Needed-by passed with nothing expected: lateText is the relative time ("overdue by 3 days").
   else if (w.neededBy && w.isLate) parts.push(`needed ${formatDayMonth(w.neededBy)}`);
-  else if (w.actBy) parts.push(`act by ${formatDayMonth(w.actBy)}`);
+  else if (w.actBy) parts.push(`act by ${formatDayMonth(w.actBy)}, ${relativeDate(w.actBy, today, { deadline: w.status === 'to_do' || w.status === 'booked' })}`);
   if (w.lateText) parts.push(w.lateText);
-  else if (w.actByPassed) parts.push('act-by passed');
   return parts.join(', ');
 }
 
 function WaitingOnCell({ row, personId }: { row: OverviewRow; personId: string }) {
+  const { today } = useSession();
   if (row.waitingOn.length === 0) return <span className="overview__quiet">Nothing open</span>;
   return (
     <ul className="overview__waiting" data-testid={`overview-waiting-${row.jobId}`}>
@@ -150,7 +152,7 @@ function WaitingOnCell({ row, personId }: { row: OverviewRow; personId: string }
                 {flagged ? '!' : ''}
               </span>
               <span className="overview__item-body">
-                <span className="overview__item-title">{w.title}</span> <span className="overview__item-detail">{waitingDetail(w)}</span>
+                <span className="overview__item-title">{w.title}</span> <span className="overview__item-detail">{waitingDetail(w, today)}</span>
               </span>
               {w.ownerId === personId ? <span className="overview__with-you">With you</span> : null}
             </Link>

@@ -33,7 +33,7 @@ import { useApi, useQuery, useSession } from '../data/context';
 import type { ItemPatch, NewItemInput } from '../data/api';
 import type { Item, ItemStatus, ItemType } from '../domain/types';
 import { ITEM_STATUS_LABELS, ITEM_STATUS_ORDER, ITEM_TYPE_LABELS } from '../domain/types';
-import { addCalendarWeeks, agoWords, formatDayMonth, formatLong, formatShort, formatStamp } from '../domain/dates';
+import { addCalendarWeeks, formatDayMonth, formatLongRelative, formatShort, formatShortRelative, formatStamp, isISODate, relativeDate } from '../domain/dates';
 import { BigNumber } from '../components/BigNumber';
 import { ItemTypePicker } from '../components/ItemTypePicker';
 import { StatusText } from '../components/StatusText';
@@ -244,7 +244,7 @@ export default function ItemSheet() {
       label={
         draft.status === 'done'
           ? 'Done'
-          : `${agoWords(actBy, today)}${neededBy ? `: needed ${formatShort(neededBy)}${step ? ` for ${step.name}` : ''}, minus ${leadWeeks} week${leadWeeks === 1 ? '' : 's'}` : ''}`
+          : `${relativeDate(actBy, today, { deadline: draft.status === 'to_do' || draft.status === 'booked' })}${neededBy ? `: needed ${formatShort(neededBy)}${step ? ` for ${step.name}` : ''}, minus ${leadWeeks} week${leadWeeks === 1 ? '' : 's'}` : ''}`
       }
       tone={actByPassed ? 'amber' : undefined}
       testId="item-act-by"
@@ -274,7 +274,7 @@ export default function ItemSheet() {
         {actByFigure}
         {savedForecast?.isLate && (
           <StatusText tone="late" testId="item-late">
-            {savedForecast.expected ? `Expected ${formatShort(savedForecast.expected)}` : `Needed ${formatShort(savedForecast.neededBy!)}, nothing expected`},{' '}
+            {savedForecast.expected ? `Expected ${formatShortRelative(savedForecast.expected, today)}` : `Needed ${formatShort(savedForecast.neededBy!)}, nothing expected`},{' '}
             {savedForecast.lateText}
           </StatusText>
         )}
@@ -327,7 +327,7 @@ export default function ItemSheet() {
                 return (
                   <option key={s.id} value={s.id}>
                     {s.name}
-                    {f?.forecastStart ? `, starts ${formatShort(f.forecastStart)}` : ''}
+                    {f?.forecastStart ? `, starts ${formatShortRelative(f.forecastStart, today)}` : ''}
                   </option>
                 );
               })}
@@ -406,7 +406,7 @@ export default function ItemSheet() {
               <>
                 <span className="field__label">Needed by</span>
                 <p className="sheet__derived" data-testid="item-needed-by">
-                  {neededBy ? formatLong(neededBy) : 'No date yet'}
+                  {neededBy ? formatLongRelative(neededBy, today, { deadline: draft.status !== 'done' }) : 'No date yet'}
                   <span className="sheet__derived-from">from step {step.name}</span>
                 </p>
               </>
@@ -424,7 +424,11 @@ export default function ItemSheet() {
                   disabled={dateLocked}
                   data-testid="item-needed-by"
                 />
-                {dateLocked && needsSignal}
+                {dateLocked
+                  ? needsSignal
+                  : isISODate(draft.neededBy) && (
+                      <span className="sheet__hint">{relativeDate(draft.neededBy, today, { deadline: draft.status !== 'done' })}</span>
+                    )}
               </>
             )}
           </div>
@@ -435,7 +439,7 @@ export default function ItemSheet() {
             <>
               <span className="field__label">Expected</span>
               <p className="sheet__derived" data-testid="item-expected">
-                {expectedFromShipment ? formatLong(expectedFromShipment) : 'No ETA yet'}
+                {expectedFromShipment ? formatLongRelative(expectedFromShipment, today) : 'No ETA yet'}
                 <span className="sheet__derived-from">
                   Comes from shipment:{' '}
                   <Link to={`/shipments/${shipment.id}`} data-testid="item-shipment-link">
@@ -458,7 +462,7 @@ export default function ItemSheet() {
                 disabled={dateLocked}
                 data-testid="item-expected"
               />
-              {dateLocked && needsSignal}
+              {dateLocked ? needsSignal : isISODate(draft.expectedDate) && <span className="sheet__hint">{relativeDate(draft.expectedDate, today)}</span>}
             </>
           )}
         </div>
@@ -486,7 +490,7 @@ export default function ItemSheet() {
               disabled={dateLocked}
               data-testid="item-confirmed"
             />
-            {!draft.confirmedDate && <span className="sheet__hint">Blank means today</span>}
+            <span className="sheet__hint">{isISODate(draft.confirmedDate) ? relativeDate(draft.confirmedDate, today) : 'Blank means today'}</span>
           </div>
         )}
 
@@ -504,7 +508,7 @@ export default function ItemSheet() {
               <span className="sheet__photo-row">
                 <Link to={`/jobs/${photo.jobId}/photos?photo=${photo.id}`} className="sheet__photo" data-testid="item-photo-link">
                   <img src={photo.dataUrl} alt={`Photo taken ${formatDayMonth(photo.takenOn)}`} />
-                  <span>Taken {formatShort(photo.takenOn)}</span>
+                  <span>Taken {formatShortRelative(photo.takenOn, today)}</span>
                 </Link>
                 <button type="button" className="btn btn--ghost btn--desktop" onClick={() => set('photoId', '')} data-testid="item-photo-clear">
                   Change photo

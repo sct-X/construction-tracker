@@ -22,7 +22,7 @@ test.describe('Waiting-on list as Raff', () => {
     const windows = overdue.getByTestId('item-row-it-pr-windows');
     await expect(windows).toBeVisible();
     await expect(windows).toContainText('Mon 10 Aug');
-    await expect(windows).toContainText('5 weeks ago');
+    await expect(windows).toContainText('overdue by 5 weeks');
     await expect(windows).toContainText('Ordered or booked');
     await expect(overdue.getByTestId('item-row-it-pr-sliding-doors')).toBeVisible();
 
@@ -121,7 +121,7 @@ test.describe('Item sheet', () => {
     await expect(page.getByTestId('item-needed-by')).toContainText('from step Install windows');
     await expect(page.getByTestId('item-expected')).toContainText('Comes from shipment');
     await expect(page.getByTestId('item-act-by')).toContainText('Act by Mon 10 Aug');
-    await expect(page.getByTestId('item-act-by')).toContainText('5 weeks ago');
+    await expect(page.getByTestId('item-act-by')).toContainText('overdue by 5 weeks');
     await expect(page.getByTestId('item-act-by')).toContainText('minus 12 weeks');
     await expect(page.getByTestId('item-save')).toBeDisabled();
 
@@ -264,7 +264,7 @@ test.describe('Desktop table', () => {
     test.skip(test.info().project.name !== 'phone', 'phone layout only');
     await page.goto('#/waiting?as=dominic&today=2026-09-17');
     await expect(page.locator('.waiting__table')).toHaveCount(0);
-    await expect(page.getByTestId('item-row-it-pr-windows')).toContainText('Act by Mon 10 Aug, 5 weeks ago');
+    await expect(page.getByTestId('item-row-it-pr-windows')).toContainText('Act by Mon 10 Aug, overdue by 5 weeks');
     // The strip under the row holds only controls: the button is a tap target and so is Call.
     const call = await page.getByTestId('item-call-it-pr-plasterer').boundingBox();
     expect(call!.height).toBeGreaterThanOrEqual(56);

@@ -174,12 +174,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* The gray step reads on the plate in both themes. */
-.wrow .wrow__btn--strong {
-  background: color-mix(in srgb, var(--fill-strong) 70%, var(--fill));
-}
-.wrow .wrow__btn--strong:hover {
-  background: var(--fill-strong);
+/* Call and the next status step are glass buttons (.btn--glass, static:
+   they sit on the row's plate). Call keeps the tint on its label and glyph,
+   in the deeper glass ink that holds 5.5:1 on the glass fill. */
+.wrow .wrow__call {
+  color: var(--lg-btn-tint-ink);
 }
 .wrow__glyph {
   flex: none;

@@ -334,10 +334,10 @@ export default function ProgramEditor() {
           <span className="editor__changes" data-testid="editor-changes">
             {savedWords ?? (dirty ? `${changes.length} unsaved change${changes.length === 1 ? '' : 's'}` : 'No unsaved changes')}
           </span>
-          <button type="button" className="btn btn--desktop editor__cancel" disabled={!dirty} data-testid="editor-cancel" onClick={cancel}>
+          <button type="button" className="btn btn--glass btn--desktop editor__cancel" disabled={!dirty} data-testid="editor-cancel" onClick={cancel}>
             Discard
           </button>
-          <button type="button" className="btn btn--desktop btn--primary glass__primary" disabled={!dirty || disabled} data-testid="editor-save" onClick={save}>
+          <button type="button" className="btn btn--glass-prominent btn--desktop editor__save" disabled={!dirty || disabled} data-testid="editor-save" onClick={save}>
             {disabled ? 'Needs signal' : dirty ? `Save ${changes.length} change${changes.length === 1 ? '' : 's'}` : 'Save'}
           </button>
         </div>

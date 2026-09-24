@@ -316,6 +316,37 @@
   border-radius: var(--radius-pill);
 }
 
+/* Minimised on scroll down (useTabBarMinimise): the capsule shrinks to its
+   glyphs and settles a little lower, from its foot. Transform and opacity
+   only (the blur radius never animates); the layout box stays, so the page's
+   foot padding is unchanged and nothing is ever covered that wasn't before.
+   Every tab stays visible and tappable (46px tall at this scale); the labels
+   fade but remain the links' accessible names. Focus inside restores it
+   (and :focus-within holds it open while the keyboard is in the bar).
+   Reduced motion: the global rule makes the change instant. */
+.tabbar {
+  --tabbar-mini-scale: 0.82;
+  transform-origin: 50% 100%;
+  transition: transform var(--motion-sheet) var(--ease-out);
+}
+.tabbar__tab-icon,
+.tabbar__tab-label {
+  transition:
+    transform var(--motion-sheet) var(--ease-out),
+    opacity var(--motion-fast) var(--ease);
+}
+.tabbar[data-minimised]:not(:focus-within) {
+  transform: translateY(var(--space-2)) scale(var(--tabbar-mini-scale));
+}
+/* Glyphs drop to the middle of the tab as the labels fade out. */
+.tabbar[data-minimised]:not(:focus-within) .tabbar__tab-icon {
+  transform: translateY(7px) scale(1.08);
+}
+.tabbar[data-minimised]:not(:focus-within) .tabbar__tab-label {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
 /* ---- offline: a thin calm bar under the header ---- */
 .offline-bar {
   display: flex;
@@ -416,7 +447,7 @@
   }
 }
 
-/* ---- job switcher (JobHeader): the job's name is the title and a dropdown ---- */
+/* ---- job switcher (JobHeader): the job's name is the title and a menu button ---- */
 .page-header__lead {
   min-width: 0;
   max-width: 100%;
@@ -428,15 +459,27 @@
   /* Hang the padding into the gutter so the name lines up with the text below.
      `left`, not a negative margin: a margin would shrink the width the name gets. */
   left: calc(-1 * var(--space-2));
-  border-radius: var(--radius-md);
-  transition: background-color var(--motion-fast) var(--ease);
 }
+.job-switch__title {
+  margin: 0;
+}
+/* The title is the button: the heading's own size and weight, no chrome. */
 .job-switch__name {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  max-width: 100%;
   min-height: 48px;
   padding: 2px var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: opacity var(--motion-fast) var(--ease);
 }
 .job-switch__text {
   min-width: 0;
@@ -449,35 +492,155 @@
   height: 26px;
   margin-top: 3px;
   color: var(--text-secondary);
-  transition: color var(--motion-fast) var(--ease);
+  transition:
+    color var(--motion-fast) var(--ease),
+    transform var(--lg-menu-motion) var(--ease-out);
 }
 .job-switch__chevron-disc {
   fill: var(--fill);
   transition: fill var(--motion-fast) var(--ease);
 }
-/* The native select covers the title: the platform's own picker, keyboard and screen reader. */
-.job-switch__select {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  padding: 0;
-  margin: 0;
-  border: 0;
-  opacity: 0;
-  cursor: pointer;
-  font-size: 16px; /* no zoom on focus in iOS Safari */
-}
-.job-switch:hover .job-switch__chevron {
+.job-switch__name:hover .job-switch__chevron,
+.job-switch[data-open] .job-switch__chevron {
   color: var(--tint);
 }
-.job-switch:hover .job-switch__chevron-disc {
+.job-switch__name:hover .job-switch__chevron-disc,
+.job-switch[data-open] .job-switch__chevron-disc {
   fill: var(--tint-wash);
 }
-.job-switch:active {
+.job-switch[data-open] .job-switch__chevron {
+  transform: rotate(180deg);
+}
+.job-switch__name:active {
   opacity: 0.6;
 }
-.job-switch:has(.job-switch__select:focus-visible) {
+.job-switch__name:focus-visible {
   box-shadow: var(--focus-ring);
+  border-radius: var(--radius-md);
+}
+
+/* The menu: Thick Liquid Glass that grows out of the title (the web's
+   glassEffectID morph): a scale and fade from the chevron, 240ms ease-out,
+   and back in 160ms. The blur radius never animates. It fits the viewport
+   (max-height is set on open from the room under the title, above the tab
+   bar) and scrolls inside when the side has more jobs than that. */
+.job-menu {
+  position: absolute;
+  z-index: 6;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  /* On the phone it spans the column, 8px in from each side (the switcher hangs 8px into the gutter). */
+  width: min(24rem, calc(100vw - 2 * var(--gutter) + 2 * var(--space-2)));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  border-radius: var(--lg-menu-radius);
+  font-size: var(--type-body);
+  font-weight: var(--weight-regular);
+  letter-spacing: normal;
+  line-height: 1.3;
+  transform-origin: var(--job-menu-origin-x, 24px) calc(-1 * var(--space-4));
+  animation: job-menu-in var(--lg-menu-motion) var(--ease-out) both;
+}
+.job-menu[data-state='closing'] {
+  pointer-events: none;
+  animation: job-menu-out 160ms var(--ease) both;
+}
+@keyframes job-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.2, 0.12);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes job-menu-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.6, 0.4);
+  }
+}
+@keyframes job-menu-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes job-menu-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+/* Reduced motion: the menu fades, it does not grow (beats the global 0.01ms rule). */
+@media (prefers-reduced-motion: reduce) {
+  .job-menu {
+    animation-name: job-menu-fade-in;
+    animation-duration: 150ms !important;
+  }
+  .job-menu[data-state='closing'] {
+    animation-name: job-menu-fade-out;
+    animation-duration: 120ms !important;
+  }
+}
+.job-menu__head {
+  padding: var(--space-3) var(--space-3) var(--space-1) 38px;
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-semibold);
+  color: var(--lg-ink-muted);
+}
+.job-menu__group + .job-menu__group {
+  margin-top: var(--space-1);
+  border-top: 0.5px solid var(--lg-hairline);
+}
+/* An iOS menu row: the checkmark column leading, the name, the overdue words. */
+.job-menu__option {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  min-height: var(--tap-min);
+  padding: 11px var(--space-3) 11px 0;
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.job-menu__mark {
+  flex: none;
+  align-self: center;
+  display: inline-flex;
+  justify-content: center;
+  width: 38px;
+  color: var(--text);
+}
+.job-menu__check {
+  display: block;
+}
+.job-menu__option[aria-selected='true'] .job-menu__name {
+  font-weight: var(--weight-semibold);
+}
+.job-menu__name {
+  min-width: 0;
+}
+.job-menu__overdue {
+  flex: none;
+  white-space: pre;
+  color: var(--late-ink);
+  font-weight: var(--weight-semibold);
+}
+.job-menu__option[data-active] {
+  background: var(--lg-selected);
+  box-shadow: var(--lg-selected-shadow);
+}
+.job-menu__option:active {
+  background: var(--lg-btn-fill-hover);
+}
+.job-menu__option:focus-visible {
+  box-shadow: inset var(--focus-ring);
+  border-radius: var(--radius-md);
 }

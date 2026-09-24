@@ -132,6 +132,18 @@ components:
     textColor: "{colors.tint}"
     rounded: "{rounded.button}"
     padding: "0 20px"
+  button-glass:
+    backgroundColor: "rgba(120,120,128,0.14)"
+    textColor: "{colors.text}"
+    rounded: "{rounded.button}"
+    padding: "0 20px"
+    height: "56px"
+  button-glass-prominent:
+    backgroundColor: "{colors.tint-fill}"
+    textColor: "{colors.on-tint}"
+    rounded: "{rounded.button}"
+    padding: "0 20px"
+    height: "56px"
   segmented:
     backgroundColor: "{colors.fill}"
     textColor: "{colors.text}"
@@ -191,7 +203,7 @@ Replaced (23 Sep 2026): the "surveyor's readout" world (Barlow Semi Condensed an
 - The system face (SF Pro on Apple devices) in Apple's text styles; no web font ships.
 - One tint, the Cruise orange deepened to #b0501a so it reads as text; the logo dot keeps its own #c1652e.
 - Red is overdue and only overdue. No amber anywhere.
-- Liquid Glass on the floating layer only: the phone nav bar and a floating tab-bar capsule (Regular), the buzz and the program editor footer (Thick). Content stays solid. A solid macOS source list on the desktop.
+- Liquid Glass on the floating layer only: the phone nav bar and a floating tab-bar capsule that minimises on scroll down (Regular), the buzz, the program editor footer and the job switcher menu (Thick). Secondary actions are static glass buttons; content stays solid. A solid macOS source list on the desktop.
 - 44px minimum targets, 56px on the site role's screens and every primary control on the phone.
 
 ## Colors
@@ -250,7 +262,8 @@ Spacing on a 4px grid, with 8, 16 and 20 doing most of the work. Phone (below 76
 Flat at rest. Grouping is tonal: white cells on the grey ground (in dark, #1c1c1e on black). What floats is Liquid Glass (see Material below), never shadowed content.
 
 ### Shadow Vocabulary
-- **Glass shadow** (`--lg-shadow`, `--lg-shadow-thick`, from the label ink, never pure black): the tab-bar capsule, the phone job tabs and Waiting on filter, the buzz, the editor footer. Nothing else.
+- **Glass shadow** (`--lg-shadow`, `--lg-shadow-thick`, from the label ink, never pure black): the tab-bar capsule, the phone job tabs and Waiting on filter, the buzz, the editor footer, the job switcher menu. Nothing else.
+- **Glass button lift** (part of `--lg-btn-edge`: `0 1px 2px`, label ink 8% / black 40%): the hairline under a glass button, so it reads as a pressable shape on a white plate.
 - **Float** (`--shadow-float`): kept for the few lifted things that are not glass.
 - **Segment thumb** (`0 3px 8px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.04)`): the chosen segment's thumb, as on iOS.
 
@@ -266,7 +279,9 @@ Radius by element size: 6px chips; 7px a segment thumb inside its 9px trough; 8p
 - **Tinted (`.btn--tinted`)**: tint wash with tint text, a quieter call to action.
 - **Chosen (`.btn--fill`)**: steel fill, white text: the pressed half of a pair.
 - **Plain (`.btn--ghost`)**: tint text, no fill.
-- 56px on the phone, 12px radius; `.btn--desktop` is 36px, 10px radius, subhead size, on wide screens. Pressed dims to 80% opacity; no scale, no bounce.
+- **Glass (`.btn--glass`)**: the web's `.buttonStyle(.glass)`, for secondary actions: Waiting on's Call and next-status buttons, Confirm program, Edit program, Upload here, the Shipments and shipment page's secondary buttons, Mark started and Reopen on a step, the editor's Discard, the buzz's Dismiss. Call keeps the tint on its label and glyph (`--lg-btn-tint-ink`).
+- **Glass prominent (`.btn--glass-prominent`)**: `.glassProminent`, the one primary action in a group of glass buttons: the buzz's Open, the editor's Save, Save date on a Waiting on row, the Shipments and ETA Save. Disabled is gray glass with tertiary text.
+- 56px on the phone, 12px radius; `.btn--desktop` is 36px, 10px radius, subhead size, on wide screens. Gray, filled and tinted: pressed dims to 80% opacity. Glass: pressed scales to 0.97 and lights from the touch point. No bounce.
 
 ### Segmented control (`.seg`, `.seg__btn`)
 A fill trough with 2px padding, 9px radius (12px on the phone, with a 10px thumb); the chosen segment (`aria-pressed="true"`) is a thumb (white in light, #636366 in dark) with the segment shadow and semibold label. 32px with footnote labels on the desktop, 56px with subhead labels on the phone.
@@ -282,21 +297,23 @@ White field (#1c1c1e in dark), a 1px separator border, 10px radius, 56px on the 
 
 ### Navigation
 - **Phone nav bar (`.topbar`)**: Regular glass, edge-attached, 52px, a 0.5px hairline foot with the caustic line above it, no scroll edge fade (the content shows through), the Cruise mark at left, the side switcher (a gray pop-up button) for Dominic and Norm, then the bell and the person as 44px label-coloured glyphs; the bell's count is a tint badge.
-- **Phone tab bar (`.tabbar`)**: a floating Regular glass capsule, inset 12px from the sides and 8px (or the safe area) from the foot, 4px inside, so 56px tabs sit in a 64px pill. A 26px glyph over an 11px semibold label; the selected tab sits on a glass pill (`--lg-selected`, white 72% in light, black 26% in dark, with a hairline) in `--lg-tint-ink` bold with its glyph filled, the rest secondary label. A press scales the tab to 0.96 and lights it from the touch point. Glyphs: Overview `square.grid.2x2`, Waiting on `clock`, My items `checklist`, Jobs `house`, Today `calendar`, + Photos `camera`.
+- **Phone tab bar (`.tabbar`)**: a floating Regular glass capsule, inset 12px from the sides and 8px (or the safe area) from the foot, 4px inside, so 56px tabs sit in a 64px pill. It minimises on scroll down (see Material). A 26px glyph over an 11px semibold label; the selected tab sits on a glass pill (`--lg-selected`, white 72% in light, black 26% in dark, with a hairline) in `--lg-tint-ink` bold with its glyph filled, the rest secondary label. A press scales the tab to 0.96 and lights it from the touch point. Glyphs: Overview `square.grid.2x2`, Waiting on `clock`, My items `checklist`, Jobs `house`, Today `calendar`, + Photos `camera`.
 - **Phone job tabs (`.job__tabs`)**: on the phone, the job page's section tabs stick 8px under the nav bar as a floating Regular glass capsule (44px tabs, 56px on Alec's screens), scrolling sideways inside it; the current section is the same glass pill in label colour. Desktop keeps the underlined strip in flow.
 - **Desktop sidebar (`.sidebar`)**: a macOS source list, #f5f5f7 (#1c1c1e dark) with a hairline right edge; 34px rows with a 20px glyph, a rounded neutral selection fill and a tint glyph on the current row; "Setup" as a caption header; bell and person at the foot.
 - **Large title (`.page-header`)**: an iOS back button (a `chevron.left` and the previous page's name in tint) above the Large Title and a subhead meta line.
-- **Job switcher (`JobHeader`)**: the job's name as the Large Title with a `chevron.down` in a small filled disc, the platform's own native menu laid over it. Hover tints the disc; press dims the whole title.
+- **Job switcher (`JobHeader`)**: the job's name as the Large Title, a button inside the h1 with a `chevron.down` in a small filled disc (hover and open tint the disc; open turns the chevron up; press dims the title). It opens a Thick glass listbox that grows out of the title (see Material): an iOS menu, the checkmark column leading, "Builds" and "Design" as footnote headers, the current job semibold with the check, overdue counts in words in the late ink ("(4 overdue)"), 44px rows, the active row on the glass pill. Arrow keys, Home/End, type-ahead, Enter or Space pick; Escape, Tab or a tap outside close it and focus returns to the title; a pick focuses the new page's title.
 
 ### Banner (the buzz)
-Thick glass with a 16px radius at the foot of the screen (static on the phone, see Material), the tinted primary (`.glass__primary`) and a gray dismiss on `--lg-control-fill`. It slides up 12px over 280ms with an ease-out curve.
+Thick glass with a 16px radius at the foot of the screen (static on the phone, see Material), Open as a prominent glass button and Dismiss as a glass button. It slides up 12px over 280ms with an ease-out curve.
 
 ### Offline bar
 A thin neutral fill under the nav bar, a grey dot and one footnote line. Never red, never amber, never a modal.
 
 ## Material (Liquid Glass)
 
-Added 24 Sep 2026 with the Liquid Glass skill (`.claude/skills/liquid-glass-claude-skill`) in autonomous mode: no proposal round, so the layer map, values, measurements and overrides live here and in the commits. Retuned the same day (second pass) because Scott wanted "that translucent Apple feel": at 88% with a scroll-edge fade behind them the bars read as solid white. Glass is a material for the floating, functional layer; it is never used on content. Tokens: `--lg-*` in tokens.css (both themes). Classes: `.glass` + `.glass--regular | --thick`, `.glass--float` (specular, caustic, rim, shadow), `.glass--static` (same look, no blur), `.glass__primary` (the one tinted action inside a glass group), `.lg-press` (interactive illumination on an item inside glass), in base.css; `lightFromTouch` (src/shell/glassPress.ts) is the one delegated pointerdown listener that feeds it.
+Added 24 Sep 2026 with the Liquid Glass skill (`.claude/skills/liquid-glass-claude-skill`) in autonomous mode: no proposal round, so the layer map, values, measurements and overrides live here and in the commits. Retuned the same day (second pass) because Scott wanted "that translucent Apple feel": at 88% with a scroll-edge fade behind them the bars read as solid white. Glass is a material for the floating, functional layer; it is never used on content. Tokens: `--lg-*` in tokens.css (both themes). Classes: `.glass` + `.glass--regular | --thick`, `.glass--float` (specular, caustic, rim, shadow), `.glass--static` (same look, no blur), `.glass--yields` (drops its blur while a glass menu is open), `.btn--glass` and `.btn--glass-prominent` (glass buttons, always static), `.lg-press` (interactive illumination on an item inside glass), in base.css; `installGlassPress` (src/shell/glassPress.ts) is the one passive document pointerdown listener that feeds the illumination for all of them.
+
+Third pass (24 Sep 2026): three iOS 26 behaviours translated to the web: the tab bar minimises on scroll down (`.tabBarMinimizeBehavior(.onScrollDown)`), secondary actions are glass buttons (`.buttonStyle(.glass)` / `.glassProminent`), and the job switcher is a glass menu that morphs out of the title (`glassEffectID`). The native `<select>` it replaces drew the platform's menu, which is not glass off iOS 26 and could not show the check or the overdue words.
 
 ### Layer map
 | Element | Layer | Glass | Tier | Why |
@@ -307,7 +324,8 @@ Added 24 Sep 2026 with the Liquid Glass skill (`.claude/skills/liquid-glass-clau
 | Phone Waiting on filter `.waiting__filters` | floating (sticky) | phone yes; desktop solid, in flow | Regular, floating bar | the list runs to 8,000px; whose items and which job stay in reach |
 | Buzz `.buzz` | floating, transient | desktop yes; phone static | Thick | contextual, over content; the phone's budget is spent on the bars |
 | Program editor footer `.editor__foot` | floating (sticky) | yes (desktop only screen) | Thick | text-dense action group over the scrolling program |
-| Job switcher menu | OS | no (native) | n/a | a native `<select>`: the platform draws its own menu (on iOS 26 that is system Liquid Glass) |
+| Job switcher menu `.job-menu` | floating, transient | yes | Thick, floating | a menu over content (skill default); it grows out of the title |
+| Glass buttons `.btn--glass(-prominent)` | control on content | static (no blur) | fill + rim + highlight | they sit on solid plates and rows: a blur over a flat plate shows nothing and would cost a layer per row |
 | Filter dropdowns, side switcher, segmented controls | control | no | n/a | inside a glass bar they are solid fills, never a second glass |
 | Offline bar, upload queue strip | structural, in flow | no | solid | they scroll with the page; nothing passes under them |
 | Design checklist tabs, Photos and Notifications filters | structural, in flow | no | solid | short pages; they do not stick |
@@ -325,26 +343,42 @@ No scrim ships: nothing in the app is a modal sheet yet. `--lg-scrim` is in the 
 - **Selected pill** (`--lg-selected` + `--lg-selected-shadow`): white 72% with an ink hairline and a 4px lift in light, black 26% with a white hairline in dark. A fill inside the glass, never a second glass.
 - **Interactive illumination** (skill 17.3): on press a radial glow (`--lg-press-glow`, white 85% / 22%) spreads from the touch point to 90% over 150ms and fades over 280ms (a registered `--lg-press-r`), with a 0.96 scale. On the tab bar and the phone job tabs.
 - **Solid fallbacks**: the same surfaces opaque (`--lg-regular-solid`, `--lg-thick-solid`), used without backdrop-filter and under `prefers-reduced-transparency`, `prefers-contrast: more` (plus a 1px label-colour outline) and `forced-colors` (Canvas with a CanvasText outline).
-- **Tinted primary**: `--lg-tint-fill`, the tint opaque in light, 86% in dark.
+- **Glass button** (`.btn--glass`): `--lg-btn-fill` rgba(120,120,128) at 14% / 32% (iOS secondarySystemFill; #ececed on white, #39393d on the dark plate), a sheen (`--lg-btn-sheen`, white 55% / 8% fading by 60%), and `--lg-btn-edge`: the specular line (white 90% / 16%), a 0.5px rim (ink 12% / white 10%) and the 1px lift. No backdrop-filter. Hover deepens the fill to 20% / 42%.
+- **Glass prominent** (`.btn--glass-prominent`): `--lg-btn-prominent-fill`, the tint **opaque in light** and **84% in dark**, a key light that ends by 40% of the height so it never reaches the text, a brighter rim. The skill's 80-85% was measured and fails in light: white on #b0501a at 84% over white is 3.9:1, at 90% 4.4:1, so light stays opaque (5.2:1), as the old `.glass__primary` did. Dark at 84% is 5.4:1 over the Thick pane, 6.0:1 over the plate, 6.4:1 over black.
+- **Press** (both): scale 0.97 (`--lg-btn-press-scale`) and the press glow (`--lg-btn-press-glow`, white 70% / 20%) from the touch point. Focus is the standard ring. With glass off they are still buttons: `prefers-contrast: more` gives the gray or tint fill with a 1px label-colour ring; `forced-colors` gives ButtonFace with a ButtonText border.
+- **Tinted primary** inside glass is now `.btn--glass-prominent`; `.glass__primary` is gone.
 - **No scroll edge fade.** The first pass painted a ground-coloured fade (75% to 60%) behind both bars; with the bars at 88% on top of it, nothing showed through. It is gone: the 20px blur already turns text under a bar into a smear, and the labels hold contrast on their own (below).
 - No SVG refraction: it is Chromium-only in `backdrop-filter` and the main target is Safari on iPhone.
+
+### Tab bar minimise (phone)
+- Scrolling down 32px in one run, past the top 64px, minimises it; 16px back up, the top 64px, the last 4px of the page, a tap on the bar, focus inside it or a new page restores it (`useTabBarMinimise`, src/shell; the rule `nextMinimised` is unit-tested). A passive scroll listener, read once per animation frame, state set only when the answer changes.
+- Minimised: the capsule scales to 0.82 from its foot and drops 8px; the labels fade and the glyphs settle to the middle of each tab. Transform and opacity only, 280ms ease-out; the blur radius never animates. Every tab stays visible and tappable (46px tall), the labels stay the links' accessible names, and the capsule keeps its layout box, so the page's foot spacing is unchanged and nothing is covered that wasn't before. `:focus-within` holds it full size while the keyboard is in it. Reduced motion: instant (the global rule).
+- Glyph contrast when minimised (text-hidden method, Waiting on at three scroll depths): 6.3:1 light, 7.8:1 dark.
+
+### Job switcher menu
+- Thick glass (`--lg-thick-*`), `--lg-menu-radius` 16px, 6px inside, the full column on the phone (8px in from each side) and 24rem at most on the desktop. It opens under the title, fits the viewport (max-height is the room under the title less 96px for the tab bar, at least 220px) and scrolls inside when longer.
+- Morph: it scales from (0.2, 0.12) and fades in over `--lg-menu-motion` 240ms ease-out, the transform origin at the title's chevron just above the menu, and closes in 160ms. Reduced motion: a 150ms fade in and 120ms fade out, no growth.
+- Budget: the open menu is a blurred layer, so the phone job tabs (`.glass--yields`) go static while it is open (`:root[data-lg-menu]`): 3 layers (nav bar, tab bar, menu), measured.
+- Contrast (text-hidden method, over the job page): names, headers and "(4 overdue)" 5.3:1 or better in light, 5.4:1 in dark.
 
 ### Overrides of the skill's defaults (and why)
 - **Saturation 175%, above the skill's 110-150% "restrained" band** (under its 180% candy line), at Scott's request for colour to glow through. It lifts the orange, the reds and the stage bars; the neutral glass itself does not tint.
 - **Glass text a step deeper and heavier**: unselected tab labels are secondary label at semibold (medium thinned out over a moving backdrop); the selected tab is `--lg-tint-ink` (#9a4516, the tint's pressed shade) bold in light, `--tint` #ff9a52 in dark. The job tabs are 15px semibold, secondary label, the current one label colour.
 - **The selected pill doubles as the local scrim.** At the lower fill the only labels that failed were the selected tab's over photos (2.7:1 light, 3.2:1 dark with a neutral pill). Following the skill's order (weight first, then a small scrim behind the label only, then the fill), the pill was made brighter than the glass in light and deeper in dark, which fixed it without raising the bar.
-- **Opaque tint for the primary inside glass in light** (the skill suggests ~84%): white on #b0501a is 5.2:1 solid and any translucency drops it under 4.5:1. Dark uses 86%.
+- **Opaque tint for the prominent glass button in light** (the skill suggests ~80-85%): white on #b0501a is 5.2:1 solid and every translucent step measured fails 4.5:1 (84%: 3.9:1; 90%: 4.4:1). Dark uses 84%.
+- **Glass buttons are never blurred.** The skill's `.buttonStyle(.glass)` equivalent would blur; every glass button here sits on a solid plate, a row or a glass pane, so it is the static material.
 - **Bars kept edge-to-edge at the top**, the tab bar made a floating capsule: the nav bar holds the side switcher and tools across the width; the tab bar, the job tabs and the Waiting on filter are floating control groups.
 
 ### Budget and measurements (24 Sep 2026, second pass, headless Chromium with SwiftShader GL, built app)
 - **Measure with GPU rasterisation.** Chromium's default software compositor at device scale 2 draws text under a `backdrop-filter` sharp and faded instead of blurred, so the first pass's screenshots made the blur look weak. Launch with `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`; at scale 1 both paths agree.
-- **Layers**: phone, most screens: 2 (nav bar, tab bar); the job page, the Waiting on list and My items: 3 (plus the job tabs or the filter), the buzz static there. Desktop: 0 at rest, 1 with the editor footer or the buzz.
+- **Layers**: phone, most screens: 2 (nav bar, tab bar); the job page, the Waiting on list and My items: 3 (plus the job tabs or the filter), the buzz static there; any job page with the switcher open: 3 (the job tabs yield). Glass buttons add none. Desktop: 0 at rest, 1 with the editor footer, the buzz or the switcher menu.
+- **Glass buttons** (text-hidden method, Waiting on at three depths, labels clear of the bars): Call label 5.5:1 light, 5.0:1 dark; the status step and Confirm program 12:1 or better.
 - **Contrast over glass** (text-hidden method, 15 points per text box, swept through each page's full scroll in both themes: Overview for Dom and Dominic, Waiting on (all, one job, My items with the buzz), the job page for Dom and for Alec, Program, the item sheet, photos, Today, the editor, desktop Waiting on with the buzz): tab labels 7.2:1 light, 7.1:1 dark; selected tab label 5.3:1 light (photos under the bar), 6.3:1 dark; job tabs 5.0:1 light (Alec's orange Add photo button passing under), 7.0:1 dark; Waiting on filter 5.5:1 or better (its controls are solid); nav bar badge 5.2 / 4.9 (its own fill); buzz primary 5.2 / 5.6; editor footer 5.5 / 4.7. Nothing on glass under 4.5:1 (the disabled Save is 4.7:1).
 - **Blur on/off pixel diff** (max channel difference): nav bar 25-104/255, tab bar 28-102, job tabs 65-99, Waiting on filter 60-91, desktop buzz 45-46, editor footer 34-39: all visible, so all keep the blur. The phone buzz is static by budget. On Today (nothing scrolls under the bars) the diff is 0-7; the bars keep one treatment.
 
 ## Motion
 
-150ms colour and opacity steps answer hover and press; the banner's 280ms slide-up is the one authored moment. Curves ease out (`cubic-bezier(0.22, 1, 0.36, 1)` for arrivals, `cubic-bezier(0.25, 0.1, 0.25, 1)` for state changes); nothing bounces or overshoots. `prefers-reduced-motion: reduce` collapses every animation and transition to 0.01ms.
+150ms colour and opacity steps answer hover and press; the banner's 280ms slide-up, the job switcher menu's 240ms growth out of the title and the tab bar's 280ms minimise are the authored moments. Glass buttons press to 0.97. Curves ease out (`cubic-bezier(0.22, 1, 0.36, 1)` for arrivals, `cubic-bezier(0.25, 0.1, 0.25, 1)` for state changes); nothing bounces or overshoots. `prefers-reduced-motion: reduce` collapses every animation and transition to 0.01ms.
 
 ## Theming
 

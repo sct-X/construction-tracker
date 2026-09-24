@@ -14,7 +14,7 @@
  * Every nav item carries `data-testid="nav-<name>"`; the tab bar and the
  * sidebar's main list are `data-testid="primary-nav"`.
  */
-import { createContext, useContext, useEffect, useState, type CSSProperties } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link, Outlet, matchPath, useLocation } from 'react-router-dom';
 import { useApi, useQuery, useSession } from '../data/context';
 import { OfflineBar } from './OfflineBar';
@@ -26,7 +26,8 @@ import { isHere, phoneTabs, sidebarMain, sidebarSetup, type NavItem } from './na
 import { rememberJob } from './lastJob';
 import { Logo, LogoMark } from './Logo';
 import { usePhoneWidth } from './useNarrow';
-import { lightFromTouch } from './glassPress';
+import { installGlassPress } from './glassPress';
+import { useTabBarMinimise } from './useTabBarMinimise';
 import { BellGlyph, NavIcon, PersonGlyph } from './icons';
 import './shell.css';
 
@@ -52,6 +53,10 @@ function PhoneChrome({ pathname }: { pathname: string }) {
   const { person, role } = useSession();
   const tabs = useQuery((api) => phoneTabs(role, api), [role]);
   void api;
+  const bar = useRef<HTMLElement>(null);
+  const { minimised, restore } = useTabBarMinimise(true, bar);
+  // A new page starts at the top with the full bar.
+  useEffect(() => restore(), [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <>
       <header className="topbar glass glass--regular" data-testid="topbar">
@@ -67,7 +72,20 @@ function PhoneChrome({ pathname }: { pathname: string }) {
           </Link>
         </div>
       </header>
-      <nav className="tabbar glass glass--regular glass--float" data-testid="primary-nav" aria-label="Main" onPointerDown={lightFromTouch}>
+      {/* Scrolling down shrinks the capsule to its glyphs, a little lower
+          (iOS 26 .tabBarMinimizeBehavior(.onScrollDown)); scrolling up, the
+          top or foot of the page, a tap, focus or a new page restores it.
+          The labels only fade, so they stay the tabs' accessible names, and
+          the capsule keeps its layout box, so nothing under it moves. */}
+      <nav
+        ref={bar}
+        className="tabbar glass glass--regular glass--float"
+        data-testid="primary-nav"
+        data-minimised={minimised || undefined}
+        aria-label="Main"
+        onPointerDown={minimised ? restore : undefined}
+        onFocus={minimised ? restore : undefined}
+      >
         {tabs.map((t) => (
           <NavLinkItem key={t.id} item={t} pathname={pathname} className="tabbar__tab" extra="lg-press" />
         ))}
@@ -136,6 +154,8 @@ export function AppShell() {
     ro.observe(bar);
     return () => ro.disconnect();
   }, []);
+
+  useEffect(() => installGlassPress(), []);
 
   useEffect(() => {
     const m = matchPath('/jobs/:id/*', pathname) ?? matchPath('/jobs/:id', pathname);

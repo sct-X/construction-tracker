@@ -182,10 +182,10 @@ function AddShipment({ jobId: fixedJobId, onDone }: { jobId?: string; onDone: ()
         <input id="shipment-add-eta" className="input num shipments__date" type="date" value={eta} data-testid="shipment-add-eta" onChange={(e) => setEta(e.target.value)} />
       </div>
       <div className="shipments__add-actions">
-        <button type="submit" className="btn btn--primary" data-testid="shipment-add-save" disabled={!ready}>
+        <button type="submit" className="btn btn--glass-prominent" data-testid="shipment-add-save" disabled={!ready}>
           Add shipment
         </button>
-        <button type="button" className="btn" data-testid="shipment-add-cancel" onClick={onDone}>
+        <button type="button" className="btn btn--glass" data-testid="shipment-add-cancel" onClick={onDone}>
           Cancel
         </button>
       </div>

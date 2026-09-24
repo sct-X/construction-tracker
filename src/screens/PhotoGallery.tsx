@@ -211,7 +211,7 @@ export default function PhotoGallery() {
                   </h3>
                   {n === 0 && queuedHere.length === 0 ? (
                     <a
-                      className="btn btn--desktop gallery__upload-here"
+                      className="btn btn--glass btn--desktop gallery__upload-here"
                       href={`#/jobs/${id}/upload?stage=${c.stageId ?? ''}&category=${c.id}`}
                       data-testid={`gallery-upload-${c.id}`}
                     >

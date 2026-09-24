@@ -186,7 +186,7 @@ export default function ShipmentDetail() {
               <button type="button" className="btn btn--fill btn--desktop" data-testid="shipment-mark-items-done" onClick={markItemsDone}>
                 Mark {openItems.length === 1 ? 'it' : 'them'} done
               </button>
-              <button type="button" className="btn btn--desktop" data-testid="shipment-offer-dismiss" onClick={() => setOfferDone(false)}>
+              <button type="button" className="btn btn--glass btn--desktop" data-testid="shipment-offer-dismiss" onClick={() => setOfferDone(false)}>
                 Not yet
               </button>
             </div>
@@ -218,10 +218,10 @@ export default function ShipmentDetail() {
           <>
             <EtaImpact preview={preview} />
             <div className="shipment__eta-actions">
-              <button type="button" className="btn btn--primary" data-testid="shipment-save-eta" onClick={save} disabled={locked}>
+              <button type="button" className="btn btn--glass-prominent" data-testid="shipment-save-eta" onClick={save} disabled={locked}>
                 Save new ETA
               </button>
-              <button type="button" className="btn" data-testid="shipment-cancel-eta" onClick={() => setDraft(shipment.eta)}>
+              <button type="button" className="btn btn--glass" data-testid="shipment-cancel-eta" onClick={() => setDraft(shipment.eta)}>
                 Keep {formatDayMonth(shipment.eta)}
               </button>
             </div>
@@ -251,7 +251,7 @@ export default function ShipmentDetail() {
                 {candidates.map((item) => (
                   <li key={item.id} className="shipment__candidate">
                     <span className="shipment__candidate-title">{item.title}</span>
-                    <button type="button" className="btn btn--desktop" data-testid={`shipment-link-item-${item.id}`} disabled={locked} onClick={() => link(item.id)}>
+                    <button type="button" className="btn btn--glass btn--desktop" data-testid={`shipment-link-item-${item.id}`} disabled={locked} onClick={() => link(item.id)}>
                       Link<span className="sr-only"> {item.title}</span>
                     </button>
                   </li>

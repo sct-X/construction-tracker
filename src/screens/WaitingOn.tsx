@@ -228,7 +228,7 @@ export default function WaitingOn() {
               disabled={offline}
               data-testid={`item-date-input-${item.id}`}
             />
-            <button type="button" className="btn wrow__btn wrow__btn--strong" onClick={saveDate} data-testid={`item-date-save-${item.id}`}>
+            <button type="button" className="btn btn--glass-prominent wrow__btn wrow__btn--strong" onClick={saveDate} data-testid={`item-date-save-${item.id}`}>
               {dating.book ? next.label : 'Save date'}
             </button>
             <button type="button" className="btn btn--ghost wrow__btn" onClick={() => setDating(null)} data-testid={`item-date-cancel-${item.id}`}>
@@ -245,7 +245,7 @@ export default function WaitingOn() {
         ) : next ? (
           <div className="wrow__actions">
             {call && (
-              <a className="btn btn--tinted wrow__btn wrow__call" href={`tel:${call.phone.replace(/\s+/g, '')}`} aria-label={`Call ${call.name}, ${call.phone}`} data-testid={`item-call-${item.id}`}>
+              <a className="btn btn--glass wrow__btn wrow__call" href={`tel:${call.phone.replace(/\s+/g, '')}`} aria-label={`Call ${call.name}, ${call.phone}`} data-testid={`item-call-${item.id}`}>
                 <PhoneGlyph />
                 <span className="wrow__call-name">Call {call.name}</span>
               </a>
@@ -259,7 +259,7 @@ export default function WaitingOn() {
                     Set date
                   </button>
                 ))}
-              <button type="button" className="btn wrow__btn wrow__btn--strong" onClick={() => advance(item)} data-testid={`item-advance-${item.id}`}>
+              <button type="button" className="btn btn--glass wrow__btn wrow__btn--strong" onClick={() => advance(item)} data-testid={`item-advance-${item.id}`}>
                 {next.label}
               </button>
             </span>

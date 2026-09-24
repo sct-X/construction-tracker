@@ -94,7 +94,7 @@ export function Buzz({ layout = 'phone' }: { layout?: 'phone' | 'desktop' }) {
             )}
           </p>
           <a
-            className="buzz__link glass__primary"
+            className="btn btn--glass-prominent buzz__link"
             href={`#${notificationHref(shown.notification, api)}`}
             data-testid="buzz-link"
             onClick={() => {
@@ -104,7 +104,7 @@ export function Buzz({ layout = 'phone' }: { layout?: 'phone' | 'desktop' }) {
           >
             {notificationLinkWords(shown.notification, api)}
           </a>
-          <button type="button" className="buzz__dismiss" onClick={dismiss} data-testid="buzz-dismiss">
+          <button type="button" className="btn btn--glass buzz__dismiss" onClick={dismiss} data-testid="buzz-dismiss">
             Dismiss
           </button>
         </div>

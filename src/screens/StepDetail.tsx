@@ -163,7 +163,7 @@ export default function StepDetail() {
       {canTick && (
         <div className="step__actions">
           {step.status === 'not_started' && (
-            <button type="button" className="btn btn--desktop" onClick={() => setStatus('in_progress')} data-testid="step-mark-started">
+            <button type="button" className="btn btn--glass btn--desktop" onClick={() => setStatus('in_progress')} data-testid="step-mark-started">
               Mark started
             </button>
           )}
@@ -188,7 +188,7 @@ export default function StepDetail() {
             </button>
           )}
           {step.status === 'done' && (
-            <button type="button" className="btn btn--desktop" onClick={() => setStatus('in_progress')} data-testid="step-reopen">
+            <button type="button" className="btn btn--glass btn--desktop" onClick={() => setStatus('in_progress')} data-testid="step-reopen">
               Reopen
             </button>
           )}

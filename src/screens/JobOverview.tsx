@@ -33,7 +33,6 @@ import AlecToday from './AlecToday';
 import NotFound from './NotFound';
 import { JobHeader } from '../shell/JobHeader';
 import { useLayout } from '../shell/AppShell';
-import { lightFromTouch } from '../shell/glassPress';
 import './jobOverview.css';
 
 interface Data {
@@ -155,10 +154,9 @@ export default function JobOverview() {
       <JobHeader job={job} section="overview" back={site ? undefined : { to: '/overview', label: 'Overview' }} />
 
       <nav
-        className={phone ? 'job__tabs glass glass--regular glass--float' : 'job__tabs'}
+        className={phone ? 'job__tabs glass glass--regular glass--float glass--yields' : 'job__tabs'}
         aria-label="Job sections"
         data-testid="job-tabs"
-        onPointerDown={phone ? lightFromTouch : undefined}
       >
         {tabs.map((t) => (
           <Link key={t.label} to={t.to} className={phone ? 'job__tab lg-press' : 'job__tab'} data-testid={`job-tab-${t.label.toLowerCase().replace(/\s+/g, '-')}`} aria-current={t.here ? 'page' : undefined}>
@@ -304,7 +302,7 @@ function TimingBody({ data, forecast }: { data: Data; forecast: JobForecast }) {
         <StatusText tone="muted" testId="job-fresh">
           {forecast.freshness.text}
         </StatusText>
-        <button type="button" className="btn btn--tinted btn--desktop job__confirm-btn" onClick={confirm} disabled={offline} data-testid="job-confirm">
+        <button type="button" className="btn btn--glass btn--desktop job__confirm-btn" onClick={confirm} disabled={offline} data-testid="job-confirm">
           {confirmedNow && forecast.freshness.daysUnconfirmed === 0 ? 'Confirmed' : 'Confirm program'}
         </button>
         {offline && <span className="job__needs-signal">Needs signal</span>}

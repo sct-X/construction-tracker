@@ -87,7 +87,7 @@ test.describe('Shell: navigation and landing per role', () => {
     await expect(page.getByTestId('sidebar')).toBeVisible();
     await expect(page.getByTestId('sidebar').locator('[data-testid^="nav-job-"]')).toHaveCount(0);
     await expect(page.getByTestId('sidebar')).not.toContainText('31 Seaview St');
-    await expect(page.getByTestId('job-switcher')).toHaveValue('park-rd');
+    await expect(page.getByTestId('job-switcher')).toHaveAttribute('data-value', 'park-rd');
   });
 
   test('the side switcher shows for Dominic and Norm only; nobody else sees a side name at all', async ({ page }) => {
@@ -239,5 +239,60 @@ test.describe('Dev bar', () => {
     await expect(page.getByTestId('dev-today')).toHaveValue('2026-09-17');
     await expect(page.getByTestId('dev-offline')).not.toBeChecked();
     await expect(page.getByTestId('dev-person')).toHaveValue('dominic');
+  });
+});
+
+/**
+ * Liquid Glass (DESIGN.md "Material"): on the phone the floating tab bar
+ * minimises on scroll down (iOS 26 .tabBarMinimizeBehavior(.onScrollDown))
+ * and comes back on scroll up, at the top, or when the keyboard reaches it.
+ * It never hides: every tab stays in place with its full label as its name.
+ */
+test.describe('Tab bar minimise', () => {
+  const scrollBy = async (page: Page, dy: number) => {
+    // In steps, a frame apart, as a finger would.
+    const steps = Math.ceil(Math.abs(dy) / 40);
+    for (let i = 0; i < steps; i++) {
+      await page.evaluate(`window.scrollBy(0, ${Math.sign(dy) * 40})`);
+      await page.evaluate('new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))');
+    }
+  };
+
+  test('shrinks after scrolling down and restores on scroll up', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'phone', 'the tab bar is phone only');
+    await page.goto('#/waiting?as=dom&side=side-nd&today=2026-09-17');
+    await expect(page.getByTestId('waiting-on')).toBeVisible();
+    const bar = page.getByTestId('primary-nav');
+    await expect(bar).not.toHaveAttribute('data-minimised', /.*/);
+
+    // A small wobble does nothing.
+    await scrollBy(page, 80);
+    await scrollBy(page, -20);
+    await expect(bar).not.toHaveAttribute('data-minimised', /.*/);
+
+    await scrollBy(page, 600);
+    await expect(bar).toHaveAttribute('data-minimised', 'true');
+    // Compact, not gone: every tab is still there, named in full.
+    await expect(bar.getByRole('link', { name: 'Overview' })).toBeVisible();
+    await expect(bar.getByRole('link', { name: 'Waiting on' })).toBeVisible();
+    const box = await bar.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+
+    await scrollBy(page, -120);
+    await expect(bar).not.toHaveAttribute('data-minimised', /.*/);
+  });
+
+  test('keyboard focus in the bar brings it back', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'phone', 'the tab bar is phone only');
+    await page.goto('#/waiting?as=dom&side=side-nd&today=2026-09-17');
+    await expect(page.getByTestId('waiting-on')).toBeVisible();
+    const bar = page.getByTestId('primary-nav');
+    await scrollBy(page, 600);
+    await expect(bar).toHaveAttribute('data-minimised', 'true');
+    await page.getByTestId('nav-overview').focus();
+    await expect(bar).not.toHaveAttribute('data-minimised', /.*/);
+    // And it stays full size while focus is in it.
+    await scrollBy(page, 400);
+    await expect(bar).not.toHaveAttribute('data-minimised', /.*/);
   });
 });

@@ -163,6 +163,31 @@
   --lg-tint-fill: var(--tint-fill);
   --lg-control-fill: var(--fill); /* a gray control inside glass: a fill, never a second glass */
   --lg-control-fill-hover: var(--fill-strong);
+  /* Glass buttons (.btn--glass, .btn--glass-prominent; the web's
+     .buttonStyle(.glass) / .glassProminent). They sit on solid plates and
+     rows, so they are the static material: a translucent neutral fill that
+     takes the colour of whatever plate it sits on, a top-lit sheen, the
+     specular line along the top, a 0.5px rim and a hairline lift. No blur:
+     over a flat plate a blur shows nothing and costs a layer per row. */
+  --lg-btn-fill: rgba(120, 120, 128, 0.14); /* iOS secondarySystemFill: #ececed on white, #e1e1e6 on the ground */
+  --lg-btn-fill-hover: rgba(120, 120, 128, 0.2);
+  --lg-btn-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 60%);
+  --lg-btn-edge: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 0.5px color-mix(in srgb, var(--lg-ink) 12%, transparent), 0 1px 2px color-mix(in srgb, var(--lg-ink) 8%, transparent);
+  --lg-btn-ink: var(--text);
+  --lg-btn-tint-ink: var(--lg-tint-ink); /* a tinted label on a glass button: #9a4516 is 5.5:1 on the fill over white, 5.0:1 over the ground */
+  /* .glassProminent: the tint with the rim and key light. Opaque in light
+     (white on the tint at 84% is 3.9:1, at 90% 4.4:1: every translucent
+     step fails 4.5:1), 84% in dark (5.4:1 or better over black, the plate
+     and the Thick pane). The sheen ends by 40% so it never reaches the text. */
+  --lg-btn-prominent-fill: var(--lg-tint-fill);
+  --lg-btn-prominent-fill-hover: var(--tint-fill-pressed);
+  --lg-btn-prominent-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 40%);
+  --lg-btn-prominent-edge: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 0 0 0.5px color-mix(in srgb, var(--lg-ink) 18%, transparent), 0 1px 2px color-mix(in srgb, var(--lg-ink) 12%, transparent);
+  --lg-btn-press-glow: rgba(255, 255, 255, 0.7);
+  --lg-btn-press-scale: 0.97;
+  /* The job switcher menu: Thick glass that grows out of the title. */
+  --lg-menu-motion: 240ms;
+  --lg-menu-radius: var(--radius-sheet);
 
   /* legacy bar names, now the Regular tier */
   --bar-bg: var(--lg-regular-fill);
@@ -326,6 +351,13 @@
   --lg-tint-fill: color-mix(in srgb, var(--tint-fill) 86%, transparent);
   --lg-control-fill: #3a3a3c; /* the dark fill vanishes on the #2c2c2e Thick pane; a step lighter */
   --lg-control-fill-hover: #48484a;
+  --lg-btn-fill: rgba(120, 120, 128, 0.32); /* #39393d on the plate, #26262a on black */
+  --lg-btn-fill-hover: rgba(120, 120, 128, 0.42);
+  --lg-btn-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 60%);
+  --lg-btn-edge: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 0 0 0.5px rgba(255, 255, 255, 0.1), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --lg-btn-prominent-fill: color-mix(in srgb, var(--tint-fill) 84%, transparent);
+  --lg-btn-prominent-edge: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --lg-btn-press-glow: rgba(255, 255, 255, 0.2);
   --sidebar-bg: #1c1c1e;
   --sidebar-hover: rgba(255, 255, 255, 0.06);
   --sidebar-current: rgba(255, 255, 255, 0.11);

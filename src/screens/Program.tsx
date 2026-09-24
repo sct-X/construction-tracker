@@ -95,7 +95,7 @@ export default function Program() {
         </span>
       )}
       {canEdit && layout === 'desktop' && (
-        <Link to={`/jobs/${job.id}/edit`} className="btn btn--desktop" data-testid="program-edit">
+        <Link to={`/jobs/${job.id}/edit`} className="btn btn--glass btn--desktop" data-testid="program-edit">
           Edit program
         </Link>
       )}

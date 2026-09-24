@@ -2,7 +2,7 @@
   Buzz: one line at the foot of the screen, above the phone tab bar. Thick
   Liquid Glass (.glass--thick, base.css) with its rim and float shadow; the
   phone gets the static variant so the bars keep the blur budget.
-  The words say what arrived; the orange link is the thumb's target. The
+  The words say what arrived; the orange Open is the thumb's target. The
   slide-up answers the arrival and is dropped under reduced motion.
 */
 .buzz-slot {
@@ -56,37 +56,19 @@
   color: var(--text-secondary);
   text-decoration: underline;
 }
+/* Open is the banner's one prominent glass button, Dismiss a glass button
+   (base.css .btn--glass-prominent / .btn--glass); here only their size. */
 .buzz__link {
   grid-area: link;
   justify-self: start;
-  display: inline-flex;
-  align-items: center;
   min-height: var(--tap);
   padding: 0 var(--space-4);
-  border-radius: var(--radius-button);
-  background: var(--tint-fill);
-  color: var(--on-tint);
-  font-weight: var(--weight-semibold);
-  text-decoration: none;
-}
-.buzz__link:hover {
-  background: var(--tint-fill-pressed);
 }
 .buzz__dismiss {
   grid-area: dismiss;
   min-height: var(--tap);
   padding: 0 var(--space-3);
-  border: 0;
-  border-radius: var(--radius-button);
-  background: var(--lg-control-fill);
-  color: var(--text);
-  font-weight: var(--weight-medium);
 }
-.buzz__dismiss:hover {
-  background: var(--lg-control-fill-hover);
-}
-.buzz__link:focus-visible,
-.buzz__dismiss:focus-visible,
 .buzz__more:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);

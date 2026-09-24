@@ -275,6 +275,95 @@ input[type='date']::-webkit-calendar-picker-indicator {
   }
 }
 
+/* ---- glass buttons: the web's .buttonStyle(.glass) and .glassProminent ----
+   .btn--glass            a secondary action: the static glass material (a
+                          translucent neutral fill, sheen, specular line, rim)
+   .btn--glass-prominent  the one primary action in a group: the tint with the
+                          same rim and key light
+   Static on purpose: these sit on solid plates, rows and panes, where a blur
+   shows nothing and would cost a filtered layer per row (DESIGN.md
+   "Material"). They still read as buttons with the glass off: a filled
+   shape, a label, a 44px target. Press scales to 0.97 and lights from the
+   touch point (--press-x/--press-y, written by one delegated pointerdown
+   listener, src/shell/glassPress.ts). Compose with .btn and its sizes. */
+.btn--glass,
+.btn--glass-prominent {
+  --lg-press-r: 0%;
+  --btn-glow: radial-gradient(circle at var(--press-x, 50%) var(--press-y, 50%), var(--lg-btn-press-glow), transparent var(--lg-press-r));
+  border: 0;
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease),
+    opacity var(--motion-fast) var(--ease),
+    transform var(--motion-fast) var(--ease),
+    --lg-press-r var(--motion-sheet) var(--ease-out);
+}
+.btn--glass {
+  background: var(--btn-glow), var(--lg-btn-sheen), var(--lg-btn-fill);
+  background-repeat: no-repeat;
+  box-shadow: var(--lg-btn-edge);
+  color: var(--lg-btn-ink);
+}
+.btn--glass:hover {
+  background: var(--btn-glow), var(--lg-btn-sheen), var(--lg-btn-fill-hover);
+  background-repeat: no-repeat;
+}
+.btn--glass-prominent {
+  background: var(--btn-glow), var(--lg-btn-prominent-sheen), var(--lg-btn-prominent-fill);
+  background-repeat: no-repeat;
+  box-shadow: var(--lg-btn-prominent-edge);
+  color: var(--on-tint);
+  font-weight: var(--weight-semibold);
+}
+.btn--glass-prominent:hover {
+  background: var(--btn-glow), var(--lg-btn-prominent-sheen), var(--lg-btn-prominent-fill-hover);
+  background-repeat: no-repeat;
+  color: var(--on-tint);
+}
+.btn--glass:active,
+.btn--glass-prominent:active {
+  --lg-press-r: 90%;
+  opacity: 1;
+  transform: scale(var(--lg-btn-press-scale));
+  transition-duration: var(--motion-fast);
+}
+.btn--glass:focus-visible,
+.btn--glass-prominent:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+.btn--glass:disabled,
+.btn--glass[aria-disabled='true'] {
+  opacity: 0.45;
+  transform: none;
+}
+/* A prominent action that can't go yet is gray glass, not dim orange. */
+.btn--glass-prominent:disabled,
+.btn--glass-prominent[aria-disabled='true'] {
+  background: var(--lg-btn-sheen), var(--lg-btn-fill);
+  box-shadow: var(--lg-btn-edge);
+  color: var(--text-muted);
+  transform: none;
+}
+@media (prefers-contrast: more) {
+  .btn--glass {
+    background: var(--fill);
+    box-shadow: inset 0 0 0 1px var(--text);
+  }
+  .btn--glass-prominent {
+    background: var(--tint-fill);
+    box-shadow: inset 0 0 0 1px var(--text);
+  }
+}
+@media (forced-colors: active) {
+  .btn--glass,
+  .btn--glass-prominent {
+    background: ButtonFace;
+    color: ButtonText;
+    border: 1px solid ButtonText;
+    box-shadow: none;
+  }
+}
+
 /* ---- segmented control (iOS UISegmentedControl) ----
    A gray trough with a raised thumb under the chosen segment. Buttons carry
    aria-pressed; a segment can be a link (List | Call). */
@@ -565,6 +654,17 @@ input[type='date']::-webkit-calendar-picker-indicator {
     backdrop-filter: var(--glass-filter);
   }
 }
+/* The layer budget (phone: 3 blurred layers). While a glass menu is open
+   (the job switcher sets :root[data-lg-menu]), a strip marked
+   .glass--yields keeps its look but drops its blur, so the menu is the
+   third layer, not the fourth. */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  :root[data-lg-menu] .glass--yields:not(.glass--static) {
+    background: var(--glass-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
 /* Interactive illumination (skill 17.3): the pressed item lights from the
    touch point (--press-x/--press-y, written by one pointerdown listener)
    and the glow spreads while it is held. Plain gradient, no blend mode. */
@@ -587,15 +687,6 @@ input[type='date']::-webkit-calendar-picker-indicator {
   --lg-press-r: 90%;
   transition-duration: var(--motion-fast);
 }
-/* The primary action inside a glass group: the tint with the material's key light. */
-.glass .glass__primary:not(:disabled):not([aria-disabled='true']) {
-  background: var(--lg-tint-fill);
-  color: var(--on-tint);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 22%, transparent);
-}
-.glass .glass__primary:not(:disabled):not([aria-disabled='true']):hover {
-  background: var(--tint-fill-pressed);
-}
 @media (prefers-reduced-transparency: reduce) {
   .glass,
   .glass:not(.glass--static) {
@@ -612,9 +703,6 @@ input[type='date']::-webkit-calendar-picker-indicator {
     backdrop-filter: none;
     outline: 1px solid var(--text);
     outline-offset: -1px;
-  }
-  .glass .glass__primary:not(:disabled):not([aria-disabled='true']) {
-    background: var(--tint-fill);
   }
 }
 @media (forced-colors: active) {

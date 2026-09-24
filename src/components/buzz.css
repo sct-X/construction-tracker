@@ -1,6 +1,7 @@
 /*
-  Buzz: one line at the foot of the screen, above the phone tab bar. A
-  lifted plate with a real shadow: the one thing in the app that floats.
+  Buzz: one line at the foot of the screen, above the phone tab bar. Thick
+  Liquid Glass (.glass--thick, base.css) with its rim and float shadow; the
+  phone gets the static variant so the bars keep the blur budget.
   The words say what arrived; the orange link is the thumb's target. The
   slide-up answers the arrival and is dropped under reduced motion.
 */
@@ -8,7 +9,8 @@
   position: fixed;
   z-index: 20;
   left: 50%;
-  bottom: calc(var(--tap) + env(safe-area-inset-bottom, 0px) + var(--space-3));
+  /* above the floating tab bar: its 56px tab, 8px of capsule padding, its foot inset */
+  bottom: calc(var(--tap) + var(--space-2) + max(var(--space-2), env(safe-area-inset-bottom, 0px)) + var(--space-3));
   transform: translateX(-50%);
   width: calc(100% - 2 * var(--space-3));
   max-width: 456px;
@@ -24,9 +26,6 @@
   align-items: center;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sheet);
-  background: var(--lifted);
-  color: var(--text);
-  box-shadow: var(--shadow-float);
   pointer-events: auto;
   animation: buzz-in var(--motion-sheet) var(--ease-out);
 }
@@ -79,12 +78,12 @@
   padding: 0 var(--space-3);
   border: 0;
   border-radius: var(--radius-button);
-  background: var(--fill);
+  background: var(--lg-control-fill);
   color: var(--text);
   font-weight: var(--weight-medium);
 }
 .buzz__dismiss:hover {
-  background: var(--fill-strong);
+  background: var(--lg-control-fill-hover);
 }
 .buzz__link:focus-visible,
 .buzz__dismiss:focus-visible,

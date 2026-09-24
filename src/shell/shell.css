@@ -1,10 +1,12 @@
 /*
   App shell, drawn to Apple's patterns. Two layouts, one token set.
 
-  Phone: an iOS navigation bar (the Cruise mark, the side, the bell, me) and
-  an iOS tab bar (a glyph over a label), both translucent material with a
-  hairline edge, so the content scrolls under them. The current tab takes the
-  tint; the rest are gray. Desktop: a macOS source list beside the grouped
+  Phone: an iOS navigation bar (the Cruise mark, the side, the bell, me),
+  edge-attached Regular glass with a hairline, and an iOS tab bar (a glyph
+  over a label), a floating Regular glass capsule inset from the edges. The
+  content scrolls under both; a scroll edge effect dissolves it into the
+  ground before it reaches the nav bar. The current tab takes the tint; the
+  rest are secondary grey. These two are the phone's whole glass budget. Desktop: a macOS source list beside the grouped
   ground: a quiet translucent-looking column, a rounded selection fill, the
   glyph tinted on the current row. The site role gets the phone layout
   centred on a wide window.
@@ -205,15 +207,58 @@
   gap: var(--space-3);
   min-height: 52px;
   padding: 0 var(--space-2) 0 var(--gutter);
-  background: var(--bar-bg-solid);
-  border-bottom: 0.5px solid var(--bar-line);
+  border-bottom: 0.5px solid var(--lg-hairline);
 }
-@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-  .topbar,
-  .tabbar {
-    background: var(--bar-bg);
-    -webkit-backdrop-filter: var(--bar-filter);
-    backdrop-filter: var(--bar-filter);
+/* Scroll edge effect: a fixed fade painted *behind* the nav bar (z 4 under
+   its 5), so the glass samples content already dissolving into the ground:
+   75% ground at the top edge, 60% at the bar's foot, gone 16px below it.
+   Text that scrolls under the bar leaves only a colour trace, and the blur
+   still has the cards' light and shade to work on. No filter, so it costs
+   no layer. It fades in over the first 24px of scroll (a scroll-driven
+   animation) and is left out where scroll timelines are missing. */
+.shell--phone:not(.shell--bare)::before {
+  content: '';
+  display: none;
+  position: fixed;
+  z-index: 4;
+  top: 0;
+  left: 50%;
+  width: min(100%, 480px);
+  height: calc(52px + var(--space-4));
+  transform: translateX(-50%);
+  background: linear-gradient(
+    color-mix(in srgb, var(--lg-edge-fade) 75%, transparent),
+    color-mix(in srgb, var(--lg-edge-fade) 60%, transparent) 52px,
+    color-mix(in srgb, var(--lg-edge-fade) 0%, transparent)
+  );
+  pointer-events: none;
+}
+@supports (animation-timeline: scroll()) {
+  .shell--phone:not(.shell--bare)::before {
+    display: block;
+    animation: lg-edge-in linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 24px;
+  }
+}
+@keyframes lg-edge-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Scroll-linked, not motion: keep the scroll timeline its own length. */
+  .shell--phone:not(.shell--bare)::before {
+    animation-duration: auto !important;
+  }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
+  .shell--phone::before,
+  .shell--phone::after {
+    display: none !important;
   }
 }
 .topbar__mark {
@@ -260,16 +305,35 @@
   font-size: var(--type-caption-2);
 }
 
-/* ---- phone: iOS tab bar ---- */
+/* ---- phone: iOS tab bar, a floating glass capsule ----
+   Inset 12px from the sides and 8px (or the safe area) from the foot, 4px
+   inside, so a 56px tab sits in a 64px capsule: outer radius 32, the tab's
+   focus shape a pill inside it (concentric). */
 .tabbar {
+  --tabbar-foot: max(var(--space-2), env(safe-area-inset-bottom, 0px));
   order: 3;
   position: sticky;
-  bottom: 0;
+  bottom: var(--tabbar-foot);
   z-index: 5;
   display: flex;
-  background: var(--bar-bg-solid);
-  border-top: 0.5px solid var(--bar-line);
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  margin: var(--space-2) var(--space-3) var(--tabbar-foot);
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+}
+/* The bottom scroll edge effect: content fades toward the ground behind the
+   capsule, so the glass floats over a quiet band rather than over sharp text.
+   It stops at 60% so the material still has something to be glass to. */
+.shell--phone:not(.shell--bare)::after {
+  content: '';
+  position: fixed;
+  z-index: 4;
+  bottom: 0;
+  left: 50%;
+  width: min(100%, 480px);
+  height: calc(var(--tap) + var(--space-8) + var(--space-2) + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  background: linear-gradient(color-mix(in srgb, var(--lg-edge-fade) 0%, transparent), color-mix(in srgb, var(--lg-edge-fade) 60%, transparent));
+  pointer-events: none;
 }
 .tabbar__tab {
   flex: 1 1 0;
@@ -280,7 +344,8 @@
   gap: 2px;
   min-height: var(--tap);
   padding: 6px var(--space-1) 4px;
-  color: var(--text-muted);
+  border-radius: var(--radius-pill);
+  color: var(--lg-ink-muted);
   font-size: var(--type-caption-2);
   font-weight: var(--weight-medium);
   letter-spacing: 0.01em;
@@ -293,7 +358,8 @@
   height: 26px;
 }
 .tabbar__tab[aria-current='page'] {
-  color: var(--tint);
+  color: var(--lg-tint-ink);
+  font-weight: var(--weight-semibold);
 }
 .tabbar__tab[aria-current='page'] .icon__solid {
   fill: currentColor;
@@ -303,7 +369,7 @@
 }
 .tabbar__tab:focus-visible {
   box-shadow: inset var(--focus-ring);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
 }
 
 /* ---- offline: a thin calm bar under the header ---- */

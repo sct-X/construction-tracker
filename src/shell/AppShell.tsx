@@ -4,8 +4,8 @@
  *  - Phone (below 768px, and always for the site role): an iOS nav bar
  *    (the Cruise mark, the side switcher, the bell and the person) and an
  *    iOS tab bar (a glyph over a label, the tint for the current tab), both
- *    translucent material over the content, and the offline bar under the
- *    nav bar.
+ *    Regular Liquid Glass over the content (the tab bar a floating capsule),
+ *    and the offline bar, solid, under the nav bar.
  *  - Desktop: a macOS source list (the logo, side switcher, main group with
  *    glyphs, a Setup group, then the bell and the person at the foot). Jobs
  *    are reached from the Overview and moved between with the job switcher
@@ -53,7 +53,7 @@ function PhoneChrome({ pathname }: { pathname: string }) {
   void api;
   return (
     <>
-      <header className="topbar" data-testid="topbar">
+      <header className="topbar glass glass--regular" data-testid="topbar">
         <LogoMark className="topbar__mark" size={28} />
         <SideSwitcher className="topbar__side" />
         <div className="topbar__tools">
@@ -66,7 +66,7 @@ function PhoneChrome({ pathname }: { pathname: string }) {
           </Link>
         </div>
       </header>
-      <nav className="tabbar" data-testid="primary-nav" aria-label="Main">
+      <nav className="tabbar glass glass--regular glass--float" data-testid="primary-nav" aria-label="Main">
         {tabs.map((t) => (
           <NavLinkItem key={t.id} item={t} pathname={pathname} className="tabbar__tab" />
         ))}

@@ -19,7 +19,8 @@ colors:
   on-tint: "#ffffff"
   logo-accent: "#c1652e"
   steel-fill: "#3a3a3c"
-  bar: "rgba(249, 249, 251, 0.8)"
+  bar: "rgba(249, 249, 251, 0.88)"
+  glass-thick: "rgba(255, 255, 255, 0.92)"
   sidebar: "#f5f5f7"
   late-ink: "#d70015"
   late-bg: "#fdecee"
@@ -190,7 +191,7 @@ Replaced (23 Sep 2026): the "surveyor's readout" world (Barlow Semi Condensed an
 - The system face (SF Pro on Apple devices) in Apple's text styles; no web font ships.
 - One tint, the Cruise orange deepened to #b0501a so it reads as text; the logo dot keeps its own #c1652e.
 - Red is overdue and only overdue. No amber anywhere.
-- Translucent, blurred nav bar and tab bar; a macOS source list on the desktop.
+- Liquid Glass on the floating layer only: the phone nav bar and a floating tab-bar capsule (Regular), the buzz and the program editor footer (Thick). Content stays solid. A solid macOS source list on the desktop.
 - 44px minimum targets, 56px on the site role's screens and every primary control on the phone.
 
 ## Colors
@@ -246,10 +247,11 @@ Spacing on a 4px grid, with 8, 16 and 20 doing most of the work. Phone (below 76
 
 ## Elevation & Depth
 
-Flat at rest. Grouping is tonal: white cells on the grey ground (in dark, #1c1c1e on black). The bars are material, not shadow: translucent fill, `backdrop-filter: saturate(180%) blur(20px)`, a 0.5px hairline edge; without backdrop-filter they fall back to a solid bar colour.
+Flat at rest. Grouping is tonal: white cells on the grey ground (in dark, #1c1c1e on black). What floats is Liquid Glass (see Material below), never shadowed content.
 
 ### Shadow Vocabulary
-- **Float** (`0 10px 30px rgba(0,0,0,.12), 0 1px 3px rgba(0,0,0,.08)`; deeper in dark): the notification banner (the buzz), menus. Nothing else.
+- **Glass shadow** (`--lg-shadow`, `--lg-shadow-thick`, from the label ink, never pure black): the tab-bar capsule, the buzz, the editor footer. Nothing else.
+- **Float** (`--shadow-float`): kept for the few lifted things that are not glass.
 - **Segment thumb** (`0 3px 8px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.04)`): the chosen segment's thumb, as on iOS.
 
 ## Shapes
@@ -279,17 +281,59 @@ Subhead medium on a wash, 6px radius, 2px 8px padding. Tones: late (red, "overdu
 White field (#1c1c1e in dark), a 1px separator border, 10px radius, 56px on the phone and 36px with `.input--desktop`. Labels are footnotes in tertiary label above the field. Focus turns the border tint and adds the focus ring. A `<select>` draws SF's `chevron.up.chevron.down` like a pop-up button.
 
 ### Navigation
-- **Phone nav bar (`.topbar`)**: translucent material, 52px, the Cruise mark at left, the side switcher (a gray pop-up button) for Dominic and Norm, then the bell and the person as 44px label-coloured glyphs; the bell's count is a tint badge.
-- **Phone tab bar (`.tabbar`)**: translucent material, a 26px glyph over an 11px label; the selected tab is tint with its glyph filled, the rest tertiary label. Glyphs: Overview `square.grid.2x2`, Waiting on `clock`, My items `checklist`, Jobs `house`, Today `calendar`, + Photos `camera`.
+- **Phone nav bar (`.topbar`)**: Regular glass, edge-attached, 52px, a 0.5px hairline foot and the scroll edge effect behind it, the Cruise mark at left, the side switcher (a gray pop-up button) for Dominic and Norm, then the bell and the person as 44px label-coloured glyphs; the bell's count is a tint badge.
+- **Phone tab bar (`.tabbar`)**: a floating Regular glass capsule, inset 12px from the sides and 8px (or the safe area) from the foot, 4px inside, so 56px tabs sit in a 64px pill. A 26px glyph over an 11px label; the selected tab is `--lg-tint-ink` semibold with its glyph filled, the rest secondary label (a step deeper than on a plate, for glass). Glyphs: Overview `square.grid.2x2`, Waiting on `clock`, My items `checklist`, Jobs `house`, Today `calendar`, + Photos `camera`.
 - **Desktop sidebar (`.sidebar`)**: a macOS source list, #f5f5f7 (#1c1c1e dark) with a hairline right edge; 34px rows with a 20px glyph, a rounded neutral selection fill and a tint glyph on the current row; "Setup" as a caption header; bell and person at the foot.
 - **Large title (`.page-header`)**: an iOS back button (a `chevron.left` and the previous page's name in tint) above the Large Title and a subhead meta line.
 - **Job switcher (`JobHeader`)**: the job's name as the Large Title with a `chevron.down` in a small filled disc, the platform's own native menu laid over it. Hover tints the disc; press dims the whole title.
 
 ### Banner (the buzz)
-A lifted card with the float shadow and a 16px radius at the foot of the screen, a filled tint button and a gray dismiss. It slides up 12px over 280ms with an ease-out curve.
+Thick glass with a 16px radius at the foot of the screen (static on the phone, see Material), the tinted primary (`.glass__primary`) and a gray dismiss on `--lg-control-fill`. It slides up 12px over 280ms with an ease-out curve.
 
 ### Offline bar
 A thin neutral fill under the nav bar, a grey dot and one footnote line. Never red, never amber, never a modal.
+
+## Material (Liquid Glass)
+
+Added 24 Sep 2026 with the Liquid Glass skill (`.claude/skills/liquid-glass-claude-skill`) in autonomous mode: no proposal round, so the layer map, values, measurements and overrides live here and in the commit. Glass is a material for the floating, functional layer; it is never used on content. Tokens: `--lg-*` in tokens.css (both themes). Classes: `.glass` + `.glass--regular | --thick`, `.glass--float` (rim, key light, shadow), `.glass--static` (same look, no blur), `.glass__primary` (the one tinted action inside a glass group), in base.css.
+
+### Layer map
+| Element | Layer | Glass | Tier | Why |
+|---|---|---|---|---|
+| Phone nav bar `.topbar` | floating | yes | Regular | sticky over scrolling content |
+| Phone tab bar `.tabbar` | floating | yes | Regular, floating capsule | must stay reachable while content moves under it |
+| Buzz `.buzz` | floating, transient | desktop yes; phone static | Thick | contextual, over content; the phone's budget is spent on the bars |
+| Program editor footer `.editor__foot` | floating (sticky) | yes (desktop only screen) | Thick | text-dense action group over the scrolling program |
+| Job switcher menu | OS | no (native) | n/a | a native `<select>`: the platform draws its own menu (on iOS 26 that is system Liquid Glass) |
+| Filter dropdowns, side switcher | control | no | n/a | native selects; inside the nav bar the side switcher is a solid fill, never a second glass |
+| Offline bar, upload queue strip | structural, in flow | no | solid | they scroll with the page; nothing passes under them |
+| Waiting on filter bar | structural, in flow | no | solid | it does not stick |
+| Desktop sidebar | structural column | no | solid | a grid column beside the content, it floats over nothing |
+| Item sheet | content (a page, a form) | no | solid | a route, not a modal sheet; forms stay solid |
+| Photo full view | content | no | solid | full-screen photo; media is content |
+| Overview cards, job sections, rows, forms | content | no | solid plates | content stays dominant |
+
+No scrim ships: nothing in the app is a modal sheet yet. `--lg-scrim` is in the contract for when one is.
+
+### Tiers (light / dark)
+- **Regular**: `--lg-surface` #f9f9fb / #161618 at 88% / 86%, `blur(24px) saturate(140%)`, hairline `rgba(60,60,67,.29)` / `rgba(84,84,88,.65)`.
+- **Thick**: `--lifted` #fff / #2c2c2e at 92%, `blur(30px) saturate(140%)`, rim `--lg-edge` 0.5px, key light `inset 0 1px 0` white 75% / 10%, `--lg-shadow-thick`.
+- **Solid fallbacks**: the same surfaces opaque (`--lg-regular-solid`, `--lg-thick-solid`), used without backdrop-filter and under `prefers-reduced-transparency`, `prefers-contrast: more` (plus a 1px label-colour outline) and `forced-colors` (Canvas with a CanvasText outline).
+- **Tinted primary**: `--lg-tint-fill`, the tint opaque in light, 86% in dark.
+- **Scroll edge effect**: a filter-free fade (the ground, 75% at the top, 60% at the bar's foot, 0 16px below) painted behind the nav bar, faded in over the first 24px of scroll with a scroll-driven animation (omitted where unsupported); and a fade to 60% ground behind the tab-bar capsule. Neither costs a filtered layer. Both are dropped under reduced transparency, raised contrast and forced colours.
+- No SVG refraction: it is Chromium-only in `backdrop-filter` and the main target is Safari on iPhone.
+
+### Overrides of the skill's defaults (and why)
+- **Regular at 88/86%, above the 50-65% starting range.** Builders read the tab bar's 11px labels outdoors; legibility wins. At 88% the selected label holds 4.7:1 even over pure black before blur.
+- **Glass text a step deeper**: unselected tab labels use secondary label; the selected tab uses `--lg-tint-ink` (#9a4516, the tint's pressed shade) in light. Plain `--tint` on translucent glass drops under 4.5:1 over dark content.
+- **Opaque tint for the primary inside glass in light** (the skill suggests ~84%): white on #b0501a is 5.2:1 solid and any translucency drops it under 4.5:1. Dark uses 86% (5.7:1).
+- **Saturation 140%, not the old 180%**, per the skill's ceiling.
+- **Bars kept edge-to-edge at the top**, the tab bar made a floating capsule: the nav bar holds the side switcher and tools across the width; the tab bar is the one floating control group.
+
+### Budget and measurements (24 Sep 2026, headless Chromium, built app)
+- **Layers**: phone, every screen: 2 (nav bar, tab bar); the buzz is static there, so 2 with it showing. Desktop: 0 at rest, 1 with the editor footer or the buzz.
+- **Contrast over glass** (text-hidden method, sampled at 15 points per text box, swept through each page's full scroll in both themes: Overview, Waiting on, job, Program, item sheet, photos, Today, My items with the buzz, the editor): worst tab label 5.5:1 light (photo gallery under the bar), 7.9:1 dark; nav bar badge 5.2 / 4.9 (its own fill); buzz body 8.9 / 8.2, buzz primary 5.2 / 5.7; editor footer secondary text 5.8 / 4.9. Nothing on glass under 4.5:1 except the disabled Save (4.7:1, disabled).
+- **Blur on/off pixel diff** (max channel difference): nav bar up to 59/255, tab bar 43, desktop buzz 43, editor footer 17: all visible, so all keep the blur. The phone buzz is static by budget (diff 0 by construction). On short screens with nothing under the bars (Today) the diff is ~0; the bars keep one treatment.
 
 ## Motion
 

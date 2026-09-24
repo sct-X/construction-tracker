@@ -113,11 +113,48 @@
   --primary-hover: var(--steel-900);
   --accent: var(--tint);
 
-  /* ---- bars: translucent material with a hairline ---- */
-  --bar-bg: rgba(249, 249, 251, 0.8);
-  --bar-bg-solid: #f9f9fb; /* no backdrop-filter */
-  --bar-filter: saturate(180%) blur(20px);
-  --bar-line: rgba(60, 60, 67, 0.29);
+  /* ---- Liquid Glass material (DESIGN.md "Material") ----
+     Glass is for the floating layer only: the phone nav bar and tab bar
+     (Regular), the buzz and the program editor's footer (Thick). Content
+     (cards, sections, rows, forms, the sidebar) stays solid.
+     Every fill is a brand surface at an alpha; every solid is the same
+     surface opaque, used when backdrop-filter is missing, transparency is
+     reduced, contrast is raised, or the layer budget is spent (phone: 2).
+     Alphas sit above the skill's starting ranges on purpose: the tab bar
+     carries 11px labels read outdoors, and at 0.88 the selected label
+     (--lg-tint-ink) holds 4.7:1 even over pure black before any blur. */
+  --lg-surface: #f9f9fb; /* the bar surface: plate lifted a step toward the ground */
+  --lg-surface-thick: var(--lifted);
+  --lg-ink: #1d1d1f; /* shadow and edge colour: the label ink, never pure black */
+  --lg-regular-fill: color-mix(in srgb, var(--lg-surface) 88%, transparent);
+  --lg-regular-solid: var(--lg-surface);
+  --lg-regular-blur: 24px;
+  --lg-regular-saturation: 140%;
+  --lg-thick-fill: color-mix(in srgb, var(--lg-surface-thick) 92%, transparent);
+  --lg-thick-solid: var(--lg-surface-thick);
+  --lg-thick-blur: 30px;
+  --lg-thick-saturation: 140%;
+  --lg-scrim: color-mix(in srgb, var(--lg-ink) 32%, transparent); /* behind a modal sheet; none ships yet */
+  --lg-edge: color-mix(in srgb, var(--lg-ink) 14%, transparent); /* 0.5px rim on floating glass */
+  --lg-hairline: rgba(60, 60, 67, 0.29); /* the bar's separator edge */
+  --lg-highlight: rgba(255, 255, 255, 0.75); /* inner top key light */
+  --lg-shadow: 0 8px 28px color-mix(in srgb, var(--lg-ink) 12%, transparent), 0 1px 3px color-mix(in srgb, var(--lg-ink) 8%, transparent);
+  --lg-shadow-thick: 0 12px 36px color-mix(in srgb, var(--lg-ink) 16%, transparent), 0 1px 3px color-mix(in srgb, var(--lg-ink) 8%, transparent);
+  /* Text on glass: a step deeper than on a plate, so it survives what passes under. */
+  --lg-ink-muted: var(--text-secondary);
+  --lg-tint-ink: #9a4516; /* the tint's pressed shade: 4.7:1 on Regular glass over black */
+  /* The primary action inside a glass group. Opaque in light: white on the
+     tint is 5.2:1 solid and any translucency drops it under 4.5:1. */
+  --lg-tint-fill: var(--tint-fill);
+  --lg-edge-fade: var(--ground); /* the scroll edge effect dissolves content into the ground */
+  --lg-control-fill: var(--fill); /* a gray control inside glass: a fill, never a second glass */
+  --lg-control-fill-hover: var(--fill-strong);
+
+  /* legacy bar names, now the Regular tier */
+  --bar-bg: var(--lg-regular-fill);
+  --bar-bg-solid: var(--lg-regular-solid);
+  --bar-filter: blur(var(--lg-regular-blur)) saturate(var(--lg-regular-saturation));
+  --bar-line: var(--lg-hairline);
   --sidebar-bg: #f5f5f7; /* macOS source list */
   --sidebar-hover: rgba(0, 0, 0, 0.05);
   --sidebar-current: rgba(0, 0, 0, 0.085);
@@ -252,9 +289,24 @@
   --text-on-dark: #ffffff;
   --primary: var(--steel-700);
   --primary-hover: #737378;
-  --bar-bg: rgba(22, 22, 24, 0.78);
-  --bar-bg-solid: #161618;
-  --bar-line: rgba(84, 84, 88, 0.65);
+  /* Liquid Glass, dark: a near-black bar surface and the elevated grey for
+     Thick; the highlight dims to a whisper and shadows deepen. */
+  --lg-surface: #161618;
+  --lg-surface-thick: var(--lifted);
+  --lg-ink: #000000;
+  --lg-regular-fill: color-mix(in srgb, var(--lg-surface) 86%, transparent);
+  --lg-thick-fill: color-mix(in srgb, var(--lg-surface-thick) 92%, transparent);
+  --lg-scrim: color-mix(in srgb, #000000 48%, transparent);
+  --lg-edge: rgba(255, 255, 255, 0.1);
+  --lg-hairline: rgba(84, 84, 88, 0.65);
+  --lg-highlight: rgba(255, 255, 255, 0.1);
+  --lg-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --lg-shadow-thick: 0 12px 36px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.45);
+  --lg-tint-ink: var(--tint); /* #ff9a52: 5.5:1 on Regular glass over white */
+  /* White on the dark tint fill at 86% holds 5.7:1 over the Thick pane, 6.2:1 over black. */
+  --lg-tint-fill: color-mix(in srgb, var(--tint-fill) 86%, transparent);
+  --lg-control-fill: #3a3a3c; /* the dark fill vanishes on the #2c2c2e Thick pane; a step lighter */
+  --lg-control-fill-hover: #48484a;
   --sidebar-bg: #1c1c1e;
   --sidebar-hover: rgba(255, 255, 255, 0.06);
   --sidebar-current: rgba(255, 255, 255, 0.11);

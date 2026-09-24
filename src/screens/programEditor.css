@@ -174,7 +174,9 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ---- the footer: the finish readout, Save ---- */
+/* ---- the footer: the finish readout, Save ----
+   Sticky over the scrolling program, so it is Thick Liquid Glass
+   (.glass--thick.glass--float in base.css): desktop only, one layer. */
 .editor__foot {
   position: sticky;
   bottom: var(--space-3);
@@ -186,9 +188,10 @@
   gap: var(--space-3) var(--space-6);
   margin-top: var(--space-6);
   padding: var(--space-3) var(--space-5);
-  border-radius: var(--radius-md);
-  background: var(--lifted);
-  box-shadow: var(--shadow-float);
+  border-radius: var(--radius-sheet);
+}
+.editor__foot .editor__cancel:not(:disabled) {
+  background: var(--lg-control-fill);
 }
 .editor__finish {
   display: flex;

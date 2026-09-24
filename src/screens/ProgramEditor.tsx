@@ -324,7 +324,7 @@ export default function ProgramEditor() {
         </aside>
       </div>
 
-      <footer className="editor__foot" data-testid="editor-foot">
+      <footer className="editor__foot glass glass--thick glass--float" data-testid="editor-foot">
         <div className="editor__finish" data-testid="editor-preview-finish" aria-live="polite">
           <span className="editor__finish-note">
             {preview ? (dirty ? (movedSteps === 0 ? 'No step dates move.' : `${movedSteps} step${movedSteps === 1 ? '' : 's'} would move.`) : 'Edit a step to see what moves.') : design ? 'A design job has no program dates.' : 'No dates on a template.'}
@@ -337,7 +337,7 @@ export default function ProgramEditor() {
           <button type="button" className="btn btn--desktop editor__cancel" disabled={!dirty} data-testid="editor-cancel" onClick={cancel}>
             Discard
           </button>
-          <button type="button" className="btn btn--desktop btn--primary" disabled={!dirty || disabled} data-testid="editor-save" onClick={save}>
+          <button type="button" className="btn btn--desktop btn--primary glass__primary" disabled={!dirty || disabled} data-testid="editor-save" onClick={save}>
             {disabled ? 'Needs signal' : dirty ? `Save ${changes.length} change${changes.length === 1 ? '' : 's'}` : 'Save'}
           </button>
         </div>

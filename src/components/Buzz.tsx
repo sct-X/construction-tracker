@@ -8,7 +8,9 @@
  * bar) with the words of the notification and a link to the thing. It hides
  * after 8 seconds, on Dismiss, or when the link is followed. Never a modal,
  * never colour alone; announced through aria-live; the slide respects
- * reduced motion.
+ * reduced motion. Thick Liquid Glass on the desktop; on the phone the same
+ * pane without the blur (.glass--static), because the nav bar and tab bar
+ * already spend the phone's two backdrop-filtered layers.
  *
  * Seeded notifications and a person switch never buzz: the seen set starts
  * as whatever is already there for that person.
@@ -82,7 +84,7 @@ export function Buzz({ layout = 'phone' }: { layout?: 'phone' | 'desktop' }) {
   return (
     <div className={layout === 'desktop' ? 'buzz-slot buzz-slot--desktop' : 'buzz-slot'} role="status" aria-live="polite" aria-atomic="true">
       {shown && (
-        <div className="buzz" data-testid="buzz" data-kind={shown.notification.kind}>
+        <div className={`buzz glass glass--thick glass--float${layout === 'phone' ? ' glass--static' : ''}`} data-testid="buzz" data-kind={shown.notification.kind}>
           <p className="buzz__words">
             <span className="buzz__text">{shown.notification.text}</span>
             {shown.more > 0 && (
@@ -92,7 +94,7 @@ export function Buzz({ layout = 'phone' }: { layout?: 'phone' | 'desktop' }) {
             )}
           </p>
           <a
-            className="buzz__link"
+            className="buzz__link glass__primary"
             href={`#${notificationHref(shown.notification, api)}`}
             data-testid="buzz-link"
             onClick={() => {

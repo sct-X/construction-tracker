@@ -38,10 +38,10 @@ export function FilterSelect({ label, value, options, onChange, testId, labelSho
   );
 }
 
-/** A row of filters, wrapping on a narrow screen. */
-export function FilterBar({ children, testId }: { children: React.ReactNode; testId?: string }) {
+/** A row of filters, wrapping on a narrow screen. `className` adds a modifier (Waiting on makes it sticky glass on the phone). */
+export function FilterBar({ children, testId, className }: { children: React.ReactNode; testId?: string; className?: string }) {
   return (
-    <div className="filterbar" data-testid={testId}>
+    <div className={className ? `filterbar ${className}` : 'filterbar'} data-testid={testId}>
       {children}
     </div>
   );

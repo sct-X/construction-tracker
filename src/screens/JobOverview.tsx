@@ -32,6 +32,8 @@ import { StatusText } from '../components/StatusText';
 import AlecToday from './AlecToday';
 import NotFound from './NotFound';
 import { JobHeader } from '../shell/JobHeader';
+import { useLayout } from '../shell/AppShell';
+import { lightFromTouch } from '../shell/glassPress';
 import './jobOverview.css';
 
 interface Data {
@@ -104,6 +106,8 @@ function tradeWhen(s: StepForecast, today: string): string {
 export default function JobOverview() {
   const { id = '' } = useParams();
   const { role } = useSession();
+  // On the phone the section tabs stick under the nav bar as a floating glass capsule.
+  const phone = useLayout() === 'phone';
   const data = useQuery<Data | undefined>(
     (api) => {
       const job = api.getJob(id);
@@ -150,9 +154,14 @@ export default function JobOverview() {
     <main className={site ? 'page job job--site' : 'page job'} data-testid="job-overview">
       <JobHeader job={job} section="overview" back={site ? undefined : { to: '/overview', label: 'Overview' }} />
 
-      <nav className="job__tabs" aria-label="Job sections" data-testid="job-tabs">
+      <nav
+        className={phone ? 'job__tabs glass glass--regular glass--float' : 'job__tabs'}
+        aria-label="Job sections"
+        data-testid="job-tabs"
+        onPointerDown={phone ? lightFromTouch : undefined}
+      >
         {tabs.map((t) => (
-          <Link key={t.label} to={t.to} className="job__tab" data-testid={`job-tab-${t.label.toLowerCase().replace(/\s+/g, '-')}`} aria-current={t.here ? 'page' : undefined}>
+          <Link key={t.label} to={t.to} className={phone ? 'job__tab lg-press' : 'job__tab'} data-testid={`job-tab-${t.label.toLowerCase().replace(/\s+/g, '-')}`} aria-current={t.here ? 'page' : undefined}>
             {t.label}
           </Link>
         ))}

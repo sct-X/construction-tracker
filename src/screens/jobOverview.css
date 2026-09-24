@@ -37,8 +37,47 @@
   color: var(--text);
   border-bottom-color: var(--text);
 }
+/* Phone: the section tabs stick under the nav bar as a floating Regular
+   glass capsule (iOS 26), 4px inside, the current section a glass pill.
+   The strip still scrolls sideways inside the capsule; the rim and sheen
+   are box-shadow and background layers, so they hold still while it does. */
+.shell--phone .job__tabs {
+  position: sticky;
+  top: calc(52px + var(--space-2));
+  z-index: 4;
+  gap: 0;
+  padding: var(--space-1);
+  margin-left: calc(-1 * var(--space-1));
+  margin-right: calc(-1 * var(--space-1));
+  border-radius: var(--radius-pill);
+  scrollbar-width: none;
+}
+.shell--phone .job__tabs::-webkit-scrollbar {
+  display: none;
+}
 .shell--phone .job__tab {
+  min-height: 44px;
+  padding: 0 14px;
+  border-bottom: 0;
+  border-radius: var(--radius-pill);
+  color: var(--lg-ink-muted);
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-semibold);
+}
+/* Alec's screens keep 56px targets, so his capsule is the tab bar's 64px. */
+.shell--phone .job--site .job__tab {
   min-height: var(--tap);
+}
+.shell--phone .job__tab[aria-current='page'] {
+  color: var(--text);
+  background-color: var(--lg-selected);
+  box-shadow: var(--lg-selected-shadow);
+}
+.shell--phone .job__tab:active {
+  transform: scale(0.96);
+}
+.shell--phone .job__tab:focus-visible {
+  box-shadow: inset var(--focus-ring);
 }
 
 .job__empty,

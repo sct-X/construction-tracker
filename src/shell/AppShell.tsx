@@ -26,6 +26,7 @@ import { isHere, phoneTabs, sidebarMain, sidebarSetup, type NavItem } from './na
 import { rememberJob } from './lastJob';
 import { Logo, LogoMark } from './Logo';
 import { usePhoneWidth } from './useNarrow';
+import { lightFromTouch } from './glassPress';
 import { BellGlyph, NavIcon, PersonGlyph } from './icons';
 import './shell.css';
 
@@ -36,10 +37,10 @@ export function useLayout(): Layout {
   return useContext(LayoutContext);
 }
 
-function NavLinkItem({ item, pathname, className }: { item: NavItem; pathname: string; className: string }) {
+function NavLinkItem({ item, pathname, className, extra }: { item: NavItem; pathname: string; className: string; extra?: string }) {
   const here = isHere(item, pathname);
   return (
-    <Link to={item.to} className={className} data-testid={`nav-${item.id}`} aria-current={here ? 'page' : undefined}>
+    <Link to={item.to} className={extra ? `${className} ${extra}` : className} data-testid={`nav-${item.id}`} aria-current={here ? 'page' : undefined}>
       <NavIcon id={item.id} label={item.label} className={`${className}-icon icon`} />
       <span className={`${className}-label`}>{item.label}</span>
     </Link>
@@ -66,9 +67,9 @@ function PhoneChrome({ pathname }: { pathname: string }) {
           </Link>
         </div>
       </header>
-      <nav className="tabbar glass glass--regular glass--float" data-testid="primary-nav" aria-label="Main">
+      <nav className="tabbar glass glass--regular glass--float" data-testid="primary-nav" aria-label="Main" onPointerDown={lightFromTouch}>
         {tabs.map((t) => (
-          <NavLinkItem key={t.id} item={t} pathname={pathname} className="tabbar__tab" />
+          <NavLinkItem key={t.id} item={t} pathname={pathname} className="tabbar__tab" extra="lg-press" />
         ))}
       </nav>
     </>

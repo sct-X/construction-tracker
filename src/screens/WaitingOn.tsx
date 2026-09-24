@@ -288,7 +288,8 @@ export default function WaitingOn() {
         }
       />
 
-      <FilterBar testId="waiting-filters">
+      {/* On the phone the filter sticks under the nav bar as floating Regular glass. */}
+      <FilterBar testId="waiting-filters" className={wide ? undefined : 'waiting__filters glass glass--regular glass--float'}>
         <span className="seg waiting__owner" role="group" aria-label="Whose items" data-testid="waiting-filter-owner">
           {ownerSeg.map((o) => (
             <button

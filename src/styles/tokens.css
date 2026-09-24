@@ -114,39 +114,53 @@
   --accent: var(--tint);
 
   /* ---- Liquid Glass material (DESIGN.md "Material") ----
-     Glass is for the floating layer only: the phone nav bar and tab bar
-     (Regular), the buzz and the program editor's footer (Thick). Content
-     (cards, sections, rows, forms, the sidebar) stays solid.
+     Glass is for the floating layer only: the phone nav bar, tab bar, the
+     job page's section tabs and the Waiting on filter (Regular), the buzz
+     and the program editor's footer (Thick). Content (cards, sections,
+     rows, forms, the sidebar) stays solid.
      Every fill is a brand surface at an alpha; every solid is the same
      surface opaque, used when backdrop-filter is missing, transparency is
-     reduced, contrast is raised, or the layer budget is spent (phone: 2).
-     Alphas sit above the skill's starting ranges on purpose: the tab bar
-     carries 11px labels read outdoors, and at 0.88 the selected label
-     (--lg-tint-ink) holds 4.7:1 even over pure black before any blur. */
-  --lg-surface: #f9f9fb; /* the bar surface: plate lifted a step toward the ground */
+     reduced, contrast is raised, or the layer budget is spent (phone: 3).
+     Regular sits inside the skill's range (0.50-0.65) so the content is
+     visibly there under the bars: blurred, and its colour lifted by the
+     saturation. Legibility comes from the label weight and the deeper glass
+     inks, measured over every backdrop that can pass under (DESIGN.md). */
+  --lg-surface: #fafafc; /* the bar surface: plate lifted a step toward the ground */
   --lg-surface-thick: var(--lifted);
   --lg-ink: #1d1d1f; /* shadow and edge colour: the label ink, never pure black */
-  --lg-regular-fill: color-mix(in srgb, var(--lg-surface) 88%, transparent);
+  --lg-regular-fill: color-mix(in srgb, var(--lg-surface) 52%, transparent);
   --lg-regular-solid: var(--lg-surface);
-  --lg-regular-blur: 24px;
-  --lg-regular-saturation: 140%;
-  --lg-thick-fill: color-mix(in srgb, var(--lg-surface-thick) 92%, transparent);
+  --lg-regular-blur: 20px; /* low end of the range: the shapes and colour of the content stay readable as content */
+  --lg-regular-saturation: 175%; /* the orange mark, red chips and stage bars glow through */
+  --lg-thick-fill: color-mix(in srgb, var(--lg-surface-thick) 78%, transparent);
   --lg-thick-solid: var(--lg-surface-thick);
   --lg-thick-blur: 30px;
-  --lg-thick-saturation: 140%;
+  --lg-thick-saturation: 175%;
   --lg-scrim: color-mix(in srgb, var(--lg-ink) 32%, transparent); /* behind a modal sheet; none ships yet */
-  --lg-edge: color-mix(in srgb, var(--lg-ink) 14%, transparent); /* 0.5px rim on floating glass */
-  --lg-hairline: rgba(60, 60, 67, 0.29); /* the bar's separator edge */
-  --lg-highlight: rgba(255, 255, 255, 0.75); /* inner top key light */
-  --lg-shadow: 0 8px 28px color-mix(in srgb, var(--lg-ink) 12%, transparent), 0 1px 3px color-mix(in srgb, var(--lg-ink) 8%, transparent);
-  --lg-shadow-thick: 0 12px 36px color-mix(in srgb, var(--lg-ink) 16%, transparent), 0 1px 3px color-mix(in srgb, var(--lg-ink) 8%, transparent);
+  /* The Liquid Glass edge: a hairline rim, a bright specular line along the
+     top curve, a fainter caustic along the foot, a soft top-lit sheen in the
+     fill, and a shadow in the label ink. All box-shadow and background
+     layers, so they cost no filter and hold still inside scroll containers. */
+  --lg-edge: color-mix(in srgb, var(--lg-ink) 10%, transparent); /* 0.5px rim on floating glass */
+  --lg-hairline: rgba(60, 60, 67, 0.2); /* the edge-attached bar's foot */
+  --lg-highlight: rgba(255, 255, 255, 0.95); /* specular: inner top line */
+  --lg-highlight-low: rgba(255, 255, 255, 0.5); /* caustic: inner foot line */
+  --lg-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 55%);
+  --lg-shadow: 0 10px 30px color-mix(in srgb, var(--lg-ink) 12%, transparent), 0 2px 6px color-mix(in srgb, var(--lg-ink) 6%, transparent);
+  --lg-shadow-thick: 0 14px 40px color-mix(in srgb, var(--lg-ink) 16%, transparent), 0 2px 6px color-mix(in srgb, var(--lg-ink) 8%, transparent);
+  /* The selected tab's pill inside glass. It doubles as the local scrim the
+     skill asks for before raising the fill: the only labels that failed at
+     the lower fill were the selected ones over photos, and a pill brighter
+     than the glass (light) or deeper (dark) under them fixes that alone. */
+  --lg-selected: rgba(255, 255, 255, 0.72);
+  --lg-selected-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--lg-ink) 8%, transparent), 0 1px 4px color-mix(in srgb, var(--lg-ink) 10%, transparent);
+  --lg-press-glow: rgba(255, 255, 255, 0.85); /* interactive illumination from the touch point */
   /* Text on glass: a step deeper than on a plate, so it survives what passes under. */
   --lg-ink-muted: var(--text-secondary);
-  --lg-tint-ink: #9a4516; /* the tint's pressed shade: 4.7:1 on Regular glass over black */
+  --lg-tint-ink: #9a4516; /* the tint's pressed shade */
   /* The primary action inside a glass group. Opaque in light: white on the
      tint is 5.2:1 solid and any translucency drops it under 4.5:1. */
   --lg-tint-fill: var(--tint-fill);
-  --lg-edge-fade: var(--ground); /* the scroll edge effect dissolves content into the ground */
   --lg-control-fill: var(--fill); /* a gray control inside glass: a fill, never a second glass */
   --lg-control-fill-hover: var(--fill-strong);
 
@@ -291,18 +305,23 @@
   --primary-hover: #737378;
   /* Liquid Glass, dark: a near-black bar surface and the elevated grey for
      Thick; the highlight dims to a whisper and shadows deepen. */
-  --lg-surface: #161618;
+  --lg-surface: #1c1c1e;
   --lg-surface-thick: var(--lifted);
   --lg-ink: #000000;
-  --lg-regular-fill: color-mix(in srgb, var(--lg-surface) 86%, transparent);
-  --lg-thick-fill: color-mix(in srgb, var(--lg-surface-thick) 92%, transparent);
+  --lg-regular-fill: color-mix(in srgb, var(--lg-surface) 66%, transparent);
+  --lg-thick-fill: color-mix(in srgb, var(--lg-surface-thick) 82%, transparent);
   --lg-scrim: color-mix(in srgb, #000000 48%, transparent);
-  --lg-edge: rgba(255, 255, 255, 0.1);
-  --lg-hairline: rgba(84, 84, 88, 0.65);
-  --lg-highlight: rgba(255, 255, 255, 0.1);
-  --lg-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
-  --lg-shadow-thick: 0 12px 36px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.45);
-  --lg-tint-ink: var(--tint); /* #ff9a52: 5.5:1 on Regular glass over white */
+  --lg-edge: rgba(255, 255, 255, 0.12);
+  --lg-hairline: rgba(84, 84, 88, 0.5);
+  --lg-highlight: rgba(255, 255, 255, 0.24);
+  --lg-highlight-low: rgba(255, 255, 255, 0.07);
+  --lg-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 55%);
+  --lg-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
+  --lg-shadow-thick: 0 14px 40px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.45);
+  --lg-selected: rgba(0, 0, 0, 0.26);
+  --lg-selected-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --lg-press-glow: rgba(255, 255, 255, 0.22);
+  --lg-tint-ink: var(--tint); /* #ff9a52 */
   /* White on the dark tint fill at 86% holds 5.7:1 over the Thick pane, 6.2:1 over black. */
   --lg-tint-fill: color-mix(in srgb, var(--tint-fill) 86%, transparent);
   --lg-control-fill: #3a3a3c; /* the dark fill vanishes on the #2c2c2e Thick pane; a step lighter */

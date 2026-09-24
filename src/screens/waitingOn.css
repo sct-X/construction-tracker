@@ -253,3 +253,27 @@
     min-height: var(--control);
   }
 }
+
+/* Phone: the filter sticks under the nav bar as a floating Regular glass
+   bar (DESIGN.md "Material"), 6px inside so the segmented control and the
+   job menu sit concentric in it. Its controls stay solid fills. */
+.shell--phone .waiting__filters {
+  position: sticky;
+  top: calc(52px + var(--space-2));
+  z-index: 4;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px;
+  margin-left: -6px;
+  margin-right: -6px;
+  border-radius: calc(var(--radius-segment) + 6px);
+}
+.shell--phone .waiting__filters .filter {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.shell--phone .waiting__filters .filter__label {
+  color: var(--lg-ink-muted);
+  font-weight: var(--weight-semibold);
+}

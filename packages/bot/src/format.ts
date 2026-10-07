@@ -199,6 +199,8 @@ export interface CardInput {
   /** Dataset before the change (row labels). */
   ds: Dataset;
   today: ISODate;
+  /** Extra lines before "Save this?", e.g. hold-point photo progress. */
+  notes?: string[];
 }
 
 /** The confirm card: what was understood, every field before → after, the dry-run forecast impact. */
@@ -211,6 +213,7 @@ export function cardText(c: CardInput): string {
     const lines = impactLines(impact, c.today);
     if (lines.length) parts.push(`${impact.jobName}:\n${lines.map((l) => `- ${l}`).join('\n')}`);
   }
+  if (c.notes?.length) parts.push(c.notes.join('\n'));
   parts.push('Save this?');
   return parts.join('\n\n');
 }

@@ -8,7 +8,7 @@ import { clockFromOverride, type Clock } from '@ct/core';
 import { consoleLog, type Log, type ServerConfig } from './config.js';
 import { buildServer } from './http.js';
 import { ensureDataDirs } from './paths.js';
-import { logNotifier, type Notifier } from './reminders.js';
+import { logNotifier, manualReminderText, type Notifier } from './reminders.js';
 import { startScheduler, type Scheduler, type TickResult } from './scheduler.js';
 import { seedIfEmpty } from './seed.js';
 import { SqliteStore } from './sqliteStore.js';
@@ -30,7 +30,7 @@ export interface RunningApp {
 
 export interface StartOptions {
   log?: Log;
-  /** Default: log notifier. Stage 3 passes the Telegram notifier. */
+  /** Default: the bot's Telegram notifier when the bot runs, else the log. */
   notifier?: Notifier;
   /** Default: from config.todayOverride (CT_TODAY), else the Sydney system clock. */
   clock?: Clock;
@@ -59,20 +59,31 @@ export async function startApp(config: ServerConfig, opts: StartOptions = {}): P
   const url = `http://${config.host.includes(':') ? `[${config.host}]` : config.host}:${port}`;
   log.info(`API on ${url} (web app from ${config.webDist})`);
 
-  const notifier = opts.notifier ?? logNotifier(log);
-  const started = opts.scheduler === false ? null : startScheduler({ store, clock, notifier, log, reminderTime: config.reminderTime });
-  const scheduler: Scheduler = started ?? { tick: async () => ({ snapshots: [], reminders: null }), start() {}, stop() {} };
-
   // The Telegram bot, in this process, over the same store and clock (long
   // polling: nothing is exposed to the internet). Off, with a log line, when
   // TELEGRAM_BOT_TOKEN / DOMINIC_TELEGRAM_USER_ID / the LLM key are not set.
   // Loaded only when a token is set, so a bot-less run never loads grammY or
-  // the LLM layer. Stage 3 swaps `notifier` for the bot's Telegram notifier.
+  // the LLM layer. Started before the scheduler so reminders go to Telegram.
   const env = opts.env ?? process.env;
   let bot: RunningBot | null = null;
   if (opts.bot === false) log.info('Telegram bot off (disabled for this run).');
   else if (!env.TELEGRAM_BOT_TOKEN?.trim()) log.info('Telegram bot off: TELEGRAM_BOT_TOKEN is not set.');
-  else bot = await (await import('@ct/bot')).startBot({ store, clock, log, env });
+  else {
+    bot = await (await import('@ct/bot')).startBot({
+      store,
+      clock,
+      log,
+      env,
+      dataDir: config.paths.dataDir,
+      // "/reminders" / "fire reminders": what's due now, ignoring the daily dedup (labelled as such).
+      remindersNow: async () => manualReminderText(store.load(), clock.today()),
+    });
+  }
+
+  const notifier = opts.notifier ?? bot?.notifier ?? logNotifier(log);
+  if (bot && !opts.notifier) log.info(`Reminders go to Dominic on Telegram from ${config.reminderTime} Sydney.`);
+  const started = opts.scheduler === false ? null : startScheduler({ store, clock, notifier, log, reminderTime: config.reminderTime });
+  const scheduler: Scheduler = started ?? { tick: async () => ({ snapshots: [], reminders: null }), start() {}, stop() {} };
 
   let stopped = false;
   return {

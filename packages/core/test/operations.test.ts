@@ -150,6 +150,15 @@ describe('operations', () => {
     expect(q).toMatchObject({ kind: 'question', field: 'category' });
   });
 
+  it('attach_photo with no job (an uncaptioned photo) asks with a button per live job', () => {
+    const ds = buildSeed();
+    const q = runOperation(ds, 'attach_photo', { filePath: 'telegram/a.jpg' }, ctx);
+    expect(q).toMatchObject({ kind: 'question', field: 'job', question: 'Which job is this photo for?' });
+    if (q.kind !== 'question') return;
+    expect(q.options!.map((o) => o.label)).toContain('Seaview St');
+    expect(q.options!.some((o) => o.value === 'tpl-duplex')).toBe(false);
+  });
+
   it('three photos make the hold point pass', () => {
     let ds = buildSeed();
     for (const category of ['plumbing under slab', 'membrane and termite barrier']) {

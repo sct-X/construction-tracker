@@ -5,7 +5,10 @@
  */
 import type { Clock, Store } from '@ct/core';
 import { createParser, createProviderFromEnv, type Parser } from '@ct/llm';
-import { createBot, type BotHandle, type BotLog, type PhotoStore, type Transcriber } from './bot.js';
+import { createBot, type BotHandle, type BotLog } from './bot.js';
+import { diskMediaStore, type FileDownloader, type MediaStore } from './media.js';
+import { createTelegramNotifier, type TelegramNotifier } from './notifier.js';
+import { transcriberFromEnv, type Transcriber } from './transcriber.js';
 
 export interface StartBotOptions {
   store: Store;
@@ -14,12 +17,21 @@ export interface StartBotOptions {
   env: Record<string, string | undefined>;
   /** Default: from env (LLM_PROVIDER, LLM_MODEL, key). */
   parser?: Parser;
+  /** Default: from env (TRANSCRIBER=local|cloud, see transcriberFromEnv); none = voice notes off. */
   transcriber?: Transcriber;
-  photoStore?: PhotoStore;
+  /** DATA_DIR: voice notes go in audio/, photos in photos/telegram/. */
+  dataDir?: string;
+  /** Default diskMediaStore(dataDir) when dataDir is given. */
+  media?: MediaStore;
+  downloader?: FileDownloader;
+  /** "/reminders" and "fire reminders" (the server supplies it). */
+  remindersNow?: () => Promise<string | null>;
 }
 
 export interface RunningBot {
   handle: BotHandle;
+  /** Sends reminder messages to Dominic (his private chat id = his user id). The server's scheduler uses it. */
+  notifier: TelegramNotifier;
   stop(): Promise<void>;
 }
 
@@ -53,6 +65,16 @@ export async function startBot(opts: StartBotOptions): Promise<RunningBot | null
       return null;
     }
   }
+  let transcriber = opts.transcriber;
+  if (!transcriber) {
+    const choice = transcriberFromEnv(opts.env);
+    if (choice.ok) {
+      transcriber = choice.transcriber;
+      log.info(`Voice notes: ${choice.description}.`);
+    } else log.info(`Voice notes off: ${choice.reason}.`);
+  }
+  const media = opts.media ?? (opts.dataDir ? diskMediaStore(opts.dataDir) : undefined);
+  if (!media) log.warn('Voice notes and photos off: no data folder given to the bot.');
   const handle = createBot({
     token: config.token,
     allowedUserId: config.allowedUserId,
@@ -60,8 +82,11 @@ export async function startBot(opts: StartBotOptions): Promise<RunningBot | null
     clock: opts.clock,
     parser,
     log,
-    ...(opts.transcriber ? { transcriber: opts.transcriber } : {}),
-    ...(opts.photoStore ? { photoStore: opts.photoStore } : {}),
+    ...(transcriber ? { transcriber } : {}),
+    ...(media ? { media } : {}),
+    ...(opts.downloader ? { downloader: opts.downloader } : {}),
+    ...(opts.remindersNow ? { remindersNow: opts.remindersNow } : {}),
+    ...(opts.env.TELEGRAM_API_ROOT?.trim() ? { apiRoot: opts.env.TELEGRAM_API_ROOT.trim() } : {}),
   });
   log.info(`Telegram bot starting (long polling); allowed user ${config.allowedUserId}.`);
   let stopping = false;
@@ -75,6 +100,7 @@ export async function startBot(opts: StartBotOptions): Promise<RunningBot | null
     });
   return {
     handle,
+    notifier: createTelegramNotifier(handle.bot.api, config.allowedUserId),
     async stop() {
       stopping = true;
       await handle.bot.stop().catch(() => undefined);

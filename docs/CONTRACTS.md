@@ -129,7 +129,8 @@ operationCatalogue(group?: 'daily' | 'setup'): { name, description, group, param
 OPERATIONS, OPERATION_NAMES, getOperation(name), defineOp, runOp
 ```
 
-- Args are validated with zod. A missing required arg -> `question` (per-op wording), but names first: runOp first runs
+- Args are validated with zod. A missing required arg -> `question` (per-op wording `ask`, buttons from the op's optional
+  `askOptions[field](ds)`), but names first: runOp first runs
   the op on the given args (missing ones guarded) and returns any ambiguity question or unknown-name refusal it hits
   before needing a missing arg (question `args` then omit the missing ones); bad values -> `refusal`;
   an unknown arg -> `refusal` naming it. Nulls and empty strings from an LLM count as "not given".
@@ -149,13 +150,13 @@ Daily (bot) operations, args (`?` optional):
 | set_shipment_eta | shipment, job?, eta | "Park Rd windows ETA Mon 26 Oct to Mon 16 Nov" |
 | set_shipment_status | shipment, job?, status | |
 | mark_step_started | step, job?, date? | sets actualStart |
-| mark_step_done | step, job?, date? | hold point: refused with holdPointRefusalText until every required category has a photo; sets actualEnd (+actualStart) |
+| mark_step_done | step, job?, date? | hold point: refused with `holdPointSignOffRefusal` ("Can't sign off Slab inspection before pour yet. No photos for: Plumbing under slab, Membrane and termite barrier.") until every required category has a photo; sets actualEnd (+actualStart) |
 | set_item_status | item, job?, status, date? | confirmed sets confirmedDate; done sets doneAt |
 | set_item_expected_date | item, job?, date | refused for shipment items (change the ETA) |
 | override_lead_time | item, job?, weeks | item.leadTimeWeeks |
 | add_item | job, type, title, waitingOn?, owner? (default "Dominic"), trade?, step?, neededBy?, expectedDate?, leadTimeWeeks?, notes? | build job with no step and no date -> question (field step), except defect/reminder |
 | add_daily_note | job, text, date?, messageId? | |
-| attach_photo | job, category?, stage?, filePath, caption?, takenOn?, messageId? | never refuses on names: unmatched/ambiguous job -> question (jobs); stage or category -> question (that job's/stage's categories) |
+| attach_photo | job, category?, stage?, filePath, caption?, takenOn?, messageId? | never refuses on names: missing/unmatched/ambiguous job -> question with a button per live job (`askOptions`); stage or category -> question (that job's/stage's categories, incl. General) |
 | confirm_job | job, date? | lastConfirmed |
 | set_stage_status | job, stage, status | design jobs only |
 
@@ -287,7 +288,9 @@ Every request reloads the store, so writes by another process on the same SQLite
 
 ```ts
 buildServer({ store, clock, paths, webDist?, log?, allowedHosts? }): Promise<FastifyInstance>   // not listening; tests use .inject
-startApp(config: ServerConfig, { log?, notifier?, clock?, scheduler? }): Promise<RunningApp>  // {store, clock, server, scheduler, firstTick, notifier, url, stop()}
+startApp(config: ServerConfig, { log?, notifier?, clock?, scheduler?, env?, bot? }): Promise<RunningApp>  // {store, clock, server, scheduler, firstTick, notifier, bot, url, stop()}
+// Stage 3: the bot starts BEFORE the scheduler (with dataDir and remindersNow = manualReminderText); notifier =
+// opts.notifier ?? bot.notifier (Telegram, Dominic's chat) ?? logNotifier.
 loadConfig(env, cwd): ServerConfig; clockFromEnv(env); todayOverrideFromEnv(env); loadEnvFile(env, cwd)
 applyOperation(store, clock, op, args, { message?, sender? }) -> {ok:true, changeSet, summary, impacts} | {ok:false, result, reason}
 removeDatabaseFile(file)                                   // db + -wal + -shm
@@ -305,7 +308,8 @@ Reminders (`reminders.ts`):
 ```ts
 computeReminders(ds, today): Reminder[]   // pure. Reminder = {key, kind 'act_by'|'amber', jobId, jobName, itemId, dueOn, text}
 fireReminders(store: SqliteStore, clock, notifier): Promise<{ sent: Reminder[]; alreadySent: number; text: string | null }>
-interface Notifier { send(n: { text: string; reminders: Reminder[] }): Promise<void> }   // Stage 3: Telegram
+interface Notifier { send(n: { text: string; reminders: Reminder[] }): Promise<void> }   // the bot's createTelegramNotifier fits it
+manualReminderText(ds, today): string | null   // "/reminders": all due today, ignoring reminder_sent (not recorded either)
 logNotifier(log), memoryNotifier() (.sent), reminderText(reminders, today), sentReminderKeys(store)
 ```
 
@@ -337,6 +341,20 @@ re-run with `{ ...question.args, afterChoice: id }`.
   (`outstanding`, `oldest`), `jobs-group-builds|design` > `job-row-<jobId>` (`data-kind`; inside: `finish`, `slip`,
   `freshness`), `monday-sub`, `side-switcher`, `dev-today`. Headings name their job for screen readers ("Why it moved for
   Beatty St", "Act by this week for Seaview St").
+- Stage 4b screens (read-only; files `src/screens/{WaitingOn,ToChase,Shipments,Photos,Notes,History}.tsx`, shared
+  `src/components/listBits.tsx` (JobPicker select, CallLink, DateCell), wording `src/ui/itemWords.ts`, styles
+  `src/styles/lists.css` imported by those files). Routes: main links `#/waiting`, `#/chase`, `#/shipments`, `#/history`
+  (+ `#/history/:jobId`, not in nav); job tabs `#/jobs/:jobId/waiting` (both kinds), `/photos` and `/notes` (tab "Notes";
+  builds). Per-job screens are remounted with `key={jobId}`. Test ids: `waiting-group-overdue|this_week|later`
+  (`data-count`; next week folds into Later) > `waiting-row-<itemId>` (`data-urgency` late|overdue|none; inside `urgency`,
+  `needed-by`, `act-by`, `expected`, `owner`, `status`, `call`); `chase-job-<jobId>` / `chase-row-<itemId>` (`call`,
+  `act-by`), `chase-count`, `chase-nothing`; `shipment-row-<shipmentId>` (`ship-job`, `ship-status`, `eta`, `needed-by`,
+  `timing`, `linked-items`); `photo-stage-<stageId|job>` > `hold-progress` ("1 of 3"), `photo-cat-<categoryId>`,
+  `lightbox`; `note-<id>` > `note-date`; `history-<changeSetId>` (`data-status`; inside `status`, `fields`, `forecast`,
+  `source`); `job-picker`. Calls are `tel:` links with the trade name and number written out (`telHref`).
+  Workarounds (read models lack them): shipment linked-item titles come from `getWaitingOn({includeDone: true})` rows
+  by `shipmentId`; "which forecast it moved" comes from `getWhyItMoved` causes per build (only changes since the
+  Monday snapshot; older confirmed ones say "Made before the forecast saved ..."); history is side-filtered client-side.
 - Design rules live in `src/styles/tokens.css` (palette and type) and `app.css`; phone layout is the same DOM at <= 760px.
 
 ## Seed (`packages/core/src/seed`)
@@ -441,11 +459,33 @@ startBot({ store, clock, log, env, parser?, transcriber?, photoStore? }): Promis
 botConfigFromEnv(env) -> {ok, token, allowedUserId} | {ok:false, reason}
 cardText({ summary, transcript?, changes, impacts, ds, today }); changeLines; impactLines; finishSentence; valueText; fieldLabel
 answerRead(api: DashboardApi, tool, args) -> { text }      // the 6 read tools; unknown tool -> a plain "can't answer" text
-Transcriber / PhotoStore                                   // placeholder shapes, Stage 3 defines them properly
+// Stage 3 (createBot also takes transcriber?, media?, downloader?, remindersNow?, apiRoot?; startBot dataDir?, media?,
+// downloader?, remindersNow?; RunningBot.notifier; BotHandle.photoQueue)
+interface Transcriber { name?; transcribe(audioFile, { prompt, language?: 'en' }): Promise<{ text }> }   // throws -> polite reply
+new WhisperCppTranscriber({ modelPath, whisperBin? ('whisper-cli'), ffmpegBin? ('ffmpeg'), threads?, timeoutMs? (120 s), spawn?, tmpDir? })
+  // spawn(args array, shell: false, windowsHide): ffmpegArgs(in, wav) = -hide_banner -loglevel error -nostdin -y -i IN -ar 16000
+  // -ac 1 -c:a pcm_s16le WAV; whisperArgs = -m MODEL -f WAV -l en --prompt P -nt -np -otxt -of BASE [-t N]; reads BASE.txt
+  // (stdout fallback); temp folder removed; cleanTranscript drops [BLANK_AUDIO] etc. and joins lines
+new CloudTranscriber({ apiKey, model? ('gpt-4o-mini-transcribe'), baseUrl?, fetch?, timeoutMs? (60 s) })
+  // POST {base}/audio/transcriptions multipart: file (".oga" sent as voice.ogg), model, prompt, language, response_format json;
+  // Authorization: Bearer header (never the URL)
+new FakeTranscriber(script: (string | Error | fn)[])     // .calls, .remaining
+transcriberFromEnv(env) -> {ok, transcriber, description} | {ok:false, reason}
+transcriptionPrompt({ jobs, trades, terms? = SITE_TERMS }) // "Construction site update. Jobs: ... Terms: lock-up, hold point,
+  // before-cover, OC, PC, practical completion, slab, frame, fit-off, rough-in. Trades: ..." (<= 700 chars, trades trimmed first)
+interface MediaStore { saveAudio(data, {date, ext}) -> {storedPath "audio/<date>-<12hex>.<ext>" (rel DATA_DIR), file};
+  removeAudio; savePhoto(data, {date, ext}) -> {filePath "telegram/<date>-<12hex>.<ext>" (rel photos dir), file};
+  removePhoto; flag(name); setFlag(name) }   // diskMediaStore(dataDir): flags in DATA_DIR/bot-state.json
+interface FileDownloader { download({ fileId, filePath }): Promise<Uint8Array> }   // telegramDownloader(token, {apiRoot?})
+createTelegramNotifier(api, chatId) -> { send({ text }) }  // the server's Notifier; splits > 4000 chars on lines; throws on failure
 ```
 
 Env: `TELEGRAM_BOT_TOKEN` (unset -> "Telegram bot off" log; `@ct/server` depends on `@ct/bot`; e2e-server and server tests pass `bot: false`; startApp only then loads `@ct/bot`, by dynamic import),
 `DOMINIC_TELEGRAM_USER_ID` (digits; unset -> off), and the LLM env (provider/key missing -> off with the reason).
+Voice: `TRANSCRIBER=local|cloud` (unset: local when `WHISPER_MODEL_PATH` is set, else voice off; never cloud by itself),
+local: `WHISPER_MODEL_PATH` (required), `WHISPER_CPP_BIN` (whisper-cli), `FFMPEG_BIN` (ffmpeg), `WHISPER_THREADS`; cloud:
+`TRANSCRIBE_API_KEY` or `OPENAI_API_KEY`, `TRANSCRIBE_MODEL` (gpt-4o-mini-transcribe), `TRANSCRIBE_BASE_URL`. Optional
+`TELEGRAM_API_ROOT` (a local Bot API server; tests use a fake one).
 `startApp(config, { env?, bot? })`: `env` default `process.env`; `bot: false` never starts it.
 
 Behaviour:
@@ -459,7 +499,7 @@ Behaviour:
 - Updates are handled one at a time by grammY's built-in poller (`bot.start`); the pending/card state relies on that.
   Don't add `@grammyjs/runner` (concurrent updates) without locking per chat. A slow provider holds later updates.
 - Every allowed text (commands too) -> `recordInbound({channel: 'telegram', sender: String(from.id), rawText})` first.
-  Non-text messages: "I can only read text messages for now." (Stage 3 adds voice/photo handlers before that one).
+  Other messages (stickers, non-image documents...): "I can read text, voice notes and photos. ...".
 - `/undo` (or "undo" / "undo that" not as a reply) -> newest confirmed change set whose message came in on Telegram.
   "undo" (or `/undo`) as a reply to a card -> that card's change set: looked up in memory, else read off the card's
   button callback data (survives restarts). Core's refusal text is sent as is ("Can't undo "X": it was changed again
@@ -500,11 +540,57 @@ Behaviour:
 - Change history quotes the right text: a change set's message is the message that started its thread (a pick or a
   short answer is a detail of it), a fresh request's own message, or the correction for an Edit.
 
+Stage 3 behaviour:
+- Voice notes and audio files (`message:voice`, `message:audio`): "typing" action, getFile + downloader (20 MB cap), saved
+  via MediaStore under DATA_DIR/audio, transcribed with the priming prompt, THEN `recordInbound({rawText: caption,
+  audioPath, transcript})` and `handleInbound(..., transcript, {transcript})` (same parse/question/card flow). Cards start
+  `Heard: "..."`; a refusal, question, model reply or "Nothing to change" in the first turn starts with it too.
+  Transcriber error or empty transcript: audio file deleted, NO inbound row, "Sorry, I couldn't make out that voice note:
+  the transcriber didn't work. Nothing saved. Try again, or type it." No transcriber/media: "Voice notes aren't switched on
+  here yet...". Download failure: "I couldn't download that voice note from Telegram...".
+- Photos: `message:photo` keeps the largest size (width x height, then bytes); `message:document` with an `image/*` mime is
+  kept as sent (full resolution); other documents fall through. Saved under photos/telegram/ (unique name), inbound row
+  `{rawText: caption, photoPath}`. The first compressed photo ever (flag `photo-as-file-tip`) also gets "Tip: to keep a
+  photo at full resolution, send it as a file ...". Then attach_photo runs with bot-set `filePath`/`messageId`: the
+  caption is parsed as "Photo caption: <caption>"; its first attach_photo call gives job/stage/category (other ops in the
+  same answer join the same card AFTER the photo, so "membrane photo, slab inspection done" files the photo first and the
+  sign-off passes); no attach_photo call -> attach_photo with the job of another call, if any; `caption` is always the real
+  caption. No caption, parse failure or no match -> core asks with buttons (job, then that job's/stage's categories incl.
+  "General"). Questions and the card are sent as replies to the photo (`reply_parameters`). Cards add hold-point progress
+  for required categories, from the data with the change applied: "Slab inspection before pour photos: 2 of 3. Still
+  needed: Membrane and termite barrier." / "... 3 of 3. All there, so it can be signed off." (also on the Saved card).
+- One question at a time: a photo arriving while a photo question is open waits in `photoQueue` ("Got it. I'll ask about
+  this one when the photo before it is sorted.", silent inside an album); after every update (`afterTurn`), if no live
+  question is open, the next waiting photo is processed. An open photo question survives Confirm/Cancel/Undo presses on
+  other cards, /undo and "undo"; Edit or a new text request puts it aside (front of the queue) and it is asked again
+  after ("Back to this photo: ..."). A stale option button doesn't lose it. /cancel drops it and the queue.
+- Albums (media groups): each photo gets its own card. Photos without their own caption use the album's caption; the
+  first photo's parsed args, and later its answers to questions, are reused for the rest (one model call, one set of
+  questions per album; remembered 10 min).
+- Unfiled photos are deleted (decision): after every update, a photo stored by this process that is in no confirmed photo
+  row, proposed change set, open question/edit or queue is removed from disk and its inbound `photoPath` cleared (logged
+  "Deleted photo ...: not filed"). So Cancel, an expired or /cancel-led question, or a refusal deletes it; Edit keeps it
+  for the new card; Cancel after a restart still deletes the cancelled card's photo. Confirmed photos stay, even if undone.
+- Hold-point rule: core refuses mark_step_done ("Can't sign off ... yet. No photos for: A, B.") + " Nothing saved.".
+- Reminders: `/reminders` or "fire reminders" / "send reminders" / "show me my reminders now" (`REMINDERS_WORDS`, no LLM, an
+  open question stays open) -> `remindersNow()` text ("Reminders due now, Thu 17 Sep (you asked, so this includes any
+  already sent today):" + lines), or "Nothing due right now, Thu 17 Sep."; not recorded in reminder_sent. The daily send
+  is the scheduler's `fireReminders` through `RunningBot.notifier` to Dominic's private chat (chat id = his user id).
+- Not done (optional Stage 2 review idea): parsing an answer to an open question once with the thread and letting the model
+  say whether it's a new request. Still two calls for a free-text answer.
+
 Test harness (`packages/bot/test/harness.ts`, for Stage 3 too): `createHarness({ store, clock, parser, allowedUserId?,
-pendingTtlMs?, transcriber?, photoStore? })` -> `{ handle, log (memory), calls (every API call), messages (bot messages by id, edits
+pendingTtlMs?, transcriber?, media?, remindersNow? })` -> `{ handle, log (memory), calls (every API call), messages (bot messages by id, edits
 applied, buttons), text(text, {from?, replyTo?, chat?}), press(messageId, buttonTextOrData, {from?}), update(rawUpdate),
 sent(calls?), lastWithButton(text), last() }`. Built on a real grammY Bot with `botInfo` preset (`BOT_INFO`) and an API
 transformer that records calls and returns fake results (sendMessage -> a message with a new id). `DOMINIC_ID`,
 `STRANGER_ID`, `steppingClock(today)` (now() movable with `advance(ms)`). Integration tests (`test/flows.test.ts`): server SqliteStore on a temp file + `seedDatabase`, a second
 SqliteStore on the same file behind `buildServer` (`inject` POST /api/rpc/getMonday), `createParser(new FakeLlm(...))`,
 `fixedClock('2026-09-17', '10:00')`.
+Stage 3 harness additions: `files` (fake Telegram files by file_id; `getFile` answers from it and the injected
+downloader serves the bytes), `voice(bytes, {duration?, caption?})`, `photo(bytes, {caption?, mediaGroupId?, width?,
+height?})` (three sizes, out of order; `bytes` is the largest), `document(bytes, {mime?, fileName?, caption?})`,
+`lastUserMessageId()`. Fixtures in `packages/bot/test/fixtures`: `voice.ogg` (0.6 s Opus, made with ffmpeg),
+`plumbing.jpg`, `membrane.jpg`, `steel.jpg`. Tests: `test/stage3.test.ts` (flows b, c, f, photos, voice failures,
+scheduler -> TelegramNotifier), `test/transcriber.test.ts` (argv via mock spawn, cloud request, env, prompt; real ffmpeg
+when installed), `test/start.test.ts` (startApp + fake Telegram Bot API: the first tick's reminders reach chat 42).

@@ -127,7 +127,7 @@ describe('Seaview St', () => {
     const r = runOperation(ds, 'mark_step_done', { step: 'slab inspection', job: 'Seaview' }, ctx);
     expect(r.kind).toBe('refusal');
     if (r.kind !== 'refusal') return;
-    expect(r.reason).toContain('2 categories are empty');
+    expect(r.reason).toBe("Can't sign off Slab inspection before pour yet. No photos for: Plumbing under slab, Membrane and termite barrier.");
     expect(r.reason).toContain('Plumbing under slab');
     expect(r.reason).toContain('Membrane and termite barrier');
   });

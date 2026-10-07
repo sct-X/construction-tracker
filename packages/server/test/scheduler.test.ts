@@ -8,6 +8,7 @@ import {
   createScheduler,
   ensureMondaySnapshots,
   fireReminders,
+  manualReminderText,
   memoryLog,
   memoryNotifier,
   seedDatabase,
@@ -136,5 +137,24 @@ describe('reminders (flow f: "fire reminders", today Thu 17 Sep)', () => {
     expect(log.lines.some((l) => l.startsWith('info Sent'))).toBe(true);
     expect((await s2.tick()).reminders!.sent).toEqual([]);
     store2.close();
+  });
+});
+
+describe('manualReminderText ("/reminders" in the bot)', () => {
+  it('lists everything due today, sent or not, labelled as on request; leaves reminder_sent alone; null when nothing applies', async () => {
+    const store = new SqliteStore(file);
+    const clock = fixedClock(DEFAULT_TODAY, '07:30');
+    await fireReminders(store, clock, memoryNotifier());
+    const sentBefore = sentReminderKeys(store).size;
+    const text = manualReminderText(store.load(), DEFAULT_TODAY)!;
+    expect(text.split('\n')[0]).toBe('Reminders due now, Thu 17 Sep (you asked, so this includes any already sent today):');
+    expect(text).toContain('- Seaview St: Book concrete pump. Act by Fri 18 Sep (tomorrow).');
+    expect(text).toContain('- Beatty St is amber: last confirmed 9 days ago. Check it and confirm the job.');
+    expect(sentReminderKeys(store).size).toBe(sentBefore);
+    const quiet = buildSeed();
+    quiet.items = [];
+    quiet.jobs = quiet.jobs.map((j) => ({ ...j, lastConfirmed: DEFAULT_TODAY }));
+    expect(manualReminderText(quiet, DEFAULT_TODAY)).toBeNull();
+    store.close();
   });
 });

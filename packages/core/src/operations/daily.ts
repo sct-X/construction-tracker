@@ -3,7 +3,7 @@
  * Names are fuzzy-matched; a clash becomes a question, never a guess.
  */
 import { z } from 'zod';
-import { forecastJob, holdPointCheck, holdPointRefusalText } from '../calculator.js';
+import { forecastJob, holdPointCheck, type HoldPointCheck } from '../calculator.js';
 import type { Change } from '../changes.js';
 import { ITEM_STATUSES, ITEM_STATUS_LABELS, ITEM_TYPES, ITEM_TYPE_LABELS, SHIPMENT_STATUSES, SHIPMENT_STATUS_LABELS, STAGE_STATUSES } from '../types.js';
 import type { Dataset, Item, JsonValue, Stage } from '../types.js';
@@ -120,6 +120,14 @@ export const markStepStarted = defineOp({
   },
 });
 
+/**
+ * Rule 6 in plain words, naming the empty required categories:
+ * "Can't sign off Slab inspection before pour yet. No photos for: Plumbing under slab, Membrane and termite barrier."
+ */
+export function holdPointSignOffRefusal(check: HoldPointCheck): string {
+  return `Can't sign off ${check.stepName} yet. No photos for: ${check.missingCategories.join(', ')}.`;
+}
+
 export const markStepDone = defineOp({
   name: 'mark_step_done',
   group: 'daily',
@@ -138,7 +146,7 @@ export const markStepDone = defineOp({
     if (step.status === 'done') refuse(ctx, `${step.name} at ${where} is already done.`);
     if (step.isHoldPoint) {
       const check = holdPointCheck(step, ds.photoCategories, ds.photos);
-      if (!check.ok) refuse(ctx, holdPointRefusalText(check));
+      if (!check.ok) refuse(ctx, holdPointSignOffRefusal(check));
     }
     const date = a.date ? readDate(ctx, a.date, 'past') : ctx.today;
     const changes: Change[] = [...update('step', step, 'status', 'done'), ...update('step', step, 'actualEnd', date)];
@@ -330,6 +338,8 @@ export const attachPhoto = defineOp({
     messageId: z.string().optional(),
   }),
   ask: { job: 'Which job is this photo for?' },
+  // No caption (or no job in it): ask with a button per live job, never a bare question.
+  askOptions: { job: (ds) => ds.jobs.filter((j) => !j.isTemplate).map((j) => ({ label: j.name, value: j.id })) },
   run(ds, a, ctx) {
     // SPEC Telegram 7: whatever the caption can't settle, ask; never refuse, so the photo isn't lost.
     const job = asQuestion(() => resolveJob(ds, ctx, a.job), () =>

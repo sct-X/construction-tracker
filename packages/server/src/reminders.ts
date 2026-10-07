@@ -5,7 +5,7 @@
  * sends the ones not sent before through a Notifier and records them in
  * reminder_sent (migration 002) so each goes out once. The scheduler calls it
  * every minute after the reminder time; the bot calls it for "fire reminders".
- * Stage 3 plugs a Telegram Notifier in; until then reminders go to the log.
+ * With the bot running, the Notifier is the bot's Telegram notifier (Dominic's chat); otherwise the log.
  */
 import { addCalendarDays, formatDate, mondayRows, relativeDays, type Clock, type Dataset, type ISODate } from '@ct/core';
 import type { Log } from './config.js';
@@ -35,7 +35,7 @@ export interface Notification {
   reminders: Reminder[];
 }
 
-/** Where reminders go. Stage 3: Telegram. Now: the log. */
+/** Where reminders go: Telegram when the bot runs (bot's createTelegramNotifier), else the log. */
 export interface Notifier {
   send(n: Notification): Promise<void>;
 }
@@ -113,6 +113,18 @@ function lowerFirst(s: string): string {
 export function reminderText(reminders: Reminder[], today: ISODate): string {
   const lines = [...reminders.filter((r) => r.kind === 'act_by'), ...reminders.filter((r) => r.kind === 'amber')].map((r) => `- ${r.text}`);
   return [`Reminders, ${formatDate(today, today)}:`, ...lines].join('\n');
+}
+
+/**
+ * "/reminders" or "fire reminders" in the bot: every reminder that applies today, whether or not it went out
+ * already, under a heading that says so. Doesn't touch reminder_sent, so the daily send is unchanged.
+ * Null when nothing is due.
+ */
+export function manualReminderText(ds: Dataset, today: ISODate): string | null {
+  const all = computeReminders(ds, today);
+  if (!all.length) return null;
+  const lines = reminderText(all, today).split('\n').slice(1);
+  return [`Reminders due now, ${formatDate(today, today)} (you asked, so this includes any already sent today):`, ...lines].join('\n');
 }
 
 export interface FireResult {

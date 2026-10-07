@@ -1,6 +1,8 @@
 // Starting the bot: off (with a log line) unless the token, Dominic's id and
 // an LLM provider are configured; the server's startApp hook logs it either way.
 import { mkdtempSync, rmSync } from 'node:fs';
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -46,5 +48,66 @@ describe('server startApp hook', () => {
     app = await startApp(config, { log, notifier: memoryNotifier(), clock, scheduler: false, env: {} });
     expect(app.bot).toBeNull();
     expect(log.lines).toContain('info Telegram bot off: TELEGRAM_BOT_TOKEN is not set.');
+  });
+});
+
+describe('startApp with the bot on: reminders go to Dominic on Telegram', () => {
+  let app: RunningApp | null = null;
+  let dir: string;
+  let telegram: Server;
+  afterEach(async () => {
+    await app?.stop();
+    app = null;
+    await new Promise((r) => telegram.close(r));
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('the scheduler\'s first pass sends the day\'s reminders through the bot to his chat (= his user id)', async () => {
+    // A fake Telegram Bot API (TELEGRAM_API_ROOT): getMe, long polling that returns nothing, sendMessage.
+    const sent: { chat_id: unknown; text: string }[] = [];
+    telegram = createServer((req, res) => {
+      let body = '';
+      req.on('data', (c) => (body += c));
+      req.on('end', () => {
+        const method = (req.url ?? '').split('/').pop();
+        const payload = body ? (JSON.parse(body) as Record<string, unknown>) : {};
+        const reply = (result: unknown) => res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ ok: true, result }));
+        if (method === 'getMe') return reply({ id: 1, is_bot: true, first_name: 'Tracker', username: 'ct_fake_bot' });
+        if (method === 'getUpdates') return void setTimeout(() => reply([]), 20);
+        if (method === 'sendMessage') {
+          sent.push({ chat_id: payload.chat_id, text: String(payload.text) });
+          return reply({ message_id: sent.length, date: 0, chat: { id: payload.chat_id, type: 'private' }, text: payload.text });
+        }
+        return reply(true);
+      });
+    });
+    await new Promise<void>((r) => telegram.listen(0, '127.0.0.1', r));
+    const port = (telegram.address() as AddressInfo).port;
+
+    dir = mkdtempSync(join(tmpdir(), 'ct-bot-app-tg-'));
+    const config = { ...loadConfig({ DATA_DIR: dir, PORT: '0', REMINDER_TIME: '07:00' }, dir), port: 0 };
+    const log = memoryLog();
+    app = await startApp(config, {
+      log,
+      clock: fixedClock(DEFAULT_TODAY, '07:30'),
+      env: {
+        TELEGRAM_BOT_TOKEN: '123:fake',
+        DOMINIC_TELEGRAM_USER_ID: '42',
+        LLM_PROVIDER: 'openai',
+        OPENAI_API_KEY: 'not-used',
+        TELEGRAM_API_ROOT: `http://127.0.0.1:${port}`,
+      },
+    });
+    expect(app.bot).not.toBeNull();
+    expect(app.notifier).toBe(app.bot!.notifier);
+    const tick = await app.firstTick!;
+    expect(tick.reminders!.sent.length).toBeGreaterThanOrEqual(2);
+    const daily = sent.filter((m) => m.text.startsWith('Reminders, Thu 17 Sep:'));
+    expect(daily).toHaveLength(1);
+    expect(daily[0]!.chat_id).toBe('42');
+    expect(daily[0]!.text).toContain('Seaview St: Book concrete pump. Act by Fri 18 Sep (tomorrow).');
+    expect(daily[0]!.text).toContain('Beatty St is amber');
+    expect(log.lines).toContain('info Reminders go to Dominic on Telegram from 07:00 Sydney.');
+    expect(log.lines.some((l) => l.startsWith('info Voice notes off:'))).toBe(true);
   });
 });

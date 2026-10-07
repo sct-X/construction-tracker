@@ -76,6 +76,8 @@ export interface OpDef<S extends z.ZodObject = z.ZodObject> {
   schema: S;
   /** The question to ask when a required arg is missing. */
   ask?: Partial<Record<keyof z.infer<S> & string, string>>;
+  /** Buttons for that question (e.g. attach_photo's job: every live job). Default: none. */
+  askOptions?: Partial<Record<keyof z.infer<S> & string, (ds: Dataset) => QuestionOption[]>>;
   run(ds: Dataset, args: z.infer<S>, ctx: OpRunContext): OpResult;
 }
 
@@ -165,7 +167,17 @@ export function runOp<S extends z.ZodObject>(def: OpDef<S>, ds: Dataset, rawArgs
       const q = (def.ask as Record<string, string> | undefined)?.[field] ?? `What should ${field} be?`;
       // Names first: an ambiguous or unknown name is asked or refused before a missing detail
       // ("the windows are late" -> "which windows?" before "what ETA?").
-      return namesFirst(def, ds, cleaned, new Set(missingFields), runCtxFor) ?? { kind: 'question', op: def.name, question: q, field, options: null, args: argsJson };
+      const opts = (def.askOptions as Record<string, ((d: Dataset) => QuestionOption[]) | undefined> | undefined)?.[field]?.(ds);
+      return (
+        namesFirst(def, ds, cleaned, new Set(missingFields), runCtxFor) ?? {
+          kind: 'question',
+          op: def.name,
+          question: q,
+          field,
+          options: opts?.length ? opts : null,
+          args: argsJson,
+        }
+      );
     }
     const msg = parsed.error.issues.map((i) => `${i.path.join('.') || 'args'}: ${i.message}`).join('; ');
     return { kind: 'refusal', op: def.name, reason: `That didn't make sense to me (${msg}).` };

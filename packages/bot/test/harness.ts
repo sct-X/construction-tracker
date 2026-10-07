@@ -17,7 +17,7 @@ import type { Transformer } from 'grammy';
 import type { InlineKeyboardMarkup, Message, Update, UserFromGetMe } from 'grammy/types';
 import { fixedClock, type Clock, type Store } from '@ct/core';
 import type { Parser } from '@ct/llm';
-import { createBot, type BotHandle, type BotLog, type PhotoStore, type Transcriber } from '../src/index.js';
+import { createBot, type BotHandle, type BotLog, type FileDownloader, type MediaStore, type Transcriber } from '../src/index.js';
 
 export const DOMINIC_ID = 424242;
 export const STRANGER_ID = 999001;
@@ -72,7 +72,18 @@ export interface HarnessOptions {
   allowedUserId?: number;
   pendingTtlMs?: number;
   transcriber?: Transcriber;
-  photoStore?: PhotoStore;
+  /** Where voice notes and photos go (diskMediaStore(tempDir) in tests). */
+  media?: MediaStore;
+  /** "/reminders" / "fire reminders" source (the server's manualReminderText in tests). */
+  remindersNow?: () => Promise<string | null>;
+}
+
+/** A file "on Telegram's servers" for the fake getFile + downloader. */
+export interface FakeTelegramFile {
+  fileId: string;
+  data: Uint8Array;
+  /** Telegram's file_path (extension matters), e.g. "voice/file_1.oga". */
+  path: string;
 }
 
 export interface Harness {
@@ -88,6 +99,19 @@ export interface Harness {
   press(messageId: number, button: string, o?: { from?: number }): Promise<ApiCall[]>;
   /** Feed a raw update (Stage 3: voice notes, photos). */
   update(u: Omit<Update, 'update_id'>): Promise<ApiCall[]>;
+  /** Files the fake Telegram serves, by file_id. */
+  files: Map<string, FakeTelegramFile>;
+  /** Send a voice note (bytes served through getFile + the fake downloader). */
+  voice(data: Uint8Array, o?: { from?: number; duration?: number; caption?: string }): Promise<ApiCall[]>;
+  /**
+   * Send a compressed photo: Telegram sends several sizes; `data` is the largest. Smaller sizes get
+   * other bytes so a test can tell which one was kept.
+   */
+  photo(data: Uint8Array, o?: { caption?: string; from?: number; mediaGroupId?: string; width?: number; height?: number }): Promise<ApiCall[]>;
+  /** Send an image as a file (document with an image mime type): full resolution. */
+  document(data: Uint8Array, o?: { caption?: string; mime?: string; fileName?: string; from?: number }): Promise<ApiCall[]>;
+  /** The id of the user message most recently fed (photos: what questions and cards reply to). */
+  lastUserMessageId(): number;
   /** Texts the bot sent (sendMessage) in a slice of calls, or overall. */
   sent(calls?: ApiCall[]): string[];
   /** The newest bot message carrying a button with this text. */
@@ -127,8 +151,29 @@ export function createHarness(o: HarnessOptions): Harness {
       }
       return { ok: true, result: { message_id: Number(payload.message_id), date, chat: { id: Number(payload.chat_id), type: 'private' }, text: String(payload.text) } };
     }
+    if (method === 'getFile') {
+      const f = files.get(String(payload.file_id));
+      if (!f) return { ok: false, error_code: 400, description: 'Bad Request: invalid file_id' };
+      return { ok: true, result: { file_id: f.fileId, file_unique_id: `u-${f.fileId}`, file_size: f.data.length, file_path: f.path } };
+    }
     return { ok: true, result: true };
   }) as unknown as Transformer;
+
+  const files = new Map<string, FakeTelegramFile>();
+  let nextFile = 1;
+  const addFile = (data: Uint8Array, path: (id: string) => string): FakeTelegramFile => {
+    const fileId = `file-${nextFile++}`;
+    const f = { fileId, data, path: path(fileId) };
+    files.set(fileId, f);
+    return f;
+  };
+  const downloader: FileDownloader = {
+    async download({ fileId, filePath }) {
+      const f = files.get(fileId);
+      if (!f || f.path !== filePath) throw new Error(`Fake Telegram has no file ${fileId} at ${filePath}`);
+      return f.data;
+    },
+  };
 
   const log = memoryBotLog();
   const handle = createBot({
@@ -140,8 +185,10 @@ export function createHarness(o: HarnessOptions): Harness {
     log,
     transport,
     botInfo: BOT_INFO,
+    downloader,
     ...(o.transcriber ? { transcriber: o.transcriber } : {}),
-    ...(o.photoStore ? { photoStore: o.photoStore } : {}),
+    ...(o.media ? { media: o.media } : {}),
+    ...(o.remindersNow ? { remindersNow: o.remindersNow } : {}),
     ...(o.pendingTtlMs !== undefined ? { pendingTtlMs: o.pendingTtlMs } : {}),
   });
 
@@ -164,11 +211,48 @@ export function createHarness(o: HarnessOptions): Harness {
     } as Message;
   }
 
+  const userMessage = (from: number, extra: Record<string, unknown>) =>
+    feed({
+      message: { message_id: ++nextUserMsg, date, chat: { id: from, type: 'private', first_name: user(from).first_name }, from: user(from), ...extra } as unknown as Message,
+    } as Omit<Update, 'update_id'>);
+
   return {
     handle,
     log,
     calls,
     messages,
+    files,
+    voice(data, opts = {}) {
+      const f = addFile(data, (id) => `voice/${id}.oga`);
+      return userMessage(opts.from ?? DOMINIC_ID, {
+        voice: { file_id: f.fileId, file_unique_id: `u-${f.fileId}`, duration: opts.duration ?? 3, mime_type: 'audio/ogg', file_size: data.length },
+        ...(opts.caption ? { caption: opts.caption } : {}),
+      });
+    },
+    photo(data, opts = {}) {
+      const w = opts.width ?? 1280;
+      const h = opts.height ?? 960;
+      const small = addFile(new Uint8Array([0xff, 0xd8, 0xff, 0x01]), (id) => `photos/${id}.jpg`);
+      const mid = addFile(new Uint8Array([0xff, 0xd8, 0xff, 0x02]), (id) => `photos/${id}.jpg`);
+      const big = addFile(data, (id) => `photos/${id}.jpg`);
+      const size = (f: FakeTelegramFile, k: number) => ({ file_id: f.fileId, file_unique_id: `u-${f.fileId}`, width: Math.round(w / k), height: Math.round(h / k), file_size: f.data.length });
+      return userMessage(opts.from ?? DOMINIC_ID, {
+        // Out of order on purpose: the bot must pick the largest, not the last.
+        photo: [size(mid, 2), size(big, 1), size(small, 4)],
+        ...(opts.caption ? { caption: opts.caption } : {}),
+        ...(opts.mediaGroupId ? { media_group_id: opts.mediaGroupId } : {}),
+      });
+    },
+    document(data, opts = {}) {
+      const mime = opts.mime ?? 'image/jpeg';
+      const name = opts.fileName ?? 'IMG_0001.jpg';
+      const f = addFile(data, (id) => `documents/${id}${name.slice(name.lastIndexOf('.'))}`);
+      return userMessage(opts.from ?? DOMINIC_ID, {
+        document: { file_id: f.fileId, file_unique_id: `u-${f.fileId}`, file_name: name, mime_type: mime, file_size: data.length },
+        ...(opts.caption ? { caption: opts.caption } : {}),
+      });
+    },
+    lastUserMessageId: () => nextUserMsg,
     text(text, opts = {}) {
       const from = opts.from ?? DOMINIC_ID;
       const replied = opts.replyTo !== undefined ? messages.get(opts.replyTo) : undefined;

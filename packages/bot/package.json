@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Telegram bot (grammY, long polling): allowlist, LLM parsing into core operations, questions, confirm cards with dry-run impact, Edit/Cancel, /undo, read-only answers.",
+  "description": "Telegram bot (grammY, long polling): allowlist, LLM parsing into core operations, questions, confirm cards with dry-run impact, Edit/Cancel, /undo, read-only answers, voice notes (whisper.cpp or cloud), photos, reminders to Telegram.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

@@ -95,7 +95,7 @@ describe('RPC', () => {
     expect(RPC_METHODS).toContain('getMonday');
     expect(RPC_METHODS).toContain('applySetup');
     expect(RPC_METHODS).not.toContain('undo');
-    expect(RPC_METHODS.length).toBe(20);
+    expect(RPC_METHODS.length).toBe(21);
     const cs = store.load().changeSets.find((c) => c.status === 'confirmed')!;
     const res = await app.inject({ method: 'POST', url: '/api/rpc/undo', payload: { args: [cs.id] } });
     expect(res.statusCode).toBe(404);

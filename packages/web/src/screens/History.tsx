@@ -43,7 +43,9 @@ export function HistoryScreen({ jobId = null }: { jobId?: string | null }) {
           {q.status === 'ready' && q.data.entries.length > 0 && (
             <p className="screen-sub" data-testid="history-sub">
               {q.data.entries.length
-                ? `${plural(q.data.entries.length, 'change')} from the bot, newest first. Nothing is saved until Dominic taps Confirm.`
+                ? q.data.entries.some((e) => e.message?.channel === 'web')
+                  ? `${plural(q.data.entries.length, 'change')} from the bot and Setup, newest first. Nothing from the bot is saved until Dominic taps Confirm.`
+                  : `${plural(q.data.entries.length, 'change')} from the bot, newest first. Nothing is saved until Dominic taps Confirm.`
                 : null}
             </p>
           )}
@@ -107,7 +109,16 @@ function Entry({ entry, data }: { entry: HistoryEntry; data: HistoryData }) {
         {entry.changes.length > 0 && entry.status !== 'confirmed' && (
           <p className="fields-note">{entry.status === 'cancelled' ? 'Would have changed (not saved):' : entry.status === 'undone' ? 'Changed, then undone:' : 'Would change:'}</p>
         )}
-        {entry.changes.length > 0 && (
+        {entry.changes.length > MAX_FIELDS && (
+          <ul className={entry.status === 'confirmed' ? 'fields' : 'fields fields-not-saved'} data-testid="fields">
+            {groupedChanges(entry.changes).map((line) => (
+              <li key={line} className="field">
+                <span className="field-what">{line}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {entry.changes.length > 0 && entry.changes.length <= MAX_FIELDS && (
           <ul className={entry.status === 'confirmed' ? 'fields' : 'fields fields-not-saved'} data-testid="fields">
             {entry.changes.map((c, i) => (
               <li key={i} className="field">
@@ -132,6 +143,11 @@ function Entry({ entry, data }: { entry: HistoryEntry; data: HistoryData }) {
           </ul>
         )}
         <ForecastLine entry={entry} today={today} />
+        {!source && msg?.channel === 'web' && (
+          <p className="entry-jobs" data-testid="source-setup">
+            Changed in Setup on the computer, {formatStamp(msg.receivedAt)}
+          </p>
+        )}
         {source && (
           <blockquote className="source" data-testid="source">
             <p>“{source}”</p>
@@ -145,6 +161,26 @@ function Entry({ entry, data }: { entry: HistoryEntry; data: HistoryData }) {
 
 function tableWords(t: string): string {
   return t.replace(/_/g, ' ');
+}
+
+/** Past this many field changes (a new job from a template adds hundreds of rows), they're counted, not listed. */
+const MAX_FIELDS = 12;
+
+const TABLE_PLURALS: Record<string, string> = { step_link: 'links between steps', requirement: 'needs', photo_category: 'photo categories' };
+
+/** "Added 8 stages", "Added 29 steps", "Changed 5 steps" for a big change set. */
+function groupedChanges(changes: HistoryEntry['changes']): string[] {
+  const counts = new Map<string, { verb: string; table: string; n: number; label: string }>();
+  for (const c of changes) {
+    const verb = c.kind === 'insert' ? 'Added' : c.kind === 'delete' ? 'Removed' : 'Changed';
+    const key = `${verb}:${c.table}`;
+    const cur = counts.get(key) ?? { verb, table: c.table, n: 0, label: c.rowLabel };
+    cur.n += 1;
+    counts.set(key, cur);
+  }
+  return [...counts.values()].map(({ verb, table, n, label }) =>
+    n === 1 ? `${verb} ${tableWords(table)}: ${label}` : `${verb} ${n} ${TABLE_PLURALS[table] ?? `${tableWords(table)}s`}`,
+  );
 }
 
 function ForecastLine({ entry, today }: { entry: HistoryEntry; today: string }) {

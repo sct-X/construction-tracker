@@ -44,6 +44,8 @@ import {
   type WaitingOnView,
   type WhyItMoved,
 } from './readModels.js';
+import { programSetup, programWorkingDays, type ProgramSetupView } from './setupViews.js';
+import { applyChanges, jobIdsOfChanges } from './changes.js';
 import type { Store, UndoResult } from './store.js';
 import type { ChangeSet, DailyNote, Dataset, ISODate, Photo, Side, Trade } from './types.js';
 
@@ -51,7 +53,22 @@ export interface SetupPreview {
   result: OpResult;
   /** Present when result is a proposal. */
   impact: DryRunResult['impacts'] | null;
+  /**
+   * Templates have no dates, so no forecast impact: instead, each touched template's longest chain in
+   * working days before and after. Empty when no template is touched (or result is not a proposal).
+   */
+  templates: TemplateImpact[];
 }
+
+export interface TemplateImpact {
+  jobId: string;
+  name: string;
+  workingDaysBefore: number;
+  workingDaysAfter: number;
+}
+
+/** Who Setup change sets are recorded as coming from: inbound channel "web", this sender, no text. */
+export const SETUP_SENDER = 'web-setup';
 
 export type SetupApplyResult = { ok: true; changeSet: ChangeSet; result: Proposal } | { ok: false; result: OpResult; reason: string };
 
@@ -75,6 +92,8 @@ export interface DashboardApi {
   getChangeHistory(filter?: HistoryFilter): Promise<HistoryEntry[]>;
   listTrades(filter?: SideFilter): Promise<(Trade & { openItems: number })[]>;
   listTemplates(filter?: SideFilter): Promise<TemplateRow[]>;
+  /** Setup area: one job's or template's program as stored (stages, steps, links, requirements). */
+  getProgramSetup(jobId: string): Promise<ProgramSetupView>;
 
   /** Setup area: validate and dry-run a setup operation without saving. */
   previewSetup(op: string, args: unknown): Promise<SetupPreview>;
@@ -199,6 +218,9 @@ export class LocalDashboardApi implements DashboardApi {
   async listTemplates(filter?: SideFilter) {
     return templatesList(this.ds, filter);
   }
+  async getProgramSetup(jobId: string) {
+    return programSetup(this.ds, jobId, this.today);
+  }
 
   /** Only setup operations run from the web; day-to-day changes come through the bot. */
   private runSetup(ds: Dataset, op: string, args: unknown): OpResult {
@@ -209,15 +231,38 @@ export class LocalDashboardApi implements DashboardApi {
   async previewSetup(op: string, args: unknown): Promise<SetupPreview> {
     const ds = this.ds;
     const result = this.runSetup(ds, op, args);
-    return { result, impact: result.kind === 'proposal' ? dryRun(ds, result, this.today).impacts : null };
+    if (result.kind !== 'proposal') return { result, impact: null, templates: [] };
+    const run = dryRun(ds, result, this.today);
+    const templates: TemplateImpact[] = [];
+    for (const id of jobIdsOfChanges(run.after, result.changes)) {
+      const job = run.after.jobs.find((j) => j.id === id) ?? ds.jobs.find((j) => j.id === id);
+      if (!job?.isTemplate) continue;
+      const before = ds.jobs.some((j) => j.id === id) ? programWorkingDays(ds, id) : 0;
+      templates.push({ jobId: id, name: job.name, workingDaysBefore: before, workingDaysAfter: programWorkingDays(run.after, id) });
+    }
+    return { result, impact: run.impacts, templates };
   }
 
+  /**
+   * Saves a setup operation as one confirmed change set, recorded as coming from Setup on the web: an
+   * inbound message (channel "web", sender SETUP_SENDER, no text) so Change history can say where it came from.
+   */
   async applySetup(op: string, args: unknown): Promise<SetupApplyResult> {
-    const result = this.runSetup(this.ds, op, args);
+    const ds = this.ds;
+    const result = this.runSetup(ds, op, args);
     if (result.kind !== 'proposal') {
       return { ok: false, result, reason: result.kind === 'refusal' ? result.reason : result.question };
     }
-    const changeSet = this.store.applyChangeSet({ summary: result.summary, opName: result.op, opArgs: result.args, changes: result.changes });
+    // Check it applies before recording where it came from, so a stale edit leaves no stray message.
+    applyChanges(ds, result.changes);
+    const message = this.store.recordInbound({ channel: 'web', sender: SETUP_SENDER, rawText: null });
+    const changeSet = this.store.applyChangeSet({
+      messageId: message.id,
+      summary: result.summary,
+      opName: result.op,
+      opArgs: result.args,
+      changes: result.changes,
+    });
     return { ok: true, changeSet, result };
   }
 

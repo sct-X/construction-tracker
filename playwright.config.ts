@@ -6,6 +6,8 @@
  *   api-change  runs after api, on the same server: applies the windows ETA
  *         change with `npm run apply-op` and checks the Monday screen moved.
  *         It changes the data, so it is the only spec in its project.
+ *   api-setup  runs after api-change, same server: the Stage 5 Setup specs
+ *         (new jobs, trades, templates), which add data, so they go last.
  * Only the servers for the projects asked for are started, so
  * `npx playwright test --project=mock` never needs the API.
  */
@@ -46,11 +48,19 @@ export default defineConfig({
   },
   projects: [
     { name: 'mock', testIgnore: /api-change/, use: { baseURL: MOCK_URL }, metadata: { dataMode: 'mock' } },
-    { name: 'api', testIgnore: /api-change/, use: { baseURL: API_URL }, metadata: { dataMode: 'api' } },
+    { name: 'api', testIgnore: /api-change|stage5-setup/, use: { baseURL: API_URL }, metadata: { dataMode: 'api' } },
     {
       name: 'api-change',
       testMatch: /api-change\.spec\.ts/,
       dependencies: ['api'],
+      use: { baseURL: API_URL },
+      metadata: { dataMode: 'api' },
+    },
+    // Setup writes (new jobs, trades, templates) go last, after every spec that asserts the seeded numbers.
+    {
+      name: 'api-setup',
+      testMatch: /stage5-setup.*\.spec\.ts/,
+      dependencies: ['api-change'],
       use: { baseURL: API_URL },
       metadata: { dataMode: 'api' },
     },

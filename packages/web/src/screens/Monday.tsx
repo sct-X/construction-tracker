@@ -254,6 +254,11 @@ function Cause({ cause, today }: { cause: WhyCause; today: string }) {
             </>
           ) : null}
         </p>
+        {!source && cause.sourceChannel === 'web' && (
+          <p className="cause-finish" data-testid="why-setup">
+            Changed in Setup on the computer{when ? `, ${formatStamp(when)}` : ''}
+          </p>
+        )}
         {source && (
           <blockquote className="source">
             <p>“{source}”</p>

@@ -24,6 +24,12 @@ const ShipmentsScreen = lazy(() => import('../screens/Shipments').then((m) => ({
 const HistoryScreen = lazy(() => import('../screens/History').then((m) => ({ default: m.HistoryScreen })));
 const PhotosScreen = lazy(() => import('../screens/Photos').then((m) => ({ default: m.PhotosScreen })));
 const NotesScreen = lazy(() => import('../screens/Notes').then((m) => ({ default: m.NotesScreen })));
+// Stage 5: the desktop-only Setup area
+const SetupNewJobScreen = lazy(() => import('../screens/SetupNewJob').then((m) => ({ default: m.SetupNewJobScreen })));
+const SetupProgramsScreen = lazy(() => import('../screens/SetupPrograms').then((m) => ({ default: m.SetupProgramsScreen })));
+const SetupProgramEditorScreen = lazy(() => import('../screens/SetupProgramEditor').then((m) => ({ default: m.SetupProgramEditorScreen })));
+const SetupTemplatesScreen = lazy(() => import('../screens/SetupTemplates').then((m) => ({ default: m.SetupTemplatesScreen })));
+const SetupTradesScreen = lazy(() => import('../screens/SetupTrades').then((m) => ({ default: m.SetupTradesScreen })));
 
 export interface RouteDef {
   /** Hash path pattern; ":name" segments become params. */
@@ -37,6 +43,8 @@ export interface RouteDef {
   tab?: string;
   /** A page under a job tab: that tab's path (e.g. step detail -> '/jobs/:jobId/program'). */
   parent?: string;
+  /** Main links only: shown on a desktop, left out of the phone bar (Setup). */
+  desktopOnly?: boolean;
   render: (params: Record<string, string>) => ReactElement;
 }
 
@@ -50,6 +58,13 @@ export const ROUTES: RouteDef[] = [
   { path: '/shipments', title: 'Shipments', nav: true, render: () => <ShipmentsScreen /> },
   { path: '/history', title: 'Changes', nav: true, render: () => <HistoryScreen /> },
   { path: '/history/:jobId', title: 'Changes', render: ({ jobId }) => <HistoryScreen key={jobId} jobId={jobId!} /> },
+  // Setup (Stage 5): desktop only. Every /setup page shows a one-line message on a phone instead.
+  { path: '/setup', title: 'Setup', nav: true, desktopOnly: true, render: () => <SetupNewJobScreen /> },
+  { path: '/setup/programs', title: 'Programs', render: () => <SetupProgramsScreen /> },
+  { path: '/setup/programs/:jobId', title: 'Program editor', render: ({ jobId }) => <SetupProgramEditorScreen key={jobId} jobId={jobId!} /> },
+  { path: '/setup/templates', title: 'Templates', render: () => <SetupTemplatesScreen /> },
+  { path: '/setup/templates/:jobId', title: 'Template editor', render: ({ jobId }) => <SetupProgramEditorScreen key={jobId} jobId={jobId!} /> },
+  { path: '/setup/trades', title: 'Trades', render: () => <SetupTradesScreen /> },
 
   // Job tabs
   { path: '/jobs/:jobId', title: 'Overview', nav: true, kinds: ['build'], render: ({ jobId }) => <JobOverviewScreen jobId={jobId!} /> },

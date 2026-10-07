@@ -13,11 +13,18 @@ const BAR_MAX = 5;
 
 export function MainNav({ current, jobs, currentJobId }: { current: RouteDef | undefined; jobs: JobListRow[]; currentJobId: string | null }) {
   const links = mainLinks();
-  const overflow = links.length > BAR_MAX;
+  // Desktop-only links (Setup) never go in the phone bar or its More menu.
+  const phoneLinks = links.filter((r) => !r.desktopOnly);
+  const overflow = phoneLinks.length > BAR_MAX;
   const inBar = overflow ? BAR_MAX - 1 : BAR_MAX;
-  const extra = overflow ? links.slice(inBar) : [];
+  const extra = overflow ? phoneLinks.slice(inBar) : [];
   const [moreOpen, setMoreOpen] = useState(false);
   const onJob = !!current && isJobRoute(current);
+  const inSection = (r: RouteDef) => (r.path === '/jobs' && onJob) || (r.path === '/setup' && !!current && current !== r && current.path.startsWith('/setup/'));
+  const itemClass = (r: RouteDef) => {
+    if (r.desktopOnly) return 'nav-item nav-desktop';
+    return overflow && phoneLinks.indexOf(r) >= inBar ? 'nav-item nav-extra' : 'nav-item';
+  };
 
   useEffect(() => {
     const close = () => setMoreOpen(false);
@@ -31,11 +38,11 @@ export function MainNav({ current, jobs, currentJobId }: { current: RouteDef | u
   return (
     <nav className="nav" aria-label="Main">
       <ul className="nav-list">
-        {links.map((r, i) => (
-          <li key={r.path} className={i >= inBar && overflow ? 'nav-item nav-extra' : 'nav-item'}>
+        {links.map((r) => (
+          <li key={r.path} className={itemClass(r)}>
             <a
               href={href(r.path)}
-              className={r.path === '/jobs' && onJob ? 'nav-link is-section' : 'nav-link'}
+              className={inSection(r) ? 'nav-link is-section' : 'nav-link'}
               aria-current={current === r ? 'page' : undefined}
             >
               {r.title}

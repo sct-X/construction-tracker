@@ -41,6 +41,7 @@ export const RPC_METHODS = [
   'getChangeHistory',
   'listTrades',
   'listTemplates',
+  'getProgramSetup',
   'previewSetup',
   'applySetup',
   'photoUrl',

@@ -72,6 +72,7 @@ export class HttpDashboardApi implements DashboardApi {
   getChangeHistory: DashboardApi['getChangeHistory'] = (filter) => this.call('getChangeHistory', filter);
   listTrades: DashboardApi['listTrades'] = (filter) => this.call('listTrades', filter);
   listTemplates: DashboardApi['listTemplates'] = (filter) => this.call('listTemplates', filter);
+  getProgramSetup: DashboardApi['getProgramSetup'] = (jobId) => this.call('getProgramSetup', jobId);
   previewSetup: DashboardApi['previewSetup'] = (op, args) => this.call('previewSetup', op, args);
   applySetup: DashboardApi['applySetup'] = (op, args) => this.call('applySetup', op, args);
   undo: DashboardApi['undo'] = (changeSetId) => this.call('undo', changeSetId);

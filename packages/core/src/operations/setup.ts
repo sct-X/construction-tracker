@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { topoSortSteps } from '../calculator.js';
 import type { Change } from '../changes.js';
 import { maxDate, nextWorkingDay, previousWorkingDay, snapToWorkingDay, stepEnd } from '../dates.js';
+import { AU_PHONE_HELP, formatAuPhone } from '../phone.js';
 import type { Dataset, ISODate, Job, PhotoCategory, Requirement, Stage, Step, StepLink } from '../types.js';
 import {
   dateArg,
@@ -177,6 +178,15 @@ function reorderStages(stages: Stage[], movingId: string, order: number): Change
   return out;
 }
 
+/** Changes that renumber a stage's steps so `moving` sits at `order` (1-based); `moving` may come from another stage. */
+function reorderSteps(stageSteps: Step[], moving: Step, order: number): Change[] {
+  const sorted = [...stageSteps].sort((x, y) => x.order - y.order).filter((s) => s.id !== moving.id);
+  const target = Math.max(1, Math.min(order, sorted.length + 1));
+  const rows = [...sorted];
+  rows.splice(target - 1, 0, moving);
+  return rows.flatMap((s, i) => update('step', s, 'order', i + 1));
+}
+
 export const addStage = defineOp({
   name: 'add_stage',
   group: 'setup',
@@ -305,6 +315,7 @@ export const editStep = defineOp({
     isHoldPoint: z.boolean().optional(),
     tradeType: z.string().optional(),
     stage: z.string().optional(),
+    order: z.number().int().min(1).optional().describe('Position within its stage (1 = first). Moving stage without it puts the step last there.'),
   }),
   run(ds, a, ctx) {
     const step = resolveStep(ds, ctx, a.step, a.job);
@@ -314,14 +325,17 @@ export const editStep = defineOp({
     if (a.name !== undefined) changes.push(...update('step', step, 'name', a.name));
     if (a.isHoldPoint !== undefined) changes.push(...update('step', step, 'isHoldPoint', a.isHoldPoint));
     if (a.tradeType !== undefined) changes.push(...update('step', step, 'tradeType', a.tradeType));
+    let targetStageId = step.stageId;
     if (a.stage !== undefined) {
       const target = resolveStage(ds, ctx, a.stage, job);
       if (target.jobId !== job.id) refuse(ctx, `${target.name} is not a stage of ${job.name}.`);
       if (target.id !== step.stageId) {
+        targetStageId = target.id;
         changes.push(...update('step', step, 'stageId', target.id));
-        changes.push(...update('step', step, 'order', ds.steps.filter((s) => s.stageId === target.id).length + 1));
+        if (a.order === undefined) changes.push(...update('step', step, 'order', ds.steps.filter((s) => s.stageId === target.id).length + 1));
       }
     }
+    if (a.order !== undefined) changes.push(...reorderSteps(ds.steps.filter((s) => s.stageId === targetStageId), step, a.order));
     const duration = a.durationDays ?? step.durationDays;
     if (a.durationDays !== undefined) changes.push(...update('step', step, 'durationDays', a.durationDays));
     if ((a.durationDays !== undefined || a.plannedStart !== undefined) && !job.isTemplate) {
@@ -415,6 +429,130 @@ export const addRequirement = defineOp({
   },
 });
 
+function resolveRequirement(ds: Dataset, ctx: OpRunContext, query: string): Requirement {
+  const r = ds.requirements.find((x) => x.id === query);
+  if (!r) refuse(ctx, `There is no requirement ${query}.`);
+  return r;
+}
+
+export const editRequirement = defineOp({
+  name: 'edit_requirement',
+  group: 'setup',
+  description: "Change what a step needs: its name, trade or material, lead time in weeks, or trade type.",
+  schema: z.object({
+    requirement: z.string().describe('Requirement id.'),
+    kind: z.enum(['trade', 'material']).optional(),
+    name: z.string().min(1).max(120).optional(),
+    leadTimeWeeks: z.number().min(0).max(104).optional(),
+    tradeType: z.string().optional(),
+  }),
+  run(ds, a, ctx) {
+    const r = resolveRequirement(ds, ctx, a.requirement);
+    requireBuild(ds, ctx, r.jobId, 'step requirements');
+    const step = ds.steps.find((s) => s.id === r.stepId);
+    const changes: Change[] = [
+      ...(a.kind !== undefined ? update('requirement', r, 'kind', a.kind) : []),
+      ...(a.name !== undefined ? update('requirement', r, 'name', a.name) : []),
+      ...(a.leadTimeWeeks !== undefined ? update('requirement', r, 'leadTimeWeeks', a.leadTimeWeeks) : []),
+      ...(a.tradeType !== undefined ? update('requirement', r, 'tradeType', a.tradeType) : []),
+    ];
+    const lead = a.leadTimeWeeks !== undefined && a.leadTimeWeeks !== r.leadTimeWeeks ? `, lead time ${r.leadTimeWeeks} to ${a.leadTimeWeeks} weeks` : '';
+    return proposal(ctx, ds, changes, `Edited ${a.name ?? r.name} for ${step?.name ?? 'a step'} at ${jobName(ds, r.jobId)}${lead}`);
+  },
+});
+
+export const deleteRequirement = defineOp({
+  name: 'delete_requirement',
+  group: 'setup',
+  description: 'Remove something a step needs. Refused while items are linked to it.',
+  schema: z.object({ requirement: z.string().describe('Requirement id.') }),
+  run(ds, a, ctx) {
+    const r = resolveRequirement(ds, ctx, a.requirement);
+    const items = ds.items.filter((i) => i.requirementId === r.id);
+    if (items.length) {
+      refuse(
+        ctx,
+        `${r.name} can't be removed: ${items.length === 1 ? 'an item is' : `${items.length} items are`} linked to it (${items.map((i) => i.title).join(', ')}). Items change through the bot.`,
+      );
+    }
+    const step = ds.steps.find((s) => s.id === r.stepId);
+    return proposal(ctx, ds, [remove('requirement', r)], `${step?.name ?? 'The step'} at ${jobName(ds, r.jobId)} no longer needs ${r.name}`);
+  },
+});
+
+export const saveAsTemplate = defineOp({
+  name: 'save_as_template',
+  group: 'setup',
+  description:
+    "Make a new template from a build job's program: copies its stages, steps, links, requirements and photo categories, with no dates (rule 8).",
+  schema: z.object({ job: z.string(), name: z.string().min(1).max(120) }),
+  ask: { job: 'Which job should the template copy?', name: 'What is the new template called?' },
+  run(ds, a, ctx) {
+    const src = resolveJob(ds, ctx, a.job);
+    requireBuild(ds, ctx, src.id, 'a program to copy');
+    if (ds.jobs.some((j) => j.isTemplate && j.name.toLowerCase() === a.name.toLowerCase())) refuse(ctx, `There is already a template called ${a.name}.`);
+    const sStages = ds.stages.filter((s) => s.jobId === src.id).sort((x, y) => x.order - y.order);
+    if (!sStages.length) refuse(ctx, `${src.name} has no stages to copy yet.`);
+    const jobId = ctx.id('job');
+    const idMap = new Map<string, string>();
+    const mapId = (old: string, prefix: string) => {
+      if (!idMap.has(old)) idMap.set(old, ctx.id(prefix));
+      return idMap.get(old)!;
+    };
+    const job: Job = {
+      id: jobId,
+      sideId: src.sideId,
+      name: a.name,
+      kind: 'build',
+      path: src.path,
+      weeklyHoldingCost: null,
+      lastConfirmed: null,
+      isTemplate: true,
+      plannedFinish: null,
+      startDate: null,
+      startsFromStageId: null,
+      templateId: null,
+      createdAt: ctx.today,
+    };
+    const stages: Stage[] = sStages.map((s) => ({ id: mapId(s.id, 'stage'), jobId, name: s.name, order: s.order, status: 'not_started' }));
+    const steps: Step[] = ds.steps
+      .filter((s) => s.jobId === src.id)
+      .map((s) => ({
+        ...s,
+        id: mapId(s.id, 'step'),
+        jobId,
+        stageId: mapId(s.stageId, 'stage'),
+        plannedStart: null,
+        plannedEnd: null,
+        actualStart: null,
+        actualEnd: null,
+        status: 'not_started',
+      }));
+    const links: StepLink[] = ds.stepLinks
+      .filter((l) => l.jobId === src.id)
+      .map((l) => ({ id: mapId(l.id, 'link'), jobId, stepId: mapId(l.stepId, 'step'), waitsForStepId: mapId(l.waitsForStepId, 'step') }));
+    const reqs: Requirement[] = ds.requirements
+      .filter((r) => r.jobId === src.id)
+      .map((r) => ({ ...r, id: mapId(r.id, 'req'), jobId, stepId: mapId(r.stepId, 'step') }));
+    const cats: PhotoCategory[] = ds.photoCategories
+      .filter((c) => c.jobId === src.id)
+      .map((c) => ({ ...c, id: mapId(c.id, 'pcat'), jobId, stageId: c.stageId ? mapId(c.stageId, 'stage') : null }));
+    return proposal(
+      ctx,
+      ds,
+      [
+        insert('job', job),
+        ...stages.map((s) => insert('stage', s)),
+        ...steps.map((s) => insert('step', s)),
+        ...links.map((l) => insert('step_link', l)),
+        ...reqs.map((r) => insert('requirement', r)),
+        ...cats.map((c) => insert('photo_category', c)),
+      ],
+      `New template ${a.name} from ${src.name}'s program (${steps.length} steps, no dates)`,
+    );
+  },
+});
+
 export const addPhotoCategory = defineOp({
   name: 'add_photo_category',
   group: 'setup',
@@ -441,6 +579,13 @@ export const addPhotoCategory = defineOp({
   },
 });
 
+/** Trade phones are Australian numbers, saved written the usual way ("0491 570 157"). */
+function checkedPhone(ctx: OpRunContext, phone: string): string {
+  const p = formatAuPhone(phone);
+  if (!p) refuse(ctx, AU_PHONE_HELP);
+  return p;
+}
+
 export const addTrade = defineOp({
   name: 'add_trade',
   group: 'setup',
@@ -449,7 +594,7 @@ export const addTrade = defineOp({
   run(ds, a, ctx) {
     const sideId = defaultSide(ds, ctx, a.side);
     if (ds.trades.some((t) => t.sideId === sideId && t.name.toLowerCase() === a.name.toLowerCase())) refuse(ctx, `${a.name} is already in the directory.`);
-    const trade = { id: ctx.id('trade'), sideId, name: a.name, type: a.type, phone: a.phone ?? null };
+    const trade = { id: ctx.id('trade'), sideId, name: a.name, type: a.type, phone: a.phone ? checkedPhone(ctx, a.phone) : null };
     return proposal(ctx, ds, [insert('trade', trade)], `New trade: ${a.name} (${a.type})`);
   },
 });
@@ -461,10 +606,14 @@ export const editTrade = defineOp({
   schema: z.object({ trade: z.string(), name: z.string().min(1).max(120).optional(), type: z.string().min(1).max(80).optional(), phone: z.string().max(40).optional() }),
   run(ds, a, ctx) {
     const t = resolveTrade(ds, ctx, a.trade);
+    const rename = a.name?.toLowerCase();
+    if (rename && rename !== t.name.toLowerCase() && ds.trades.some((x) => x.sideId === t.sideId && x.name.toLowerCase() === rename)) {
+      refuse(ctx, `${a.name} is already in the directory.`);
+    }
     const changes: Change[] = [
       ...(a.name !== undefined ? update('trade', t, 'name', a.name) : []),
       ...(a.type !== undefined ? update('trade', t, 'type', a.type) : []),
-      ...(a.phone !== undefined ? update('trade', t, 'phone', a.phone) : []),
+      ...(a.phone !== undefined ? update('trade', t, 'phone', checkedPhone(ctx, a.phone)) : []),
     ];
     return proposal(ctx, ds, changes, `Edited trade ${t.name}`);
   },
@@ -619,7 +768,10 @@ export const SETUP_OPS = [
   addLink,
   removeLink,
   addRequirement,
+  editRequirement,
+  deleteRequirement,
   addPhotoCategory,
+  saveAsTemplate,
   addTrade,
   editTrade,
   deleteTrade,

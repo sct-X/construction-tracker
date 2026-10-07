@@ -40,7 +40,17 @@ export function freshnessWords(f: { amber: boolean; daysUnconfirmed?: number | n
 }
 
 /** "expectedDate" -> "expected date". */
+/** Setup fields whose names don't read well split up. */
+const FIELD_WORDS: Record<string, string> = {
+  durationDays: 'working days',
+  leadTimeWeeks: 'lead time in weeks',
+  isHoldPoint: 'hold point',
+  tradeType: 'trade',
+  weeklyHoldingCost: 'weekly holding cost',
+};
+
 export function fieldWords(field: string): string {
+  if (FIELD_WORDS[field]) return FIELD_WORDS[field];
   return field
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .toLowerCase()

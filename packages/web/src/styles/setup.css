@@ -1,0 +1,795 @@
+/*
+ * Setup (desktop only). Same tokens as every other screen. Token plan:
+ *   concrete page, formply forms and the change bar, steel ink and the one
+ *   filled button (Save / Create), rule lines between rows, hi-vis only where
+ *   a finish goes later (with the words) and on focus / the current tab.
+ *   Barlow for text, Barlow Condensed for the dates a change moves.
+ * The memorable thing is the change bar: a docked card like the bot's confirm
+ * card, saying what moves before anything is saved. Everything else is quiet.
+ * Class names start "su-" so they never meet lists.css or screens4a.css.
+ */
+
+.su {
+  max-width: 1120px;
+}
+
+.su-tabs {
+  display: flex;
+  gap: 4px;
+  margin: -8px 0 18px;
+  border-bottom: 1px solid var(--rule);
+}
+.su-tabs .tab[aria-current] {
+  font-weight: 600;
+  border-bottom-color: var(--hivis);
+}
+.su-tabs .tab[aria-current='true'] {
+  font-weight: 500;
+}
+
+.su-phone-msg {
+  max-width: 34ch;
+  font-size: var(--t-h2);
+}
+
+/* ---------- Form parts ---------- */
+
+.btn-primary {
+  background: var(--steel);
+  border-color: var(--steel);
+  color: var(--formply);
+  font-weight: 600;
+}
+.btn-primary:hover {
+  background: var(--steel-2);
+  border-color: var(--steel-2);
+}
+.btn:disabled,
+.su-icon:disabled,
+.su-add:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.btn-primary:disabled:hover {
+  background: var(--steel);
+}
+.btn-small {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: var(--t-small);
+}
+.su-link-btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.su-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.su-field > label {
+  font-size: var(--t-small);
+  font-weight: 600;
+}
+.su-field input,
+.su-field select,
+.su-input {
+  font: inherit;
+  min-height: 40px;
+  width: 100%;
+  min-width: 0;
+  padding: 0 10px;
+  border: 1px solid var(--steel-2);
+  border-radius: var(--r-sm);
+  background: var(--formply);
+  color: var(--steel);
+}
+.su-field input[type='date'] {
+  padding-right: 6px;
+}
+.su-input:disabled,
+.su-field input:disabled,
+.su-field select:disabled {
+  border-color: var(--rule);
+  color: var(--steel-2);
+  background: var(--concrete);
+}
+.su-field.has-error input,
+.su-field.has-error select {
+  border-color: var(--steel);
+  border-width: 2px;
+}
+.su-hint {
+  color: var(--steel-2);
+  font-size: var(--t-small);
+}
+.su-error {
+  margin: 0;
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--steel);
+}
+.su-error::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 7px;
+  border-radius: 2px;
+  background: var(--hivis);
+}
+.su-muted {
+  color: var(--steel-2);
+}
+p.su-muted {
+  margin: 4px 0;
+}
+.su-below {
+  margin-top: 16px;
+  max-width: 70ch;
+}
+.su-money {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 12rem;
+  font-weight: 600;
+}
+.su-fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.su-legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: var(--t-small);
+  font-weight: 600;
+}
+.su-fieldset .seg {
+  margin-bottom: 0;
+}
+.su-row2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+.su-row3 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+.su-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.su-panel {
+  padding: 18px 20px 20px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-md);
+  background: var(--formply);
+}
+.su-panel-h {
+  margin-bottom: 6px;
+  font-size: var(--t-h2);
+}
+.su-saved {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm);
+  background: var(--formply);
+  max-width: 80ch;
+}
+.su-strong {
+  font-weight: 600;
+}
+.su-right {
+  text-align: right;
+}
+.su-nowrap {
+  white-space: nowrap;
+}
+.su-row-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+/* ---------- Plain setup tables ---------- */
+
+.su-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.su-table thead th {
+  padding: 0 12px 8px 0;
+  font-size: var(--t-label);
+  font-weight: 500;
+  color: var(--steel-2);
+  border-bottom: 2px solid var(--steel);
+  vertical-align: bottom;
+}
+.su-table > tbody > tr > th,
+.su-table > tbody > tr > td {
+  padding: 12px 12px 12px 0;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: middle;
+  font-weight: 400;
+}
+.su-table > tbody > tr > th.su-strong {
+  font-weight: 600;
+}
+.su-tel {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ---------- New job ---------- */
+
+.su-newjob {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
+  gap: 32px;
+  align-items: start;
+}
+.su-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 34rem;
+}
+.su-nj-preview {
+  position: sticky;
+  top: 24px;
+}
+.su-nj-finish-label {
+  margin: 8px 0 0;
+  font-size: var(--t-small);
+  color: var(--steel-2);
+}
+.su-nj-finish {
+  margin: 0 0 4px;
+  font-family: var(--font-num);
+  font-weight: 600;
+  font-size: var(--t-num);
+  line-height: 1.05;
+}
+.su-nj-done {
+  margin: 10px 0 0;
+  font-size: var(--t-small);
+}
+.su-nj-stages {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+}
+.su-nj-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 8.5rem) minmax(0, 1fr);
+  grid-template-areas:
+    'name dates'
+    'name track';
+  column-gap: 12px;
+  padding: 7px 0;
+  border-top: 1px solid var(--rule);
+}
+.su-nj-stage-name {
+  grid-area: name;
+  font-weight: 600;
+}
+.su-nj-stage-dates {
+  grid-area: dates;
+  font-size: var(--t-small);
+  color: var(--steel-2);
+}
+.su-nj-track {
+  grid-area: track;
+  position: relative;
+  height: 8px;
+  margin-top: 4px;
+  background: var(--concrete-2);
+  border-radius: 2px;
+}
+.su-nj-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--steel);
+  border-radius: 2px;
+}
+.su-nj-checklist {
+  margin: 8px 0 12px;
+  padding-left: 1.4em;
+}
+.su-nj-checklist li + li {
+  margin-top: 4px;
+}
+.su-panel-lead {
+  margin: 4px 0 0;
+}
+
+/* ---------- Program editor ---------- */
+
+.su-editor {
+  max-width: none;
+}
+.su-editor-body {
+  padding-bottom: 8px;
+}
+.su-prog {
+  table-layout: fixed;
+}
+.su-prog .c-step {
+  width: 26%;
+}
+.su-prog .c-days {
+  width: 8%;
+}
+.su-prog .c-waits {
+  width: 18%;
+}
+.su-prog .c-hold {
+  width: 8%;
+}
+.su-prog .c-needs {
+  width: 15%;
+}
+.su-prog .c-trade {
+  width: 11%;
+}
+.su-prog .c-tools {
+  width: 14%;
+}
+.su-prog > tbody > tr > th,
+.su-prog > tbody > tr > td {
+  padding: 8px 10px 8px 0;
+  vertical-align: top;
+  font-size: var(--t-small);
+}
+.su-prog .su-input {
+  min-height: 34px;
+  padding: 0 8px;
+  font-size: var(--t-small);
+}
+.su-step-cell {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  column-gap: 6px;
+}
+.su-step-cell .su-input,
+.su-step-cell .su-step-dates {
+  grid-column: 2;
+}
+.su-order {
+  grid-row: 1 / span 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.su-icon {
+  font: inherit;
+  width: 26px;
+  height: 17px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm);
+  background: var(--formply);
+  color: var(--steel);
+  font-size: var(--t-tiny);
+  line-height: 1;
+  cursor: pointer;
+}
+.su-icon:hover:not(:disabled) {
+  border-color: var(--steel-2);
+  background: var(--concrete-2);
+}
+.su-stage-head .su-icon {
+  height: 30px;
+  width: 30px;
+  font-size: var(--t-small);
+}
+.su-step-dates {
+  display: block;
+  margin-top: 3px;
+  color: var(--steel-2);
+  font-size: var(--t-label);
+}
+.su-flag {
+  margin: 0 0 0 8px;
+  color: var(--steel);
+  font-size: var(--t-label);
+}
+.su-num-input {
+  max-width: 5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.su-c-waits,
+.su-c-needs {
+  line-height: 1.35;
+  padding-top: 15px !important;
+}
+.su-needs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.su-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  cursor: pointer;
+}
+.su-check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--steel);
+}
+.su-c-tools {
+  text-align: right;
+}
+.su-c-tools .btn {
+  white-space: nowrap;
+}
+.su-step.is-pending > th,
+.su-step.is-pending > td {
+  background: var(--concrete-2);
+}
+
+.su-stage-row > th {
+  padding: 22px 0 8px !important;
+  border-bottom: 2px solid var(--steel) !important;
+}
+.su-stage:first-of-type .su-stage-row > th {
+  padding-top: 12px !important;
+}
+.su-stage-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.su-stage-num {
+  font-family: var(--font-num);
+  font-weight: 600;
+  font-size: var(--t-num-md);
+  line-height: 1;
+  min-width: 1.4rem;
+}
+.su-stage-name.su-input {
+  width: 16rem;
+  min-height: 34px;
+  font-size: var(--t-body);
+  font-weight: 600;
+  border-color: transparent;
+  background: transparent;
+}
+.su-stage-name.su-input:hover:not(:disabled),
+.su-stage-name.su-input:focus {
+  border-color: var(--steel-2);
+  background: var(--formply);
+}
+.su-stage-count {
+  color: var(--steel-2);
+  font-size: var(--t-small);
+  font-weight: 400;
+}
+.su-stage-tools {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.su-addstep > td,
+.su-addstage > td {
+  padding: 6px 0 10px !important;
+  border-bottom: 0 !important;
+}
+.su-add {
+  font: inherit;
+  font-size: var(--t-small);
+  font-weight: 500;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px dashed var(--steel-2);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--steel);
+  cursor: pointer;
+}
+.su-add:hover:not(:disabled) {
+  background: var(--formply);
+}
+.su-addstep-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 12px;
+  margin: 0;
+  padding: 10px 14px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-md);
+  background: var(--formply);
+}
+.su-addstep-form legend,
+.su-addreq legend {
+  float: left;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+.su-addstep-form > .su-mini {
+  flex: 1 1 10rem;
+}
+.su-addstep-form > .su-mini:first-of-type {
+  flex: 2 1 14rem;
+}
+.su-addstep-form > .su-mini-days {
+  flex: 0 0 6.5rem;
+}
+.su-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  font-size: var(--t-label);
+  font-weight: 600;
+}
+.su-mini-hold {
+  min-height: 34px;
+  font-size: var(--t-small);
+}
+.su-mini-label {
+  display: block;
+  margin: 10px 0 4px;
+  font-size: var(--t-label);
+  font-weight: 600;
+}
+.su-addstep-form .su-mini-label {
+  margin-top: 0;
+}
+.su-addstage-form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+.su-addstage-form .su-mini-label {
+  margin: 0;
+  white-space: nowrap;
+}
+.su-addstage-form .su-input {
+  max-width: 18rem;
+}
+
+.su-detail > td {
+  padding: 4px 0 16px !important;
+}
+.su-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 0.7fr);
+  gap: 24px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-md);
+  background: var(--formply);
+}
+.su-detail-h {
+  margin-bottom: 6px;
+  font-size: var(--t-small);
+}
+.su-detail-sec .su-hint {
+  display: block;
+  margin-bottom: 8px;
+}
+.su-links,
+.su-reqs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.su-link,
+.su-req {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0;
+  border-top: 1px solid var(--rule);
+}
+.su-link.is-pending,
+.su-req.is-pending {
+  background: var(--concrete-2);
+}
+.su-req-name {
+  flex: 1;
+  min-width: 0;
+}
+.su-req-weeks {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-small);
+}
+.su-req-weeks .su-num-input {
+  width: 4rem;
+}
+.su-addreq {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
+}
+.su-addreq > .su-input {
+  flex: 1 1 8rem;
+  width: auto;
+}
+
+/* The change bar: what this change does, docked at the bottom until it's saved or discarded. */
+.su-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  gap: 4px 28px;
+  margin-top: 24px;
+  padding: 12px 20px 14px;
+  border: 1px solid var(--steel);
+  border-top-width: 3px;
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  background: var(--formply);
+  box-shadow: 0 -6px 18px rgba(30, 40, 48, 0.12);
+}
+.su-bar-body > p {
+  margin: 0;
+}
+.su-bar-body > * + * {
+  margin-top: 4px !important;
+}
+.su-bar-what {
+  font-weight: 600;
+}
+.su-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 10px;
+}
+.su-bar-note {
+  max-width: 78ch;
+  color: var(--steel-2);
+  font-size: var(--t-small);
+}
+.su-bar-one {
+  margin: 0;
+  color: var(--steel-2);
+  font-size: var(--t-label);
+  line-height: 1.35;
+}
+.su-finish {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+.su-date-big {
+  font-family: var(--font-num);
+  font-weight: 600;
+  font-size: var(--t-num-md);
+  line-height: 1.1;
+}
+.su-date-was {
+  font-family: var(--font-num);
+  font-weight: 500;
+  font-size: var(--t-num-md);
+  line-height: 1.1;
+  color: var(--steel-2);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+.su-delta {
+  font-weight: 600;
+}
+.su-delta-later {
+  padding: 0 0.3em;
+  border-radius: 2px;
+  background: var(--hivis);
+  color: var(--steel);
+}
+.su-cost {
+  color: var(--steel-2);
+}
+.su-moved-head {
+  margin: 0;
+  font-weight: 600;
+}
+.su-moved {
+  font-size: var(--t-small);
+  max-width: 90ch;
+}
+.su-moved-head {
+  display: inline;
+}
+.su-moved-list {
+  display: inline;
+  margin: 0;
+  padding: 0 0 0 4px;
+  list-style: none;
+}
+.su-moved-list li {
+  display: inline;
+}
+.su-moved-list li:not(:last-child)::after {
+  content: '; ';
+}
+.su-moved-list li:last-child::after {
+  content: '.';
+}
+.su-moved-name {
+  font-weight: 600;
+}
+.su-moved-more {
+  color: var(--steel-2);
+}
+.su-moved-acts,
+.su-moved-none {
+  margin: 4px 0 0;
+  font-size: var(--t-small);
+}
+
+/* ---------- Templates and trades ---------- */
+
+.su-fromjob {
+  max-width: 46rem;
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.su-fromjob > p {
+  margin: 0;
+}
+.su-fromjob-what {
+  margin: 0;
+  font-weight: 500;
+}
+.su-addtrade {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.su-addtrade .su-panel-h {
+  margin: 0;
+}
+.su-trade-edit > td {
+  padding: 14px 0 !important;
+  background: var(--formply);
+}
+.su-trade-edit form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 14px;
+}
+.su-trades td {
+  vertical-align: middle;
+}
+
+/* Keep the input being edited clear of the docked change bar when the browser scrolls to it. */
+html:has(.su-bar) {
+  scroll-padding-bottom: 260px;
+}

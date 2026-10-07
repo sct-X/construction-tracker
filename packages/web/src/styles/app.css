@@ -52,6 +52,8 @@ a {
 }
 .main:focus {
   outline: none;
+  /* Focus lands here on every route change (for screen readers); the ring is for keyboard targets only. */
+  box-shadow: none;
 }
 
 .sr-only {
@@ -602,7 +604,8 @@ a {
     flex: 1 1 0;
     min-width: 0;
   }
-  .nav-extra {
+  .nav-extra,
+  .nav-desktop {
     display: none;
   }
   .nav-more {

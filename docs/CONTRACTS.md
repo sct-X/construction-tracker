@@ -171,7 +171,13 @@ weeklyHoldingCost?, startDate?, plannedFinish?, isTemplate?; design jobs get DA/
 edit_job, add_stage (job, name, order?), edit_stage, delete_stage (empty only), add_step (job, stage, name, durationDays,
 plannedStart?, after?[], isHoldPoint?, isPlaceholder?, tradeType?), edit_step (recomputes plannedEnd), delete_step
 (refused with items; removes links and requirements), add_link / remove_link (step, waitsFor; refuses cycles),
-add_requirement, add_photo_category, add_trade, edit_trade, delete_trade.
+add_requirement, edit_requirement (requirement id; kind?, name?, leadTimeWeeks?, tradeType?), delete_requirement (refused while
+items link to it), add_photo_category, save_as_template (job, name: a build's stages, steps, links, requirements and photo
+categories copied into a new template with no dates, statuses not started), add_trade, edit_trade, delete_trade. edit_step also
+takes `order` (1-based place in its stage, or in the target stage with `stage`; the stage's steps are renumbered). add_trade /
+edit_trade phones must be Australian (`formatAuPhone` in `phone.ts`: mobile, landline with area code, 13 / 1300 / 1800, +61) and
+are saved written the usual way ("0491 579 212"); anything else is refused with `AU_PHONE_HELP`. edit_trade refuses a rename onto
+another trade's name on the same side.
 
 copy_template: stages before `startsFromStage` are done (steps dated the working day before start); the rest run
 forward from startDate through links; job.plannedFinish = latest planned end; lastConfirmed = today.
@@ -226,8 +232,12 @@ whose planned start has passed are not pushed to today (Orchestrator decision).
 
 `DashboardApi` (all async): getToday, listSides, getMonday, getWhyItMoved, listJobs, getJobOverview, getProgram, getStep,
 getDesignChecklist, getWaitingOn, getToChase, getShipments, getPhotos, getDailyNotes, getChangeHistory, listTrades,
-listTemplates, previewSetup(op, args) -> {result, impact}, applySetup(op, args) -> {ok, changeSet, result} | {ok:false,
-result, reason}, undo(changeSetId), and sync `photoUrl(photo: {id, caption, isPlaceholder}): string`.
+listTemplates, getProgramSetup(jobId) (Stage 5), previewSetup(op, args) -> {result, impact, templates}, applySetup(op, args) ->
+{ok, changeSet, result} | {ok:false, result, reason}, undo(changeSetId), and sync `photoUrl(photo: {id, caption, isPlaceholder}): string`.
+applySetup records every save as coming from Setup: an inbound message `{channel: 'web', sender: SETUP_SENDER ('web-setup'),
+rawText: null}` linked as the change set's `messageId` (written only after the changes are checked to apply), so change history
+and why-it-moved have `channel/sourceChannel 'web'` and no quoted text. `SetupPreview.templates` = per touched template
+`{jobId, name, workingDaysBefore, workingDaysAfter}` (templates have no forecast, so no `impact`).
 `new LocalDashboardApi(store, clock, { photoUrl? })` implements it over any Store (web mock and the server routes);
 the Stage 1 HTTP client implements the same interface. Photo URLs: `apiPhotoUrl(id)` = `/api/photos/:id/file`
 (server route and HTTP client); `placeholderPhotoUrl(photo)` = flat SVG data URL (default for `isPlaceholder`).
@@ -283,7 +293,7 @@ HTTP (the web HTTP client implements exactly this):
 
 | route | response |
 | --- | --- |
-| `POST /api/rpc/:method` body `{"args": [...]}` | 200 `{"result": value}` (undefined -> null); `{"error": "plain message"}` with 404 unknown method or `Unknown job/step ...`, 400 bad body/args, 409 ChangeConflictError, 500 otherwise. Missing/empty body = no args. `:method` = `RPC_METHODS`: every DashboardApi read, `previewSetup`, `applySetup` (Setup area only) and `photoUrl`. NOT `undo` (`RPC_EXCLUDED`, 404): the web is read-only and undo/day-to-day changes come only through the bot. A compile-time check makes every DashboardApi method either listed or excluded |
+| `POST /api/rpc/:method` body `{"args": [...]}` | 200 `{"result": value}` (undefined -> null); `{"error": "plain message"}` with 404 unknown method or `Unknown job/step ...`, 400 bad body/args, 409 ChangeConflictError, 500 otherwise. Missing/empty body = no args. `:method` = `RPC_METHODS` (21): every DashboardApi read (incl. `getProgramSetup`), `previewSetup`, `applySetup` (Setup area only) and `photoUrl`. NOT `undo` (`RPC_EXCLUDED`, 404): the web is read-only and undo/day-to-day changes come only through the bot. A compile-time check makes every DashboardApi method either listed or excluded |
 | `GET /api/photos/:id/file` | the file under DATA_DIR/photos as `PHOTO_TYPES` (jpg/jpeg, png, webp, heic, heif; anything else `application/octet-stream` + `Content-Disposition: attachment`), always with `PHOTO_SECURITY_HEADERS` (`X-Content-Type-Options: nosniff`, CSP `default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox`); placeholder seed photos -> the same SVG as `placeholderPhotoUrl` (same headers); 404 `{"error"}` otherwise |
 | `GET /api/health` | `{"ok": true, "today": "YYYY-MM-DD"}` |
 | other `/api/*` | 404 `{"error"}` |
@@ -403,6 +413,29 @@ re-run with `{ ...question.args, afterChoice: id }`.
   Type sizes are tokens only: --t-hero, --t-num, --t-num-md, --t-title, --t-h1, --t-h2, --t-body, --t-small, --t-label,
   --t-tiny (phone overrides in tokens.css). Skip link `.skip`; `<main tabIndex=-1>` takes focus on a route change.
 - Design rules live in `src/styles/tokens.css` (palette and type) and `app.css`; phone layout is the same DOM at <= 760px.
+- Stage 5 Setup (desktop only; files `src/screens/Setup{NewJob,Programs,ProgramEditor,Templates,Trades}.tsx`, shared
+  `src/setup/{SetupFrame.tsx,preview.tsx,validate.ts}`, styles `src/styles/setup.css`, classes prefixed `su-`). Routes: `#/setup`
+  New job (main link `nav` + `desktopOnly`: in the rail, never in the phone bar or More), `#/setup/programs`,
+  `#/setup/programs/:jobId` (editor), `#/setup/templates`, `#/setup/templates/:jobId` (same editor, no dates), `#/setup/trades`;
+  `#/setup?template=<id>` preselects a template. `RouteDef.desktopOnly`; the Setup link is `is-section` on its sub-pages. At
+  <= 760px every Setup route renders only "Setup works on a computer. Open this page on a desktop." (`setup-phone`). Reads:
+  `getProgramSetup(jobId)` -> core `programSetup(ds, jobId, today)` (`setupViews.ts`): job, stages in order with photo categories
+  and steps as stored + `waitsFor` ids, `requirements`, `itemCount`, forecast start/end and `lateDays` (live builds only),
+  `forecastFinish`, `workingDays` (`programWorkingDays`: longest chain of links), `tradeTypes` on the side. Every write is ONE
+  setup op through `applySetup` after a `previewSetup` dry run (debounced, `usePreview`): New job shows planned finish and each
+  stage's dates from the proposal's inserted rows before Create, then opens the job (`jobHome`); the editor holds one pending edit
+  at a time (other inputs disabled) and docks a change bar (`change-bar`: `preview-finish`, `preview-delta` "7 days later",
+  `preview-moved`, `bar-note` "Planned dates don't change...", `template-impact` for templates, `bar-problem`, `bar-save`,
+  `bar-discard`) until Save or Discard. Inputs are checked in plain words first (`validate.ts`); core refusals are shown as
+  given. Test ids: `nj-preview`, `nj-finish`, `nj-stages`, `nj-done`, `nj-problem`, `nj-create`; `editor`, `ed-stage-<id>`,
+  `ed-step-<id>` (`data-step-name`; inside `ed-name`, `ed-days`, `ed-hold`, `ed-trade`, `ed-up`, `ed-down`, `ed-more`),
+  `ed-detail-<id>`, `ed-req-<id>`, `ed-addstep-<stageId>`, `ed-newstep-<stageId>`, `ed-saved`; `setup-programs`,
+  `setup-program-<id>`; `templates`, `template-<id>`, `fromjob-preview`, `fromjob-create`; `add-trade`, `add-trade-save`,
+  `trade-saved`, `trades`, `trade-<id>` > `trade-phone` (tel: link), `trade-edit-<id>`, `trade-edit-save`. Change history shows
+  a Setup change set with "Changed in Setup on the computer, <stamp>" (`source-setup`), Monday's why-it-moved the same
+  (`why-setup`); a change set with more than 12 field changes is counted by table ("Added 29 steps"). Playwright: project
+  `api-setup` (depends on `api-change`, so it runs last on the shared server) runs `e2e/stage5-setup*.spec.ts`; `api` ignores them;
+  the mock project runs them too (each test has its own browser storage). Screenshots `e2e/screenshots/<project>-setup-*.png`.
 
 ## Seed (`packages/core/src/seed`)
 

@@ -1,0 +1,27 @@
+{
+  "name": "@ct/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SQLite storage (better-sqlite3, WAL, numbered migrations), and later the HTTP API and scheduler.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "migrations"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@ct/core": "0.0.0",
+    "better-sqlite3": "^12.11.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13"
+  }
+}

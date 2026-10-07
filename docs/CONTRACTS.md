@@ -1,0 +1,270 @@
+# CONTRACTS
+
+The Stage 0 reference. Later stages read this instead of the source. If code and this file
+disagree, fix one of them in the same commit.
+
+## Layout and commands
+
+```
+package.json            workspaces packages/*; scripts: test (vitest run, all projects), build, typecheck
+tsconfig.base.json      strict, NodeNext ESM, paths @ct/core -> packages/core/src (typecheck/tests only)
+vitest.config.ts        test.projects = packages/*; each package has its own vitest.config.ts
+packages/core           @ct/core   pure TS, runs in Node and the browser (tsconfig types: [] = no Node globals)
+packages/server         @ct/server SQLite storage (Stage 0); HTTP API + scheduler come in Stage 1
+```
+
+- Imports inside a package use `.js` extensions (`./dates.js`). Packages import each other by name (`@ct/core`).
+- Tests resolve `@ct/core` to source (vitest alias, tsconfig `paths`); `npm run build` emits `dist/` in order core, server.
+  A new package: add it to the root `build` script after its dependencies, give it a `vitest.config.ts`
+  with the `@ct/core` alias (copy packages/server/vitest.config.ts), and a `typecheck` script.
+- Node 22.12+ (`.nvmrc`). Secrets in `.env` (see `.env.example`); `npm test` needs none.
+
+## Conventions (locked)
+
+- Calendar dates: `ISODate` = `'YYYY-MM-DD'` in Australia/Sydney. Instants: `Instant` = `Date#toISOString()` (UTC, `Z`).
+  Instants compare as strings. Format with the Sydney helpers; never `new Date(iso).getDate()`.
+- Every row key is always present; "no value" is `null`, never `undefined`. Rows are JSON-safe.
+- Field names camelCase in TS, snake_case in SQL (`order` -> `sort_order`, change `table` -> `table_name`,
+  `before`/`after` -> `before_json`/`after_json`). Mapping: `packages/server/src/schema.ts`.
+- Forecast dates are computed, never stored (except per step inside snapshots).
+- Clock is injected everywhere: `Clock { today(): ISODate; now(): Date }`. Default test today `DEFAULT_TODAY = '2026-09-17'`.
+- People are plain text (`item.owner`, `item.waitingOn`). No roles, no money hiding, no in-app notifications.
+- Dates for people: `formatDate(iso, today)` -> "Mon 16 Nov" (same year as today) or "Fri 12 Mar 2027".
+
+## Types (`packages/core/src/types.ts`)
+
+`Dataset` (keys) and row types (fields):
+
+| key | row | fields |
+| --- | --- | --- |
+| sides | Side | id, name |
+| users | User | id, name, telegramUserId |
+| jobs | Job | id, sideId, name, kind `build\|design`, path `DA\|CDC\|null`, weeklyHoldingCost, lastConfirmed, isTemplate, plannedFinish, startDate, startsFromStageId, templateId, createdAt |
+| stages | Stage | id, jobId, name, order, status `not_started\|in_progress\|done` (manual on design jobs, derived on builds) |
+| steps | Step | id, jobId, stageId, name, order, durationDays (working days), plannedStart, plannedEnd, actualStart, actualEnd, status, isHoldPoint, isPlaceholder, tradeType |
+| stepLinks | StepLink | id, jobId, stepId, waitsForStepId ("step waits for that step") |
+| requirements | Requirement | id, jobId, stepId, kind `trade\|material`, name, leadTimeWeeks, tradeType |
+| items | Item | id, jobId, type (ITEM_TYPES), title, waitingOn, owner, tradeId, neededBy (typed; only used with no step), leadTimeWeeks (null = requirement's, else 0), expectedDate (ignored when on a shipment), status (ITEM_STATUSES), confirmedDate, notes, stepId, requirementId, shipmentId, photoId, createdAt, doneAt |
+| trades | Trade | id, sideId, name, type, phone |
+| shipments | Shipment | id, jobId, name, supplier, status (SHIPMENT_STATUSES), eta, notes |
+| photoCategories | PhotoCategory | id, jobId, stageId (null = job-wide "General"), name, requiredForHoldPoint, order |
+| photos | Photo | id, jobId, stageId, categoryId, filePath (relative to photos dir, `/`), caption, takenOn, receivedAt, isPlaceholder, messageId |
+| dailyNotes | DailyNote | id, jobId, date, text, createdAt, messageId |
+| snapshots | ForecastSnapshot | id, jobId, date (the Monday), savedAt, forecastFinish, stepStarts, stepEnds (Record stepId -> ISODate) |
+| inboundMessages | InboundMessage | id, channel `telegram\|email\|web`, sender, rawText, audioPath (rel. DATA_DIR), transcript, photoPath, receivedAt |
+| changeSets | ChangeSet | id, messageId, status `proposed\|confirmed\|cancelled\|undone`, summary, opName, opArgs, createdAt, confirmedAt, cancelledAt, undoneAt |
+| changes | ChangeRecord | id, changeSetId, seq, kind `update\|insert\|delete`, table (TableName), rowId, field (null for insert/delete), before, after (whole row for insert after / delete before) |
+
+- `ITEM_TYPES`: trade, material, decision, consultant_report, council_request, inspection, defect, condition_of_consent, manual_reminder.
+- `ITEM_STATUSES`: to_do, ordered_or_booked, confirmed, done. `SHIPMENT_STATUSES`: design, in_production, shipped, delivered.
+- Labels: `ITEM_TYPE_LABELS`, `ITEM_STATUS_LABELS`, `SHIPMENT_STATUS_LABELS`, `STEP_STATUS_LABELS`.
+- `TableName` = side, user, job, stage, step, step_link, requirement, item, trade, shipment, photo_category, photo, daily_note
+  (changeable tables; `TABLE_KEYS` maps to Dataset keys). Snapshots/inbound/change sets are written by the Store only.
+- `emptyDataset()`, `cloneDataset(ds)`.
+
+## Dates (`dates.ts`, `relativeDates.ts`, `money.ts`)
+
+- Working days: `isWorkingDay`, `snapToWorkingDay`, `nextWorkingDay`, `previousWorkingDay`, `addWorkingDays(iso, n)`,
+  `stepEnd(start, days)` (inclusive), `workingDaysBetween(a, b)`. `SHUTDOWNS` = 21 Dec 2026 to 8 Jan 2027.
+- Calendar: `addCalendarDays`, `addCalendarWeeks`, `addMonths`, `calendarDaysBetween(from, to)`, `lastMonday`, `maxDate`, `minDate`, `isISODate`.
+- Sydney: `sydneyDate(instant)`, `sydneyTime`, `sydneyInstant(date, 'HH:mm')`, `sydneyStamp(date, time)`, `sydneyOffsetMinutes`.
+- Clocks: `systemClock()`, `fixedClock(today, time='09:00')` (now() ticks 1 ms per call), `overrideClock(today)`,
+  `clockFromOverride(process.env.TZ_TODAY_OVERRIDE)`.
+- Format: `formatShort` "Mon 16 Nov", `formatLong` "Fri 12 Mar 2027", `formatDate(iso, today?)`, `formatDayMonth` "16 Nov",
+  `formatDays(14)` "+14 days", `formatTime` "3:10pm", `formatStamp` "Tue 15 Sep, 3:10pm", `relativeDays(iso, today, {deadline})`.
+- `resolveDate(phrase, today, { prefer?: 'future'|'past' }): ISODate | null`. "Tuesday"/"this Tuesday" = next one after today;
+  "next Tuesday" = Tuesday of next week; "the 14th" / "16 Nov" = next on/after today (prefer past = last on/before);
+  also today, tomorrow, next week, end of the week, in N days/weeks/months, in a fortnight, 16/11[/2026], Nov 16, ISO.
+- Money: `slipCost(days, weekly)` = days/7 x weekly, nearest $10 (null weekly -> null); `formatMoney(9000)` "$9,000".
+
+## Calculator (`calculator.ts`)
+
+```ts
+forecastJob(ds: Dataset, jobId: string, today: ISODate): JobForecast   // throws on unknown job
+forecastAll(ds, today): Record<jobId, JobForecast>                     // live jobs only
+makeSnapshot(ds, jobId, today, savedAt, id): ForecastSnapshot          // what the Monday scheduler saves
+pickSnapshot(snapshots, today)    // last Monday's, else the latest dated on/before today
+holdPointCheck(step, photoCategories, photos, forecastStart?) -> HoldPointCheck
+holdPointRefusalText(check)       // "Can't mark X done yet. ... 2 categories are empty: A; B."
+freshnessFor(job, today)          // amber = more than 7 days, or never confirmed
+```
+
+`JobForecast`: jobId, kind, today, forecastFinish, plannedFinish, lateDays (forecast - planned), isLate,
+snapshot {id, date, forecastFinish, savedAt} | null, slipDays | null, slipCost | null, slipSincePlanDays, slipSincePlanCost,
+weeklyHoldingCost, freshness {lastConfirmed, daysUnconfirmed, amber, text}, currentStageId/Name, stages: StageForecast[],
+steps: Record<id, StepForecast>, stepOrder (dependency order), items: Record<id, ItemForecast>, holdPoints, nextHoldPoint.
+
+- `StepForecast`: plannedStart/End, forecastStart/End, lateDays, isLate, driver (`planned|started|step|item`), reason
+  ("Starts 16 Nov, not 2 Nov, because the Park Rd windows shipment is expected 16 Nov."), waitsFor, holdsUp, itemIds.
+- `ItemForecast`: neededBy, actBy, expected (shipment ETA when on a shipment), expectedFromShipmentId, leadTimeWeeks,
+  lateDays, isLate, lateText ("14 days after needed" / "overdue by 3 days"), actByPassed, daysSitting.
+- `HoldPointCheck`: stepId, stepName, stageId, forecastStart, status, required [{categoryId, name, photoCount}],
+  missingCategories (names), filledCount, ok.
+- Rules: needed-by excludes the item's own expected date and its shipment-mates' (rule 1); started/done steps use actual
+  dates when set; expected dates snap forward to a working day; design jobs have no finish (rule 9).
+
+## Changes (`changes.ts`)
+
+```ts
+type Change =
+  | { kind: 'update'; table; rowId; field; before; after }
+  | { kind: 'insert'; table; rowId; row }
+  | { kind: 'delete'; table; rowId; row };
+applyChanges(ds, changes, { check = true }): Dataset   // copy; stale before/missing row -> ChangeConflictError
+invertChanges(changes): Change[]                        // reverse order, swap, insert<->delete
+changesOf(ds, changeSetId), toChangeRecord, fromChangeRecord, findRow, jsonEqual
+jobIdOfChange(ds, c), jobIdsOfChanges(ds, changes)
+```
+
+## Operations (`operations/`)
+
+```ts
+runOperation(ds, name, rawArgs, ctx: OpContext): OpResult
+OpContext = { today: ISODate; now: Date; newId?: (prefix) => string }
+OpResult =
+  | { kind: 'proposal'; op; args; changes: Change[]; summary: string; jobIds: string[] }
+  | { kind: 'refusal'; op; reason: string }
+  | { kind: 'question'; op; question: string; field: string | null; options: {label, value}[] | null; args }
+operationCatalogue(group?: 'daily' | 'setup'): { name, description, group, parameters: JSONSchema }[]
+OPERATIONS, OPERATION_NAMES, getOperation(name), defineOp, runOp
+```
+
+- Args are validated with zod. A missing required arg -> `question` (per-op wording); bad values -> `refusal`.
+  Nulls and empty strings from an LLM count as "not given".
+- Names are fuzzy-matched (exact id first). Ambiguous -> `question` with `field` and `options` (value = id):
+  re-run with `{ ...question.args, [field]: option.value }`. Not found -> `refusal`. Templates are excluded
+  except by id or where the op asks for a template.
+- Date args take ISO or words ("16 Nov", "next Tuesday"); `resolveDate` against `ctx.today`
+  (future for ETAs/expected, past for done/confirmed/note dates).
+- Operations never write. Store applies `changes`; summaries are one plain sentence with "Mon 16 Nov" dates.
+
+Daily (bot) operations, args (`?` optional):
+
+| op | args | notes |
+| --- | --- | --- |
+| set_shipment_eta | shipment, job?, eta | "Park Rd windows ETA Mon 26 Oct to Mon 16 Nov" |
+| set_shipment_status | shipment, job?, status | |
+| mark_step_started | step, job?, date? | sets actualStart |
+| mark_step_done | step, job?, date? | hold point: refused with holdPointRefusalText until every required category has a photo; sets actualEnd (+actualStart) |
+| set_item_status | item, job?, status, date? | confirmed sets confirmedDate; done sets doneAt |
+| set_item_expected_date | item, job?, date | refused for shipment items (change the ETA) |
+| override_lead_time | item, job?, weeks | item.leadTimeWeeks |
+| add_item | job, type, title, waitingOn?, owner? (default "Dominic"), trade?, step?, neededBy?, expectedDate?, leadTimeWeeks?, notes? | build job with no step and no date -> question (field step), except defect/reminder |
+| add_daily_note | job, text, date?, messageId? | |
+| attach_photo | job, category?, stage?, filePath, caption?, takenOn?, messageId? | category unclear -> question listing categories |
+| confirm_job | job, date? | lastConfirmed |
+| set_stage_status | job, stage, status | design jobs only |
+
+Setup operations (web Setup area; `LocalDashboardApi.applySetup` refuses non-setup ops): copy_template
+(template, name, startDate, startsFromStage?, weeklyHoldingCost?, path?, side?), create_job (name, kind, path?, side?,
+weeklyHoldingCost?, startDate?, plannedFinish?, isTemplate?; design jobs get DA/CDC stages, every job a General category),
+edit_job, add_stage (job, name, order?), edit_stage, delete_stage (empty only), add_step (job, stage, name, durationDays,
+plannedStart?, after?[], isHoldPoint?, isPlaceholder?, tradeType?), edit_step (recomputes plannedEnd), delete_step
+(refused with items; removes links and requirements), add_link / remove_link (step, waitsFor; refuses cycles),
+add_requirement, add_photo_category, add_trade, edit_trade, delete_trade.
+
+copy_template: stages before `startsFromStage` are done (steps dated the working day before start); the rest run
+forward from startDate through links; job.plannedFinish = latest planned end; lastConfirmed = today.
+
+## Dry run (`dryRun.ts`)
+
+```ts
+dryRun(ds, { changes, jobIds? }, today): { impacts: JobImpact[]; after: Dataset }
+JobImpact = { jobId, jobName, kind, finishBefore, finishAfter, finishDeltaDays, slipBefore, slipAfter,
+  slipCostBefore, slipCostAfter, costOfChange, movedSteps: MovedStep[], movedItems, amberBefore, amberAfter }
+MovedStep = { stepId, name, from, to, deltaDays, text: "Install windows Mon 2 Nov to Mon 16 Nov" }
+```
+Confirm card numbers: `impacts[0].finishAfter`, `slipAfter`, `slipCostAfter`, `movedSteps`.
+
+## Fuzzy matcher (`fuzzy.ts`)
+
+`fuzzyMatch(query, candidates: {id, name, aliases?, value?}[])` -> `{kind:'unique', match, score} | {kind:'ambiguous',
+candidates} | {kind:'none'}`. Every meaningful query word must match a candidate word (exact, plural, 3+ letter prefix,
+or typo distance 1-2); stopwords (the, at, job...) dropped; rd/st/ave expanded; sparky/chippy/brickie mapped. Fully
+covered candidates beat partial ones; a tie is ambiguous. "the windows" vs the two shipments -> ambiguous.
+
+## Read models (`readModels.ts`) and DashboardApi (`api.ts`)
+
+All pure `(ds, ..., today)`; lists skip templates; `SideFilter = { sideId? }`.
+
+| function | returns |
+| --- | --- |
+| mondayRows(ds, today, filter?) | `MondayView {today, weekOf, builds: MondayBuildRow[], design: MondayDesignRow[]}`; builds by slipCost desc; design by oldest desc |
+| mondayBuildRow | jobId, name, currentStageName, forecastFinish, plannedFinish, lateDays, snapshotDate/Finish, slipDays, slipCost, slipSincePlan*, weeklyHoldingCost, lastConfirmed, daysUnconfirmed, amber, freshnessText, waitingOn (top 3), actByDue (to do, act-by <= today+7), nextHoldPoint {stepId, stepName, date, filled, required, missing} |
+| MondayDesignRow | jobId, name, path, stageName, outstanding, oldestDays, oldestTitle, oldestWaitingOn, amber, freshnessText |
+| whyItMoved(ds, jobId, today) | `{snapshotDate, snapshotFinish, forecastFinish, slipDays, slipCost, causes: WhyCause[], otherDays, lines}` |
+| jobsList(ds, today, filter?) | `{builds, design}` rows: jobId, name, kind, currentStageName, forecastFinish, slipDays, amber, freshnessText |
+| jobOverview(ds, jobId, today) | job, forecast, stages, nextHoldPoint, waitingOn (top 5), notesThisWeek, latestPhotos (6), shipments |
+| programView / stepDetail | stages, steps in dependency order, links / step, waitsFor, holdsUp, requirements, items, holdPoint |
+| waitingOn(ds, today, {jobId?, type?, owner?, status?, includeDone?, sideId?}) | `{total, groups: [overdue, this_week, next_week, later]}` of WaitingRow |
+| toChase(ds, today, {owner?, withinDays=14}) | every live job with rows (to do or ordered/booked, act-by within 14 days or past; to-do first, then act-by) |
+| shipmentsList(ds, today) | ShipmentRow: eta, status(+Label), linkedCount, earliestNeededBy, isLate, lateDays, owners |
+| changeHistory(ds, {jobId?, statuses?, limit?}) | newest first: summary, status, message {rawText, transcript}, jobNames, changes [{rowLabel, field, before, after}] |
+| designChecklist(ds, jobId, today) | stages with isCurrent, outstanding, oldestDays, items oldest first |
+| photoGallery, dailyNotes, tradesList, templatesList | gallery by stage/category; notes newest first; trades with openItems; templates with counts |
+
+`WaitingRow`: itemId, jobId, jobName, title, type(+Label), status(+Label), owner, waitingOn, tradeId, tradeName,
+tradePhone, stepId/Name, shipmentId/Name, neededBy, actBy, expected, leadTimeWeeks, isLate, lateDays, lateText,
+actByPassed, overdue (`isOverdue`), daysSitting, notes.
+
+whyItMoved: confirmed change sets with `confirmedAt > snapshot.savedAt` that touch the job are taken back (lenient
+inverse), then replayed one at a time with the calculator; each cause = {changeSetId, summary, confirmedAt, messageId,
+sourceText (transcript or text), sourceChannel, finishBefore, finishAfter, deltaDays, cost, movedSteps}. `otherDays` =
+slip not explained by any change (finish with every change taken back minus the snapshot finish).
+
+`DashboardApi` (all async): getToday, listSides, getMonday, getWhyItMoved, listJobs, getJobOverview, getProgram, getStep,
+getDesignChecklist, getWaitingOn, getToChase, getShipments, getPhotos, getDailyNotes, getChangeHistory, listTrades,
+listTemplates, previewSetup(op, args) -> {result, impact}, applySetup(op, args) -> {ok, changeSet, result} | {ok:false,
+result, reason}, undo(changeSetId). `new LocalDashboardApi(store, clock)` implements it over any Store (web mock and the
+server routes); the Stage 1 HTTP client implements the same interface.
+
+## Store (`store.ts`; SqliteStore in server)
+
+```ts
+interface Store {                       // synchronous; wrap at the API edge
+  load(): Dataset;                      // fresh copy
+  recordInbound(NewInbound): InboundMessage;            // {channel, sender, rawText?, audioPath?, transcript?, photoPath?, receivedAt?}
+  updateInbound(id, {rawText?, transcript?, audioPath?, photoPath?}): InboundMessage;
+  proposeChangeSet({messageId?, summary, opName?, opArgs?, changes}): ChangeSet;   // recorded, not applied
+  confirmChangeSet(id): ChangeSet;      // applies; ChangeConflictError if stale (stays proposed)
+  cancelChangeSet(id): ChangeSet;
+  applyChangeSet(input): ChangeSet;     // propose + confirm atomically
+  undo(id): { ok: true; changeSet } | { ok: false; reason };   // refused if later changes touched the same rows
+  saveSnapshot(snapshot): ForecastSnapshot;                     // upsert on (jobId, date)
+}
+new InMemoryStore(dataset, { clock?, newId? })   // + reset(dataset) for the demo
+latestUndoable(ds)  // newest confirmed change set (/undo);  undoBlocker(ds, id)
+```
+
+## Server storage (`packages/server/src`)
+
+- `openDatabase(file | ':memory:')`: creates the folder, WAL, foreign_keys ON, busy_timeout, runs `migrate`.
+- `migrate(db, dir = MIGRATIONS_DIR)`: applies `migrations/NNN_name.sql` in order, once, recorded in `schema_migrations`.
+  Add a migration as a new numbered file; never edit a shipped one. Update `schema.ts` to match (a test checks columns).
+- `new SqliteStore(file | db, { clock?, newId? })` implements Store; `.db`, `.close()`, `.isEmpty()`, `.insertRow(spec, row)`.
+- `seedDatabase(store, dataset = buildSeed(), { replace? })`, `seedIfEmpty(store)`.
+- Paths: `resolveDataDir(env, cwd)` (DATA_DIR, default ./data), `dataPaths(dir)` -> {dataDir, dbFile: tracker.db,
+  photosDir: photos, audioDir: audio}, `ensureDataDirs`, `photoFile(paths, stored)` (refuses `..`), `dataFile`,
+  `storedPhotoPath`, `newPhotoPath(jobId, date, id, ext)` -> "park-rd/2026-09-17-id.jpg".
+
+## Seed (`packages/core/src/seed`)
+
+`buildSeed()` (fresh copy), `SEED_VERSION`, `DEFAULT_TODAY`, ids: `SIDE_ND`, `SIDE_NORM`, `PARK_RD` ('park-rd'),
+`SEAVIEW`, `BEATTY`, `PARK_RD_WINDOWS` ('sh-pr-windows'), `SEAVIEW_WINDOWS` ('sh-sv-windows'), `BEATTY_TILER`,
+`TEMPLATE_DUPLEX` ('tpl-duplex'), `TRADE_IDS`, `SEED_SENDER`. Step ids are prefixed: Park Rd `pr-<step>` (e.g.
+`pr-install-windows`), template `tpl-<step>`, Seaview `sv-*`, Beatty `bt-*`.
+
+Numbers (today Thu 17 Sep 2026), all asserted in tests:
+- Park Rd: finish Fri 26 Feb 2027 = Mon 14 Sep snapshot, slip 0; Install windows planned Mon 2 Nov; windows act-by Mon
+  10 Aug; shipment ETA 26 Oct, in production, 3 linked items (2 Raff). ETA 16 Nov -> Install windows 16 Nov, finish Fri
+  12 Mar 2027, slip +14, $9,000. 34 items, every type. Book plasterer act-by Fri 18 Sep.
+- Seaview St: finish Fri 29 Oct 2027, slip 0, confirmed 1 day ago; Book concrete pump act-by Fri 18 Sep; hold point
+  "Slab inspection before pour" Mon 28 Sep, 1 of 3 categories (missing: Plumbing under slab; Membrane and termite barrier).
+  Second windows shipment "Seaview St windows" (ETA 14 Dec, design) makes "the windows" ambiguous.
+- Beatty St: finish Fri 4 Dec 2026, slip +5, $1,430, last confirmed 9 days ago (amber); tiler expected Mon 5 Oct.
+  Seeded change set `cs-0915-tiler` (voice note, 15 Sep) moved the tiler 28 Sep -> 5 Oct: why-it-moved cause +7 days
+  (27 Nov -> 4 Dec), otherDays -2 because the 14 Sep snapshot is the stored Sun 29 Nov.
+- Design: West St (With council, 2, oldest 23 days), Tollbar Ave (With council, 1, 8), Lower Beach St (Design, 0),
+  John St (Design, 1, 4).
+- Seeded log: 7 messages / change sets (6 confirmed, 1 cancelled). A week of Park Rd notes; placeholder photos
+  (`isPlaceholder`, `filePath: placeholder/<id>.jpg`, no file on disk). Side "Norm" exists with no jobs.

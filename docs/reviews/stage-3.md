@@ -147,3 +147,52 @@ Fresh `git clone` of `aa72422` into a scratch dir, run with no API keys and no b
     Remove it, or have `holdPointSignOffRefusal` replace it, so there is one Rule 6 sentence.
 12. NICE-TO-HAVE: HEIC documents are stored as `.heic`, and Chrome and Firefox can't show HEIC in the
     gallery. Consider converting to JPEG in the background (keeping the original), or say so in the README.
+
+## Re-check
+
+Commit `cb9f6bb` ("Stage 3: review fixes"), checked from a fresh `git clone` of HEAD, run with no API keys
+and no bot token in the environment. HEAD also includes Stage 4's web commit `0dcc9a9`.
+
+| command | result |
+| --- | --- |
+| `npm ci` | exit 0 |
+| `npm test` | exit 0, 25 files, 308 tests |
+| `npm run typecheck` | exit 0 |
+| `npm run build` | exit 0 |
+| `npx playwright test` | exit 0, 73 passed |
+
+1. **Rule 6 at Confirm: fixed.**
+   - Code: `packages/core/src/operations/rules.ts` runs `assertRulesOnSave` on the data with the changes
+     applied. Both `InMemoryStore` and `SqliteStore` call it in `confirmChangeSet` and `applyChangeSet`,
+     inside the write transaction. The HTTP layer maps `RuleRefusalError` to 409.
+   - Reproduction redone in the clone through the bot:
+     1. File the two missing Seaview photos (Confirm each).
+     2. Send "slab inspection done", which proposes the card.
+     3. Send `/undo`, which undoes the membrane photo.
+     4. Press Confirm.
+   - Result: the card reads "Not saved: ...". The reply is "Can't sign off Slab inspection before pour yet.
+     No photos for: Membrane and termite barrier. Nothing saved." The button says "Not saved". The step
+     stays `not_started` and the change set is `cancelled`.
+   - Tests: `core/test/store.test.ts:230`, `server/test/sqliteStore.test.ts:207` and
+     `bot/test/stage3.test.ts:568`.
+   - Still open (fine as recorded history, not a blocker): undoing a photo after the hold point is signed
+     off is still allowed.
+2. **20 MB limit: fixed.**
+   - Code: a `TooBigError` is raised for an over-limit `file_size` and for getFile's "file is too big".
+   - Probe: a 25 MB HEIC document gets "That file is over Telegram's 20 MB limit for bots, so I can't fetch
+     it. Send it as a photo or a smaller file." Nothing is stored.
+   - Tests: `stage3.test.ts:588` and the size-check case.
+
+NICE-TO-HAVE follow-ups also landed:
+
+- (3) The photo type now comes from the file's bytes. My `.svg` and `.html` probes are refused politely
+  and nothing is stored. The photo route serves only image types, with `nosniff` and a sandbox CSP.
+- (4) A start-up orphan sweep, and `botArgsOf` for Edit or an out-of-date card after a restart.
+- (5) A prompt line for "Photo caption:".
+- (6) Only a reminder's first part decides a resend.
+- (7) Backoff of 2 to 60 minutes after failed reminder sends.
+- (8) A spoken "fire reminders" skips the LLM.
+
+Minor, not blocking: the 20 MB reply doesn't end with "Nothing saved."
+
+**SIGN-OFF.**

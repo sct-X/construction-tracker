@@ -114,3 +114,50 @@ in the environment:
 9. **NICE-TO-HAVE.** For row types `rowLabel` doesn't know, the card shows the raw id, e.g.
    "New photo: photo-muy0..." (`packages/bot/src/format.ts:103-131`). Label photos by category before
    Stage 3 relies on this card.
+
+## Re-check (commit `191f539`, "Stage 2: review fixes")
+
+Fresh `git clone` of `191f539` into a temp dir, with no API keys, no bot token and no `ANTHROPIC_BASE_URL`:
+
+| command | result |
+| --- | --- |
+| `npm ci` | exit 0 |
+| `npm test` | exit 0, 20 files, 221 tests |
+| `npm run typecheck` | exit 0 |
+| `npm run build` | exit 0 |
+| `npx playwright test` | exit 0, 23 passed |
+
+I re-ran my original probes against the fixed code, and read the diff and the new
+`packages/bot/test/hardening.test.ts`.
+
+1. **Fixed.** `withBotArgs` (`packages/bot/src/bot.ts`) now strips every `BOT_SET_ARGS` key the model sends,
+   then sets `messageId` from the inbound row and `filePath` only from `botArgs` (the Stage 3 photo
+   handler). `attach_photo` without a bot-stored file is refused with "Send the photo itself...", and a core
+   question about a bot-owned field is refused rather than asked. Core's `isSafePhotoPath` refuses `..`,
+   absolute and drive-letter paths. Probe: the model's `messageId: "msg-FAKE"` is replaced by the real id;
+   the `../../../.env` photo is refused and no photo row is written. Tests cover all of this.
+2. **Fixed.** A pending question expires after 30 minutes (`takePending`). While one is open, the text is
+   first parsed on its own. A complete change becomes a new request linked to its own message; anything
+   else is parsed with the thread and linked to the message that started it. A button press other than the
+   answer drops the question. Probe: "Park Rd windows now arriving 16 Nov" sent after an unanswered "Which
+   job?" now links to itself, and "Beatty tiler now 12 Oct" sent after "What is the new ETA?" gets its own
+   card (this also fixes finding 4). Tests cover expiry, the fresh request and the change-history quote.
+3. **Fixed.** `LLM_MODEL` decides the provider; `LLM_PROVIDER` counts only when the model is blank or of no
+   known family. `.env.example` has no active `LLM_PROVIDER` line. A test parses `.env.example` and switches
+   to Claude by changing `LLM_MODEL` alone.
+
+Nice-to-haves fixed too: private chats only (5), polite reply and the button stops spinning on any error (6),
+tests for provider failure and relative dates (7), model replies capped at 400 characters (8), and photo
+rows labelled on the card (9).
+
+Remaining notes (NICE-TO-HAVE, not blocking):
+
+- While a question is open, each answer costs two model calls: the solo parse, then the threaded one.
+  Also, a solo parse that returns an op with missing args still counts as "a new request". Say "16 Nov" is
+  parsed as `set_shipment_eta {eta}` alone: the bot then asks "which shipment?" again instead of using the
+  thread. That is safe (a question, never a guess) but repeats a question. Count a solo parse as new only
+  when its ops run without a core question.
+- `isSafePhotoPath` rejects any name containing `..` (e.g. `a..b.jpg`). That is harmless because the bot
+  names the files itself.
+
+**Verdict: SIGN-OFF.** No MUST-FIX remains.

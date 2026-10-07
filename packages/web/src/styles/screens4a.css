@@ -32,7 +32,7 @@
   border-radius: var(--r-sm);
   color: var(--steel);
   text-decoration: none;
-  font-size: 0.9375rem;
+  font-size: var(--t-small);
   transition: background-color 120ms;
 }
 .rail-job:hover {
@@ -66,7 +66,7 @@
 }
 .jobbar-name {
   margin: 0;
-  font-size: 1.75rem;
+  font-size: var(--t-title);
   font-weight: 600;
   line-height: 1.15;
 }
@@ -185,8 +185,16 @@ a.job-name:hover {
   margin: 10px 0 0;
   font-size: var(--t-small);
 }
+.h-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.h-row h2 {
+  margin: 0;
+}
 .h-link {
-  margin-left: 12px;
   font-size: var(--t-small);
   font-weight: 500;
 }
@@ -245,32 +253,11 @@ a.job-name:hover {
 }
 .cat {
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 12px;
   padding: 8px 0;
   border-top: 1px solid var(--rule);
-}
-.cat-box {
-  position: relative;
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--steel);
-  border-radius: 2px;
-}
-.cat-ok .cat-box {
-  background: var(--steel);
-}
-.cat-ok .cat-box::after {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 0;
-  width: 5px;
-  height: 10px;
-  border: solid var(--formply);
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
 }
 .cat-count {
   color: var(--steel-2);
@@ -325,14 +312,13 @@ a.job-name:hover {
   color: var(--steel-2);
 }
 .ov-finish .num {
-  font-size: 2.75rem;
+  font-size: var(--t-hero);
 }
 .ov-stages {
   margin-top: 28px;
 }
 .ov-stages h2 {
   font-size: var(--t-h2);
-  margin-bottom: 10px;
 }
 .ov-cols {
   display: grid;
@@ -525,7 +511,7 @@ a.job-name:hover {
 .axis-week {
   position: absolute;
   padding-left: 3px;
-  font-size: 0.75rem;
+  font-size: var(--t-tiny);
   color: var(--steel-2);
 }
 .gantt-body {
@@ -569,7 +555,7 @@ a.job-name:hover {
   left: 50%;
   transform: translateX(-50%);
   padding: 0 4px;
-  font-size: 0.75rem;
+  font-size: var(--t-tiny);
   font-weight: 600;
   color: var(--steel-2);
   background: var(--formply);
@@ -581,7 +567,7 @@ a.job-name:hover {
   bottom: 0;
   width: 2px;
   margin-left: -1px;
-  background: var(--hivis);
+  background: var(--steel);
 }
 .grid-today-label {
   position: absolute;
@@ -589,10 +575,10 @@ a.job-name:hover {
   left: 4px;
   padding: 0 5px;
   border-radius: 2px;
-  font-size: 0.75rem;
+  font-size: var(--t-tiny);
   font-weight: 600;
-  background: var(--hivis);
-  color: var(--steel);
+  background: var(--steel);
+  color: var(--formply);
   white-space: nowrap;
 }
 
@@ -623,6 +609,32 @@ a.job-name:hover {
 .g-row-step .g-label {
   padding-left: 26px;
 }
+.g-row-step > .g-label {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+.gantt-mini .g-row-step > .g-label {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+}
+.g-name-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.g-dates {
+  font-size: var(--t-label);
+  color: var(--steel-2);
+  line-height: 1.3;
+}
+.is-late .g-dates {
+  color: var(--steel);
+}
 .gantt-mini .g-row-step .g-label {
   padding-left: 14px;
 }
@@ -643,11 +655,15 @@ a.job-name:hover {
   min-width: 0;
   line-height: 1.25;
   color: var(--steel);
-  font-size: 0.9375rem;
-  text-decoration: none;
+  font-size: var(--t-small);
+}
+a.g-step-name {
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
 }
 a.g-step-name:hover {
-  text-decoration: underline;
+  text-decoration-color: var(--steel);
 }
 .is-done .g-step-name {
   color: var(--steel-2);
@@ -655,7 +671,7 @@ a.g-step-name:hover {
 .g-label .hp-tag {
   flex: 0 0 auto;
   margin-left: auto;
-  font-size: 0.6875rem;
+  font-size: var(--t-tiny);
   padding: 0 4px;
 }
 .g-track {
@@ -736,7 +752,7 @@ a.g-step-name:hover {
   margin-top: 28px;
 }
 .la-week h3 {
-  font-size: 1.0625rem;
+  font-size: var(--t-h2);
   margin-bottom: 8px;
 }
 .la-list {
@@ -761,7 +777,7 @@ a.g-step-name:hover {
   gap: 2px 12px;
 }
 .la-name {
-  font-size: 1.0625rem;
+  font-size: var(--t-h2);
   font-weight: 600;
   color: var(--steel);
 }
@@ -818,7 +834,7 @@ a.g-step-name:hover {
   gap: 12px;
 }
 .strip-name {
-  font-size: 1.0625rem;
+  font-size: var(--t-h2);
   font-weight: 600;
 }
 .strip-status {
@@ -866,7 +882,7 @@ a.g-step-name:hover {
 /* ---------- Step detail ---------- */
 
 .step-head h1 {
-  font-size: 1.75rem;
+  font-size: var(--t-title);
 }
 .step-dates {
   display: grid;
@@ -895,7 +911,7 @@ a.g-step-name:hover {
 .sd-reason {
   grid-column: 1 / -1;
   margin: 0;
-  font-size: 1.0625rem;
+  font-size: var(--t-h2);
   max-width: 72ch;
 }
 .step .block {
@@ -973,7 +989,7 @@ a.g-step-name:hover {
   border-radius: var(--r-sm);
   font-family: var(--font-num);
   font-weight: 600;
-  font-size: 1.125rem;
+  font-size: var(--t-h2);
 }
 .ck-done .ck-mark {
   background: var(--steel);
@@ -984,11 +1000,12 @@ a.g-step-name:hover {
   color: var(--steel-2);
 }
 .is-current .ck-mark {
-  box-shadow: 0 0 0 3px var(--hivis);
+  border-width: 3px;
+  background: var(--concrete-2);
 }
 .ck-name {
   margin: 4px 0 0;
-  font-size: 1.125rem;
+  font-size: var(--t-h2);
   font-weight: 600;
 }
 .ck-status {
@@ -1094,7 +1111,7 @@ a.g-step-name:hover {
     margin: -4px 0 20px;
   }
   .jobbar-name {
-    font-size: 1.375rem;
+    font-size: var(--t-h1);
   }
   .jobbar-kind {
     display: block;
@@ -1117,7 +1134,7 @@ a.g-step-name:hover {
   }
   .tab {
     padding: 0 9px;
-    font-size: 0.9375rem;
+    font-size: var(--t-small);
   }
   .tab:last-child {
     padding-right: 0;
@@ -1165,9 +1182,6 @@ a.g-step-name:hover {
   .ov-fresh {
     grid-column: 1 / -1;
   }
-  .ov-finish .num {
-    font-size: 2.375rem;
-  }
   .ov-cols {
     display: block;
     margin-top: 28px;
@@ -1203,11 +1217,11 @@ a.g-step-name:hover {
   }
 
   .step-head h1 {
-    font-size: 1.5rem;
+    font-size: var(--t-h1);
   }
   .step-dates {
-    grid-template-columns: 1fr 1fr;
-    gap: 12px 16px;
+    grid-template-columns: 1fr;
+    gap: 10px;
     padding: 14px 16px;
   }
   .links-pair {

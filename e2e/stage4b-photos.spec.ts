@@ -9,8 +9,14 @@ test('Photos shows Seaview St slab hold point at 1 of 3 and opens a photo', asyn
   await expect(slab.getByText('Needed for the hold point')).toHaveCount(3);
   await slab.getByRole('button', { name: /^Open photo/ }).first().click();
   await expect(page.getByTestId('lightbox')).toBeVisible();
+  // Focus is trapped in the dialog, and goes back to the photo that opened it.
+  for (let i = 0; i < 4; i++) {
+    await page.keyboard.press('Tab');
+    await expect(page.getByTestId('lightbox').getByRole('button', { name: 'Close' })).toBeFocused();
+  }
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('lightbox')).toHaveCount(0);
+  await expect(slab.getByRole('button', { name: /^Open photo/ }).first()).toBeFocused();
 });
 
 test('screenshots: photos', async ({ page }, info) => {

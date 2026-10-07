@@ -44,7 +44,13 @@ export function PhotosScreen({ jobId }: { jobId: string }) {
       <header className="screen-head">
         <div>
           <h1>
-            Photos{q.status === 'ready' && q.data.jobName && <span className="sr-only"> at {q.data.jobName}</span>}
+            Photos
+            {q.status === 'ready' && q.data.jobName && (
+              <>
+                {' '}
+                <span className="sr-only">at {q.data.jobName}</span>
+              </>
+            )}
           </h1>
           {q.status === 'ready' && q.data.gallery && (
             <p className="screen-sub" data-testid="photos-sub">
@@ -123,9 +129,14 @@ function StageBlock({ group, data, onOpen, url }: { group: Group; data: PhotosDa
       {group.categories.map((c) => (
         <div key={c.categoryId} className="photo-cat" data-testid={`photo-cat-${c.categoryId}`}>
           <h3>
-            {c.name}
+            {c.name}{' '}
             <span className="h-note">{photoCount(c.photos.length)}</span>
-            {c.requiredForHoldPoint && <span className="tag">Needed for the hold point</span>}
+            {c.requiredForHoldPoint && (
+              <>
+                {' '}
+                <span className="tag">Needed for the hold point</span>
+              </>
+            )}
           </h3>
           {c.photos.length ? (
             <ul className="thumbs">
@@ -140,7 +151,7 @@ function StageBlock({ group, data, onOpen, url }: { group: Group; data: PhotosDa
               ))}
             </ul>
           ) : c.requiredForHoldPoint && hold && hold.status !== 'done' ? (
-            <p className="cat-empty cat-empty-needed">Needed before {hold.name}. Send one to the bot with this category in the caption.</p>
+            <p className="cat-empty cat-empty-needed">Still needed: {hold.name} can't be signed off without one. Send one to the bot with this category in the caption.</p>
           ) : null}
         </div>
       ))}
@@ -150,18 +161,35 @@ function StageBlock({ group, data, onOpen, url }: { group: Group; data: PhotosDa
 
 function Lightbox({ photo, category, src, today, onClose }: { photo: Photo; category: string; src: string; today: string; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  // The latest onClose without re-running the effect (callers pass a new function each render).
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     closeRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab' || !boxRef.current) return;
+      // Focus stays inside the dialog: Tab and Shift+Tab cycle its controls.
+      const items = [...boxRef.current.querySelectorAll<HTMLElement>('button, a[href], [tabindex]:not([tabindex="-1"])')];
+      if (!items.length) return;
+      const i = items.indexOf(document.activeElement as HTMLElement);
+      const next = e.shiftKey ? (i <= 0 ? items.length - 1 : i - 1) : i === -1 || i === items.length - 1 ? 0 : i + 1;
+      e.preventDefault();
+      items[next]!.focus();
+    };
     window.addEventListener('keydown', onKey);
     return () => {
       window.removeEventListener('keydown', onKey);
       prev?.focus?.();
     };
-  }, [onClose]);
+  }, []);
   return (
-    <div className="lightbox" role="dialog" aria-modal="true" aria-label={photo.caption ?? category} onClick={onClose} data-testid="lightbox">
+    <div ref={boxRef} className="lightbox" role="dialog" aria-modal="true" aria-label={photo.caption ?? category} onClick={onClose} data-testid="lightbox">
       <figure onClick={(e) => e.stopPropagation()}>
         <img src={src} alt={photo.caption ?? category} />
         <figcaption>

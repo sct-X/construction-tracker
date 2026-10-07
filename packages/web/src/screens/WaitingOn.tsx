@@ -33,9 +33,15 @@ export function WaitingOnScreen({ jobId = null }: { jobId?: string | null }) {
       <header className="screen-head screen-head-tools">
         <div>
           <h1>
-            Waiting on{jobName && <span className="sr-only"> at {jobName}</span>}
+            Waiting on
+            {jobName && (
+              <>
+                {' '}
+                <span className="sr-only">at {jobName}</span>
+              </>
+            )}
           </h1>
-          {q.status === 'ready' && (
+          {q.status === 'ready' && q.data.view.total > 0 && (
             <p className="screen-sub" data-testid="waiting-sub">
               {summary(q.data)}
             </p>
@@ -56,7 +62,7 @@ export function WaitingOnScreen({ jobId = null }: { jobId?: string | null }) {
 function summary(d: WaitingData): string {
   const overdue = d.view.groups.find((g) => g.key === 'overdue')?.rows.length ?? 0;
   const where = d.jobId ? '' : ` across ${plural(new Set(d.view.groups.flatMap((g) => g.rows.map((r) => r.jobId))).size, 'job')}`;
-  if (!d.view.total) return 'Nothing open.';
+  if (!d.view.total) return '';
   return `${plural(d.view.total, 'open item')}${where}, ${overdue} overdue.`;
 }
 

@@ -8,21 +8,22 @@
  *   deeper page belongs to (step detail sits under Program).
  * Stage 4 screens add rows here; Stage 5 adds the desktop-only Setup routes.
  */
-import type { ReactElement } from 'react';
+import { lazy, type ReactElement } from 'react';
 import type { JobKind } from '@ct/core';
+// Monday is the landing screen and loads with the shell; every other screen is its own chunk.
 import { MondayScreen } from '../screens/Monday';
-import { JobsScreen } from '../screens/Jobs';
-import { JobOverviewScreen } from '../screens/JobOverview';
-import { ProgramScreen } from '../screens/Program';
-import { StepDetailScreen } from '../screens/StepDetail';
-import { DesignChecklistScreen } from '../screens/DesignChecklist';
+const JobsScreen = lazy(() => import('../screens/Jobs').then((m) => ({ default: m.JobsScreen })));
+const JobOverviewScreen = lazy(() => import('../screens/JobOverview').then((m) => ({ default: m.JobOverviewScreen })));
+const ProgramScreen = lazy(() => import('../screens/Program').then((m) => ({ default: m.ProgramScreen })));
+const StepDetailScreen = lazy(() => import('../screens/StepDetail').then((m) => ({ default: m.StepDetailScreen })));
+const DesignChecklistScreen = lazy(() => import('../screens/DesignChecklist').then((m) => ({ default: m.DesignChecklistScreen })));
 // Stage 4b
-import { WaitingOnScreen } from '../screens/WaitingOn';
-import { ToChaseScreen } from '../screens/ToChase';
-import { ShipmentsScreen } from '../screens/Shipments';
-import { HistoryScreen } from '../screens/History';
-import { PhotosScreen } from '../screens/Photos';
-import { NotesScreen } from '../screens/Notes';
+const WaitingOnScreen = lazy(() => import('../screens/WaitingOn').then((m) => ({ default: m.WaitingOnScreen })));
+const ToChaseScreen = lazy(() => import('../screens/ToChase').then((m) => ({ default: m.ToChaseScreen })));
+const ShipmentsScreen = lazy(() => import('../screens/Shipments').then((m) => ({ default: m.ShipmentsScreen })));
+const HistoryScreen = lazy(() => import('../screens/History').then((m) => ({ default: m.HistoryScreen })));
+const PhotosScreen = lazy(() => import('../screens/Photos').then((m) => ({ default: m.PhotosScreen })));
+const NotesScreen = lazy(() => import('../screens/Notes').then((m) => ({ default: m.NotesScreen })));
 
 export interface RouteDef {
   /** Hash path pattern; ":name" segments become params. */

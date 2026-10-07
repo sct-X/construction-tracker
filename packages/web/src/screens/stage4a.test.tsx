@@ -101,13 +101,13 @@ describe('step detail', () => {
   it('Seaview slab inspection: hold point, 1 of 3 categories, the empty ones named', async () => {
     show(<StepDetailScreen jobId="seaview" stepId="sv-slab-insp" />);
     const hold = await screen.findByTestId('hold-point');
-    expect(hold.textContent).toContain('1 of 3 categories have a photo');
+    expect(hold.textContent).toContain('1 of 3 required categories have photos');
     expect(hold.textContent).toContain('Plumbing under slab; Membrane and termite barrier');
     const cats = within(hold).getAllByTestId('hold-category');
     expect(cats.map((c) => c.textContent)).toEqual([
       expect.stringContaining('4 photos'),
-      expect.stringContaining('No photo yet'),
-      expect.stringContaining('No photo yet'),
+      expect.stringContaining('No photos yet'),
+      expect.stringContaining('No photos yet'),
     ]);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Slab inspection before pour');
   });
@@ -181,5 +181,42 @@ describe('Monday leftovers', () => {
     const john = screen.getByTestId('design-row-john-st');
     expect(john.textContent).toContain('DA');
     expect(john.textContent).not.toContain('council');
+  });
+});
+
+describe('stage 4 review fixes', () => {
+  it('overview: an overdue row says so in words (the same words as Waiting on)', async () => {
+    show(<JobOverviewScreen jobId="park-rd" />);
+    await screen.findByTestId('ov-finish');
+    const rows = screen.getAllByTestId('ov-waiting-row');
+    for (const r of rows.filter((x) => x.dataset.urgency !== 'none')) {
+      expect(within(r).getByTestId('urgency').textContent).toMatch(/overdue|passed|after it's needed/);
+    }
+    const cladders = rows.find((r) => r.textContent?.includes('Book cladders'))!;
+    expect(within(cladders).getByTestId('urgency').textContent).toBe('1 day overdue');
+  });
+
+  it("step detail: the call link names the trade", async () => {
+    show(<StepDetailScreen jobId="park-rd" stepId="pr-install-windows" />);
+    const row = await screen.findByTestId('need-it-pr-window-installer');
+    expect(within(row).getByRole('link').textContent).toMatch(/^Call\s*ClearView Window Installs\s*0491 575 789$/);
+  });
+
+  it('axis month labels never overlap or run past the edge', async () => {
+    const { makeScale, monthLabels } = await import('../components/Timeline');
+    for (const [from, to, width] of [
+      ['2025-10-20', '2026-12-04', 700],
+      ['2026-09-07', '2026-12-04', 300],
+      ['2026-06-01', '2027-02-26', 360],
+      ['2026-08-31', '2027-02-26', 700],
+    ] as const) {
+      const labels = monthLabels(makeScale(from, to), width);
+      labels.forEach((l, i) => {
+        const w = l.label.length * 7.6 + 8;
+        expect(l.left + w).toBeLessThanOrEqual(width + 0.01);
+        if (i) expect(l.left).toBeGreaterThanOrEqual(labels[i - 1]!.left + labels[i - 1]!.label.length * 7.6 + 8);
+      });
+      expect(labels[0]!.label).toMatch(/\d{4}$/);
+    }
   });
 });

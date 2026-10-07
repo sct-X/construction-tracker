@@ -114,10 +114,12 @@ export function placeholderPhotoUrl(photo: Pick<Photo, 'id' | 'caption'>): strin
   for (const ch of photo.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const fill = PLACEHOLDER_TONES[h % PLACEHOLDER_TONES.length]!;
   const label = (photo.caption ?? 'Photo').replace(/[<>&"]/g, '').slice(0, 40);
+  // About 24 characters fit across at 11px; longer captions shrink rather than run off the edge.
+  const size = label.length > 24 ? Math.max(6.5, Math.round((11 * 24 * 10) / label.length) / 10) : 11;
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120"><rect width="160" height="120" fill="${fill}"/>` +
     `<rect x="12" y="78" width="136" height="30" fill="#f3f2ef" opacity="0.18"/>` +
-    `<text x="80" y="66" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#f3f2ef">${label}</text></svg>`;
+    `<text x="80" y="66" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="${size}" fill="#f3f2ef">${label}</text></svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 

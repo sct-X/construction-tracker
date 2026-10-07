@@ -40,11 +40,11 @@ export function HistoryScreen({ jobId = null }: { jobId?: string | null }) {
       <header className="screen-head screen-head-tools">
         <div>
           <h1>Changes{jobName ? ` at ${jobName}` : ''}</h1>
-          {q.status === 'ready' && (
+          {q.status === 'ready' && q.data.entries.length > 0 && (
             <p className="screen-sub" data-testid="history-sub">
               {q.data.entries.length
                 ? `${plural(q.data.entries.length, 'change')} from the bot, newest first. Nothing is saved until Dominic taps Confirm.`
-                : 'Nothing has changed yet.'}
+                : null}
             </p>
           )}
         </div>
@@ -104,8 +104,11 @@ function Entry({ entry, data }: { entry: HistoryEntry; data: HistoryData }) {
       <div className="entry-body">
         <h2 className="entry-summary">{entry.summary}</h2>
         {entry.jobNames.length > 0 && <p className="entry-jobs">{entry.jobNames.join(', ')}</p>}
+        {entry.changes.length > 0 && entry.status !== 'confirmed' && (
+          <p className="fields-note">{entry.status === 'cancelled' ? 'Would have changed (not saved):' : entry.status === 'undone' ? 'Changed, then undone:' : 'Would change:'}</p>
+        )}
         {entry.changes.length > 0 && (
-          <ul className="fields" data-testid="fields">
+          <ul className={entry.status === 'confirmed' ? 'fields' : 'fields fields-not-saved'} data-testid="fields">
             {entry.changes.map((c, i) => (
               <li key={i} className="field">
                 {c.kind === 'update' && c.field ? (

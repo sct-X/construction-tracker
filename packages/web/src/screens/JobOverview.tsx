@@ -23,6 +23,7 @@ import { jobHome, tabHref } from '../app/jobNav';
 import { Freshness, LoadError, LoadingRows, Money } from '../components/bits';
 import { Bar, makeScale, TimeAxis, TimeGrid } from '../components/Timeline';
 import { lateWords, plural, rangeWords, slipWords, statusWords } from '../ui/format';
+import { photoCount, shipmentTimingWords, urgencyWords } from '../ui/itemWords';
 
 export function loadOverview(api: DashboardApi, jobId: string): Promise<JobOverview> {
   return api.getJobOverview(jobId);
@@ -135,9 +136,9 @@ export function OverviewBody({ o }: { o: JobOverview }) {
                     <span className="wl-when">
                       {s.eta ? `Expected ${formatDate(s.eta, today)}` : 'No ETA yet'}, {s.statusLabel.toLowerCase()}
                     </span>
-                    <span className="wl-who">
-                      {s.isLate ? <strong className="late-words">{s.lateDays} days after it is needed</strong> : s.earliestNeededBy ? `Needed ${formatDate(s.earliestNeededBy, today)}` : null}
-                      {s.linkedCount ? `${s.isLate || s.earliestNeededBy ? ', ' : ''}${plural(s.linkedCount, 'item')}` : ''}
+                    <span className={s.isLate ? 'wl-urgent late-words' : 'wl-who'}>
+                      {shipmentTimingWords(s)}
+                      {s.linkedCount ? `, ${plural(s.linkedCount, 'item')}` : ''}
                     </span>
                   </li>
                 ))}
@@ -178,21 +179,24 @@ export function OverviewBody({ o }: { o: JobOverview }) {
 }
 
 function WaitingLine({ r, today }: { r: WaitingRow; today: ISODate }) {
-  const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+  const urgent = urgencyWords(r, today);
   const when =
-    r.isLate && r.lateText
-      ? cap(r.lateText)
-      : r.status === 'to_do' && r.actBy
-        ? `Act by ${formatDate(r.actBy, today)}, ${relativeDays(r.actBy, today, { deadline: true })}`
-        : r.expected
-          ? `Expected ${formatDate(r.expected, today)}${r.neededBy ? `, needed ${formatDate(r.neededBy, today)}` : ''}`
-          : r.neededBy
-            ? `Needed ${formatDate(r.neededBy, today)}, ${relativeDays(r.neededBy, today, { deadline: true })}`
-            : 'No date';
+    r.status === 'to_do' && r.actBy
+      ? `Act by ${formatDate(r.actBy, today)}`
+      : r.expected
+        ? `Expected ${formatDate(r.expected, today)}${r.neededBy ? `, needed ${formatDate(r.neededBy, today)}` : ''}`
+        : r.neededBy
+          ? `Needed ${formatDate(r.neededBy, today)}`
+          : 'No date';
   return (
-    <li className={r.isLate || r.overdue ? 'wl-row is-late' : 'wl-row'} data-testid="ov-waiting-row">
+    <li className={urgent ? 'wl-row is-late' : 'wl-row'} data-testid="ov-waiting-row" data-urgency={urgent?.level ?? 'none'}>
       <span className="wl-title">{r.title}</span>
-      <span className="wl-when">{r.isLate || r.overdue ? <strong className="late-words">{when}</strong> : when}</span>
+      {urgent && (
+        <span className="wl-urgent late-words" data-testid="urgency">
+          {urgent.text}
+        </span>
+      )}
+      <span className="wl-when">{when}</span>
       <span className="wl-who">
         {[r.statusLabel, r.owner, r.waitingOn && r.waitingOn !== r.owner ? `waiting on ${r.waitingOn}` : null].filter(Boolean).join(', ')}
       </span>
@@ -202,25 +206,33 @@ function WaitingLine({ r, today }: { r: WaitingRow; today: ISODate }) {
 
 function StageChart({ o }: { o: JobOverview }) {
   const today = o.forecast.today;
-  const stages = o.stages.filter((s) => s.forecastStart && s.forecastEnd);
-  if (!stages.length) return <p className="empty">No program yet. Steps are set up in the program editor on the desktop.</p>;
+  const dated = o.stages.filter((s) => s.forecastStart && s.forecastEnd).sort((a, b) => a.forecastStart!.localeCompare(b.forecastStart!) || a.order - b.order);
+  if (!dated.length) return <p className="empty">No program yet. Steps are set up in the program editor on the desktop.</p>;
+  // Like the Gantt's default: start at the current work, with finished stages in one line.
+  const done = dated.filter((s) => s.status === 'done');
+  const stages = done.length < dated.length ? dated.filter((s) => s.status !== 'done') : dated;
   const dates = stages.flatMap((s) => [s.forecastStart!, s.forecastEnd!, s.plannedStart, s.plannedEnd]).filter((d): d is ISODate => !!d).sort();
   const scale = makeScale(dates[0]!, dates[dates.length - 1]!);
   const programHref = tabHref({ jobId: o.job.id, kind: o.job.kind }, 'Program');
   return (
     <section className="block ov-stages" aria-labelledby="ov-stages-h" data-testid="ov-stages">
-      <h2 id="ov-stages-h">
-        Stages
+      <div className="h-row">
+        <h2 id="ov-stages-h">Stages</h2>
         {programHref && (
           <a className="h-link" href={programHref}>
             Full program
           </a>
         )}
-      </h2>
+      </div>
+      {stages !== dated && done.length > 0 && (
+        <p className="gantt-done">
+          Done: {done.map((s) => s.name).join(', ')} ({rangeWords(done[0]!.forecastStart, done[done.length - 1]!.forecastEnd, today)}).
+        </p>
+      )}
       <div className="gantt gantt-mini">
         <div className="gantt-head">
           <span className="gantt-corner" />
-          <TimeAxis scale={scale} dense short />
+          <TimeAxis scale={scale} short />
         </div>
         <div className="gantt-body">
           <div className="gantt-layer">
@@ -262,16 +274,15 @@ function HoldPoint({ o, photosHref }: { o: JobOverview; photosHref: string | nul
         <a href={href(`/jobs/${encodeURIComponent(o.job.id)}/steps/${encodeURIComponent(h.stepId)}`)}>{h.stepName}</a>
         {h.forecastStart && (
           <span className="sub">
-            {formatDate(h.forecastStart, today)}, {relativeDays(h.forecastStart, today)}. {h.filledCount} of {plural(h.required.length, 'photo category', 'photo categories')} filled.
+            {formatDate(h.forecastStart, today)}, {relativeDays(h.forecastStart, today)}. {h.filledCount} of {h.required.length} required categories have photos.
           </span>
         )}
       </p>
       <ul className="cats">
         {h.required.map((c) => (
           <li key={c.categoryId} className={c.photoCount ? 'cat cat-ok' : 'cat cat-missing'}>
-            <span className="cat-box" aria-hidden="true" />
             <span className="cat-name">{c.name}</span>
-            <span className="cat-count">{c.photoCount ? plural(c.photoCount, 'photo') : 'No photo yet'}</span>
+            <span className="cat-count">{photoCount(c.photoCount)}</span>
           </li>
         ))}
       </ul>
@@ -289,14 +300,14 @@ function Photos({ o, photosHref }: { o: JobOverview; photosHref: string | null }
   if (!o.latestPhotos.length) return null;
   return (
     <section className="block" aria-labelledby="ov-photos-h" data-testid="ov-photos">
-      <h2 id="ov-photos-h">
-        Latest photos
+      <div className="h-row">
+        <h2 id="ov-photos-h">Latest photos</h2>
         {photosHref && (
           <a className="h-link" href={photosHref}>
             All photos
           </a>
         )}
-      </h2>
+      </div>
       <ul className="ov-thumbs">
         {o.latestPhotos.map((p) => (
           <li key={p.id}>

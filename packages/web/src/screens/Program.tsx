@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   addCalendarDays,
   formatDate,
+  formatDayMonth,
   formatLong,
   lastMonday,
   type DashboardApi,
@@ -23,6 +24,7 @@ import { LoadError, LoadingRows } from '../components/bits';
 import { Bar, makeScale, TimeAxis, TimeGrid, TimelineKey, type BarTone, type Scale } from '../components/Timeline';
 import { lateWords, plural, rangeWords, statusWords } from '../ui/format';
 import { useJobQuery } from '../data/useJobQuery';
+import { urgencyWords } from '../ui/itemWords';
 
 export function loadProgram(api: DashboardApi, jobId: string): Promise<ProgramView> {
   return api.getProgram(jobId);
@@ -186,7 +188,7 @@ function Gantt({ p }: { p: ProgramView }) {
           <div className="gantt" data-testid="gantt">
             <div className="gantt-head">
               <span className="gantt-corner">Step</span>
-              <TimeAxis scale={scale} dense={scale.days > 200} />
+              <TimeAxis scale={scale} />
             </div>
             <div className="gantt-body">
               <div className="gantt-layer">
@@ -232,18 +234,29 @@ function GanttStage({ stage, steps, scale, today, jobId }: { stage: StageForecas
   );
 }
 
+/** "2 Nov to 13 Nov", "12 Oct": short enough to sit under a step name. */
+function shortRange(start: ISODate | null, end: ISODate | null): string {
+  if (!start) return 'no date';
+  if (!end || end === start) return formatDayMonth(start);
+  return `${formatDayMonth(start)} to ${formatDayMonth(end)}`;
+}
+
 function GanttStep({ s, scale, today, jobId }: { s: ProgramStep; scale: Scale; today: ISODate; jobId: string }) {
   const late = s.isLate && s.status !== 'done';
   return (
     <div className={`g-row g-row-step${late ? ' is-late' : ''}${s.status === 'done' ? ' is-done' : ''}`} data-testid={`g-step-${s.stepId}`}>
       <div className="g-label">
-        <a className="g-step-name" href={href(`/jobs/${encodeURIComponent(jobId)}/steps/${encodeURIComponent(s.stepId)}`)}>
-          {s.name}
-        </a>
-        {s.isHoldPoint && <span className="hp-tag">Hold point</span>}
-        <span className="sr-only">
-          , {statusWords(s.status)}, forecast {rangeWords(s.forecastStart, s.forecastEnd, today)}
-          {late ? `, ${lateWords(s.lateDays)}, planned ${rangeWords(s.plannedStart, s.plannedEnd, today)}` : ''}
+        <span className="g-name-line">
+          <a className="g-step-name" href={href(`/jobs/${encodeURIComponent(jobId)}/steps/${encodeURIComponent(s.stepId)}`)}>
+            {s.name}
+          </a>
+          {s.isHoldPoint && <span className="hp-tag">Hold point</span>}
+        </span>
+        <span className="g-dates">
+          {s.status === 'not_started' ? '' : `${statusWords(s.status)}, `}
+          {shortRange(s.forecastStart, s.forecastEnd)}
+          {late && s.plannedStart ? `, planned ${shortRange(s.plannedStart, s.plannedEnd)}` : ''}
+          {late && <span className="sr-only">, {lateWords(s.lateDays)}</span>}
         </span>
       </div>
       <div className="g-track">
@@ -369,7 +382,7 @@ function LookAheadStep({ s, today, weekFrom, needs, jobId }: { s: ProgramStep; t
           {needs.map((i) => (
             <li key={i.itemId}>
               <span className="la-need-title">{i.title}</span>: {i.statusLabel.toLowerCase()}
-              {i.isLate && i.lateText ? `, ${i.lateText}` : i.actByPassed && i.status === 'to_do' ? `, act-by was ${formatDate(i.actBy!, today)}` : ''}
+              {urgencyWords(i, today) ? `. ${urgencyWords(i, today)!.text}` : ''}
             </li>
           ))}
         </ul>

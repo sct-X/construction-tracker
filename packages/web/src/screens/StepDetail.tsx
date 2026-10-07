@@ -11,6 +11,8 @@ import { useJobQuery } from '../data/useJobQuery';
 import { useData } from '../data/DataContext';
 import { lateWords, plural, rangeWords, statusWords, UNKNOWN_TODAY } from '../ui/format';
 import { tabHref } from '../app/jobNav';
+import { CallLink } from '../components/listBits';
+import { photoCount, urgencyWords } from '../ui/itemWords';
 
 export function loadStep(api: DashboardApi, stepId: string): Promise<StepDetail> {
   return api.getStep(stepId);
@@ -51,7 +53,7 @@ export function StepBody({ d, today }: { d: StepDetail; today: ISODate }) {
       <header className="screen-head step-head">
         <h1>
           {s.name}
-          {' '}<span className="sr-only">, {d.jobName}</span>
+          <span className="sr-only">, {d.jobName}</span>
         </h1>
         <p className="screen-sub">
           {meta}
@@ -147,7 +149,7 @@ function HoldPointBlock({ d }: { d: StepDetail }) {
       <h2 id="hold-h">
         Hold point photos{' '}
         <span className="h-note">
-          {h.filledCount} of {h.required.length} categories have a photo
+          {h.filledCount} of {h.required.length} required categories have photos
         </span>
       </h2>
       <p className="hold-rule">
@@ -158,9 +160,8 @@ function HoldPointBlock({ d }: { d: StepDetail }) {
       <ul className="cats">
         {h.required.map((c) => (
           <li key={c.categoryId} className={c.photoCount ? 'cat cat-ok' : 'cat cat-missing'} data-testid="hold-category">
-            <span className="cat-box" aria-hidden="true" />
             <span className="cat-name">{c.name}</span>
-            <span className="cat-count">{c.photoCount ? plural(c.photoCount, 'photo') : 'No photo yet'}</span>
+            <span className="cat-count">{photoCount(c.photoCount)}</span>
           </li>
         ))}
       </ul>
@@ -187,18 +188,18 @@ export function NeedsTable({ rows, today }: { rows: WaitingRow[]; today: ISODate
       </thead>
       <tbody>
         {rows.map((r) => (
-          <tr key={r.itemId} className={`need-row${r.isLate ? ' is-late' : ''}`} data-testid={`need-${r.itemId}`}>
+          <tr key={r.itemId} className={`need-row${urgencyWords(r, today) ? ' is-late' : ''}`} data-testid={`need-${r.itemId}`}>
             <th scope="row" className="c-item">
               <span className="need-title">{r.title}</span>
+              {urgencyWords(r, today) && (
+                <span className="sub strong late-words" data-testid="urgency">
+                  {urgencyWords(r, today)!.text}
+                </span>
+              )}
               <span className="sub">
                 {[r.typeLabel, r.owner, r.waitingOn ? `waiting on ${r.waitingOn}` : null].filter(Boolean).join(', ')}
-                {r.tradePhone && (
-                  <>
-                    {', '}
-                    <a href={`tel:${r.tradePhone.replace(/\s+/g, '')}`}>{r.tradePhone}</a>
-                  </>
-                )}
               </span>
+              {r.tradePhone && <CallLink name={r.tradeName ?? r.waitingOn} phone={r.tradePhone} />}
             </th>
             <td className="c-status">
               <CellLabel>Status</CellLabel>
@@ -211,13 +212,13 @@ export function NeedsTable({ rows, today }: { rows: WaitingRow[]; today: ISODate
             <td className="c-actby">
               <CellLabel>Act by</CellLabel>
               {r.actBy ? formatDate(r.actBy, today) : 'No date'}
-              {r.actByPassed && r.status === 'to_do' && <span className="sub strong">Passed, still to do</span>}
+
             </td>
             <td className="c-expected">
               <CellLabel>Expected</CellLabel>
               {r.expected ? formatDate(r.expected, today) : 'Not set'}
               {r.shipmentName && <span className="sub">from {r.shipmentName}</span>}
-              {r.isLate && r.lateText && <span className="sub strong late-words">{r.lateText}</span>}
+
             </td>
           </tr>
         ))}

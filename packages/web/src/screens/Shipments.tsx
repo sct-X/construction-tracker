@@ -27,11 +27,11 @@ export function ShipmentsScreen() {
     <div className="screen shipments">
       <header className="screen-head">
         <h1>Shipments</h1>
-        {q.status === 'ready' && (
+        {q.status === 'ready' && q.data.rows.length > 0 && (
           <p className="screen-sub" data-testid="shipments-sub">
             {q.data.rows.length
               ? `${plural(q.data.rows.length, 'shipment')} across ${plural(new Set(q.data.rows.map((r) => r.jobId)).size, 'job')}, soonest first. Linked items take their expected date from the ETA.`
-              : 'Nothing on order from overseas.'}
+              : null}
           </p>
         )}
       </header>
@@ -93,7 +93,7 @@ function ShipmentLine({ row, today }: { row: ShipmentRow; today: string }) {
           <span className="cell-label">ETA </span>
           {row.eta ? (
             <>
-              <span className="num-md" data-testid="eta">
+              <span className="date-md" data-testid="eta">
                 {formatDate(row.eta, today)}
               </span>
               <span className="sub">{relativeDays(row.eta, today)}</span>

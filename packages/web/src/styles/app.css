@@ -36,6 +36,24 @@ a {
   box-shadow: 0 0 0 3px var(--hivis);
 }
 
+.skip {
+  position: absolute;
+  z-index: 10;
+  left: 8px;
+  top: -60px;
+  padding: 8px 14px;
+  border-radius: var(--r-sm);
+  background: var(--steel);
+  color: var(--formply);
+  font-weight: 600;
+}
+.skip:focus {
+  top: 8px;
+}
+.main:focus {
+  outline: none;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -122,7 +140,7 @@ a {
 .brand {
   font-family: var(--font-num);
   font-weight: 600;
-  font-size: 1.625rem;
+  font-size: var(--t-title);
   line-height: 1;
   text-decoration: none;
   padding: 0 8px;
@@ -266,7 +284,7 @@ a {
 
 .job-name {
   display: block;
-  font-size: 1.125rem;
+  font-size: var(--t-h2);
   font-weight: 600;
 }
 .job-stage {
@@ -309,7 +327,7 @@ a {
 .cost-none {
   display: block;
   padding-top: 10px;
-  font-size: 1.0625rem;
+  font-size: var(--t-h2);
   font-weight: 500;
   color: var(--steel-2);
 }
@@ -319,7 +337,7 @@ a {
 
 .fresh {
   display: inline-block;
-  font-size: 0.9375rem;
+  font-size: var(--t-small);
 }
 .fresh-amber {
   padding: 2px 8px;
@@ -342,7 +360,7 @@ a {
   background: var(--formply);
 }
 .why h3 {
-  font-size: 1rem;
+  font-size: var(--t-body);
   margin-bottom: 4px;
 }
 .causes {
@@ -411,7 +429,7 @@ a {
 
 
 .actby h3 {
-  font-size: 0.9375rem;
+  font-size: var(--t-small);
   margin-bottom: 6px;
 }
 .actby ul {
@@ -446,7 +464,7 @@ a {
 
 .design .stage-head {
   padding: 22px 0 8px;
-  font-size: 1rem;
+  font-size: var(--t-body);
   font-weight: 600;
   border-bottom: 1px solid var(--rule);
 }
@@ -464,7 +482,7 @@ a {
 
 .jobs-table .stage-head {
   padding: 22px 0 8px;
-  font-size: 1rem;
+  font-size: var(--t-body);
   font-weight: 600;
   border-bottom: 1px solid var(--rule);
 }
@@ -556,7 +574,7 @@ a {
   }
   .brand {
     padding: 0;
-    font-size: 1.375rem;
+    font-size: var(--t-h1);
   }
   .side {
     flex: 0 1 200px;
@@ -601,7 +619,7 @@ a {
     color: inherit;
     font: inherit;
     font-weight: 500;
-    font-size: 0.9375rem;
+    font-size: var(--t-small);
     text-align: center;
     line-height: 1.1;
     cursor: pointer;
@@ -684,11 +702,8 @@ a {
   .builds .c-cost {
     grid-area: cost;
   }
-  .num {
-    font-size: 2rem;
-  }
   .builds .c-finish .num {
-    font-size: 2.375rem;
+    font-size: var(--t-hero);
   }
   .fresh {
     font-size: var(--t-small);
@@ -708,7 +723,7 @@ a {
   .cause-days {
     display: block;
     margin-bottom: 2px;
-    font-size: 1.25rem;
+    font-size: var(--t-h1);
   }
   .before-after {
     white-space: normal;

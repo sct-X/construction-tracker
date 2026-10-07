@@ -43,7 +43,7 @@
   display: block;
   font-family: var(--font-num);
   font-weight: 600;
-  font-size: 1.3125rem;
+  font-size: var(--t-h1);
   line-height: 1.15;
   white-space: nowrap;
 }
@@ -54,7 +54,7 @@
 }
 .item-title {
   display: block;
-  font-size: 1.0625rem;
+  font-size: var(--t-h2);
   font-weight: 600;
   line-height: 1.3;
 }
@@ -77,7 +77,7 @@
   gap: 7px;
   margin-top: 6px;
   font-weight: 600;
-  font-size: 0.9375rem;
+  font-size: var(--t-small);
 }
 .flag::before {
   content: '';
@@ -95,7 +95,7 @@
 .timing {
   display: block;
   margin-top: 6px;
-  font-size: 0.9375rem;
+  font-size: var(--t-small);
   font-weight: 500;
 }
 
@@ -137,7 +137,7 @@
 .call-num {
   font-family: var(--font-num);
   font-weight: 600;
-  font-size: 1.125rem;
+  font-size: var(--t-h2);
   letter-spacing: 0.01em;
   white-space: nowrap;
 }
@@ -162,14 +162,14 @@
   padding-top: 14px;
 }
 .group-title {
-  font-size: 1.1875rem;
+  font-size: var(--t-h2);
   font-weight: 600;
 }
 .group-count {
   margin-left: 10px;
   font-family: var(--font-num);
   font-weight: 600;
-  font-size: 1.1875rem;
+  font-size: var(--t-h2);
 }
 .group-note {
   margin-left: 14px;
@@ -286,7 +286,7 @@
 }
 .count-line {
   margin: 0 0 20px;
-  font-size: 1.0625rem;
+  font-size: var(--t-h2);
 }
 .count-big {
   font-family: var(--font-num);
@@ -305,7 +305,7 @@
 
 .ship-job {
   display: block;
-  font-size: 1.1875rem;
+  font-size: var(--t-h2);
   font-weight: 600;
 }
 .ship-name {
@@ -373,7 +373,7 @@
   border-bottom: 1px solid var(--steel);
 }
 .photo-stage-head h2 {
-  font-size: 1.25rem;
+  font-size: var(--t-h1);
 }
 .hold {
   display: flex;
@@ -385,7 +385,7 @@
   flex: none;
   font-family: var(--font-num);
   font-weight: 600;
-  font-size: 1.75rem;
+  font-size: var(--t-title);
   line-height: 1;
   white-space: nowrap;
 }
@@ -395,7 +395,7 @@
   background: var(--hivis);
 }
 .hold-words {
-  font-size: 0.9375rem;
+  font-size: var(--t-small);
 }
 .nowrap {
   white-space: nowrap;
@@ -411,7 +411,7 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 4px 0;
-  font-size: 1rem;
+  font-size: var(--t-body);
   margin-bottom: 10px;
 }
 .tag {
@@ -521,7 +521,7 @@
   margin-top: 32px;
 }
 .diary-week-head {
-  font-size: 1rem;
+  font-size: var(--t-body);
   padding-bottom: 8px;
   border-bottom: 1px solid var(--steel);
 }
@@ -540,7 +540,7 @@
 .diary-date {
   font-family: var(--font-num);
   font-weight: 600;
-  font-size: 1.375rem;
+  font-size: var(--t-h1);
   line-height: 1.15;
   white-space: nowrap;
 }
@@ -549,7 +549,7 @@
   padding: 8px 12px;
   border-radius: var(--r-sm);
   background: var(--timber);
-  font-size: 1.0625rem;
+  font-size: var(--t-h2);
   max-width: 68ch;
 }
 .diary-meta {
@@ -585,7 +585,7 @@
 .entry-date {
   font-family: var(--font-num);
   font-weight: 600;
-  font-size: 1.375rem;
+  font-size: var(--t-h1);
   line-height: 1.15;
   white-space: nowrap;
 }
@@ -601,7 +601,7 @@
   margin-top: 8px;
 }
 .entry-summary {
-  font-size: 1.0625rem;
+  font-size: var(--t-h2);
   font-weight: 600;
   line-height: 1.3;
 }
@@ -654,7 +654,7 @@
 .effect-days {
   font-family: var(--font-num);
   font-weight: 600;
-  font-size: 1.375rem;
+  font-size: var(--t-h1);
   line-height: 1.1;
   white-space: nowrap;
 }
@@ -745,7 +745,7 @@
     grid-area: status;
   }
   .date-md {
-    font-size: 1.1875rem;
+    font-size: var(--t-h2);
     white-space: normal;
   }
   .call {
@@ -754,7 +754,7 @@
     min-height: 56px;
   }
   .call-num {
-    font-size: 1.25rem;
+    font-size: var(--t-h1);
   }
 
   .chase-table .job-main {
@@ -778,9 +778,6 @@
   }
   .chase-table .c-who .cell-label {
     margin: 0;
-  }
-  .chase-table .c-actby .date-md {
-    font-size: 1.5rem;
   }
 
   .ship-table .job-main {
@@ -809,7 +806,7 @@
     grid-area: linked;
   }
   .ship-table .c-eta .num-md {
-    font-size: 1.75rem;
+    font-size: var(--t-title);
   }
 
   .photo-stage-head {
@@ -838,7 +835,7 @@
     gap: 6px;
   }
   .diary-date {
-    font-size: 1.25rem;
+    font-size: var(--t-h1);
   }
 
   .entry {
@@ -857,4 +854,16 @@
   .field-ba {
     display: block;
   }
+}
+
+/* A change set that was cancelled or undone: its fields read as what would have changed, not as saved. */
+.fields-note {
+  margin: 8px 0 0;
+  font-size: var(--t-small);
+  color: var(--steel-2);
+}
+.fields-not-saved .field,
+.fields-not-saved .field-after {
+  color: var(--steel-2);
+  font-weight: 400;
 }

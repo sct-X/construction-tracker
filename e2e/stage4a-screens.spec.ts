@@ -73,7 +73,7 @@ for (const { w, h } of SIZES) {
       await shoot(page, info, 'step-windows', w);
       await page.goto('./#/jobs/seaview/steps/sv-slab-insp');
       const hold = page.getByTestId('hold-point');
-      await expect(hold).toContainText('1 of 3 categories have a photo');
+      await expect(hold).toContainText('1 of 3 required categories have photos');
       await expect(hold).toContainText('Plumbing under slab; Membrane and termite barrier');
       await expect(page.getByTestId('job-bar').getByRole('link', { name: 'Program' })).toHaveAttribute('aria-current', 'page');
       await shoot(page, info, 'step', w);
@@ -115,10 +115,26 @@ for (const { w, h } of SIZES) {
   });
 }
 
-test('side switcher away from a job goes back to the jobs list', async ({ page }) => {
+test('side switcher away from a job goes back to the jobs list, and the new side sticks', async ({ page }) => {
   await page.goto('./#/jobs/park-rd');
-  await expect(page.getByTestId('ov-finish')).toHaveText('Fri 26 Feb 2027');
+  // The job bar is drawn once the jobs list has arrived: only then is the race (job arriving after the switch) over.
+  await expect(page.getByTestId('job-bar')).toContainText('Park Rd');
   await page.getByTestId('side-switcher').selectOption({ label: 'Norm' });
   await expect(page).toHaveURL(/#\/jobs$/);
-  await page.getByTestId('side-switcher').selectOption({ label: 'Norm and Dom' });
+  await expect(page.getByText('No jobs yet.')).toBeVisible();
+  await expect(page.getByTestId('side-switcher').locator('option:checked')).toHaveText('Norm');
+  // Still Norm after anything in flight has landed.
+  await page.waitForLoadState('networkidle');
+  await expect(page.getByTestId('side-switcher').locator('option:checked')).toHaveText('Norm');
+  await expect(page.getByTestId('job-row-park-rd')).toHaveCount(0);
+});
+
+test('a link to a job on the other side switches to its side', async ({ page }) => {
+  await page.goto('./#/jobs');
+  await page.getByTestId('side-switcher').selectOption({ label: 'Norm' });
+  await expect(page.getByText('No jobs yet.')).toBeVisible();
+  await page.goto('./#/jobs/beatty/program');
+  await expect(page.getByTestId('job-bar')).toContainText('Beatty St');
+  await expect(page.getByTestId('side-switcher').locator('option:checked')).toHaveText('Norm and Dom');
+  await expect(page).toHaveURL(/#\/jobs\/beatty\/program$/);
 });

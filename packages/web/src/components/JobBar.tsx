@@ -1,28 +1,31 @@
 /**
  * Above every job screen: the job's name, a job switcher (phone; the desktop
  * rail lists the jobs) and the job's tabs from the route table. A deep link to
- * a job on the other side switches the side; switching side away from the job
- * goes back to the jobs list, so no screen mixes two sides.
+ * a job on the other side switches the side (once per route); the side switcher
+ * itself leaves a job page for the jobs list, so no screen mixes two sides.
  */
 import { useEffect, useRef } from 'react';
 import type { JobListRow } from '@ct/core';
 import { useData } from '../data/DataContext';
-import { href } from '../app/router';
+import { hashPath, href } from '../app/router';
 import type { RouteDef } from '../app/routes';
 import { activeTabPath, fillPath, jobTabs, switchJobHref, tabLabel } from '../app/jobNav';
 
 export function JobBar(props: { jobId: string; job: JobListRow | null; sideJobs: JobListRow[]; current: RouteDef | undefined; loading: boolean }) {
   const { job, sideJobs, current, jobId } = props;
   const { sideId, setSideId } = useData();
-  const lastSide = useRef(sideId);
+  // A job opened from a link may be on the other side: switch to its side, once per route. Leaving the side is the
+  // side switcher's job (it goes back to the jobs list), so a jobs list that arrives late never undoes a switch.
+  const synced = useRef<string | null>(null);
+  const routeKey = `${jobId}|${current?.path ?? ''}`;
 
   useEffect(() => {
-    if (job && sideId && job.sideId !== sideId) {
-      if (lastSide.current === sideId) setSideId(job.sideId);
-      else globalThis.location?.replace(href('/jobs'));
-    }
-    lastSide.current = sideId;
-  }, [job, sideId, setSideId]);
+    if (!job || synced.current === routeKey) return;
+    // Only while this job's route is still the one showing (a side switch may have just replaced it).
+    if (!hashPath().startsWith(`/jobs/${encodeURIComponent(jobId)}`)) return;
+    synced.current = routeKey;
+    if (sideId && job.sideId !== sideId) setSideId(job.sideId);
+  }, [job, jobId, routeKey, sideId, setSideId]);
 
   if (!job) {
     return props.loading ? <div className="jobbar jobbar-loading" aria-hidden="true" /> : null;

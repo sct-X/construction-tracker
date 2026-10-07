@@ -32,7 +32,13 @@ export function NotesScreen({ jobId }: { jobId: string }) {
       <header className="screen-head">
         <div>
           <h1>
-            Daily notes{q.status === 'ready' && q.data.jobName && <span className="sr-only"> at {q.data.jobName}</span>}
+            Daily notes
+            {q.status === 'ready' && q.data.jobName && (
+              <>
+                {' '}
+                <span className="sr-only">at {q.data.jobName}</span>
+              </>
+            )}
           </h1>
           {q.status === 'ready' && q.data.jobId && (
             <p className="screen-sub" data-testid="notes-sub">

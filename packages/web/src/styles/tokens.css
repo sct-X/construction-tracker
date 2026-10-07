@@ -24,13 +24,17 @@
   --font: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-num: 'Barlow Condensed', 'Barlow', system-ui, sans-serif;
 
+  --t-hero: 2.75rem;
   --t-num: 2.25rem;
   --t-num-md: 1.5rem;
+  --t-title: 1.75rem;
   --t-h1: 1.5rem;
   --t-h2: 1.125rem;
   --t-body: 1rem;
   --t-small: 0.875rem;
   --t-label: 0.8125rem;
+  /* Chart annotations only: week numbers, the today and shutdown labels. */
+  --t-tiny: 0.75rem;
 
   --r-sm: 3px;
   --r-md: 6px;
@@ -39,4 +43,12 @@
   --tabbar: 60px;
 
   color-scheme: light;
+}
+
+/* Phone: the same scale, the two largest steps smaller. Every font-size in the app is one of these tokens. */
+@media (max-width: 760px) {
+  :root {
+    --t-hero: 2.375rem;
+    --t-num: 2rem;
+  }
 }

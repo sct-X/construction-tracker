@@ -4,7 +4,7 @@
  * whatever width it gets. Forecast bars are solid; the planned position stays
  * behind as a dashed outline, so slip shows without reading a date.
  */
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { addCalendarDays, calendarDaysBetween, formatDayMonth, lastMonday, type ISODate } from '@ct/core';
 
 export interface Scale {
@@ -43,46 +43,87 @@ function mondays(scale: Scale): ISODate[] {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-function monthStarts(scale: Scale, short = false): { date: ISODate; label: string }[] {
-  const out: { date: ISODate; label: string }[] = [];
+interface AxisLabel {
+  date: ISODate;
+  label: string;
+  /** Left edge, px. */
+  left: number;
+}
+
+/** Rough width of a label in the axis type (t-small, semibold). */
+function labelWidth(text: string): number {
+  return text.length * 7.6 + 8;
+}
+
+/**
+ * Month labels laid out in pixels so none collide or run off the right edge: a part month at the
+ * start gives way to the next month, a label too close to the one before is dropped, and the last
+ * one is pulled in from the edge. The first label shown carries the year (unless `short`), as does January.
+ */
+export function monthLabels(scale: Scale, width: number, short = false): AxisLabel[] {
+  const raw: { date: ISODate; m: number; y: number; partial: boolean }[] = [];
   let [y, m] = scale.from.split('-').map(Number) as [number, number];
-  let first = true;
   for (;;) {
     const iso = `${y}-${String(m).padStart(2, '0')}-01`;
     if (iso >= scale.to) break;
-    const showYear = !short && (first || m === 1);
-    out.push({ date: iso < scale.from ? scale.from : iso, label: showYear ? `${MONTHS[m - 1]} ${y}` : MONTHS[m - 1]! });
-    first = false;
+    raw.push({ date: iso < scale.from ? scale.from : iso, m, y, partial: iso < scale.from });
     m++;
     if (m > 12) {
       m = 1;
       y++;
     }
   }
-  // A month that only shows its last days would collide with the next label: drop it, and give the next one the year.
-  if (out.length > 1 && calendarDaysBetween(out[0]!.date, out[1]!.date) < 12) {
-    out.shift();
-    const [yy, mm] = out[0]!.date.split('-').map(Number) as [number, number];
-    if (!short) out[0]!.label = `${MONTHS[mm - 1]} ${yy}`;
+  const px = (d: ISODate) => (scale.x(d) / 100) * width;
+  const text = (r: (typeof raw)[number], first: boolean) => (!short && (first || r.m === 1) ? `${MONTHS[r.m - 1]} ${r.y}` : MONTHS[r.m - 1]!);
+  if (raw.length > 1 && raw[0]!.partial && px(raw[1]!.date) - px(raw[0]!.date) < labelWidth(text(raw[0]!, true)) + 6) raw.shift();
+  const out: AxisLabel[] = [];
+  let lastEnd = -Infinity;
+  for (const r of raw) {
+    const label = text(r, out.length === 0);
+    const w = labelWidth(label);
+    let left = px(r.date);
+    if (left + w > width) left = width - w;
+    if (left < lastEnd + 6 || left < 0) continue;
+    out.push({ date: r.date, label, left });
+    lastEnd = left + w;
   }
   return out;
 }
 
-/** Month names over Monday dates. `dense` drops every other Monday number when weeks are narrow. */
-export function TimeAxis({ scale, dense = false, short = false }: { scale: Scale; dense?: boolean; short?: boolean }) {
+/** The rendered width of an element, kept up to date (fallback when ResizeObserver is missing, as in jsdom). */
+function useWidth<T extends HTMLElement>(fallback: number): [RefObject<T | null>, number] {
+  const ref = useRef<T | null>(null);
+  const [width, setWidth] = useState(fallback);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (el.clientWidth) setWidth(el.clientWidth);
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => el.clientWidth && setWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, width];
+}
+
+/** Month names over Monday dates, thinned to fit the width the axis actually has. */
+export function TimeAxis({ scale, short = false }: { scale: Scale; short?: boolean }) {
+  const [ref, width] = useWidth<HTMLDivElement>(700);
   const weeks = mondays(scale);
+  const weekPx = (width * 7) / scale.days;
+  const every = weekPx >= 20 ? 1 : weekPx >= 10 ? 2 : 4;
   return (
-    <div className="axis" aria-hidden="true">
+    <div className="axis" aria-hidden="true" ref={ref}>
       <div className="axis-months">
-        {monthStarts(scale, short).map((m) => (
-          <span key={m.date} className="axis-month" style={{ left: `${scale.x(m.date)}%` }}>
+        {monthLabels(scale, width, short).map((m) => (
+          <span key={m.date} className="axis-month" style={{ left: `${m.left}px` }}>
             {m.label}
           </span>
         ))}
       </div>
       <div className="axis-weeks">
         {weeks.map((d, i) =>
-          dense && i % 2 ? null : (
+          i % every || (scale.x(d) / 100) * width > width - 16 ? null : (
             <span key={d} className="axis-week" style={{ left: `${scale.x(d)}%` }}>
               {Number(d.slice(8))}
             </span>

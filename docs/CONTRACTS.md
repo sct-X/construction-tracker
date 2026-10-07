@@ -397,6 +397,11 @@ re-run with `{ ...question.args, afterChoice: id }`.
   cost, movedSteps} found by taking back every confirmed change set from the page's oldest on and replaying in order
   (so changes older than the snapshot count too); `LocalDashboardApi.getChangeHistory` passes today. `historyChanges(ds,
   changes)` exported.
+- Stage 4 review fixes: screens other than Monday are `React.lazy` chunks behind one Suspense in App. The side switcher
+  leaves a job page itself; the job bar only follows a linked job's side once per route. Overdue wording everywhere is
+  `urgencyWords` (`ui/itemWords.ts`). `monthLabels(scale, widthPx, short?)` lays out axis labels without collisions.
+  Type sizes are tokens only: --t-hero, --t-num, --t-num-md, --t-title, --t-h1, --t-h2, --t-body, --t-small, --t-label,
+  --t-tiny (phone overrides in tokens.css). Skip link `.skip`; `<main tabIndex=-1>` takes focus on a route change.
 - Design rules live in `src/styles/tokens.css` (palette and type) and `app.css`; phone layout is the same DOM at <= 760px.
 
 ## Seed (`packages/core/src/seed`)

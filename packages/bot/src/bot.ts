@@ -28,7 +28,7 @@ import {
   type QuestionOption,
   type Store,
 } from '@ct/core';
-import type { ChatMsg, ParseResult, Parser } from '@ct/llm';
+import { BOT_SET_ARGS, type ChatMsg, type ParseResult, type Parser } from '@ct/llm';
 import { cardText, finishSentence } from './format.js';
 import { answerRead } from './reads.js';
 
@@ -62,6 +62,16 @@ export interface CreateBotOptions {
   botInfo?: UserFromGetMe;
   transcriber?: Transcriber;
   photoStore?: PhotoStore;
+  /** A question left unanswered this long is dropped. Default 30 minutes. */
+  pendingTtlMs?: number;
+}
+
+/**
+ * Args only the bot may set (never the model): `filePath` comes from a photo the
+ * bot itself stored (Stage 3 photo handler). `messageId` is always the inbound row.
+ */
+export interface BotArgs {
+  filePath?: string;
 }
 
 export type Call = { op: string; args: Record<string, unknown> };
@@ -82,9 +92,12 @@ export type Pending =
       rest: Call[];
       history: ChatMsg[];
       questionMessageId: number | null;
+      botArgs: BotArgs;
+      /** clock.now() in ms when asked; expires after pendingTtlMs. */
+      askedAt: number;
     }
-  | { kind: 'parser-question'; messageId: string | null; transcript: string | null; history: ChatMsg[] }
-  | { kind: 'edit'; history: ChatMsg[]; transcript: string | null };
+  | { kind: 'parser-question'; messageId: string | null; transcript: string | null; history: ChatMsg[]; botArgs: BotArgs; askedAt: number }
+  | { kind: 'edit'; history: ChatMsg[]; transcript: string | null; botArgs: BotArgs; askedAt: number };
 
 /** A confirm card the bot sent (in memory; the change set itself is in the store). */
 export interface Card {
@@ -97,6 +110,7 @@ export interface Card {
   summary: string;
   jobIds: string[];
   history: ChatMsg[];
+  botArgs: BotArgs;
 }
 
 export interface BotHandle {
@@ -109,10 +123,21 @@ export interface BotHandle {
    * Run already-understood text through the pipeline as if typed (Stage 3: a
    * voice transcript or a photo caption), linked to an inbound row the caller saved.
    */
-  handleInbound(chatId: number, inbound: InboundMessage, text: string, opts?: { transcript?: string | null; replyTo?: Message }): Promise<void>;
+  handleInbound(chatId: number, inbound: InboundMessage, text: string, opts?: InboundOptions): Promise<void>;
+}
+
+export interface InboundOptions {
+  transcript?: string | null;
+  replyTo?: Message;
+  /** Stage 3 photo handler: the stored file's path, the only way attach_photo can run. */
+  botArgs?: BotArgs;
 }
 
 const MAX_TEXT = 4000;
+/** The model's free-text replies are meant to be a sentence or two. */
+const MAX_MODEL_REPLY = 400;
+const DEFAULT_PENDING_TTL_MS = 30 * 60 * 1000;
+const SOMETHING_WRONG = 'Something went wrong on my side, so nothing was saved. Try again in a minute.';
 const UNDO_WORD = /^\s*undo(\s+(that|this|it))?\s*[.!]?\s*$/i;
 
 export function silentLog(): BotLog {
@@ -157,6 +182,19 @@ export function createBot(opts: CreateBotOptions): BotHandle {
   if (opts.transport) bot.api.config.use(opts.transport);
 
   const pending = new Map<number, Pending>();
+  const ttl = opts.pendingTtlMs ?? DEFAULT_PENDING_TTL_MS;
+  const nowMs = () => clock.now().getTime();
+
+  /** Takes (and clears) the chat's pending question, unless it has expired. */
+  function takePending(chatId: number): Pending | undefined {
+    const p = pending.get(chatId);
+    pending.delete(chatId);
+    if (p && nowMs() - p.askedAt > ttl) {
+      log.info(`Dropped an unanswered question in chat ${chatId} (older than ${Math.round(ttl / 60000)} min).`);
+      return undefined;
+    }
+    return p;
+  }
   const cards = new Map<string, Card>();
   const cardByTelegramId = new Map<string, string>(); // `${chatId}:${messageId}` -> change set id
 
@@ -185,11 +223,17 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     return { today: clock.today(), now: clock.now() };
   }
 
-  /** Args the bot sets itself (never the model): the inbound message id. */
-  function withBotArgs(op: string, args: Record<string, unknown>, messageId: string | null): Record<string, unknown> {
-    const def = getOperation(op);
-    const shape = (def?.schema as unknown as { shape?: Record<string, unknown> } | undefined)?.shape ?? {};
-    return messageId && 'messageId' in shape && args.messageId == null ? { ...args, messageId } : args;
+  /**
+   * Every bot-owned arg is removed from what the model (or a resumed question) supplied,
+   * then set by the bot: `messageId` = the inbound row, `filePath` = the stored photo.
+   */
+  function withBotArgs(op: string, args: Record<string, unknown>, rc: RunContext): Record<string, unknown> {
+    const shape = (getOperation(op)?.schema as unknown as { shape?: Record<string, unknown> } | undefined)?.shape ?? {};
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(args)) if (!BOT_SET_ARGS.includes(k)) out[k] = v;
+    if (rc.messageId && 'messageId' in shape) out.messageId = rc.messageId;
+    if (rc.botArgs.filePath && 'filePath' in shape) out.filePath = rc.botArgs.filePath;
+    return out;
   }
 
   interface RunContext {
@@ -197,6 +241,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     messageId: string | null;
     transcript: string | null;
     history: ChatMsg[];
+    botArgs: BotArgs;
   }
 
   async function runCalls(calls: Call[], rc: RunContext): Promise<void> {
@@ -215,7 +260,13 @@ export function createBot(opts: CreateBotOptions): BotHandle {
         await send(rc.chatId, 'That one is a Setup change: do it in the Setup area on the computer. Nothing saved.');
         return;
       }
-      const args = withBotArgs(call.op, call.args, rc.messageId);
+      const shape = (def.schema as unknown as { shape: Record<string, unknown> }).shape;
+      if ('filePath' in shape && !rc.botArgs.filePath) {
+        // attach_photo only ever runs on a photo the bot received and stored itself.
+        await send(rc.chatId, "Send the photo itself (as a photo or a file) and I'll file it. Nothing saved.");
+        return;
+      }
+      const args = withBotArgs(call.op, call.args, rc);
       const r: OpResult = runOperation(working, call.op, args, opCtx());
       if (r.kind === 'refusal') {
         await send(rc.chatId, `${r.reason}${/[.!?]$/.test(r.reason) ? '' : '.'} Nothing saved.`);
@@ -223,6 +274,10 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       }
       if (r.kind === 'question') {
         const q = r;
+        if (q.field && BOT_SET_ARGS.includes(q.field)) {
+          await send(rc.chatId, "I can't take that from a message. Nothing saved.");
+          return;
+        }
         const keyboard = q.options?.length ? new InlineKeyboard() : undefined;
         q.options?.forEach((o, n) => keyboard!.text(o.label, `a:${n}`).row());
         const msg = await send(rc.chatId, q.question, keyboard);
@@ -238,6 +293,8 @@ export function createBot(opts: CreateBotOptions): BotHandle {
           rest: calls.slice(i + 1),
           history: [...rc.history, { role: 'assistant', content: q.question }],
           questionMessageId: msg.message_id,
+          botArgs: rc.botArgs,
+          askedAt: nowMs(),
         });
         return;
       }
@@ -278,6 +335,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       summary,
       jobIds,
       history: [...rc.history, { role: 'assistant', content: `Proposed: ${summary}.` }],
+      botArgs: rc.botArgs,
     };
     cards.set(cs.id, card);
     cardByTelegramId.set(`${rc.chatId}:${msg.message_id}`, cs.id);
@@ -304,7 +362,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
   async function handleParse(result: ParseResult, rc: RunContext): Promise<void> {
     switch (result.kind) {
       case 'reply':
-        await send(rc.chatId, result.text);
+        await send(rc.chatId, result.text.length > MAX_MODEL_REPLY ? `${result.text.slice(0, MAX_MODEL_REPLY - 1).trimEnd()}…` : result.text);
         return;
       case 'question': {
         await send(rc.chatId, result.text);
@@ -313,6 +371,8 @@ export function createBot(opts: CreateBotOptions): BotHandle {
           messageId: rc.messageId,
           transcript: rc.transcript,
           history: [...rc.history, { role: 'assistant', content: result.text }],
+          botArgs: rc.botArgs,
+          askedAt: nowMs(),
         });
         return;
       }
@@ -337,52 +397,81 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     return r.kind === 'unique' ? (r.match.value as QuestionOption) : null;
   }
 
-  async function resumeQuestion(p: Extract<Pending, { kind: 'op-question' }>, chatId: number, value: string): Promise<void> {
+  /** An option was picked (button or typed): re-run with it filled in. */
+  async function resumeQuestion(p: Extract<Pending, { kind: 'op-question' }>, chatId: number, opt: QuestionOption): Promise<void> {
     const field = p.field!;
-    const calls = [...p.done, { op: p.current.op, args: { ...p.current.args, [field]: value } }, ...p.rest];
-    await runCalls(calls, { chatId, messageId: p.messageId, transcript: p.transcript, history: p.history });
+    const calls = [...p.done, { op: p.current.op, args: { ...p.current.args, [field]: opt.value } }, ...p.rest];
+    await runCalls(calls, {
+      chatId,
+      messageId: p.messageId,
+      transcript: p.transcript,
+      history: [...p.history, { role: 'user', content: opt.label }],
+      botArgs: p.botArgs,
+    });
   }
 
-  async function handleInbound(
-    chatId: number,
-    inbound: InboundMessage,
-    text: string,
-    o: { transcript?: string | null; replyTo?: Message } = {},
-  ): Promise<void> {
+  async function parse(chatId: number, text: string, history: ChatMsg[]): Promise<ParseResult | null> {
+    try {
+      return await parser.parse(text, parseContext(history));
+    } catch (e) {
+      log.error('Parser failed', e);
+      await send(chatId, "I couldn't read that just now (the language model didn't answer). Try again in a minute. Nothing saved.");
+      return null;
+    }
+  }
+
+  async function handleInbound(chatId: number, inbound: InboundMessage, text: string, o: InboundOptions = {}): Promise<void> {
+    const own: RunContext = {
+      chatId,
+      messageId: inbound.id,
+      transcript: o.transcript ?? null,
+      history: [{ role: 'user', content: text }],
+      botArgs: o.botArgs ?? {},
+    };
     if (UNDO_WORD.test(text)) {
+      pending.delete(chatId);
       if (o.replyTo) await undoReplied(chatId, o.replyTo);
       else await undoLatest(chatId);
       return;
     }
-    const p = pending.get(chatId);
-    pending.delete(chatId);
-    if (p?.kind === 'op-question' && p.field) {
-      if (p.options?.length) {
-        const opt = matchOption(text, p.options);
-        if (opt) {
-          if (p.questionMessageId) await edit(chatId, p.questionMessageId, `${p.question}\n→ ${opt.label}`);
-          await resumeQuestion(p, chatId, opt.value);
-          return;
-        }
-      } else {
-        await resumeQuestion(p, chatId, text.trim());
+    const p = takePending(chatId);
+    if (!p) {
+      const result = await parse(chatId, text, []);
+      if (result) await handleParse(result, own);
+      return;
+    }
+    if (p.kind === 'op-question' && p.options?.length) {
+      const opt = matchOption(text, p.options);
+      if (opt) {
+        if (p.questionMessageId) await edit(chatId, p.questionMessageId, `${p.question}\n→ ${opt.label}`);
+        await resumeQuestion(p, chatId, opt);
         return;
       }
     }
-    // A fresh message, an answer to the parser's own question, an unmatched
-    // answer, or an Edit correction: parse it with whatever came before.
-    const history = p ? p.history : [];
-    const messageId = p?.kind === 'edit' ? inbound.id : (p && 'messageId' in p ? (p.messageId ?? inbound.id) : inbound.id);
-    const transcript = o.transcript ?? (p && p.kind !== 'edit' ? p.transcript : null) ?? null;
-    let result: ParseResult;
-    try {
-      result = await parser.parse(text, parseContext(history));
-    } catch (e) {
-      log.error('Parser failed', e);
-      await send(chatId, "I couldn't read that just now (the language model didn't answer). Try again in a minute. Nothing saved.");
+    if (p.kind === 'edit') {
+      // The correction: parsed with the card's thread; the new card links to the correction itself.
+      const result = await parse(chatId, text, p.history);
+      if (result) await handleParse(result, { ...own, transcript: o.transcript ?? p.transcript, history: [...p.history, { role: 'user', content: text }], botArgs: o.botArgs ?? p.botArgs });
       return;
     }
-    await handleParse(result, { chatId, messageId, transcript, history: [...history, { role: 'user', content: text }] });
+    // A question is open. If the text is a complete change by itself, it is a new request:
+    // the question is dropped and the change links to this message. Otherwise it answers
+    // the question: parsed with the thread, linked to the message that started it.
+    const alone = await parse(chatId, text, []);
+    if (!alone) return;
+    if (alone.kind === 'ops') {
+      await handleParse(alone, own);
+      return;
+    }
+    const threaded = await parse(chatId, text, p.history);
+    if (!threaded) return;
+    await handleParse(threaded, {
+      chatId,
+      messageId: p.messageId ?? inbound.id,
+      transcript: p.transcript ?? o.transcript ?? null,
+      history: [...p.history, { role: 'user', content: text }],
+      botArgs: o.botArgs ?? p.botArgs,
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -444,7 +533,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       return;
     }
     await send(chatId, "That card was out of date: something changed since I made it, so nothing was saved. Here's a fresh one.");
-    await runCalls(calls, { chatId, messageId: card?.messageId ?? cs?.messageId ?? null, transcript: card?.transcript ?? null, history: card?.history ?? [] });
+    await runCalls(calls, { chatId, messageId: card?.messageId ?? cs?.messageId ?? null, transcript: card?.transcript ?? null, history: card?.history ?? [], botArgs: card?.botArgs ?? {} });
   }
 
   async function cancel(ctx: Context, csId: string): Promise<string | undefined> {
@@ -472,7 +561,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       { role: 'assistant', content: `Proposed: ${cs.summary}.` },
     ];
     const ask = 'What should it be instead? Send the correction and I\'ll make a new card.';
-    pending.set(chatId, { kind: 'edit', history: [...history, { role: 'assistant', content: ask }], transcript: card?.transcript ?? null });
+    pending.set(chatId, { kind: 'edit', history: [...history, { role: 'assistant', content: ask }], transcript: card?.transcript ?? null, botArgs: card?.botArgs ?? {}, askedAt: nowMs() });
     if (msgId) await edit(chatId, msgId, `Changing this one (not saved): ${cs.summary}.`);
     await send(chatId, ask);
     return 'Send the correction';
@@ -535,16 +624,32 @@ export function createBot(opts: CreateBotOptions): BotHandle {
   // Wiring
   // -------------------------------------------------------------------------
 
-  // Allowlist first: anything not from Dominic stops here, unanswered and unsaved.
+  // Allowlist first: anything not from Dominic, or not in a private chat with him
+  // (a group would show job data to everyone in it), stops here, unanswered and unsaved.
   bot.use(async (ctx, next) => {
     const from = ctx.from;
+    const what = ctx.message?.text ? 'a text message' : ctx.callbackQuery ? 'a button press' : 'an update';
     if (!from || String(from.id) !== allowed) {
       const who = from ? `${from.id}${from.username ? ` (@${from.username})` : ''}` : 'unknown sender';
-      const what = ctx.message?.text ? 'a text message' : ctx.callbackQuery ? 'a button press' : 'an update';
       log.warn(`Ignored ${what} from Telegram user ${who}: not the allowed user.`);
       return;
     }
+    if (ctx.chat && ctx.chat.type !== 'private') {
+      log.warn(`Ignored ${what} in ${ctx.chat.type} chat ${ctx.chat.id}: the bot only talks in a private chat.`);
+      return;
+    }
     await next();
+  });
+
+  // Any error: logged, a short polite reply, and a pressed button stops spinning.
+  bot.use(async (ctx, next) => {
+    try {
+      await next();
+    } catch (e) {
+      log.error(`Error handling update ${ctx.update.update_id}`, e);
+      if (ctx.callbackQuery) await ctx.answerCallbackQuery({ text: 'Something went wrong' }).catch(() => undefined);
+      if (ctx.chat) await send(ctx.chat.id, SOMETHING_WRONG).catch(() => undefined);
+    }
   });
 
   // Every allowed text (commands included) is saved as an inbound message first.
@@ -582,6 +687,8 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     const kind = data.slice(0, sep);
     const arg = data.slice(sep + 1);
     let note: string | undefined;
+    // A button press that isn't the answer to the open question drops that question.
+    if (chatId !== undefined && kind !== 'a') pending.delete(chatId);
     if (chatId === undefined || sep < 0) note = 'That button no longer works.';
     else if (kind === 'c') note = await confirm(ctx, arg);
     else if (kind === 'x') note = await cancel(ctx, arg);
@@ -589,16 +696,15 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     else if (kind === 'u') {
       await undo(chatId, arg, ctx.callbackQuery.message?.message_id);
     } else if (kind === 'a') {
-      const p = pending.get(chatId);
+      const p = takePending(chatId);
       const n = Number(arg);
       const qMsg = ctx.callbackQuery.message?.message_id;
       if (p?.kind !== 'op-question' || !p.options?.[n] || (p.questionMessageId && qMsg && p.questionMessageId !== qMsg)) {
         note = 'That question has expired. Send the message again.';
       } else {
-        pending.delete(chatId);
         const opt = p.options[n]!;
         if (qMsg) await edit(chatId, qMsg, `${p.question}\n→ ${opt.label}`);
-        await resumeQuestion(p, chatId, opt.value);
+        await resumeQuestion(p, chatId, opt);
       }
     } else note = 'That button no longer works.';
     await ctx.answerCallbackQuery(note ? { text: note } : undefined);

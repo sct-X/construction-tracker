@@ -128,8 +128,12 @@ describe('flow d: ambiguity becomes a question, nothing saved', () => {
     expect(windowsEta()).toBe('2026-10-26');
   });
 
-  it('the answer resumes the operation: button for the job, then the missing ETA as text -> a card', async () => {
-    await setup([toolCall('set_shipment_eta', { shipment: 'the windows' })]);
+  it('the answer resumes the operation: button for the job, then the missing ETA re-parsed with the thread -> a card', async () => {
+    await setup([
+      toolCall('set_shipment_eta', { shipment: 'the windows' }),
+      textReply('16 Nov what?'), // "16 Nov" alone is not a change: it answers the open question
+      etaCall('16 Nov', 'Park Rd windows', undefined), // parsed again with the thread
+    ]);
     await h.text('the windows are late');
     const q = h.last();
     const pressed = await h.press(q.messageId, 'Park Rd windows (Park Rd)');
@@ -144,16 +148,30 @@ describe('flow d: ambiguity becomes a question, nothing saved', () => {
     // The change set links to the first message, not the answer.
     const original = store.load().inboundMessages.find((m) => m.rawText === 'the windows are late')!;
     expect(newChangeSets()[0]!.messageId).toBe(original.id);
-    expect(llm.requests).toHaveLength(1); // answers are matched, not re-parsed
+    expect(llm.requests.map((r) => r.messages.map((m) => m.content))).toEqual([
+      ['the windows are late'],
+      ['16 Nov'],
+      ['the windows are late', 'Which shipment do you mean by "the windows"?', 'Park Rd windows (Park Rd)', 'What is the new ETA?', '16 Nov'],
+    ]);
+    // Change history quotes the message that started it.
+    const [entry] = await rpc<{ message: { rawText: string } }[]>('getChangeHistory', { statuses: ['proposed'] });
+    expect(entry!.message.rawText).toBe('the windows are late');
   });
 
   it("the parser's own question is asked, and the reply is parsed with that history", async () => {
-    await setup([toolCall('ask_question', { question: 'Which job, Park Rd or Seaview St?' }), etaCall('16 Nov')]);
+    await setup([
+      toolCall('ask_question', { question: 'Which job, Park Rd or Seaview St?' }),
+      toolCall('get_job_finish', { job: 'Park Rd' }), // "Park Rd" alone: not a change
+      etaCall('16 Nov'),
+    ]);
     const calls = await h.text('windows moved to 16 Nov');
     expect(h.sent(calls)).toEqual(['Which job, Park Rd or Seaview St?']);
     expect(changeSets()).toHaveLength(seedChangeSets);
     await h.text('Park Rd');
-    expect(llm.requests[1]!.messages.map((m) => m.content)).toEqual(['windows moved to 16 Nov', 'Which job, Park Rd or Seaview St?', 'Park Rd']);
+    expect(llm.requests[1]!.messages.map((m) => m.content)).toEqual(['Park Rd']);
+    expect(llm.requests[2]!.messages.map((m) => m.content)).toEqual(['windows moved to 16 Nov', 'Which job, Park Rd or Seaview St?', 'Park Rd']);
+    const original = store.load().inboundMessages.find((m) => m.rawText === 'windows moved to 16 Nov')!;
+    expect(newChangeSets()[0]!.messageId).toBe(original.id);
     expect(h.lastWithButton('Confirm').text).toContain('Finish Fri 12 Mar 2027');
   });
 });

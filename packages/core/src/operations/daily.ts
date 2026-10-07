@@ -305,6 +305,16 @@ export const addDailyNote = defineOp({
   },
 });
 
+/**
+ * A stored photo path: relative to the photos folder, forward slashes, no ".." anywhere,
+ * not absolute (no leading slash or backslash, no drive letter), no NUL.
+ */
+export function isSafePhotoPath(p: string): boolean {
+  if (!p || p.includes('..') || p.includes('\\') || p.includes('\0')) return false;
+  if (p.startsWith('/') || /^[a-zA-Z]:/.test(p) || /^[a-z][a-z0-9+.-]*:/i.test(p)) return false;
+  return p.split('/').every((seg) => seg !== '' && seg !== '.');
+}
+
 export const attachPhoto = defineOp({
   name: 'attach_photo',
   group: 'daily',
@@ -345,6 +355,8 @@ export const attachPhoto = defineOp({
       : staged.length === 1
         ? staged[0]!
         : askCategory(stage, pool);
+    // The path is relative to the photos folder and set by the bot from a file it stored; never outside it.
+    if (!isSafePhotoPath(a.filePath)) refuse(ctx, `That photo path isn't inside the photos folder ("${a.filePath}"). Send the photo itself.`);
     const row = {
       id: ctx.id('photo'),
       jobId: job.id,

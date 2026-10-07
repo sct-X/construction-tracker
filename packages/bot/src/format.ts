@@ -123,6 +123,12 @@ export function rowLabel(ds: Dataset, change: Change): string {
     }
   })();
   if (live) return live;
+  if (change.table === 'photo') {
+    const r = (change.kind === 'update' ? ds.photos.find((x) => x.id === id) : change.row) as Record<string, JsonValue> | undefined;
+    const cat = r && typeof r.categoryId === 'string' ? ds.photoCategories.find((c) => c.id === r.categoryId)?.name : undefined;
+    const job = r && typeof r.jobId === 'string' ? ds.jobs.find((j) => j.id === r.jobId)?.name : undefined;
+    if (cat) return `${cat}${job ? ` (${job})` : ''}`;
+  }
   if (change.kind !== 'update') {
     const r = change.row as Record<string, JsonValue>;
     const t = r.title ?? r.name ?? r.text ?? r.caption;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  isSafePhotoPath,
   buildSeed,
   DEFAULT_TODAY,
   dryRun,
@@ -128,6 +129,16 @@ describe('operations', () => {
     const f = forecastJob(dryRun(ds, p, today).after, PARK_RD, today);
     const added = Object.values(f.items).find((i) => i.itemId === (p.changes[0] as { rowId: string }).rowId)!;
     expect(added.actBy).toBe('2026-09-21');
+  });
+
+  it('attach_photo refuses a file path outside the photos folder', () => {
+    const ds = buildSeed();
+    for (const filePath of ['../../../.env', 'seaview/../../x.jpg', '/etc/passwd', 'C:/x.jpg', 'seaview\\x.jpg', 'file:///x.jpg', 'seaview//x.jpg', './x.jpg']) {
+      const r = runOperation(ds, 'attach_photo', { job: 'Seaview', category: 'plumbing under slab', filePath }, ctx);
+      expect(r, filePath).toMatchObject({ kind: 'refusal', reason: expect.stringContaining("isn't inside the photos folder") });
+    }
+    expect(isSafePhotoPath('seaview/2026-09-17-photo-1.jpg')).toBe(true);
+    expect(isSafePhotoPath('placeholder/p1.jpg')).toBe(true);
   });
 
   it('attach_photo files by caption, asks when the category is unclear', () => {

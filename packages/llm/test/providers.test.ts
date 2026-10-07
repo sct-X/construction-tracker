@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   AnthropicProvider,
@@ -238,8 +240,30 @@ describe('createProviderFromEnv', () => {
     expect(providerForModel('llama-3')).toBeNull();
   });
 
+  it('LLM_MODEL alone decides the provider; LLM_PROVIDER only counts when LLM_MODEL is blank or unknown', () => {
+    const keys = { OPENAI_API_KEY: 'k', GEMINI_API_KEY: 'k', ANTHROPIC_API_KEY: 'k' };
+    for (const [model, id] of [['gpt-5-mini', 'openai'], ['o4-mini', 'openai'], ['gemini-2.5-flash', 'gemini'], ['claude-haiku-4-5', 'anthropic']] as const) {
+      // A stale LLM_PROVIDER line never overrides the model.
+      const p = createProviderFromEnv({ ...keys, LLM_PROVIDER: 'openai', LLM_MODEL: model });
+      expect([p.id, p.model]).toEqual([id, model]);
+    }
+    expect(createProviderFromEnv({ ...keys, LLM_MODEL: 'ft:my-tune', LLM_PROVIDER: 'openai' }).id).toBe('openai');
+  });
+
+  it('.env.example switches the model with one line', () => {
+    const text = readFileSync(fileURLToPath(new URL('../../../.env.example', import.meta.url)), 'utf8');
+    const lines = text.split('\n').map((l) => l.trim());
+    expect(lines).toContain('LLM_MODEL=gpt-5-mini');
+    expect(lines.filter((l) => /^LLM_PROVIDER=/.test(l))).toEqual([]);
+    for (const m of ['gpt-5-mini', 'gemini-2.5-flash', 'claude-haiku-4-5']) expect(text).toContain(m);
+    const env = Object.fromEntries(lines.filter((l) => /^[A-Z_]+=/.test(l)).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+    expect(createProviderFromEnv({ ...env, OPENAI_API_KEY: 'k' }).id).toBe('openai');
+    expect(createProviderFromEnv({ ...env, LLM_MODEL: 'claude-haiku-4-5', ANTHROPIC_API_KEY: 'k' }).id).toBe('anthropic');
+  });
+
   it('refuses in plain English when the provider or key is missing', () => {
-    expect(() => createProviderFromEnv({})).toThrow(/LLM_PROVIDER is not set/);
+    expect(() => createProviderFromEnv({})).toThrow(/LLM_MODEL is not set/);
+    expect(() => createProviderFromEnv({ LLM_MODEL: 'llama-3', OPENAI_API_KEY: 'k' })).toThrow(/isn't a known family/);
     expect(() => createProviderFromEnv({ LLM_PROVIDER: 'mistral' })).toThrow(/not supported/);
     expect(() => createProviderFromEnv({ LLM_PROVIDER: 'gemini' })).toThrow(/GEMINI_API_KEY is not set/);
     expect(() => createProviderFromEnv({ LLM_PROVIDER: 'openai', OPENAI_API_KEY: 'k', LLM_MAX_TOKENS: 'lots' })).toThrow(/number/);

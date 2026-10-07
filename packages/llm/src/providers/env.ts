@@ -36,7 +36,8 @@ function optionalNumber(env: Record<string, string | undefined>, name: string): 
 
 /**
  * Build the configured provider. Env:
- * - LLM_PROVIDER: openai | gemini | anthropic (optional when LLM_MODEL names a known family)
+ * - LLM_MODEL decides the provider (gpt- and o-series: openai, gemini-: gemini, claude-: anthropic)
+ * - LLM_PROVIDER: openai | gemini | anthropic, only used when LLM_MODEL is blank or not a known family
  * - LLM_MODEL: model id (default per provider: gpt-5-mini, gemini-2.5-flash, claude-haiku-4-5)
  * - OPENAI_API_KEY | GEMINI_API_KEY (or GOOGLE_API_KEY) | ANTHROPIC_API_KEY
  * - optional: LLM_BASE_URL, LLM_MAX_TOKENS, LLM_TIMEOUT_MS, LLM_REASONING_EFFORT (openai), LLM_THINKING_BUDGET (gemini)
@@ -45,8 +46,16 @@ function optionalNumber(env: Record<string, string | undefined>, name: string): 
 export function createProviderFromEnv(env: Record<string, string | undefined>, deps: { fetch?: FetchLike } = {}): LlmProvider {
   const model = blank(env.LLM_MODEL);
   const named = blank(env.LLM_PROVIDER)?.toLowerCase();
-  const id = (named ?? (model ? providerForModel(model) : null) ?? undefined) as string | undefined;
-  if (!id) throw new Error('LLM_PROVIDER is not set. Use openai, gemini or anthropic.');
+  // One config line: LLM_MODEL decides the provider. LLM_PROVIDER only counts when LLM_MODEL is blank
+  // (that provider's default model) or names no known family (e.g. a fine-tune id).
+  const id = ((model ? providerForModel(model) : null) ?? named) as string | undefined;
+  if (!id) {
+    throw new Error(
+      model
+        ? `LLM_MODEL "${model}" isn't a known family (gpt-*, o*, gemini-*, claude-*). Set LLM_PROVIDER to openai, gemini or anthropic.`
+        : 'LLM_MODEL is not set. Use gpt-5-mini, gemini-2.5-flash or claude-haiku-4-5.',
+    );
+  }
   if (!(LLM_PROVIDERS as readonly string[]).includes(id)) {
     throw new Error(`LLM_PROVIDER "${id}" is not supported. Use openai, gemini or anthropic.`);
   }

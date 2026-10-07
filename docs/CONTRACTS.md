@@ -416,8 +416,10 @@ anyOf-with-null -> nullable; const -> enum; no-property tools get no `parameters
 1024). Options `{ apiKey, model?, fetch?, baseUrl?, maxTokens?, timeoutMs (30000), retries (1, on 429/5xx/network),
 retryDelayMs }`. Usage: Gemini output = candidates + thoughts tokens; Anthropic input includes cache tokens.
 
-Env: `LLM_PROVIDER` (openai | gemini | anthropic; may be blank when `LLM_MODEL` starts gpt-/o1../gemini-/claude-),
-`LLM_MODEL`, `OPENAI_API_KEY`, `GEMINI_API_KEY` (or `GOOGLE_API_KEY`), `ANTHROPIC_API_KEY`; optional `LLM_BASE_URL`,
+Env: `LLM_MODEL` is the one line that picks the model AND the provider (gpt-* / o<digit>* -> openai, gemini-* -> gemini,
+claude-* -> anthropic); `LLM_PROVIDER` is only read when `LLM_MODEL` is blank (that provider's default model) or not a
+known family (e.g. a fine-tune id); a stale `LLM_PROVIDER` never overrides a known model. `.env.example` ships
+`LLM_MODEL=gpt-5-mini` with `LLM_PROVIDER` commented out. Keys: `OPENAI_API_KEY`, `GEMINI_API_KEY` (or `GOOGLE_API_KEY`), `ANTHROPIC_API_KEY`; optional `LLM_BASE_URL`,
 `LLM_MAX_TOKENS`, `LLM_TIMEOUT_MS`, `LLM_REASONING_EFFORT` (openai), `LLM_THINKING_BUDGET` (gemini).
 
 Prices (`MODEL_PRICES`, USD per 1M input/output, ESTIMATES from vendor pricing pages, edit when they change):
@@ -431,9 +433,10 @@ and tsconfig `paths`, never a runtime import, so server -> bot is not a cycle). 
 same process over the same store and clock; `RunningApp.bot` is the `RunningBot` or null.
 
 ```ts
-createBot({ token, allowedUserId, store, clock, parser, log?, transport?, botInfo?, transcriber?, photoStore? }): BotHandle
+createBot({ token, allowedUserId, store, clock, parser, log?, transport?, botInfo?, transcriber?, photoStore?, pendingTtlMs? }): BotHandle
   // BotHandle { bot: grammY Bot, handleUpdate(update), pending: Map<chatId, Pending>, cards: Map<csId, Card>,
-  //             handleInbound(chatId, inbound, text, { transcript?, replyTo? }) }   // Stage 3: transcripts, captions
+  //             handleInbound(chatId, inbound, text, { transcript?, replyTo?, botArgs?: { filePath? } }) }
+  //             // Stage 3: transcripts and captions; the photo handler passes the stored file as botArgs.filePath
 startBot({ store, clock, log, env, parser?, transcriber?, photoStore? }): Promise<RunningBot | null>  // {handle, stop()}
 botConfigFromEnv(env) -> {ok, token, allowedUserId} | {ok:false, reason}
 cardText({ summary, transcript?, changes, impacts, ds, today }); changeLines; impactLines; finishSentence; valueText; fieldLabel
@@ -448,7 +451,13 @@ Env: `TELEGRAM_BOT_TOKEN` (unset -> "Telegram bot off" log; `@ct/server` depends
 Behaviour:
 - Allowlist middleware runs first: any update whose `from.id` is not the allowed id gets no reply, no inbound row,
   no parse; one `warn` log line "Ignored a text message from Telegram user <id> (@name): not the allowed user."
-  (button presses: "Ignored a button press ...").
+  (button presses: "Ignored a button press ..."). Dominic in a non-private chat (group, supergroup, channel) is ignored
+  the same way ("... in group chat <id>: the bot only talks in a private chat."). README: turn off "Allow Groups".
+- Errors: a second middleware catches anything a handler throws: logged ("Error handling update <id>"), the button press
+  answered, and "Something went wrong on my side, so nothing was saved. Try again in a minute." sent. A parser/provider
+  failure: "I couldn't read that just now (the language model didn't answer). ... Nothing saved."
+- Updates are handled one at a time by grammY's built-in poller (`bot.start`); the pending/card state relies on that.
+  Don't add `@grammyjs/runner` (concurrent updates) without locking per chat. A slow provider holds later updates.
 - Every allowed text (commands too) -> `recordInbound({channel: 'telegram', sender: String(from.id), rawText})` first.
   Non-text messages: "I can only read text messages for now." (Stage 3 adds voice/photo handlers before that one).
 - `/undo` (or "undo" / "undo that" not as a reply) -> newest confirmed change set whose message came in on Telegram.
@@ -458,11 +467,20 @@ Behaviour:
 - Parse context: today, live job names, trade names, live jobs' shipment names, history (only in a question/edit thread).
   `reply` -> text; `read` -> `answerRead` via `LocalDashboardApi` (never a change set); `question` -> sent, pending
   `parser-question` (the reply is parsed with [user, question] history); `ops` -> each call through `runOperation` in
-  order on a working copy (later calls see earlier changes). Only `daily` ops; `messageId` is set by the bot when the op
-  takes it. Refusal -> reason + "Nothing saved."
-- A core question pauses the run: options become inline buttons (`a:<n>`), one per row; a typed answer is matched
-  (number, label, fuzzy) or, for a no-options question, used as the value; re-run with `{...args, [field]: value}` plus
-  the calls before and after. An unmatched typed answer is parsed afresh with the question in the history. When core asks
+  order on a working copy (later calls see earlier changes). Only `daily` ops. Bot-owned args (`BOT_SET_ARGS`:
+  `messageId`, `filePath`) are stripped from every call (model output and resumed questions alike) and set by the bot:
+  `messageId` = the linked inbound row, `filePath` = `botArgs.filePath` from the photo handler. An op taking `filePath`
+  (attach_photo) without one -> "Send the photo itself (as a photo or a file) and I'll file it. Nothing saved."; a core
+  question about a bot-owned arg is never asked. Core attach_photo also refuses a path outside the photos folder
+  (`isSafePhotoPath`: relative, `/` only, no `..`, no drive or scheme). Refusal -> reason + "Nothing saved." A model
+  free-text reply is clipped to 400 characters.
+- A core question pauses the run: options become inline buttons (`a:<n>`), one per row; a pressed or typed option
+  (number, label, fuzzy) re-runs with `{...args, [field]: value}` plus the calls before and after, the label added to
+  the history. Any other text while a question is open (incl. any answer to a no-options question, never taken raw) is
+  parsed ON ITS OWN first: if that gives ops, it is a new request (question dropped, change linked to this message);
+  otherwise it is parsed again with the thread's history and the result links to the message that started the thread.
+  A pending question also ends after `pendingTtlMs` (30 min), on any other button press, `/undo`, "undo" or `/cancel`;
+  an expired option button answers "That question has expired. Send the message again." When core asks
   for a missing arg, names are already resolved (core runOp, "names first"), so "the windows are late" -> "Which
   shipment do you mean by "the windows"?" [Park Rd windows (Park Rd)] [Seaview St windows (Seaview St)], then the ETA.
 - All proposals of one message -> ONE change set (`proposeChangeSet`, status proposed, `messageId` = the first message
@@ -479,12 +497,14 @@ Behaviour:
   it be instead? ..."; the reply is parsed with [original, "Proposed: <summary>.", the ask] history -> a NEW card.
 - Undo (button, reply or /undo) -> `store.undo`; "Undone: <summary>." + finish lines; the card loses its buttons.
 - Pending state and the card map are in memory (one chat). A restart loses pending questions, not cards' buttons.
+- Change history quotes the right text: a change set's message is the message that started its thread (a pick or a
+  short answer is a detail of it), a fresh request's own message, or the correction for an Edit.
 
 Test harness (`packages/bot/test/harness.ts`, for Stage 3 too): `createHarness({ store, clock, parser, allowedUserId?,
-transcriber?, photoStore? })` -> `{ handle, log (memory), calls (every API call), messages (bot messages by id, edits
-applied, buttons), text(text, {from?, replyTo?}), press(messageId, buttonTextOrData, {from?}), update(rawUpdate),
+pendingTtlMs?, transcriber?, photoStore? })` -> `{ handle, log (memory), calls (every API call), messages (bot messages by id, edits
+applied, buttons), text(text, {from?, replyTo?, chat?}), press(messageId, buttonTextOrData, {from?}), update(rawUpdate),
 sent(calls?), lastWithButton(text), last() }`. Built on a real grammY Bot with `botInfo` preset (`BOT_INFO`) and an API
 transformer that records calls and returns fake results (sendMessage -> a message with a new id). `DOMINIC_ID`,
-`STRANGER_ID`. Integration tests (`test/flows.test.ts`): server SqliteStore on a temp file + `seedDatabase`, a second
+`STRANGER_ID`, `steppingClock(today)` (now() movable with `advance(ms)`). Integration tests (`test/flows.test.ts`): server SqliteStore on a temp file + `seedDatabase`, a second
 SqliteStore on the same file behind `buildServer` (`inject` POST /api/rpc/getMonday), `createParser(new FakeLlm(...))`,
 `fixedClock('2026-09-17', '10:00')`.

@@ -1,3 +1,10 @@
+/** A clock whose now() can be moved forward (pending-question expiry). today() stays fixed. */
+export function steppingClock(today: string, time = '10:00'): Clock & { advance(ms: number): void } {
+  const base = fixedClock(today, time);
+  let offset = 0;
+  return { today: () => base.today(), now: () => new Date(base.now().getTime() + offset), advance: (ms) => void (offset += ms) };
+}
+
 /**
  * Fake Telegram for bot tests (Stage 2 and 3 reuse it). A real grammY Bot is
  * built with a preset botInfo and an API transformer that captures every
@@ -8,7 +15,7 @@
  */
 import type { Transformer } from 'grammy';
 import type { InlineKeyboardMarkup, Message, Update, UserFromGetMe } from 'grammy/types';
-import type { Clock, Store } from '@ct/core';
+import { fixedClock, type Clock, type Store } from '@ct/core';
 import type { Parser } from '@ct/llm';
 import { createBot, type BotHandle, type BotLog, type PhotoStore, type Transcriber } from '../src/index.js';
 
@@ -63,6 +70,7 @@ export interface HarnessOptions {
   clock: Clock;
   parser: Parser;
   allowedUserId?: number;
+  pendingTtlMs?: number;
   transcriber?: Transcriber;
   photoStore?: PhotoStore;
 }
@@ -75,7 +83,7 @@ export interface Harness {
   /** Messages the bot sent, by id, with edits applied. */
   messages: Map<number, SentMessage>;
   /** Send a text as a user (default Dominic). Returns the API calls the bot made in response. */
-  text(text: string, o?: { from?: number; replyTo?: number }): Promise<ApiCall[]>;
+  text(text: string, o?: { from?: number; replyTo?: number; chat?: { id: number; type: 'group' | 'supergroup' | 'channel' | 'private' } }): Promise<ApiCall[]>;
   /** Press an inline button on a bot message. Data can be the button's text or its callback data. */
   press(messageId: number, button: string, o?: { from?: number }): Promise<ApiCall[]>;
   /** Feed a raw update (Stage 3: voice notes, photos). */
@@ -134,6 +142,7 @@ export function createHarness(o: HarnessOptions): Harness {
     botInfo: BOT_INFO,
     ...(o.transcriber ? { transcriber: o.transcriber } : {}),
     ...(o.photoStore ? { photoStore: o.photoStore } : {}),
+    ...(o.pendingTtlMs !== undefined ? { pendingTtlMs: o.pendingTtlMs } : {}),
   });
 
   const user = (id: number) => ({ id, is_bot: false, first_name: id === DOMINIC_ID ? 'Dominic' : 'Stranger' });
@@ -168,7 +177,7 @@ export function createHarness(o: HarnessOptions): Harness {
         message: {
           message_id: ++nextUserMsg,
           date,
-          chat: { id: from, type: 'private', first_name: user(from).first_name },
+          chat: opts.chat ? { id: opts.chat.id, type: opts.chat.type, title: 'Site crew' } : { id: from, type: 'private', first_name: user(from).first_name },
           from: user(from),
           text,
           ...(command ? { entities: [{ type: 'bot_command', offset: 0, length: command[0].length }] } : {}),

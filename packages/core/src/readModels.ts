@@ -5,7 +5,8 @@
  */
 import { forecastJob, holdPointCheck, type HoldPointCheck, type JobForecast, type StageForecast, type StepForecast } from './calculator.js';
 import { applyChanges, changesOf, invertChanges, jobIdsOfChanges } from './changes.js';
-import { addCalendarDays, calendarDaysBetween, formatDate, lastMonday } from './dates.js';
+import { addCalendarDays, calendarDaysBetween, formatDate, lastMonday, SHUTDOWNS, type DateRange } from './dates.js';
+import { slipCost } from './money.js';
 import { compareForecasts, type MovedStep } from './dryRun.js';
 import {
   ITEM_STATUS_LABELS,
@@ -30,6 +31,7 @@ import {
   type TableName,
   type Trade,
 } from './types.js';
+import type { Change } from './changes.js';
 
 export interface SideFilter {
   sideId?: string;
@@ -250,7 +252,6 @@ export function mondayRows(ds: Dataset, today: ISODate, filter: SideFilter = {})
     .filter((j) => j.kind === 'design')
     .map((j) => {
       const c = designChecklist(ds, j.id, today);
-      const f = forecastJob(ds, j.id, today);
       const oldest = c.items[0] ?? null;
       return {
         jobId: j.id,
@@ -261,8 +262,8 @@ export function mondayRows(ds: Dataset, today: ISODate, filter: SideFilter = {})
         oldestDays: c.oldestDays,
         oldestTitle: oldest?.title ?? null,
         oldestWaitingOn: oldest?.waitingOn ?? null,
-        amber: f.freshness.amber,
-        freshnessText: f.freshness.text,
+        amber: c.amber,
+        freshnessText: c.freshnessText,
       } satisfies MondayDesignRow;
     })
     .sort((a, b) => (b.oldestDays ?? -1) - (a.oldestDays ?? -1) || a.name.localeCompare(b.name));
@@ -281,6 +282,12 @@ export interface WhyCause {
   /** What Dominic sent: the text, or the voice note's transcript. */
   sourceText: string | null;
   sourceChannel: string | null;
+  /** 'voice' when the source is a voice note's transcript, 'text' for a typed message, null with no message. */
+  sourceKind: 'voice' | 'text' | null;
+  /** When the source message came in. */
+  sourceReceivedAt: Instant | null;
+  /** Every field this change set changed, with before and after (same shape as change history). */
+  changes: HistoryChange[];
   finishBefore: ISODate | null;
   finishAfter: ISODate | null;
   deltaDays: number;
@@ -362,6 +369,9 @@ export function whyItMoved(ds: Dataset, jobId: string, today: ISODate): WhyItMov
         messageId: cs.messageId,
         sourceText: msg ? (msg.transcript ?? msg.rawText) : null,
         sourceChannel: msg?.channel ?? null,
+        sourceKind: msg ? (msg.transcript ? 'voice' : 'text') : null,
+        sourceReceivedAt: msg?.receivedAt ?? null,
+        changes: historyChanges(ds, changesOf(ds, cs.id)),
         finishBefore: cmp.finishBefore,
         finishAfter: cmp.finishAfter,
         deltaDays: cmp.finishDeltaDays,
@@ -396,8 +406,10 @@ export function whyItMoved(ds: Dataset, jobId: string, today: ISODate): WhyItMov
 
 export interface JobListRow {
   jobId: string;
+  sideId: string;
   name: string;
   kind: 'build' | 'design';
+  path: ApprovalPath | null;
   currentStageName: string | null;
   forecastFinish: ISODate | null;
   slipDays: number | null;
@@ -415,8 +427,10 @@ export function jobsList(ds: Dataset, today: ISODate, filter: SideFilter = {}): 
     const f = forecastJob(ds, j.id, today);
     return {
       jobId: j.id,
+      sideId: j.sideId,
       name: j.name,
       kind: j.kind,
+      path: j.path,
       currentStageName: f.currentStageName,
       forecastFinish: f.forecastFinish,
       slipDays: f.slipDays,
@@ -459,13 +473,32 @@ export function jobOverview(ds: Dataset, jobId: string, today: ISODate): JobOver
 // Program and step detail
 // ---------------------------------------------------------------------------
 
+/** A step as the program draws it: its forecast plus the trade and stage names. */
+export interface ProgramStep extends StepForecast {
+  stageName: string;
+  tradeType: string | null;
+}
+
 export interface ProgramView {
   job: Job;
   forecast: JobForecast;
   stages: StageForecast[];
   /** Dependency order. */
-  steps: StepForecast[];
+  steps: ProgramStep[];
   links: { stepId: string; waitsForStepId: string }[];
+  /** Open items linked to a step (what each step needs), act-by order. */
+  items: WaitingRow[];
+  /** Shutdown periods (no working days), for shading. */
+  shutdowns: DateRange[];
+}
+
+function programStep(ds: Dataset, f: JobForecast, id: string): ProgramStep {
+  const sf = f.steps[id]!;
+  return {
+    ...sf,
+    stageName: ds.stages.find((st) => st.id === sf.stageId)?.name ?? '',
+    tradeType: ds.steps.find((s) => s.id === id)?.tradeType ?? null,
+  };
 }
 
 export function programView(ds: Dataset, jobId: string, today: ISODate): ProgramView {
@@ -476,8 +509,12 @@ export function programView(ds: Dataset, jobId: string, today: ISODate): Program
     job: { ...job },
     forecast: f,
     stages: f.stages,
-    steps: f.stepOrder.map((id) => f.steps[id]!),
+    steps: f.stepOrder.map((id) => programStep(ds, f, id)),
     links: ds.stepLinks.filter((l) => l.jobId === jobId).map((l) => ({ stepId: l.stepId, waitsForStepId: l.waitsForStepId })),
+    items: rowsForJob(ds, f, today)
+      .filter((r) => r.stepId)
+      .sort((a, b) => (a.actBy ?? '9999-12-31').localeCompare(b.actBy ?? '9999-12-31') || a.title.localeCompare(b.title)),
+    shutdowns: SHUTDOWNS.map((r) => ({ ...r })),
   };
 }
 
@@ -485,7 +522,7 @@ export interface StepDetail {
   jobId: string;
   jobName: string;
   stageName: string;
-  step: StepForecast;
+  step: ProgramStep;
   waitsFor: { stepId: string; name: string; forecastEnd: ISODate }[];
   holdsUp: { stepId: string; name: string; forecastStart: ISODate }[];
   requirements: { id: string; kind: 'trade' | 'material'; name: string; leadTimeWeeks: number }[];
@@ -502,7 +539,7 @@ export function stepDetail(ds: Dataset, stepId: string, today: ISODate): StepDet
     jobId: s.jobId,
     jobName: ds.jobs.find((j) => j.id === s.jobId)?.name ?? s.jobId,
     stageName: ds.stages.find((st) => st.id === s.stageId)?.name ?? '',
-    step: sf,
+    step: programStep(ds, f, stepId),
     waitsFor: sf.waitsFor.map((id) => ({ stepId: id, name: f.steps[id]!.name, forecastEnd: f.steps[id]!.forecastEnd })),
     holdsUp: sf.holdsUp.map((id) => ({ stepId: id, name: f.steps[id]!.name, forecastStart: f.steps[id]!.forecastStart })),
     requirements: ds.requirements.filter((r) => r.stepId === stepId).map((r) => ({ id: r.id, kind: r.kind, name: r.name, leadTimeWeeks: r.leadTimeWeeks })),
@@ -604,6 +641,8 @@ export interface ShipmentRow {
   eta: ISODate | null;
   linkedItemIds: string[];
   linkedCount: number;
+  /** The linked items themselves (open and done), in title order. */
+  linkedItems: { itemId: string; title: string; status: ItemStatus; statusLabel: string; owner: string | null; neededBy: ISODate | null }[];
   /** Earliest needed-by among linked open items. */
   earliestNeededBy: ISODate | null;
   /** ETA after the earliest needed-by. */
@@ -638,6 +677,16 @@ export function shipmentsList(ds: Dataset, today: ISODate, filter: SideFilter = 
         eta: s.eta,
         linkedItemIds: linked.map((i) => i.id),
         linkedCount: linked.length,
+        linkedItems: linked
+          .map((i) => ({
+            itemId: i.id,
+            title: i.title,
+            status: i.status,
+            statusLabel: ITEM_STATUS_LABELS[i.status],
+            owner: i.owner,
+            neededBy: fc(i.jobId).items[i.id]?.neededBy ?? null,
+          }))
+          .sort((a, b) => a.title.localeCompare(b.title)),
         earliestNeededBy: earliest,
         isLate: lateDays > 0,
         lateDays,
@@ -675,9 +724,28 @@ export interface HistoryEntry {
   jobIds: string[];
   jobNames: string[];
   changes: HistoryChange[];
+  /**
+   * What a confirmed change set did to each build job's forecast finish, found by taking back every
+   * confirmed change from this one on and replaying them in order (as whyItMoved does). Only jobs whose
+   * finish or steps it moved; empty for other statuses, or when changeHistory was called without today.
+   */
+  effects: HistoryEffect[];
 }
 
-export interface HistoryFilter {
+export interface HistoryEffect {
+  jobId: string;
+  jobName: string;
+  finishBefore: ISODate | null;
+  finishAfter: ISODate | null;
+  /** Calendar days the finish moved (+ later). */
+  deltaDays: number;
+  /** deltaDays / 7 x the job's weekly holding cost, nearest $10. */
+  cost: number | null;
+  /** Steps whose forecast start moved. */
+  movedSteps: number;
+}
+
+export interface HistoryFilter extends SideFilter {
   jobId?: string;
   /** Default: everything but proposed. */
   statuses?: ChangeSetStatus[];
@@ -710,7 +778,85 @@ function rowLabel(ds: Dataset, table: TableName, rowId: string, row: JsonValue):
   return String(live ?? fromRow ?? rowId);
 }
 
-export function changeHistory(ds: Dataset, filter: HistoryFilter = {}): HistoryEntry[] {
+/** Changes as people read them: row label, field, before and after. */
+export function historyChanges(ds: Dataset, changes: Change[]): HistoryChange[] {
+  return changes.map((c) => ({
+    kind: c.kind,
+    table: c.table,
+    rowId: c.rowId,
+    rowLabel: rowLabel(ds, c.table, c.rowId, c.kind === 'update' ? null : c.row),
+    field: c.kind === 'update' ? c.field : null,
+    before: c.kind === 'update' ? c.before : c.kind === 'delete' ? c.row : null,
+    after: c.kind === 'update' ? c.after : c.kind === 'insert' ? c.row : null,
+  }));
+}
+
+/** Build jobs whose forecast a change set can move: jobs it touches, and jobs fed by a shipment it changes. */
+function forecastJobsOf(ds: Dataset, changes: Change[]): string[] {
+  const ids = new Set(jobIdsOfChanges(ds, changes));
+  for (const c of changes) if (c.table === 'shipment') for (const i of ds.items) if (i.shipmentId === c.rowId) ids.add(i.jobId);
+  return [...ids].filter((id) => {
+    const j = ds.jobs.find((x) => x.id === id);
+    return !!j && j.kind === 'build' && !j.isTemplate;
+  });
+}
+
+/** Effects of confirmed change sets on or after `since`, keyed by change set id (see HistoryEntry.effects). */
+function historyEffects(ds: Dataset, since: Instant, today: ISODate): Map<string, HistoryEffect[]> {
+  const sets = ds.changeSets
+    .filter((cs) => cs.status === 'confirmed' && (cs.confirmedAt ?? '') >= since)
+    .sort((a, b) => (a.confirmedAt ?? '').localeCompare(b.confirmedAt ?? ''));
+  let state = ds;
+  for (const cs of [...sets].reverse()) state = applyChanges(state, invertChanges(changesOf(ds, cs.id)), { check: false });
+  const out = new Map<string, HistoryEffect[]>();
+  for (const cs of sets) {
+    const changes = changesOf(ds, cs.id);
+    const jobs = forecastJobsOf(ds, changes);
+    const next = applyChanges(state, changes, { check: false });
+    const effects: HistoryEffect[] = [];
+    for (const id of jobs) {
+      const job = ds.jobs.find((j) => j.id === id)!;
+      const safe = (d: Dataset) => (d.jobs.some((j) => j.id === id) ? forecastJob(d, id, today) : null);
+      const before = safe(state);
+      const after = safe(next);
+      const cmp = compareForecasts(id, job.name, before, after, job.weeklyHoldingCost, today);
+      if (cmp.finishDeltaDays !== 0 || cmp.movedSteps.length) {
+        effects.push({
+          jobId: id,
+          jobName: job.name,
+          finishBefore: cmp.finishBefore,
+          finishAfter: cmp.finishAfter,
+          deltaDays: cmp.finishDeltaDays,
+          cost: slipCost(cmp.finishDeltaDays, job.weeklyHoldingCost),
+          movedSteps: cmp.movedSteps.length,
+        });
+      }
+    }
+    out.set(cs.id, effects);
+    state = next;
+  }
+  return out;
+}
+
+function sidesOfEntry(ds: Dataset, jobIds: string[], changes: Change[]): Set<string> {
+  const sides = new Set<string>();
+  for (const id of jobIds) {
+    const j = ds.jobs.find((x) => x.id === id);
+    if (j) sides.add(j.sideId);
+  }
+  for (const c of changes) {
+    if (c.table !== 'trade') continue;
+    const t = ds.trades.find((x) => x.id === c.rowId) ?? (c.kind !== 'update' ? (c.row as unknown as Trade) : undefined);
+    if (t?.sideId) sides.add(t.sideId);
+  }
+  return sides;
+}
+
+/**
+ * Change sets newest first. With `today`, each confirmed entry carries its forecast effects. With
+ * `sideId`, only entries touching a job (or trade) on that side.
+ */
+export function changeHistory(ds: Dataset, filter: HistoryFilter = {}, today?: ISODate): HistoryEntry[] {
   const statuses = filter.statuses ?? ['confirmed', 'undone', 'cancelled'];
   const entries = ds.changeSets
     .filter((cs) => statuses.includes(cs.status))
@@ -730,20 +876,21 @@ export function changeHistory(ds: Dataset, filter: HistoryFilter = {}): HistoryE
         message: msg ? { id: msg.id, channel: msg.channel, rawText: msg.rawText, transcript: msg.transcript, receivedAt: msg.receivedAt } : null,
         jobIds,
         jobNames: jobIds.map((id) => ds.jobs.find((j) => j.id === id)?.name ?? id),
-        changes: changes.map((c) => ({
-          kind: c.kind,
-          table: c.table,
-          rowId: c.rowId,
-          rowLabel: rowLabel(ds, c.table, c.rowId, c.kind === 'update' ? null : c.row),
-          field: c.kind === 'update' ? c.field : null,
-          before: c.kind === 'update' ? c.before : c.kind === 'delete' ? c.row : null,
-          after: c.kind === 'update' ? c.after : c.kind === 'insert' ? c.row : null,
-        })),
+        changes: historyChanges(ds, changes),
+        effects: [],
       };
     })
     .filter((e) => !filter.jobId || e.jobIds.includes(filter.jobId))
+    .filter((e) => !filter.sideId || sidesOfEntry(ds, e.jobIds, changesOf(ds, e.changeSetId)).has(filter.sideId))
     .sort((a, b) => (b.confirmedAt ?? b.createdAt).localeCompare(a.confirmedAt ?? a.createdAt));
-  return filter.limit ? entries.slice(0, filter.limit) : entries;
+  const page = filter.limit ? entries.slice(0, filter.limit) : entries;
+  const confirmed = page.filter((e) => e.status === 'confirmed' && e.confirmedAt);
+  if (today && confirmed.length) {
+    const since = confirmed.map((e) => e.confirmedAt!).sort()[0]!;
+    const effects = historyEffects(ds, since, today);
+    for (const e of confirmed) e.effects = effects.get(e.changeSetId) ?? [];
+  }
+  return page;
 }
 
 // ---------------------------------------------------------------------------
@@ -761,7 +908,26 @@ export interface DesignChecklist {
   /** Days the oldest outstanding item has been sitting; null when none. */
   oldestDays: number | null;
   /** Outstanding items, oldest first. */
-  items: { itemId: string; title: string; type: ItemType; typeLabel: string; waitingOn: string | null; owner: string | null; daysSitting: number; neededBy: ISODate | null }[];
+  items: {
+    itemId: string;
+    title: string;
+    type: ItemType;
+    typeLabel: string;
+    status: ItemStatus;
+    statusLabel: string;
+    waitingOn: string | null;
+    owner: string | null;
+    daysSitting: number;
+    neededBy: ISODate | null;
+    expected: ISODate | null;
+    notes: string | null;
+  }[];
+  /** Items finished on this job, newest first. */
+  done: { itemId: string; title: string; typeLabel: string; doneAt: ISODate | null }[];
+  lastConfirmed: ISODate | null;
+  daysUnconfirmed: number | null;
+  amber: boolean;
+  freshnessText: string;
 }
 
 export function designChecklist(ds: Dataset, jobId: string, today: ISODate): DesignChecklist {
@@ -776,12 +942,21 @@ export function designChecklist(ds: Dataset, jobId: string, today: ISODate): Des
       title: i.title,
       type: i.type,
       typeLabel: ITEM_TYPE_LABELS[i.type],
+      status: i.status,
+      statusLabel: ITEM_STATUS_LABELS[i.status],
       waitingOn: i.waitingOn,
       owner: i.owner,
       daysSitting: calendarDaysBetween(i.createdAt, today),
       neededBy: i.neededBy,
+      expected: i.expectedDate,
+      notes: i.notes,
     }))
     .sort((a, b) => b.daysSitting - a.daysSitting);
+  const done = ds.items
+    .filter((i) => i.jobId === jobId && i.status === 'done')
+    .map((i) => ({ itemId: i.id, title: i.title, typeLabel: ITEM_TYPE_LABELS[i.type], doneAt: i.doneAt }))
+    .sort((a, b) => (b.doneAt ?? '').localeCompare(a.doneAt ?? ''));
+  const fresh = forecastJob(ds, jobId, today).freshness;
   return {
     jobId,
     name: job.name,
@@ -792,6 +967,11 @@ export function designChecklist(ds: Dataset, jobId: string, today: ISODate): Des
     outstanding: items.length,
     oldestDays: items[0]?.daysSitting ?? null,
     items,
+    done,
+    lastConfirmed: fresh.lastConfirmed,
+    daysUnconfirmed: fresh.daysUnconfirmed,
+    amber: fresh.amber,
+    freshnessText: fresh.text,
   };
 }
 

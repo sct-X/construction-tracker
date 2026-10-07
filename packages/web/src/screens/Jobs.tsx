@@ -1,6 +1,7 @@
 /** Jobs: every live job on this side with its kind, stage, forecast finish and freshness. */
 import { formatLong, type DashboardApi, type JobListRow, type JobsListView, type SideFilter } from '@ct/core';
 import { useSideQuery } from '../data/DataContext';
+import { jobHome } from '../app/jobNav';
 import { CellLabel, Freshness, LoadError, LoadingRows } from '../components/bits';
 
 export function loadJobs(api: DashboardApi, filter: SideFilter): Promise<JobsListView> {
@@ -71,7 +72,9 @@ function JobRow({ row }: { row: JobListRow }) {
   return (
     <tr className={`job-line job-${row.kind}`} data-testid={`job-row-${row.jobId}`} data-kind={row.kind}>
       <th scope="row" className="c-job">
-        <span className="job-name">{row.name}</span>
+        <a className="job-name" href={jobHome(row)}>
+          {row.name}
+        </a>
       </th>
       <td className="c-stage">
         <CellLabel>Stage</CellLabel>

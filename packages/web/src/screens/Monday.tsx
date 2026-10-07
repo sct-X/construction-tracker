@@ -13,7 +13,6 @@ import {
   formatStamp,
   relativeDays,
   type DashboardApi,
-  type HistoryEntry,
   type MondayBuildRow,
   type MondayDesignRow,
   type MondayView,
@@ -23,29 +22,21 @@ import {
   type WaitingRow,
 } from '@ct/core';
 import { useSideQuery } from '../data/DataContext';
+import { href } from '../app/router';
 import { CellLabel, Freshness, LoadError, LoadingRows, Money } from '../components/bits';
 import { fieldWords, slipWords, valueWords } from '../ui/format';
 
 export interface MondayData {
   view: MondayView;
   why: Record<string, WhyItMoved>;
-  history: Record<string, HistoryEntry>;
 }
 
+/** Each why-it-moved cause carries its own field changes (before/after), so no change-history fetch. */
 export async function loadMonday(api: DashboardApi, filter: SideFilter): Promise<MondayData> {
   const view = await api.getMonday(filter);
   const moving = view.builds.filter((b) => b.slipDays);
-  // Field-level before/after for each cause comes from that job's recent history (bounded); a cause
-  // not found there (e.g. a shipment on another job) falls back to its summary sentence.
-  const [whys, histories] = await Promise.all([
-    Promise.all(moving.map((b) => api.getWhyItMoved(b.jobId))),
-    Promise.all(moving.map((b) => api.getChangeHistory({ jobId: b.jobId, statuses: ['confirmed'], limit: 50 }))),
-  ]);
-  return {
-    view,
-    why: Object.fromEntries(whys.map((w) => [w.jobId, w])),
-    history: Object.fromEntries(histories.flat().map((h) => [h.changeSetId, h])),
-  };
+  const whys = await Promise.all(moving.map((b) => api.getWhyItMoved(b.jobId)));
+  return { view, why: Object.fromEntries(whys.map((w) => [w.jobId, w])) };
 }
 
 export function MondayScreen() {
@@ -98,7 +89,7 @@ export function MondayBody({ data }: { data: MondayData }) {
               </tr>
             </thead>
             {view.builds.map((b) => (
-              <BuildRow key={b.jobId} row={b} today={view.today} why={data.why[b.jobId] ?? null} history={data.history} />
+              <BuildRow key={b.jobId} row={b} today={view.today} why={data.why[b.jobId] ?? null} />
             ))}
           </table>
         </section>
@@ -108,13 +99,15 @@ export function MondayBody({ data }: { data: MondayData }) {
   );
 }
 
-function BuildRow({ row, today, why, history }: { row: MondayBuildRow; today: string; why: WhyItMoved | null; history: Record<string, HistoryEntry> }) {
+function BuildRow({ row, today, why }: { row: MondayBuildRow; today: string; why: WhyItMoved | null }) {
   const slip = slipWords(row.slipDays, row.snapshotDate, today);
   return (
     <tbody className="job" data-testid={`build-row-${row.jobId}`} data-slip={slip.direction}>
       <tr className="job-main">
         <th scope="row" className="c-job">
-          <span className="job-name">{row.name}</span>
+          <a className="job-name" href={href(`/jobs/${row.jobId}`)}>
+            {row.name}
+          </a>
           {row.currentStageName && <span className="job-stage">{row.currentStageName}</span>}
         </th>
         <td className="c-finish">
@@ -154,7 +147,7 @@ function BuildRow({ row, today, why, history }: { row: MondayBuildRow; today: st
       {why && row.slipDays ? (
         <tr className="job-detail">
           <td colSpan={5}>
-            <WhyItMovedBlock why={why} today={today} history={history} />
+            <WhyItMovedBlock why={why} today={today} />
           </td>
         </tr>
       ) : null}
@@ -178,16 +171,16 @@ function planWords(lateDays: number, planned: string, today: string): string {
   return 'On the original plan';
 }
 
-function WhyItMovedBlock({ why, today, history }: { why: WhyItMoved; today: string; history: Record<string, HistoryEntry> }) {
+function WhyItMovedBlock({ why, today }: { why: WhyItMoved; today: string }) {
   const titleId = `why-${why.jobId}`;
   return (
     <section className="why" aria-labelledby={titleId} data-testid="why-it-moved">
       <h3 id={titleId}>
-        Why it moved<span className="sr-only"> for {why.jobName}</span>
+        Why it moved{' '}<span className="sr-only">for {why.jobName}</span>
       </h3>
       <ol className="causes">
         {why.causes.map((c) => (
-          <Cause key={c.changeSetId} cause={c} today={today} entry={history[c.changeSetId] ?? null} />
+          <Cause key={c.changeSetId} cause={c} today={today} />
         ))}
         {why.otherDays !== 0 && (
           <li className="cause cause-other" data-testid="why-leftover">
@@ -213,13 +206,12 @@ function WhyItMovedBlock({ why, today, history }: { why: WhyItMoved; today: stri
   );
 }
 
-function Cause({ cause, today, entry }: { cause: WhyCause; today: string; entry: HistoryEntry | null }) {
-  const fields = (entry?.changes ?? []).slice(0, 3);
-  const msg = entry?.message ?? null;
-  const source = cause.sourceText ?? msg?.transcript ?? msg?.rawText ?? null;
-  const how = msg?.transcript ? 'Voice note' : msg ? 'Message' : null;
-  const channel = (cause.sourceChannel ?? msg?.channel) === 'telegram' ? ' on Telegram' : '';
-  const when = msg?.receivedAt ?? cause.confirmedAt;
+function Cause({ cause, today }: { cause: WhyCause; today: string }) {
+  const fields = cause.changes.slice(0, 3);
+  const source = cause.sourceText;
+  const how = cause.sourceKind === 'voice' ? 'Voice note' : cause.sourceKind === 'text' ? 'Message' : null;
+  const channel = cause.sourceChannel === 'telegram' ? ' on Telegram' : '';
+  const when = cause.sourceReceivedAt ?? cause.confirmedAt;
   return (
     <li className="cause" data-testid="why-cause">
       <span className="cause-days">{formatDays(cause.deltaDays)}</span>
@@ -283,7 +275,7 @@ function ActBy({ items, today, jobName }: { items: WaitingRow[]; today: string; 
   return (
     <section className="actby" data-testid="act-by">
       <h3>
-        Act by this week<span className="sr-only"> for {jobName}</span>
+        Act by this week{' '}<span className="sr-only">for {jobName}</span>{' '}
         <span className="h-note">to {formatDate(addCalendarDays(today, 7), today)}</span>
       </h3>
       <ul>
@@ -341,8 +333,10 @@ function DesignTable({ rows }: { rows: MondayDesignRow[] }) {
               <tbody key={r.jobId} className="job design-job" data-testid={`design-row-${r.jobId}`}>
                 <tr className="job-main">
                   <th scope="row" className="c-job">
-                    <span className="job-name">{r.name}</span>
-                    {r.path && <span className="job-stage">{r.path === 'DA' ? 'DA, council' : 'CDC, certifier'}</span>}
+                    <a className="job-name" href={href(`/jobs/${r.jobId}/checklist`)}>
+                      {r.name}
+                    </a>
+                    {r.path && <span className="job-stage">{r.path}</span>}
                   </th>
                   <td className="c-out">
                     <CellLabel>Outstanding</CellLabel>

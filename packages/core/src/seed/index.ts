@@ -23,7 +23,7 @@ export { SEED_SENDER } from './log.js';
 export { TR as TRADE_IDS } from './trades.js';
 
 /** Bump when the seed's shape or numbers change, so a stale browser copy reseeds. */
-export const SEED_VERSION = 1;
+export const SEED_VERSION = 2;
 
 /** Thu 17 Sep 2026: the default "today" for the demo and every test. */
 export const DEFAULT_TODAY = '2026-09-17';

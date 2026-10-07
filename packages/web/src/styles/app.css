@@ -144,10 +144,16 @@ a {
   font-weight: 500;
 }
 
-.nav {
+.nav-list {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nav-more {
+  display: none;
 }
 .nav-link {
   display: flex;
@@ -161,6 +167,9 @@ a {
 }
 .nav-link:hover {
   background: var(--formply);
+}
+.nav-link.is-section {
+  font-weight: 600;
 }
 .nav-link[aria-current='page'] {
   font-weight: 600;
@@ -418,7 +427,7 @@ a {
   border-top: 1px solid var(--rule);
 }
 .h-note {
-  margin-left: 8px;
+  margin-left: 4px;
   font-weight: 400;
   color: var(--steel-2);
   font-size: var(--t-small);
@@ -559,18 +568,43 @@ a {
     left: 0;
     right: 0;
     bottom: 0;
-    flex-direction: row;
-    gap: 0;
-    height: var(--tabbar);
+    height: calc(var(--tabbar) + env(safe-area-inset-bottom));
     padding-bottom: env(safe-area-inset-bottom);
     background: var(--formply);
     border-top: 1px solid var(--rule);
   }
+  .nav-list {
+    flex-direction: row;
+    gap: 0;
+    height: var(--tabbar);
+  }
+  .nav-item {
+    position: relative;
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .nav-extra {
+    display: none;
+  }
+  .nav-more {
+    display: flex;
+  }
   .nav-link {
     flex: 1;
     justify-content: center;
+    min-width: 0;
+    padding: 0 4px;
+    border: 0;
     border-radius: 0;
-    font-size: 1.0625rem;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    text-align: center;
+    line-height: 1.1;
+    cursor: pointer;
   }
   .nav-link[aria-current='page'] {
     text-underline-offset: 8px;

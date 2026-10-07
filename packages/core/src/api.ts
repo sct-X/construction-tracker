@@ -189,7 +189,7 @@ export class LocalDashboardApi implements DashboardApi {
     return dailyNotes(this.ds, jobId, opts);
   }
   async getChangeHistory(filter?: HistoryFilter) {
-    return changeHistory(this.ds, filter);
+    return changeHistory(this.ds, filter, this.today);
   }
   async listTrades(filter?: SideFilter) {
     return tradesList(this.ds, filter);

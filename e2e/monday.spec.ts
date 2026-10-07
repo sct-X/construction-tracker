@@ -72,7 +72,9 @@ test('Jobs lists every job with kind, stage, finish and freshness', async ({ pag
 test('nav links only the screens that exist and marks the current one', async ({ page }) => {
   await openMonday(page);
   const nav = page.getByRole('navigation', { name: 'Main' });
-  await expect(nav.getByRole('link')).toHaveText(['Monday', 'Jobs']);
+  // Top-level links come from the route table; this side's jobs are listed under Jobs (desktop rail).
+  await expect(nav.locator(':scope > ul > li > a')).toHaveText(['Monday', 'Jobs', 'Waiting on', 'To chase', 'Shipments', 'Changes']);
+  await expect(nav.getByRole('list', { name: 'Jobs on this side' }).getByRole('link')).toHaveCount(7);
   await expect(nav.getByRole('link', { name: 'Monday' })).toHaveAttribute('aria-current', 'page');
   await nav.getByRole('link', { name: 'Jobs' }).click();
   await expect(page).toHaveURL(/#\/jobs$/);

@@ -7,6 +7,7 @@ import '@fontsource/barlow-condensed/500.css';
 import '@fontsource/barlow-condensed/600.css';
 import './styles/tokens.css';
 import './styles/app.css';
+import './styles/screens4a.css';
 import { App } from './app/App';
 import { DataProvider } from './data/DataContext';
 import { loadDataLayer } from './data/layer';

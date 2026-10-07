@@ -1,18 +1,34 @@
 import { useEffect } from 'react';
+import type { DashboardApi, JobListRow } from '@ct/core';
 import { DevBar } from '../components/DevBar';
 import { SideSwitcher } from '../components/SideSwitcher';
-import { useData } from '../data/DataContext';
+import { JobBar } from '../components/JobBar';
+import { MainNav } from '../components/MainNav';
+import { useData, useSideQuery } from '../data/DataContext';
 import { href, matchPath, useHashPath } from './router';
 import { ROUTES } from './routes';
+import { isJobRoute } from './jobNav';
+
+/** Every live job on every side: the job bar needs a deep-linked job's side, the rail lists this side's jobs. */
+async function loadAllJobs(api: DashboardApi): Promise<JobListRow[]> {
+  const v = await api.listJobs();
+  return [...v.builds, ...v.design];
+}
 
 export function App() {
   const path = useHashPath();
-  const { dev } = useData();
+  const { dev, sideId } = useData();
   const found = ROUTES.map((r) => ({ r, params: matchPath(r.path, path) })).find((x) => x.params);
+  const jobs = useSideQuery(loadAllJobs);
+  const allJobs = jobs.status === 'ready' ? jobs.data : [];
+  const sideJobs = allJobs.filter((j) => !sideId || j.sideId === sideId);
+  const jobId = found && isJobRoute(found.r) ? (found.params!.jobId ?? null) : null;
+  const job = jobId ? (allJobs.find((j) => j.jobId === jobId) ?? null) : null;
 
   useEffect(() => {
-    document.title = `${found?.r.title ?? 'Not found'} | Tracker`;
-  }, [found?.r.title]);
+    const t = found?.r.title ?? 'Not found';
+    document.title = job ? `${t}, ${job.name} | Tracker` : `${t} | Tracker`;
+  }, [found?.r.title, job]);
 
   return (
     <div className={dev ? 'app has-devbar' : 'app'}>
@@ -23,15 +39,10 @@ export function App() {
             Tracker
           </a>
           <SideSwitcher />
-          <nav className="nav" aria-label="Main">
-            {ROUTES.filter((r) => r.nav).map((r) => (
-              <a key={r.path} href={href(r.path)} className="nav-link" aria-current={found?.r === r ? 'page' : undefined}>
-                {r.title}
-              </a>
-            ))}
-          </nav>
+          <MainNav current={found?.r} jobs={sideJobs} currentJobId={jobId} />
         </header>
         <main className="main" id="main">
+          {jobId && <JobBar jobId={jobId} job={job} sideJobs={sideJobs} current={found?.r} loading={jobs.status === 'loading'} />}
           {found ? (
             found.r.render(found.params!)
           ) : (

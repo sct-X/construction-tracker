@@ -64,3 +64,30 @@ export function valueWords(change: Pick<HistoryChange, 'table' | 'field'>, value
   if (typeof value === 'object') return 'a record';
   return String(value);
 }
+
+/** "7 days late", "3 days early", "On plan". */
+export function lateWords(lateDays: number): string {
+  if (lateDays === 0) return 'On plan';
+  const n = Math.abs(lateDays);
+  return `${n} day${n === 1 ? '' : 's'} ${lateDays > 0 ? 'late' : 'early'}`;
+}
+
+/** "Mon 14 Sep to Thu 17 Sep", or one date when start and end are the same day. */
+export function rangeWords(start: ISODate | null, end: ISODate | null, today: ISODate): string {
+  if (!start && !end) return 'No dates';
+  if (!start || !end) return formatDate((start ?? end)!, today);
+  if (start === end) return formatDate(start, today);
+  return `${formatDate(start, today)} to ${formatDate(end, today)}`;
+}
+
+export function plural(n: number, noun: string, many = `${noun}s`): string {
+  return `${n} ${n === 1 ? noun : many}`;
+}
+
+/** "Started", "Done", "Not started" for steps and stages. */
+export function statusWords(status: 'not_started' | 'in_progress' | 'done'): string {
+  return STEP_STATUS_LABELS[status];
+}
+
+/** Stand-in "today" before the data layer has said what today is: every date then prints with its year. */
+export const UNKNOWN_TODAY = '0000-01-01';

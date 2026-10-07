@@ -5,6 +5,7 @@
  */
 import {
   applyChanges,
+  assertRulesOnSave,
   changesOf,
   defaultNewId,
   emptyDataset,
@@ -158,7 +159,8 @@ export class SqliteStore implements Store {
       if (cs.status !== 'proposed') throw new Error(`Change set ${id} is ${cs.status}, not proposed`);
       const ds = this.load();
       const changes = changesOf(ds, id);
-      applyChanges(ds, changes); // throws ChangeConflictError when stale; the transaction rolls back
+      // Throws ChangeConflictError when stale, RuleRefusalError when a rule no longer holds; the transaction rolls back.
+      assertRulesOnSave(applyChanges(ds, changes), changes);
       for (const c of changes) this.writeChange(c);
       return this.setStatus(id, 'confirmed', 'confirmed_at');
     })();
@@ -174,7 +176,7 @@ export class SqliteStore implements Store {
 
   applyChangeSet(input: NewChangeSet): ChangeSet {
     return this.db.transaction(() => {
-      applyChanges(this.load(), input.changes); // validate first
+      assertRulesOnSave(applyChanges(this.load(), input.changes), input.changes); // validate first
       for (const c of input.changes) this.writeChange(c);
       return this.recordChangeSet(input, 'confirmed');
     })();

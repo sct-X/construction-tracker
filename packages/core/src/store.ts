@@ -7,6 +7,7 @@
  */
 import { applyChanges, applyChangesInPlace, ChangeConflictError, changesOf, invertChanges, toChangeRecord, type Change } from './changes.js';
 import { defaultNewId } from './operations/framework.js';
+import { assertRulesOnSave } from './operations/rules.js';
 import { cloneDataset } from './types.js';
 import type { Clock } from './dates.js';
 import { systemClock } from './dates.js';
@@ -41,7 +42,10 @@ export interface Store {
   updateInbound(id: string, patch: Partial<Pick<InboundMessage, 'rawText' | 'transcript' | 'audioPath' | 'photoPath'>>): InboundMessage;
   /** Record a change set as proposed (the confirm card). Nothing is applied. */
   proposeChangeSet(input: NewChangeSet): ChangeSet;
-  /** Apply a proposed change set. Throws ChangeConflictError when the data moved since; it stays proposed. */
+  /**
+   * Apply a proposed change set. Throws ChangeConflictError when the data moved since, or RuleRefusalError when
+   * a rule (hold-point photos, rows it points at) no longer holds on the current data; either way it stays proposed.
+   */
   confirmChangeSet(id: string): ChangeSet;
   cancelChangeSet(id: string): ChangeSet;
   /** Record and apply in one go (status confirmed). Throws ChangeConflictError and records nothing on a conflict. */
@@ -170,7 +174,9 @@ export class InMemoryStore implements Store {
     const cs = this.ds.changeSets.find((c) => c.id === id);
     if (!cs) throw new Error(`Unknown change set ${id}`);
     if (cs.status !== 'proposed') throw new Error(`Change set ${id} is ${cs.status}, not proposed`);
-    const next = applyChanges(this.ds, changesOf(this.ds, id)); // throws on conflict, nothing changed
+    const changes = changesOf(this.ds, id);
+    const next = applyChanges(this.ds, changes); // throws on conflict, nothing changed
+    assertRulesOnSave(next, changes); // rules re-checked on today's data (RuleRefusalError); stays proposed
     this.ds = next;
     const row = this.ds.changeSets.find((c) => c.id === id)!;
     row.status = 'confirmed';
@@ -189,6 +195,7 @@ export class InMemoryStore implements Store {
 
   applyChangeSet(input: NewChangeSet): ChangeSet {
     const next = applyChanges(this.ds, input.changes); // validate first: a conflict records nothing
+    assertRulesOnSave(next, input.changes);
     this.ds = next;
     return { ...this.record(input, 'confirmed') };
   }

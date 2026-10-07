@@ -48,5 +48,6 @@ Rules:
 6. A question is never a change. "What's Park Rd's finish?", "what are we waiting on at Beatty?", "when do the windows land?" use the read-only get_* tools, never a change tool.
 7. Use the conversation so far to fill in details Dominic is answering (e.g. he replies "Park Rd" to your question about which job).
 8. Leave optional arguments out when Dominic didn't say them.
-9. If the message is chit-chat, thanks, or something no tool covers, reply with one short plain sentence and no tool call.`;
+9. If the message is chit-chat, thanks, or something no tool covers, reply with one short plain sentence and no tool call.
+10. A message that starts "Photo caption:" is the caption of a photo Dominic just sent. Call attach_photo with the job, stage and photo category the caption names (leave out any it doesn't; never ask_question, the system asks with buttons). The system adds the file. Call another tool too only when the caption also reports a change (e.g. "slab inspection done").`;
 }

@@ -13,7 +13,7 @@
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { extname, isAbsolute, join, relative, resolve } from 'node:path';
 import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
-import { ChangeConflictError, LocalDashboardApi, placeholderPhotoUrl, type Clock, type DashboardApi } from '@ct/core';
+import { ChangeConflictError, LocalDashboardApi, RuleRefusalError, placeholderPhotoUrl, type Clock, type DashboardApi } from '@ct/core';
 import type { Log } from './config.js';
 import { photoFile, type DataPaths } from './paths.js';
 import type { SqliteStore } from './sqliteStore.js';
@@ -144,7 +144,7 @@ class HttpError extends Error {
 
 function statusFor(e: unknown): number {
   if (e instanceof HttpError) return e.statusCode;
-  if (e instanceof ChangeConflictError) return 409;
+  if (e instanceof ChangeConflictError || e instanceof RuleRefusalError) return 409;
   if (e instanceof Error && /^Unknown (job|step|stage|photo|shipment|item)\b/.test(e.message)) return 404;
   const code = (e as { statusCode?: unknown })?.statusCode;
   if (typeof code === 'number' && code >= 400 && code < 600) return code;
@@ -172,6 +172,29 @@ function fileUnder(root: string, urlPath: string): string | null {
   const rel = relative(root, full);
   if (rel.startsWith('..') || isAbsolute(rel)) return null;
   return isFile(full) ? full : null;
+}
+
+/** The only types a photo file is ever served as; anything else (an old .html or .svg) is a download. */
+export const PHOTO_TYPES: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.heic': 'image/heic',
+  '.heif': 'image/heif',
+};
+
+/** Photo responses can't run anything on the dashboard's origin, whatever the bytes are. */
+export const PHOTO_SECURITY_HEADERS = {
+  'x-content-type-options': 'nosniff',
+  'content-security-policy': "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox",
+} as const;
+
+function sendPhotoFile(reply: FastifyReply, file: string): FastifyReply {
+  const type = PHOTO_TYPES[extname(file).toLowerCase()];
+  reply.headers({ ...PHOTO_SECURITY_HEADERS, 'cache-control': 'private, max-age=3600' });
+  if (!type) reply.header('content-disposition', 'attachment');
+  return reply.type(type ?? 'application/octet-stream').send(createReadStream(file));
 }
 
 function sendFile(reply: FastifyReply, file: string, cache: string): FastifyReply {
@@ -240,12 +263,12 @@ export async function buildServer(opts: ServerOptions): Promise<FastifyInstance>
     } catch {
       throw new HttpError(404, `Photo ${photo.id} has a bad file path.`);
     }
-    if (file && isFile(file)) return sendFile(reply, file, 'private, max-age=3600');
+    if (file && isFile(file)) return sendPhotoFile(reply, file);
     if (photo.isPlaceholder) {
-      // Seed photos have no file: the same flat SVG the browser mock shows.
+      // Seed photos have no file: the same flat SVG the browser mock shows (ours, and sandboxed anyway).
       const url = placeholderPhotoUrl(photo);
       const svg = decodeURIComponent(url.slice(url.indexOf(',') + 1));
-      return reply.header('cache-control', 'private, max-age=3600').type('image/svg+xml').send(svg);
+      return reply.headers({ ...PHOTO_SECURITY_HEADERS, 'cache-control': 'private, max-age=3600' }).type('image/svg+xml').send(svg);
     }
     throw new HttpError(404, `The file for photo ${photo.id} is missing.`);
   });

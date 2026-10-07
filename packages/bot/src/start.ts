@@ -89,6 +89,7 @@ export async function startBot(opts: StartBotOptions): Promise<RunningBot | null
     ...(opts.env.TELEGRAM_API_ROOT?.trim() ? { apiRoot: opts.env.TELEGRAM_API_ROOT.trim() } : {}),
   });
   log.info(`Telegram bot starting (long polling); allowed user ${config.allowedUserId}.`);
+  await handle.sweepOrphanPhotos().catch((e: unknown) => log.error('Start-up photo tidy failed', e));
   let stopping = false;
   const polling = handle.bot
     .start({

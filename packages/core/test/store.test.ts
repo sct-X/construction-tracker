@@ -16,6 +16,8 @@ import {
   PARK_RD,
   PARK_RD_WINDOWS,
   runOperation,
+  RuleRefusalError,
+  type Store,
   shipmentsList,
   toChase,
   waitingOn,
@@ -203,5 +205,47 @@ describe('read models', () => {
     const t = await api.applySetup('add_trade', { name: 'Kerbside Concrete', type: 'Concreter', phone: '0491 579 212' });
     expect(t.ok).toBe(true);
     expect((await api.listTrades()).some((x) => x.name === 'Kerbside Concrete')).toBe(true);
+  });
+});
+
+/** Review 1 (Stage 3): the hold-point rule and row references are re-checked at Confirm, on current data. */
+function confirmTimeScenario(store: Store) {
+  const ctx = { today: DEFAULT_TODAY, now: new Date('2026-09-17T00:00:00Z') };
+  const file = (category: string, filePath: string) => {
+    const p = runOperation(store.load(), 'attach_photo', { job: 'Seaview', category, filePath }, ctx) as Proposal;
+    return store.applyChangeSet({ summary: p.summary, changes: p.changes });
+  };
+  file('plumbing under slab', 'telegram/a.jpg');
+  const membrane = file('membrane and termite barrier', 'telegram/b.jpg');
+  const done = runOperation(store.load(), 'mark_step_done', { step: 'slab inspection', job: 'Seaview' }, ctx) as Proposal;
+  expect(done.kind).toBe('proposal');
+  const card = store.proposeChangeSet({ summary: done.summary, changes: done.changes });
+  expect(store.undo(membrane.id).ok).toBe(true);
+  let err: unknown;
+  try {
+    store.confirmChangeSet(card.id);
+  } catch (e) {
+    err = e;
+  }
+  expect(err).toBeInstanceOf(RuleRefusalError);
+  expect((err as RuleRefusalError).reason).toBe("Can't sign off Slab inspection before pour yet. No photos for: Membrane and termite barrier.");
+  const ds = store.load();
+  expect(ds.changeSets.find((c) => c.id === card.id)!.status).toBe('proposed');
+  expect(ds.steps.find((s) => s.id === 'sv-slab-insp')!.status).not.toBe('done');
+
+  // A proposed photo whose category is gone by Confirm: refused, nothing written.
+  const photo = runOperation(store.load(), 'attach_photo', { job: 'Seaview', category: 'roof complete', filePath: 'telegram/c.jpg' }, ctx) as Proposal;
+  const photoCard = store.proposeChangeSet({ summary: photo.summary, changes: photo.changes });
+  const cat = store.load().photoCategories.find((c) => c.id === 'sv-pc-roof')!;
+  store.applyChangeSet({ summary: 'remove category', changes: [{ kind: 'delete', table: 'photo_category', rowId: cat.id, row: cat as never }] });
+  expect(() => store.confirmChangeSet(photoCard.id)).toThrow('The photo category this change points at no longer exists');
+  expect(store.load().photos.some((p) => p.filePath === 'telegram/c.jpg')).toBe(false);
+  // applyChangeSet (apply-op, Setup) checks the same rules.
+  expect(() => store.applyChangeSet({ summary: 'x', changes: done.changes })).toThrow(RuleRefusalError);
+}
+
+describe('InMemoryStore: rules at Confirm', () => {
+  it('refuses a stale hold-point sign-off and a photo whose category is gone; the set stays proposed', () => {
+    confirmTimeScenario(new InMemoryStore(buildSeed(), { clock: fixedClock(DEFAULT_TODAY) }));
   });
 });

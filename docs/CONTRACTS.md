@@ -142,6 +142,11 @@ OPERATIONS, OPERATION_NAMES, getOperation(name), defineOp, runOp
 - Date args take ISO or words ("16 Nov", "next Tuesday"); `resolveDate` against `ctx.today`
   (future for ETAs/expected, past for done/confirmed/note dates).
 - Operations never write. Store applies `changes`; summaries are one plain sentence with "Mon 16 Nov" dates.
+- Rules at save (`operations/rules.ts`): `ruleRefusalOnSave(after, changes)` / `assertRulesOnSave` (throws
+  `RuleRefusalError {reason}`), run by both stores inside confirmChangeSet and applyChangeSet on the data WITH the changes:
+  a hold-point step set to done needs every required category filled (`holdPointSignOffRefusal` text); new photo, item
+  and daily-note rows (and an item's step/shipment/trade/requirement/photo link) must point at rows that still exist
+  ("The photo category this change points at no longer exists, so it can't be saved."). HTTP maps it to 409.
 
 Daily (bot) operations, args (`?` optional):
 
@@ -204,7 +209,7 @@ All pure `(ds, ..., today)`; lists skip templates; `SideFilter = { sideId? }`.
 | waitingOn(ds, today, {jobId?, type?, owner?, status?, includeDone?, sideId?}) | `{total, groups: [overdue, this_week, next_week, later]}` of WaitingRow |
 | toChase(ds, today, {owner?, withinDays=14}) | every live job with rows (to do or ordered/booked, act-by within 14 days or past; to-do first, then act-by) |
 | shipmentsList(ds, today) | ShipmentRow: eta, status(+Label), linkedCount, earliestNeededBy, isLate, lateDays, owners |
-| changeHistory(ds, {jobId?, statuses?, limit?}) | newest first: summary, status, message {rawText, transcript}, jobNames, changes [{rowLabel, field, before, after}] |
+| changeHistory(ds, {jobId?, sideId?, statuses?, limit?}, today?) | newest first: summary, status, message {rawText, transcript}, jobNames, changes [{rowLabel, field, before, after}], effects (with today) |
 | designChecklist(ds, jobId, today) | stages with isCurrent, outstanding, oldestDays, items oldest first |
 | photoGallery, dailyNotes, tradesList, templatesList | gallery by stage/category; notes newest first; trades with openItems; templates with counts |
 
@@ -239,9 +244,10 @@ interface Store {                       // synchronous; wrap at the API edge
   recordInbound(NewInbound): InboundMessage;            // {channel, sender, rawText?, audioPath?, transcript?, photoPath?, receivedAt?}
   updateInbound(id, {rawText?, transcript?, audioPath?, photoPath?}): InboundMessage;
   proposeChangeSet({messageId?, summary, opName?, opArgs?, changes}): ChangeSet;   // recorded, not applied
-  confirmChangeSet(id): ChangeSet;      // applies; ChangeConflictError if stale (stays proposed)
+  confirmChangeSet(id): ChangeSet;      // applies; ChangeConflictError if stale, RuleRefusalError if a rule no longer
+                                        // holds on current data (ruleRefusalOnSave); either way stays proposed
   cancelChangeSet(id): ChangeSet;
-  applyChangeSet(input): ChangeSet;     // propose + confirm atomically
+  applyChangeSet(input): ChangeSet;     // propose + confirm atomically (same rule check)
   undo(id): { ok: true; changeSet } | { ok: false; reason };   // refused ("Undo that first") if any later confirmed
                                         // change set touched the same row+field (or the row, for insert/delete)
   saveSnapshot(snapshot): ForecastSnapshot;                     // upsert on (jobId, date)
@@ -278,7 +284,7 @@ HTTP (the web HTTP client implements exactly this):
 | route | response |
 | --- | --- |
 | `POST /api/rpc/:method` body `{"args": [...]}` | 200 `{"result": value}` (undefined -> null); `{"error": "plain message"}` with 404 unknown method or `Unknown job/step ...`, 400 bad body/args, 409 ChangeConflictError, 500 otherwise. Missing/empty body = no args. `:method` = `RPC_METHODS`: every DashboardApi read, `previewSetup`, `applySetup` (Setup area only) and `photoUrl`. NOT `undo` (`RPC_EXCLUDED`, 404): the web is read-only and undo/day-to-day changes come only through the bot. A compile-time check makes every DashboardApi method either listed or excluded |
-| `GET /api/photos/:id/file` | the file under DATA_DIR/photos (type from extension); placeholder seed photos -> the same SVG as `placeholderPhotoUrl`; 404 `{"error"}` otherwise |
+| `GET /api/photos/:id/file` | the file under DATA_DIR/photos as `PHOTO_TYPES` (jpg/jpeg, png, webp, heic, heif; anything else `application/octet-stream` + `Content-Disposition: attachment`), always with `PHOTO_SECURITY_HEADERS` (`X-Content-Type-Options: nosniff`, CSP `default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox`); placeholder seed photos -> the same SVG as `placeholderPhotoUrl` (same headers); 404 `{"error"}` otherwise |
 | `GET /api/health` | `{"ok": true, "today": "YYYY-MM-DD"}` |
 | other `/api/*` | 404 `{"error"}` |
 | any `/api/*` with a bad Host/Origin | 403 `{"error"}`. Host must be localhost, 127.0.0.1, [::1], `*.localhost` or in `ALLOWED_HOSTS` (DNS-rebinding guard); an `Origin` header, when present, must name one of those too |
@@ -301,7 +307,8 @@ Scheduler (`scheduler.ts`): `startScheduler({ store, clock, notifier, log, remin
 (`firstTick`) and every minute; `createScheduler(...)` -> `{ tick(), start(), stop() }` (ticks never overlap or throw).
 A tick: `ensureMondaySnapshots(store, clock)` (each live build job without a snapshot dated `lastMonday(today)` gets
 `makeSnapshot(..., savedAt = now)`, id `snap-<job>-<monday>`; catches up a missed Monday) and, from `reminderTime` on,
-`fireReminders`.
+`fireReminders`. A failed send backs off (`reminderRetryMinutes`: 2, 4, 8, 16, 32, then 60 min; a success resets it),
+logging "Sending reminders failed (attempt N; will retry in M min)".
 
 Reminders (`reminders.ts`):
 
@@ -352,9 +359,44 @@ re-run with `{ ...question.args, afterChoice: id }`.
   `timing`, `linked-items`); `photo-stage-<stageId|job>` > `hold-progress` ("1 of 3"), `photo-cat-<categoryId>`,
   `lightbox`; `note-<id>` > `note-date`; `history-<changeSetId>` (`data-status`; inside `status`, `fields`, `forecast`,
   `source`); `job-picker`. Calls are `tel:` links with the trade name and number written out (`telHref`).
-  Workarounds (read models lack them): shipment linked-item titles come from `getWaitingOn({includeDone: true})` rows
-  by `shipmentId`; "which forecast it moved" comes from `getWhyItMoved` causes per build (only changes since the
-  Monday snapshot; older confirmed ones say "Made before the forecast saved ..."); history is side-filtered client-side.
+  Shipments read `ShipmentRow.linkedItems`; Changes calls `getChangeHistory({sideId, jobId?})` and shows each
+  `HistoryEntry.effects` row (finish before -> after, days, cost) or "Moved no forecast." (nothing for confirm-job,
+  note and photo change sets).
+- Stage 4a shell (`src/app/App.tsx`, `src/app/jobNav.ts`, `src/components/{MainNav,JobBar}.tsx`). RouteDef grew
+  `kinds?: JobKind[]` (job tabs only), `tab?` (tab label), `parent?` (tab a deeper page sits under). `nav` on a path with
+  no params = a main link (rail on desktop; phone bottom bar, past 5 links the rest go under a "More" button); `nav` on a
+  path under `/jobs/:jobId` = a job tab, in table order, filtered by `kinds`. Every `/jobs/:jobId...` route gets the job bar
+  (job name, kind and stage, phone job switcher `job-switcher` that keeps the tab when the other job has it, tabs
+  `nav[aria-label="<Job> pages"]`). The desktop rail lists this side's jobs under Jobs (`list "Jobs on this side"`). A deep
+  link to a job on the other side switches the side; switching side away from the open job goes to `#/jobs`.
+  Helpers: `mainLinks()`, `jobTabs(kind)`, `jobHome(job)` (build -> `#/jobs/:id`, design -> `#/jobs/:id/checklist`),
+  `tabHref(job, label)` (null when no such tab), `switchJobHref(route, job)`, `fillPath`. `useJobQuery(load, key)`
+  (`src/data/useJobQuery.ts`) = useSideQuery for one id.
+- Stage 4a screens (`src/screens/{JobOverview,Program,StepDetail,DesignChecklist}.tsx`, styles `src/styles/screens4a.css`,
+  time axis `src/components/Timeline.tsx`: `makeScale`, `TimeAxis`, `TimeGrid` (week/month lines, hatched shutdown, today
+  line), `Bar` (dashed planned outline behind a solid forecast bar, or a diamond for a hold point; late words beside it),
+  `TimelineKey`). Routes: `#/jobs/:jobId` Overview (builds; a design job is replaced by its checklist),
+  `#/jobs/:jobId/checklist` (design), `#/jobs/:jobId/program` (builds), `#/jobs/:jobId/steps/:stepId` (under Program).
+  Program: desktop Gantt (filters "From the current stage" default, done stages summarised in one line; "Whole program";
+  "Late steps only") with the view switch Gantt / Next 3 weeks / Stages; a phone (<= 760px, matchMedia) has no Gantt and
+  opens on the look-ahead (this week incl. steps under way, next week, week after, then "Later, running late"; each step
+  with dates, trade, hold point, the reason when late, and its items not yet confirmed). Test ids: `overview-hero`,
+  `ov-finish`, `ov-slip`, `ov-slip-cost`, `ov-freshness`, `ov-stages`, `ov-waiting` > `ov-waiting-row`, `ov-hold`,
+  `ov-shipments`, `ov-notes`, `ov-photos`; `program-sub`, `gantt` > `g-step-<stepId>` (class `is-late`), `gantt-done`,
+  `lookahead` > `la-step-<stepId>`, `stages-strip`; `step-dates` (`step-forecast`, `step-planned`, `step-reason`),
+  `hold-point` > `hold-category`, `needs` > `need-<itemId>`, `waits-for`, `holds-up`; `ck-summary` (`ck-outstanding`,
+  `ck-oldest`, `ck-freshness`), `ck-stages` > `ck-stage-<order>` > `ck-item`; `job-bar`, `job-switcher`.
+- Read-model additions (Stage 4a, all additive): `JobListRow.sideId/path`; `ProgramView.steps` are `ProgramStep`
+  (StepForecast + `stageName`, `tradeType`), `ProgramView.items` (open step-linked WaitingRows, act-by order),
+  `ProgramView.shutdowns`; `StepDetail.step` is a ProgramStep; `DesignChecklist` items carry `status(+Label)`, `expected`,
+  `notes`, plus `done` items, `lastConfirmed`, `daysUnconfirmed`, `amber`, `freshnessText` (Monday design rows use them);
+  `WhyCause.changes` (HistoryChange[], field before/after), `sourceKind` 'voice'|'text'|null, `sourceReceivedAt`, so
+  Monday no longer fetches change history; `ShipmentRow.linkedItems` [{itemId, title, status(+Label), owner, neededBy}];
+  `HistoryFilter` extends SideFilter (`sideId`: entries touching a job or trade on that side); `changeHistory(ds, filter,
+  today?)` -> each confirmed entry's `effects: HistoryEffect[]` {jobId, jobName, finishBefore, finishAfter, deltaDays,
+  cost, movedSteps} found by taking back every confirmed change set from the page's oldest on and replaying in order
+  (so changes older than the snapshot count too); `LocalDashboardApi.getChangeHistory` passes today. `historyChanges(ds,
+  changes)` exported.
 - Design rules live in `src/styles/tokens.css` (palette and type) and `app.css`; phone layout is the same DOM at <= 760px.
 
 ## Seed (`packages/core/src/seed`)
@@ -576,6 +618,17 @@ Stage 3 behaviour:
   open question stays open) -> `remindersNow()` text ("Reminders due now, Thu 17 Sep (you asked, so this includes any
   already sent today):" + lines), or "Nothing due right now, Thu 17 Sep."; not recorded in reminder_sent. The daily send
   is the scheduler's `fireReminders` through `RunningBot.notifier` to Dominic's private chat (chat id = his user id).
+- Review fixes: Confirm -> `RuleRefusalError` cancels the card (decision: cancelled, not left proposed), edits it to
+  "Not saved: <summary>." and sends "<reason> Nothing saved." (e.g. a hold-point photo undone after the card was made).
+  A file over 20 MB (Telegram's `file_size`, or getFile's "file is too big") -> `TooBigError` -> "That file is over
+  Telegram's 20 MB limit for bots, so I can't fetch it. Send it as a photo or a smaller file." Photo bytes are checked
+  with `detectImageType` (media.ts; magic bytes: jpg, png, webp, heic, heif), which also gives the stored extension;
+  anything else (HTML, SVG, GIF, PDF named .jpg...) -> "That file isn't a photo I can keep: I take JPEG, PNG, WebP or
+  HEIC. Nothing saved." and nothing stored or recorded. `startBot` runs `handle.sweepOrphanPhotos()` (photos/telegram
+  files no photo row or proposed change set refers to; `MediaStore.listPhotos?`). With no card in memory (after a
+  restart) Edit / an out-of-date card take `filePath` from the change set's photo insert. A spoken "fire reminders"
+  skips the LLM too. The notifier throws only when the first part fails (later parts: two tries, then dropped), so a
+  long message is never resent in part.
 - Not done (optional Stage 2 review idea): parsing an answer to an open question once with the thread and letting the model
   say whether it's a new request. Still two calls for a free-text answer.
 

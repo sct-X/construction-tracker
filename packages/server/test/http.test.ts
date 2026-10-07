@@ -206,6 +206,26 @@ describe('other routes', () => {
     expect((await app.inject('/api/nothing-here')).json()).toEqual({ error: 'Not found: GET /api/nothing-here' });
   });
 
+  it('photo files: an allowlisted image type, nosniff and a sandboxing CSP; any other stored file is a download', async () => {
+    mkdirSync(join(paths.photosDir, 'telegram'), { recursive: true });
+    writeFileSync(join(paths.photosDir, 'telegram', 'a.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    writeFileSync(join(paths.photosDir, 'telegram', 'b.html'), '<script>alert(1)</script>');
+    const seedPhoto = store.load().photos[0]!;
+    for (const [id, filePath] of [['ph-png', 'telegram/a.png'], ['ph-html', 'telegram/b.html']] as const) {
+      store.applyChangeSet({ summary: 'test', changes: [{ kind: 'insert', table: 'photo', rowId: id, row: { ...seedPhoto, id, filePath, isPlaceholder: false } }] });
+    }
+    const png = await app.inject('/api/photos/ph-png/file');
+    expect(png.headers['content-type']).toBe('image/png');
+    expect(png.headers['x-content-type-options']).toBe('nosniff');
+    expect(png.headers['content-security-policy']).toBe("default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox");
+    const html = await app.inject('/api/photos/ph-html/file');
+    expect(html.headers['content-type']).toBe('application/octet-stream');
+    expect(html.headers['content-disposition']).toBe('attachment');
+    expect(html.headers['x-content-type-options']).toBe('nosniff');
+    const placeholder = await app.inject(`/api/photos/${store.load().photos.find((p) => p.isPlaceholder)!.id}/file`);
+    expect(placeholder.headers['content-security-policy']).toContain('sandbox');
+  });
+
   it('a photo row whose path escapes the photos folder is a 404, never a file outside it', async () => {
     const seedPhoto = store.load().photos[0]!;
     const evil = { ...seedPhoto, id: 'ph-evil', filePath: '../tracker.db', isPlaceholder: false };

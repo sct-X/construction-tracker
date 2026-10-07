@@ -16,12 +16,16 @@ export interface TelegramNotifier {
 
 const MAX = 4000;
 
-/** Sends each notification to one chat (Dominic's private chat id = his user id). Throws on failure, so the
- * scheduler releases the reminders and tries again next minute. Long texts are split on line breaks. */
+/** Sends each notification to one chat (Dominic's private chat id = his user id). Throws when the (first) message
+ * fails, so the scheduler releases the reminders and tries again later. Long texts are split on line breaks. */
 export function createTelegramNotifier(api: Api, chatId: number | string): TelegramNotifier {
   return {
     async send(n) {
-      for (const part of splitText(n.text, MAX)) await api.sendMessage(chatId, part);
+      const [first, ...rest] = splitText(n.text, MAX);
+      // Only the first part decides success: if a later part fails, throwing would make the scheduler
+      // resend the whole message (part 1 twice). A later part is tried twice, then given up.
+      await api.sendMessage(chatId, first!);
+      for (const part of rest) await api.sendMessage(chatId, part).catch(() => api.sendMessage(chatId, part).catch(() => undefined));
     },
   };
 }

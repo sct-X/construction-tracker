@@ -513,17 +513,156 @@ describe('flow f: reminders to Telegram', () => {
     expect(h.sent(asked)[0]).toContain('Book concrete pump');
   });
 
-  it('a failed Telegram send leaves the reminders to go out on the next tick', async () => {
+  it('a failed Telegram send is retried with a back-off (2, 4, ... 60 min), not every minute', async () => {
     setup([]);
     let fail = true;
-    const flaky = { async send(n: { text: string }) { if (fail) throw new Error('Telegram down'); await createTelegramNotifier(h.handle.bot.api, DOMINIC_ID).send(n); } };
+    let attempts = 0;
+    const flaky = {
+      async send(n: { text: string }) {
+        attempts += 1;
+        if (fail) throw new Error('Telegram down');
+        await createTelegramNotifier(h.handle.bot.api, DOMINIC_ID).send(n);
+      },
+    };
     const errors: string[] = [];
-    const scheduler = createScheduler({ store, clock: fixedClock(DEFAULT_TODAY, '07:30'), notifier: flaky, log: { info() {}, warn() {}, error: (m) => void errors.push(m) }, reminderTime: '07:00' });
+    const at = steppingClock(DEFAULT_TODAY, '07:30');
+    const scheduler = createScheduler({ store, clock: at, notifier: flaky, log: { info() {}, warn() {}, error: (m) => void errors.push(m) }, reminderTime: '07:00' });
     await scheduler.tick();
-    expect(errors).toEqual(['Sending reminders failed (will retry next minute)']);
+    expect(errors).toEqual(['Sending reminders failed (attempt 1; will retry in 2 min)']);
+    at.advance(60_000);
+    await scheduler.tick(); // 07:31: still backing off
+    expect(attempts).toBe(1);
+    at.advance(60_000);
+    await scheduler.tick(); // 07:32: second try fails, next in 4 min
+    expect(errors.at(-1)).toBe('Sending reminders failed (attempt 2; will retry in 4 min)');
+    at.advance(3 * 60_000);
+    await scheduler.tick();
+    expect(attempts).toBe(2);
     fail = false;
+    at.advance(60_000);
     const before = h.calls.length;
-    await scheduler.tick();
+    await scheduler.tick(); // 07:36: goes out
+    expect(attempts).toBe(3);
     expect(String(sendsIn(h.calls.slice(before))[0]!.payload.text)).toContain('Book concrete pump');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Stage 3 review fixes (docs/reviews/stage-3.md)
+// ---------------------------------------------------------------------------
+
+describe('review 1: rules are re-checked at Confirm', () => {
+  it('file both photos, card for the sign-off, /undo a photo, Confirm -> refused naming the empty category, card cancelled', async () => {
+    setup([attach('plumbing under slab'), attach('membrane and termite barrier'), markSlabDone()]);
+    await filePhoto(PLUMBING, 'Seaview plumbing under slab');
+    await filePhoto(MEMBRANE, 'Seaview membrane');
+    await h.text('slab inspection done');
+    const card = h.lastWithButton('Confirm');
+    expect(card.text).toContain('Slab inspection before pour at Seaview St done Thu 17 Sep.');
+
+    const undo = await h.text('/undo');
+    expect(h.sent(undo)[0]).toMatch(/^Undone: Photo filed: Seaview St, Slab, Membrane and termite barrier\./);
+
+    const pressed = await h.press(card.messageId, 'Confirm');
+    expect(h.sent(pressed)).toEqual(["Can't sign off Slab inspection before pour yet. No photos for: Membrane and termite barrier. Nothing saved."]);
+    expect(h.messages.get(card.messageId)!.text).toBe('Not saved: Slab inspection before pour at Seaview St done Thu 17 Sep.');
+    expect(h.messages.get(card.messageId)!.buttons).toEqual([]);
+    expect(slabInspection().status).not.toBe('done');
+    expect(newChangeSets().at(-1)!.status).toBe('cancelled');
+    expect(h.log.lines.some((l) => l.startsWith('info Refused at Confirm'))).toBe(true);
+  });
+});
+
+describe('review 2: files over 20 MB', () => {
+  const TOO_BIG = "That file is over Telegram's 20 MB limit for bots, so I can't fetch it. Send it as a photo or a smaller file.";
+
+  it('a document Telegram says is 25 MB gets its own reply, no download, nothing stored', async () => {
+    setup([]);
+    const calls = await h.document(STEEL, { fileSize: 25 * 1024 * 1024, mime: 'image/heic', fileName: 'IMG_9001.HEIC' });
+    expect(h.sent(calls)).toEqual([TOO_BIG]);
+    expect(calls.some((c) => c.method === 'getFile')).toBe(false);
+    expect(telegramPhotos()).toHaveLength(0);
+    expect(newInbound()).toHaveLength(0);
+  });
+
+  it('no size in the update, but getFile says "file is too big": same reply', async () => {
+    setup([]);
+    const calls = await h.document(STEEL, { fileSize: null, tooBig: true });
+    expect(h.sent(calls)).toEqual([TOO_BIG]);
+    expect(telegramPhotos()).toHaveLength(0);
+  });
+});
+
+describe('review 3: only real images are stored, with the extension their bytes say', () => {
+  const NOT_A_PHOTO = "That file isn't a photo I can keep: I take JPEG, PNG, WebP or HEIC. Nothing saved.";
+  const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
+
+  it('HTML sent as image/jpeg named x.html is refused; nothing stored', async () => {
+    setup([]);
+    const calls = await h.document(new TextEncoder().encode('<html><script>alert(1)</script></html>'), { mime: 'image/jpeg', fileName: 'x.html' });
+    expect(h.sent(calls)).toEqual([NOT_A_PHOTO]);
+    expect(telegramPhotos()).toHaveLength(0);
+    expect(newInbound()).toHaveLength(0);
+  });
+
+  it('an SVG is refused', async () => {
+    setup([]);
+    const calls = await h.document(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><script>1</script></svg>'), { mime: 'image/svg+xml', fileName: 'plan.svg' });
+    expect(h.sent(calls)).toEqual([NOT_A_PHOTO]);
+    expect(telegramPhotos()).toHaveLength(0);
+  });
+
+  it('PNG bytes named .jpg are stored as .png; HEIC bytes as .heic', async () => {
+    setup([attach('general'), attach('general')]);
+    await h.document(PNG, { mime: 'image/jpeg', fileName: 'IMG_1.jpg', caption: 'Seaview general' });
+    const heic = new Uint8Array([0, 0, 0, 24, ...new TextEncoder().encode('ftypheic'), 0, 0, 0, 0]);
+    await h.document(heic, { mime: 'image/heic', fileName: 'IMG_2.HEIC', caption: 'Seaview general' });
+    expect(telegramPhotos().map((n) => n.slice(n.lastIndexOf('.'))).sort()).toEqual(['.heic', '.png']);
+  });
+});
+
+describe('review 4: after a restart', () => {
+  it('the start-up sweep deletes photos/telegram files nothing refers to and keeps filed and proposed ones', async () => {
+    setup([attach('plumbing under slab'), attach('membrane and termite barrier')]);
+    await filePhoto(PLUMBING, 'Seaview plumbing under slab'); // filed
+    await h.photo(MEMBRANE, { caption: 'Seaview membrane' }); // proposed, not confirmed
+    const orphan = await diskMediaStore(paths.dataDir).savePhoto(STEEL, { date: DEFAULT_TODAY, ext: 'jpg' });
+    expect(telegramPhotos()).toHaveLength(3);
+    // A new bot process on the same data.
+    const fresh = createHarness({ store, clock, parser: createParser(new FakeLlm([])), media: diskMediaStore(paths.dataDir) });
+    expect(await fresh.handle.sweepOrphanPhotos()).toEqual([orphan.filePath]);
+    expect(telegramPhotos()).toHaveLength(2);
+  });
+
+  it('Edit on a photo card made before the restart keeps the photo for the corrected card', async () => {
+    setup([attach('plumbing under slab')]);
+    await h.photo(PLUMBING, { caption: 'Seaview plumbing under slab' });
+    const card = h.lastWithButton('Edit');
+    const csId = card.buttons.find((b) => b.text === 'Edit')!.data.slice(2);
+    const fresh = createHarness({ store, clock, parser: createParser(new FakeLlm([attach('membrane and termite barrier')])), media: diskMediaStore(paths.dataDir) });
+    await fresh.update({
+      callback_query: {
+        id: 'cb-restart',
+        from: { id: DOMINIC_ID, is_bot: false, first_name: 'Dominic' },
+        chat_instance: 'ci',
+        data: `e:${csId}`,
+        message: { message_id: card.messageId, date: 0, chat: { id: DOMINIC_ID, type: 'private', first_name: 'Dominic' }, text: card.text },
+      },
+    } as never);
+    await fresh.text('no, the membrane one');
+    const next = fresh.lastWithButton('Confirm');
+    expect(next.text).toContain('Photo filed: Seaview St, Slab, Membrane and termite barrier.');
+    await fresh.press(next.messageId, 'Confirm');
+    expect(newPhotos()).toHaveLength(1);
+    expect(existsSync(join(paths.photosDir, ...newPhotos()[0]!.filePath.split('/')))).toBe(true);
+  });
+});
+
+describe('review 8: a spoken "fire reminders" skips the LLM too', () => {
+  it('sends the reminders due now', async () => {
+    setup([], ['Fire reminders.']);
+    const calls = await h.voice(OGG);
+    expect(h.sent(calls)[0]).toMatch(/^Reminders due now, Thu 17 Sep/);
+    expect(llm.requests).toHaveLength(0);
   });
 });

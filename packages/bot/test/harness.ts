@@ -84,6 +84,8 @@ export interface FakeTelegramFile {
   data: Uint8Array;
   /** Telegram's file_path (extension matters), e.g. "voice/file_1.oga". */
   path: string;
+  /** getFile answers Telegram's "file is too big" (over 20 MB). */
+  tooBig?: boolean;
 }
 
 export interface Harness {
@@ -109,7 +111,8 @@ export interface Harness {
    */
   photo(data: Uint8Array, o?: { caption?: string; from?: number; mediaGroupId?: string; width?: number; height?: number }): Promise<ApiCall[]>;
   /** Send an image as a file (document with an image mime type): full resolution. */
-  document(data: Uint8Array, o?: { caption?: string; mime?: string; fileName?: string; from?: number }): Promise<ApiCall[]>;
+  /** `fileSize` overrides the size Telegram reports (null = none reported); `tooBig` makes getFile refuse it. */
+  document(data: Uint8Array, o?: { caption?: string; mime?: string; fileName?: string; from?: number; fileSize?: number | null; tooBig?: boolean }): Promise<ApiCall[]>;
   /** The id of the user message most recently fed (photos: what questions and cards reply to). */
   lastUserMessageId(): number;
   /** Texts the bot sent (sendMessage) in a slice of calls, or overall. */
@@ -154,6 +157,7 @@ export function createHarness(o: HarnessOptions): Harness {
     if (method === 'getFile') {
       const f = files.get(String(payload.file_id));
       if (!f) return { ok: false, error_code: 400, description: 'Bad Request: invalid file_id' };
+      if (f.tooBig) return { ok: false, error_code: 400, description: 'Bad Request: file is too big' };
       return { ok: true, result: { file_id: f.fileId, file_unique_id: `u-${f.fileId}`, file_size: f.data.length, file_path: f.path } };
     }
     return { ok: true, result: true };
@@ -247,8 +251,10 @@ export function createHarness(o: HarnessOptions): Harness {
       const mime = opts.mime ?? 'image/jpeg';
       const name = opts.fileName ?? 'IMG_0001.jpg';
       const f = addFile(data, (id) => `documents/${id}${name.slice(name.lastIndexOf('.'))}`);
+      if (opts.tooBig) f.tooBig = true;
+      const size = opts.fileSize === undefined ? data.length : opts.fileSize;
       return userMessage(opts.from ?? DOMINIC_ID, {
-        document: { file_id: f.fileId, file_unique_id: `u-${f.fileId}`, file_name: name, mime_type: mime, file_size: data.length },
+        document: { file_id: f.fileId, file_unique_id: `u-${f.fileId}`, file_name: name, mime_type: mime, ...(size === null ? {} : { file_size: size }) },
         ...(opts.caption ? { caption: opts.caption } : {}),
       });
     },

@@ -5,7 +5,7 @@
  * forecast impact) and are saved only on Confirm. Questions (from the parser
  * or from a core operation) are asked back and save nothing.
  */
-import { Bot, InlineKeyboard, type Context, type Transformer } from 'grammy';
+import { Bot, GrammyError, InlineKeyboard, type Context, type Transformer } from 'grammy';
 import type { Message, Update, UserFromGetMe } from 'grammy/types';
 import {
   applyChanges,
@@ -29,10 +29,11 @@ import {
   type Proposal,
   type QuestionOption,
   type Store,
+  RuleRefusalError,
 } from '@ct/core';
 import { BOT_SET_ARGS, type ChatMsg, type ParseResult, type Parser } from '@ct/llm';
 import { cardText, finishSentence } from './format.js';
-import { extensionFor, telegramDownloader, type FileDownloader, type MediaStore } from './media.js';
+import { detectImageType, extensionFor, telegramDownloader, type FileDownloader, type MediaStore } from './media.js';
 import { answerRead } from './reads.js';
 import { transcriptionPrompt, type Transcriber } from './transcriber.js';
 
@@ -142,6 +143,8 @@ export interface BotHandle {
   cards: Map<string, Card>;
   /** Photos (and put-aside photo questions) waiting for the open photo question, per chat. */
   photoQueue: Map<number, Queued[]>;
+  /** Start-up tidy: deletes photos/telegram files nothing refers to. Returns the paths removed. */
+  sweepOrphanPhotos(): Promise<string[]>;
   /**
    * Run already-understood text through the pipeline as if typed (Stage 3: a
    * voice transcript or a photo caption), linked to an inbound row the caller saved.
@@ -170,6 +173,16 @@ const PHOTO_TIP_FLAG = 'photo-as-file-tip';
 const PHOTO_TIP =
   'Tip: to keep a photo at full resolution, send it as a file (paperclip, then File) instead of as a photo. Telegram shrinks normal photos. This one is filed either way.';
 const GROUP_MEMORY_MS = 10 * 60 * 1000;
+const TOO_BIG = "That file is over Telegram's 20 MB limit for bots, so I can't fetch it. Send it as a photo or a smaller file.";
+const NOT_A_PHOTO = "That file isn't a photo I can keep: I take JPEG, PNG, WebP or HEIC. Nothing saved.";
+
+/** A file Telegram won't let a bot download (over 20 MB). Retrying can't help, so it gets its own reply. */
+export class TooBigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TooBigError';
+  }
+}
 
 export function silentLog(): BotLog {
   return { info() {}, warn() {}, error() {} };
@@ -634,6 +647,15 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     try {
       store.confirmChangeSet(csId);
     } catch (e) {
+      if (e instanceof RuleRefusalError) {
+        // Decision: a card that would now break a rule (e.g. a hold-point photo undone since) is cancelled, not kept.
+        store.cancelChangeSet(csId);
+        for (const path of photoPathsOf(store.load(), csId)) unsettled.add(path);
+        if (msgId) await edit(chatId, msgId, `Not saved: ${cs.summary}.`);
+        await send(chatId, `${e.reason}${/[.!?]$/.test(e.reason) ? '' : '.'} Nothing saved.`);
+        log.info(`Refused at Confirm ${csId}: ${e.reason}`);
+        return 'Not saved';
+      }
       if (!(e instanceof ChangeConflictError)) throw e;
       await stale(chatId, csId, msgId);
       return 'Out of date';
@@ -657,7 +679,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       return;
     }
     await send(chatId, "That card was out of date: something changed since I made it, so nothing was saved. Here's a fresh one.");
-    await runCalls(calls, { chatId, messageId: card?.messageId ?? cs?.messageId ?? null, transcript: card?.transcript ?? null, history: card?.history ?? [], botArgs: card?.botArgs ?? {} });
+    await runCalls(calls, { chatId, messageId: card?.messageId ?? cs?.messageId ?? null, transcript: card?.transcript ?? null, history: card?.history ?? [], botArgs: card?.botArgs ?? botArgsOf(csId) });
   }
 
   async function cancel(ctx: Context, csId: string): Promise<string | undefined> {
@@ -688,7 +710,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     ];
     const ask = 'What should it be instead? Send the correction and I\'ll make a new card.';
     setAsidePending(chatId);
-    pending.set(chatId, { kind: 'edit', history: [...history, { role: 'assistant', content: ask }], transcript: card?.transcript ?? null, botArgs: card?.botArgs ?? {}, askedAt: nowMs() });
+    pending.set(chatId, { kind: 'edit', history: [...history, { role: 'assistant', content: ask }], transcript: card?.transcript ?? null, botArgs: card?.botArgs ?? botArgsOf(csId), askedAt: nowMs() });
     if (msgId) await edit(chatId, msgId, `Changing this one (not saved): ${cs.summary}.`);
     await send(chatId, ask);
     return 'Send the correction';
@@ -704,6 +726,38 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       .filter((c) => c.table === 'photo' && c.kind === 'insert')
       .map((c) => (c.kind === 'insert' ? (c.row as { filePath?: unknown }).filePath : null))
       .filter((x): x is string => typeof x === 'string');
+  }
+
+  /**
+   * A card's bot-set args when the card isn't in memory (after a restart): the photo file its change set
+   * would file, so Edit and an out-of-date card keep working (and the file is still tidied up).
+   */
+  function botArgsOf(csId: string): BotArgs {
+    const path = photoPathsOf(store.load(), csId)[0];
+    if (!path) return {};
+    unsettled.add(path);
+    return { filePath: path };
+  }
+
+  /**
+   * On start: photos in photos/telegram that no photo row and no proposed change set refers to are left over
+   * from before a restart (a question that was open, a card cancelled while down). Nothing is in flight in a
+   * fresh process, so they go now. Returns the paths removed.
+   */
+  async function sweepOrphanPhotos(): Promise<string[]> {
+    if (!media?.listPhotos) return [];
+    const ds = store.load();
+    const keep = new Set(ds.photos.map((p) => p.filePath));
+    for (const cs of ds.changeSets) if (cs.status === 'proposed') for (const path of photoPathsOf(ds, cs.id)) keep.add(path);
+    const removed: string[] = [];
+    for (const path of await media.listPhotos()) {
+      if (keep.has(path)) continue;
+      await media.removePhoto(path);
+      for (const m of ds.inboundMessages) if (m.photoPath === path) store.updateInbound(m.id, { photoPath: null });
+      removed.push(path);
+    }
+    if (removed.length) log.info(`Deleted ${removed.length} unfiled photo(s) left from before the restart: ${removed.join(', ')}.`);
+    return removed;
   }
 
   /** Paths still in play: an open question or edit, a queued photo, or a proposed card. */
@@ -767,8 +821,15 @@ export function createBot(opts: CreateBotOptions): BotHandle {
   // -------------------------------------------------------------------------
 
   async function download(fileId: string, size: number | undefined): Promise<{ data: Uint8Array; telegramPath: string }> {
-    if (size && size > MAX_DOWNLOAD_BYTES) throw new Error(`File is ${Math.round(size / 1048576)} MB; Telegram lets bots download up to 20 MB`);
-    const file = await bot.api.getFile(fileId);
+    if (size && size > MAX_DOWNLOAD_BYTES) throw new TooBigError(`File is ${Math.round(size / 1048576)} MB; Telegram lets bots download up to 20 MB`);
+    let file;
+    try {
+      file = await bot.api.getFile(fileId);
+    } catch (e) {
+      // No file_size in the update: Telegram's own "file is too big" says the same thing.
+      if (e instanceof GrammyError && /file is too big/i.test(e.description)) throw new TooBigError(e.description);
+      throw e;
+    }
     if (!file.file_path) throw new Error('Telegram gave no file path');
     const data = await downloader.download({ fileId, filePath: file.file_path });
     return { data, telegramPath: file.file_path };
@@ -796,7 +857,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       saved = await media.saveAudio(data, { date: clock.today(), ext: extensionFor(telegramPath, v.mime_type, 'ogg') });
     } catch (e) {
       log.error('Voice note download failed', e);
-      await send(chatId, "I couldn't download that voice note from Telegram. Send it again in a minute. Nothing saved.");
+      await send(chatId, e instanceof TooBigError ? TOO_BIG : "I couldn't download that voice note from Telegram. Send it again in a minute. Nothing saved.");
       return;
     }
     let transcript = '';
@@ -821,6 +882,10 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       transcript,
     });
     log.info(`Voice note ${inbound.id} (${saved.storedPath}): "${transcript}"`);
+    if (REMINDERS_WORDS.test(transcript)) {
+      await remindersOnRequest(chatId); // spoken "fire reminders": no LLM either
+      return;
+    }
     await handleInbound(chatId, inbound, transcript, { transcript, ...(m.reply_to_message ? { replyTo: m.reply_to_message } : {}) });
   }
 
@@ -840,15 +905,23 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       return;
     }
     let filePath: string;
+    let data: Uint8Array;
     try {
-      const { data, telegramPath } = await download(file.fileId, file.size);
-      const ext = extensionFor(file.name ?? telegramPath, file.mime, 'jpg');
-      filePath = (await media.savePhoto(data, { date: clock.today(), ext })).filePath;
+      data = (await download(file.fileId, file.size)).data;
     } catch (e) {
       log.error('Photo download failed', e);
-      await send(chatId, "I couldn't download that photo from Telegram. Send it again in a minute. Nothing saved.", undefined, m.message_id);
+      await send(chatId, e instanceof TooBigError ? TOO_BIG : "I couldn't download that photo from Telegram. Send it again in a minute. Nothing saved.", undefined, m.message_id);
       return;
     }
+    // The stored extension comes from the bytes, never the sender's file name or mime type: only real
+    // JPEG/PNG/WebP/HEIC/HEIF is kept, so nothing the dashboard could run (.html, .svg) is ever stored.
+    const ext = detectImageType(data);
+    if (!ext) {
+      log.warn(`Refused a file sent as a photo (${file.mime ?? 'no mime type'}${file.name ? `, "${file.name}"` : ''}): not JPEG, PNG, WebP or HEIC.`);
+      await send(chatId, NOT_A_PHOTO, undefined, m.message_id);
+      return;
+    }
+    filePath = (await media.savePhoto(data, { date: clock.today(), ext })).filePath;
     unsettled.add(filePath);
     const own = m.caption?.trim() || null;
     const groupId = m.media_group_id ?? null;
@@ -1127,5 +1200,6 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     cards,
     photoQueue,
     handleInbound,
+    sweepOrphanPhotos,
   };
 }

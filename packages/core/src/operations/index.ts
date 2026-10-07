@@ -10,6 +10,7 @@ import { SETUP_OPS } from './setup.js';
 
 export * from './framework.js';
 export * from './daily.js';
+export * from './rules.js';
 export * from './setup.js';
 
 export const OPERATIONS: readonly OpDef[] = [...DAILY_OPS, ...SETUP_OPS] as unknown as OpDef[];

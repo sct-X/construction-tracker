@@ -28,6 +28,11 @@ export function ensureMondaySnapshots(store: SqliteStore, clock: Clock): Forecas
   return saved;
 }
 
+/** Minutes to wait after the n-th failed reminder send in a row: 2, 4, 8, 16, 32, then 60. */
+export function reminderRetryMinutes(failures: number): number {
+  return Math.min(60, 2 ** Math.max(1, failures));
+}
+
 export interface SchedulerOptions {
   store: SqliteStore;
   clock: Clock;
@@ -57,6 +62,10 @@ export function createScheduler(opts: SchedulerOptions): Scheduler {
   const reminderTime = opts.reminderTime ?? DEFAULT_REMINDER_TIME;
   let running: Promise<TickResult> | null = null;
   let timer: NodeJS.Timeout | null = null;
+  // Back-off after failed sends (Telegram down, bad token, bot blocked): 2, 4, 8, 16, 32, then every 60 min,
+  // instead of a retry and an error line every minute. A success resets it.
+  let failures = 0;
+  let retryAt = 0;
 
   async function pass(): Promise<TickResult> {
     const out: TickResult = { snapshots: [], reminders: null };
@@ -66,13 +75,19 @@ export function createScheduler(opts: SchedulerOptions): Scheduler {
     } catch (e) {
       log.error('Monday snapshot failed', e);
     }
+    const now = clock.now();
     try {
-      if (sydneyTime(clock.now()) >= reminderTime) {
+      if (sydneyTime(now) >= reminderTime && now.getTime() >= retryAt) {
         out.reminders = await fireReminders(store, clock, notifier);
         if (out.reminders.sent.length) log.info(`Sent ${out.reminders.sent.length} reminder(s)`);
+        failures = 0;
+        retryAt = 0;
       }
     } catch (e) {
-      log.error('Sending reminders failed (will retry next minute)', e);
+      failures += 1;
+      const minutes = reminderRetryMinutes(failures);
+      retryAt = now.getTime() + minutes * 60_000;
+      log.error(`Sending reminders failed (attempt ${failures}; will retry in ${minutes} min)`, e);
     }
     return out;
   }

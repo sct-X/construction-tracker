@@ -1,6 +1,6 @@
 // Starting the bot: off (with a log line) unless the token, Dominic's id and
 // an LLM provider are configured; the server's startApp hook logs it either way.
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -85,6 +85,9 @@ describe('startApp with the bot on: reminders go to Dominic on Telegram', () => 
     const port = (telegram.address() as AddressInfo).port;
 
     dir = mkdtempSync(join(tmpdir(), 'ct-bot-app-tg-'));
+    // A photo left over from before a restart: the bot's start-up sweep removes it.
+    mkdirSync(join(dir, 'photos', 'telegram'), { recursive: true });
+    writeFileSync(join(dir, 'photos', 'telegram', '2026-09-16-0123456789ab.jpg'), 'x');
     const config = { ...loadConfig({ DATA_DIR: dir, PORT: '0', REMINDER_TIME: '07:00' }, dir), port: 0 };
     const log = memoryLog();
     app = await startApp(config, {
@@ -109,5 +112,7 @@ describe('startApp with the bot on: reminders go to Dominic on Telegram', () => 
     expect(daily[0]!.text).toContain('Beatty St is amber');
     expect(log.lines).toContain('info Reminders go to Dominic on Telegram from 07:00 Sydney.');
     expect(log.lines.some((l) => l.startsWith('info Voice notes off:'))).toBe(true);
+    expect(existsSync(join(dir, 'photos', 'telegram', '2026-09-16-0123456789ab.jpg'))).toBe(false);
+    expect(log.lines).toContain('info Deleted 1 unfiled photo(s) left from before the restart: telegram/2026-09-16-0123456789ab.jpg.');
   });
 });

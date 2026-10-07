@@ -82,6 +82,7 @@ describe('system prompt', () => {
     expect(p).toMatch(/Pass dates exactly as Dominic said them/);
     expect(p).toMatch(/ask_question/);
     expect(p).toMatch(/A question is never a change/);
+    expect(p).toContain('A message that starts "Photo caption:" is the caption of a photo Dominic just sent. Call attach_photo');
   });
 
   it('names the weekday right on other dates', () => {

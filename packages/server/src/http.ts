@@ -18,7 +18,11 @@ import type { Log } from './config.js';
 import { photoFile, type DataPaths } from './paths.js';
 import type { SqliteStore } from './sqliteStore.js';
 
-/** Every DashboardApi method the RPC route will call. The type check below fails if one is missing. */
+/**
+ * The DashboardApi methods the RPC route will call. The web is read-only:
+ * day-to-day changes and undo come only through the bot. `applySetup` stays
+ * for the desktop Setup area (Stage 5); `previewSetup` is a dry run.
+ */
 export const RPC_METHODS = [
   'getToday',
   'listSides',
@@ -39,13 +43,15 @@ export const RPC_METHODS = [
   'listTemplates',
   'previewSetup',
   'applySetup',
-  'undo',
   'photoUrl',
 ] as const satisfies readonly (keyof DashboardApi)[];
 
-type RpcMethod = (typeof RPC_METHODS)[number];
-// Compile-time: every DashboardApi method is whitelisted.
-const _everyMethod: Exclude<keyof DashboardApi, RpcMethod> extends never ? true : never = true;
+/** DashboardApi methods deliberately NOT on HTTP (404): undo is the bot's (/undo), never the web's. */
+export const RPC_EXCLUDED = ['undo'] as const satisfies readonly (keyof DashboardApi)[];
+
+type Listed = (typeof RPC_METHODS)[number] | (typeof RPC_EXCLUDED)[number];
+// Compile-time: every DashboardApi method is either whitelisted or deliberately excluded.
+const _everyMethod: Exclude<keyof DashboardApi, Listed> extends never ? true : never = true;
 void _everyMethod;
 
 const RPC_SET = new Set<string>(RPC_METHODS);
@@ -79,6 +85,52 @@ export interface ServerOptions {
   /** Folder of the built web app (packages/web/dist). Served only if it exists (checked per request). */
   webDist?: string | null;
   log?: Log | null;
+  /** Host names allowed to call /api besides localhost, 127.0.0.1, [::1] and *.localhost (ALLOWED_HOSTS). */
+  allowedHosts?: string[];
+}
+
+const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
+
+/** "Localhost:8787" -> "localhost", "[::1]:80" -> "[::1]"; null when unparseable. */
+export function hostnameOf(hostHeader: string): string | null {
+  try {
+    const h = new URL(`http://${hostHeader.trim()}`).hostname.toLowerCase();
+    return h || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Normalises an allow-list entry ("Mini.local", "192.168.1.20:8787", "::1") to a bare host name. */
+export function normaliseAllowedHost(entry: string): string | null {
+  const e = entry.trim();
+  if (!e) return null;
+  if (e.includes(':') && !e.startsWith('[') && e.split(':').length > 2) return `[${e.toLowerCase()}]`; // bare IPv6
+  return hostnameOf(e);
+}
+
+/**
+ * DNS-rebinding guard: a page on evil.example that resolves to 127.0.0.1 still
+ * sends Host: evil.example, so only loopback names (plus the allow list) may
+ * call /api. A browser Origin header, when sent, must name an allowed host too.
+ */
+export function isAllowedRequest(headers: { host?: string; origin?: string }, allowed: ReadonlySet<string>): { ok: true } | { ok: false; reason: string } {
+  const ok = (h: string | null) => !!h && (allowed.has(h) || h.endsWith('.localhost'));
+  const host = headers.host ? hostnameOf(headers.host) : null;
+  if (!ok(host)) {
+    return { ok: false, reason: `Host not allowed: ${headers.host ?? '(none)'}. Use localhost or 127.0.0.1, or add the name to ALLOWED_HOSTS.` };
+  }
+  if (headers.origin !== undefined) {
+    let originHost: string | null = null;
+    try {
+      const u = new URL(headers.origin);
+      if (u.protocol === 'http:' || u.protocol === 'https:') originHost = u.hostname.toLowerCase();
+    } catch {
+      originHost = null;
+    }
+    if (!ok(originHost)) return { ok: false, reason: `Origin not allowed: ${headers.origin}.` };
+  }
+  return { ok: true };
 }
 
 class HttpError extends Error {
@@ -150,6 +202,20 @@ export async function buildServer(opts: ServerOptions): Promise<FastifyInstance>
     void reply.status(status).send({ error: err instanceof Error ? err.message : String(err) });
   });
   app.setNotFoundHandler((req, reply) => reply.status(404).send({ error: `Not found: ${req.method} ${req.url.split('?')[0]}` }));
+
+  const allowed = new Set<string>(LOOPBACK_HOSTS);
+  for (const h of opts.allowedHosts ?? []) {
+    const n = normaliseAllowedHost(h);
+    if (n) allowed.add(n);
+  }
+  app.addHook('onRequest', async (req, reply) => {
+    if (!req.url.startsWith('/api')) return;
+    const verdict = isAllowedRequest({ host: req.headers.host, origin: req.headers.origin }, allowed);
+    if (!verdict.ok) {
+      opts.log?.warn(`Refused ${req.method} ${req.url.split('?')[0]}: ${verdict.reason}`);
+      return reply.status(403).send({ error: verdict.reason });
+    }
+  });
 
   app.get('/api/health', async () => ({ ok: true, today: clock.today() }));
 

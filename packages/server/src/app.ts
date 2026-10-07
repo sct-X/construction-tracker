@@ -8,7 +8,7 @@ import { consoleLog, type Log, type ServerConfig } from './config.js';
 import { buildServer } from './http.js';
 import { ensureDataDirs } from './paths.js';
 import { logNotifier, type Notifier } from './reminders.js';
-import { startScheduler, type Scheduler } from './scheduler.js';
+import { startScheduler, type Scheduler, type TickResult } from './scheduler.js';
 import { seedIfEmpty } from './seed.js';
 import { SqliteStore } from './sqliteStore.js';
 
@@ -17,6 +17,8 @@ export interface RunningApp {
   clock: Clock;
   server: FastifyInstance;
   scheduler: Scheduler;
+  /** The scheduler's first pass (snapshot catch-up, missed reminders), or null when the scheduler is off. */
+  firstTick: Promise<TickResult> | null;
   notifier: Notifier;
   /** "http://127.0.0.1:8787" */
   url: string;
@@ -43,7 +45,7 @@ export async function startApp(config: ServerConfig, opts: StartOptions = {}): P
   if (seedIfEmpty(store)) log.info(`New database: loaded the seed into ${config.paths.dbFile}`);
   log.info(`Data: ${config.paths.dataDir}; today is ${clock.today()}${config.todayOverride ? ' (CT_TODAY override)' : ' (Sydney)'}`);
 
-  const server = await buildServer({ store, clock, paths: config.paths, webDist: config.webDist, log });
+  const server = await buildServer({ store, clock, paths: config.paths, webDist: config.webDist, log, allowedHosts: config.allowedHosts });
   await server.listen({ host: config.host, port: config.port });
   const addr = server.server.address();
   const port = addr && typeof addr === 'object' ? addr.port : config.port;
@@ -51,10 +53,8 @@ export async function startApp(config: ServerConfig, opts: StartOptions = {}): P
   log.info(`API on ${url} (web app from ${config.webDist})`);
 
   const notifier = opts.notifier ?? logNotifier(log);
-  const scheduler =
-    opts.scheduler === false
-      ? { tick: async () => ({ snapshots: [], reminders: null }), start() {}, stop() {} }
-      : startScheduler({ store, clock, notifier, log, reminderTime: config.reminderTime });
+  const started = opts.scheduler === false ? null : startScheduler({ store, clock, notifier, log, reminderTime: config.reminderTime });
+  const scheduler: Scheduler = started ?? { tick: async () => ({ snapshots: [], reminders: null }), start() {}, stop() {} };
 
   // ---------------------------------------------------------------------------
   // STAGE 2 HOOK: start the Telegram bot here, in this process, over the same
@@ -70,6 +70,7 @@ export async function startApp(config: ServerConfig, opts: StartOptions = {}): P
     clock,
     server,
     scheduler,
+    firstTick: started?.firstTick ?? null,
     notifier,
     url,
     async stop() {

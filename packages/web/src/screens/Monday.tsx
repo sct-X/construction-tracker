@@ -35,14 +35,16 @@ export interface MondayData {
 export async function loadMonday(api: DashboardApi, filter: SideFilter): Promise<MondayData> {
   const view = await api.getMonday(filter);
   const moving = view.builds.filter((b) => b.slipDays);
-  const [whys, history] = await Promise.all([
+  // Field-level before/after for each cause comes from that job's recent history (bounded); a cause
+  // not found there (e.g. a shipment on another job) falls back to its summary sentence.
+  const [whys, histories] = await Promise.all([
     Promise.all(moving.map((b) => api.getWhyItMoved(b.jobId))),
-    moving.length ? api.getChangeHistory({ statuses: ['confirmed'] }) : Promise.resolve([]),
+    Promise.all(moving.map((b) => api.getChangeHistory({ jobId: b.jobId, statuses: ['confirmed'], limit: 50 }))),
   ]);
   return {
     view,
     why: Object.fromEntries(whys.map((w) => [w.jobId, w])),
-    history: Object.fromEntries(history.map((h) => [h.changeSetId, h])),
+    history: Object.fromEntries(histories.flat().map((h) => [h.changeSetId, h])),
   };
 }
 
@@ -131,7 +133,13 @@ function BuildRow({ row, today, why, history }: { row: MondayBuildRow; today: st
         </td>
         <td className="c-cost">
           <CellLabel>Slip cost</CellLabel>
-          <Money amount={row.slipCost} className="num" testId="slip-cost" />
+          {row.slipCost ? (
+            <Money amount={row.slipCost} className="num" testId="slip-cost" />
+          ) : row.slipCost === 0 ? (
+            <span className="cost-none" data-testid="slip-cost">
+              Nothing this week
+            </span>
+          ) : null}
           {row.weeklyHoldingCost !== null && (
             <span className="sub">
               <Money amount={row.weeklyHoldingCost} /> a week to hold
@@ -153,7 +161,7 @@ function BuildRow({ row, today, why, history }: { row: MondayBuildRow; today: st
       {row.actByDue.length > 0 && (
         <tr className="job-detail">
           <td colSpan={5}>
-            <ActBy items={row.actByDue} today={today} />
+            <ActBy items={row.actByDue} today={today} jobName={row.name} />
           </td>
         </tr>
       )}
@@ -174,7 +182,9 @@ function WhyItMovedBlock({ why, today, history }: { why: WhyItMoved; today: stri
   const titleId = `why-${why.jobId}`;
   return (
     <section className="why" aria-labelledby={titleId} data-testid="why-it-moved">
-      <h3 id={titleId}>Why it moved</h3>
+      <h3 id={titleId}>
+        Why it moved<span className="sr-only"> for {why.jobName}</span>
+      </h3>
       <ol className="causes">
         {why.causes.map((c) => (
           <Cause key={c.changeSetId} cause={c} today={today} entry={history[c.changeSetId] ?? null} />
@@ -269,10 +279,13 @@ function Cause({ cause, today, entry }: { cause: WhyCause; today: string; entry:
   );
 }
 
-function ActBy({ items, today }: { items: WaitingRow[]; today: string }) {
+function ActBy({ items, today, jobName }: { items: WaitingRow[]; today: string; jobName: string }) {
   return (
     <section className="actby" data-testid="act-by">
-      <h3>Act on by {formatDate(addCalendarDays(today, 7), today)}</h3>
+      <h3>
+        Act by this week<span className="sr-only"> for {jobName}</span>
+        <span className="h-note">to {formatDate(addCalendarDays(today, 7), today)}</span>
+      </h3>
       <ul>
         {items.map((i) => {
           const passed = !!i.actBy && i.actBy < today;
@@ -329,10 +342,7 @@ function DesignTable({ rows }: { rows: MondayDesignRow[] }) {
                 <tr className="job-main">
                   <th scope="row" className="c-job">
                     <span className="job-name">{r.name}</span>
-                    <span className="job-stage">
-                      {r.stageName ?? 'No stage'}
-                      {r.path ? `, ${r.path}` : ''}
-                    </span>
+                    {r.path && <span className="job-stage">{r.path === 'DA' ? 'DA, council' : 'CDC, certifier'}</span>}
                   </th>
                   <td className="c-out">
                     <CellLabel>Outstanding</CellLabel>

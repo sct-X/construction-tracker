@@ -1,10 +1,4 @@
-import { test, type Page, type TestInfo } from '@playwright/test';
-
-/** Skips the api project while the root has no `e2e:server` script (see playwright.config.ts). */
-export function skipIfPending(info: TestInfo): void {
-  const meta = info.project.metadata as { pending?: boolean };
-  test.skip(!!meta.pending, 'api project pending: root package.json has no e2e:server script yet');
-}
+import type { Page, TestInfo } from '@playwright/test';
 
 export function isMock(info: TestInfo): boolean {
   return (info.project.metadata as { dataMode?: string }).dataMode === 'mock';

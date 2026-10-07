@@ -1,7 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { buildRow, isMock, openMonday, skipIfPending } from './helpers';
-
-test.beforeEach(({}, info) => skipIfPending(info));
+import { buildRow, isMock, openMonday } from './helpers';
 
 test('Monday shows the seeded forecasts, slip, cost and freshness', async ({ page }) => {
   await openMonday(page);
@@ -18,6 +16,8 @@ test('Monday shows the seeded forecasts, slip, cost and freshness', async ({ pag
   await expect(seaview.getByTestId('slip')).toHaveText('On track');
   await expect(seaview.getByTestId('act-by')).toContainText('Book concrete pump');
   await expect(seaview.getByTestId('act-by')).toContainText('Act by Fri 18 Sep, tomorrow');
+  await expect(seaview.getByRole('heading', { name: /Act by this week for Seaview St/ })).toBeVisible();
+  await expect(park.getByTestId('slip-cost')).toHaveText('Nothing this week');
 
   const beatty = buildRow(page, 'beatty');
   await expect(beatty.getByTestId('finish')).toHaveText('Fri 4 Dec 2026');
@@ -33,7 +33,7 @@ test('Monday shows the seeded forecasts, slip, cost and freshness', async ({ pag
 test('Why it moved traces Beatty St to the tiler change and the leftover line', async ({ page }) => {
   await openMonday(page);
   const why = buildRow(page, 'beatty').getByTestId('why-it-moved');
-  await expect(why.getByRole('heading', { name: 'Why it moved' })).toBeVisible();
+  await expect(why.getByRole('heading', { name: 'Why it moved for Beatty St' })).toBeVisible();
   const cause = why.getByTestId('why-cause');
   await expect(cause).toHaveCount(1);
   await expect(cause).toContainText('+7 days');
@@ -61,10 +61,11 @@ test('Jobs lists every job with kind, stage, finish and freshness', async ({ pag
   const rows = page.locator('[data-testid^="job-row-"]');
   await expect(rows).toHaveCount(7);
   const beatty = page.getByTestId('job-row-beatty');
-  await expect(beatty.getByTestId('kind')).toHaveText('Build');
+  await expect(page.getByTestId('jobs-group-builds').getByTestId('job-row-beatty')).toBeVisible();
+  await expect(beatty.getByTestId('slip')).toHaveText('5 days later');
   await expect(beatty.getByTestId('finish')).toHaveText('Fri 4 Dec 2026');
   await expect(beatty.getByTestId('freshness')).toHaveText('Not confirmed for 9 days');
-  await expect(page.getByTestId('job-row-west-st').getByTestId('kind')).toHaveText('Design');
+  await expect(page.getByTestId('jobs-group-design').getByTestId('job-row-west-st')).toBeVisible();
   await expect(page.getByTestId('job-row-park-rd')).toContainText('Lock-up');
 });
 

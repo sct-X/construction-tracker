@@ -267,23 +267,25 @@ Root scripts (tsx from source, no build; `--tsconfig packages/server/tsconfig.js
 finishAfter, slipAfter, slipCostAfter}`; exit 1 on a refusal/question).
 
 Env: `DATA_DIR` (./data), `PORT` (8787), `HOST` (127.0.0.1), `CT_TODAY` (YYYY-MM-DD; `TZ_TODAY_OVERRIDE` accepted too),
-`REMINDER_TIME` (07:00 Sydney), `WEB_DIST` (packages/web/dist), `ENV_FILE` (./.env). Set variables beat `.env`.
+`REMINDER_TIME` (07:00 Sydney), `WEB_DIST` (packages/web/dist), `ENV_FILE` (./.env), `ALLOWED_HOSTS` (comma list of
+extra host names for /api; HOST is added when it is a specific address, not 0.0.0.0/::). Set variables beat `.env`.
 
 HTTP (the web HTTP client implements exactly this):
 
 | route | response |
 | --- | --- |
-| `POST /api/rpc/:method` body `{"args": [...]}` | 200 `{"result": value}` (undefined -> null); `{"error": "plain message"}` with 404 unknown method or `Unknown job/step ...`, 400 bad body/args, 409 ChangeConflictError, 500 otherwise. Missing/empty body = no args. `:method` = any DashboardApi method (`RPC_METHODS`, incl. `photoUrl`) |
+| `POST /api/rpc/:method` body `{"args": [...]}` | 200 `{"result": value}` (undefined -> null); `{"error": "plain message"}` with 404 unknown method or `Unknown job/step ...`, 400 bad body/args, 409 ChangeConflictError, 500 otherwise. Missing/empty body = no args. `:method` = `RPC_METHODS`: every DashboardApi read, `previewSetup`, `applySetup` (Setup area only) and `photoUrl`. NOT `undo` (`RPC_EXCLUDED`, 404): the web is read-only and undo/day-to-day changes come only through the bot. A compile-time check makes every DashboardApi method either listed or excluded |
 | `GET /api/photos/:id/file` | the file under DATA_DIR/photos (type from extension); placeholder seed photos -> the same SVG as `placeholderPhotoUrl`; 404 `{"error"}` otherwise |
 | `GET /api/health` | `{"ok": true, "today": "YYYY-MM-DD"}` |
 | other `/api/*` | 404 `{"error"}` |
+| any `/api/*` with a bad Host/Origin | 403 `{"error"}`. Host must be localhost, 127.0.0.1, [::1], `*.localhost` or in `ALLOWED_HOSTS` (DNS-rebinding guard); an `Origin` header, when present, must name one of those too |
 | any other GET | packages/web/dist: the file if it exists (also with a leading base segment stripped, e.g. `/construction-tracker/assets/x.js`), else `index.html`; 404 text when dist isn't built (checked per request) |
 
 Every request reloads the store, so writes by another process on the same SQLite file (WAL) show up at once.
 
 ```ts
-buildServer({ store, clock, paths, webDist?, log? }): Promise<FastifyInstance>   // not listening; tests use .inject
-startApp(config: ServerConfig, { log?, notifier?, clock?, scheduler? }): Promise<RunningApp>  // {store, clock, server, scheduler, notifier, url, stop()}
+buildServer({ store, clock, paths, webDist?, log?, allowedHosts? }): Promise<FastifyInstance>   // not listening; tests use .inject
+startApp(config: ServerConfig, { log?, notifier?, clock?, scheduler? }): Promise<RunningApp>  // {store, clock, server, scheduler, firstTick, notifier, url, stop()}
 loadConfig(env, cwd): ServerConfig; clockFromEnv(env); todayOverrideFromEnv(env); loadEnvFile(env, cwd)
 applyOperation(store, clock, op, args, { message?, sender? }) -> {ok:true, changeSet, summary, impacts} | {ok:false, result, reason}
 removeDatabaseFile(file)                                   // db + -wal + -shm
@@ -330,7 +332,9 @@ re-run with `{ ...question.args, afterChoice: id }`.
 - Playwright (root `playwright.config.ts`, `e2e/`): projects `mock`, `api`, `api-change` (see PROGRESS). Run with
   `npx playwright test [--project=mock]`. Stable test ids: `build-row-<jobId>` (inside: `finish`, `slip`, `slip-cost`,
   `freshness` with `data-amber`, `why-it-moved` > `why-cause` / `why-leftover`, `act-by`), `design-row-<jobId>`
-  (`outstanding`, `oldest`), `job-row-<jobId>` (`kind`, `finish`, `freshness`), `monday-sub`, `side-switcher`, `dev-today`.
+  (`outstanding`, `oldest`), `jobs-group-builds|design` > `job-row-<jobId>` (`data-kind`; inside: `finish`, `slip`,
+  `freshness`), `monday-sub`, `side-switcher`, `dev-today`. Headings name their job for screen readers ("Why it moved for
+  Beatty St", "Act by this week for Seaview St").
 - Design rules live in `src/styles/tokens.css` (palette and type) and `app.css`; phone layout is the same DOM at <= 760px.
 
 ## Seed (`packages/core/src/seed`)

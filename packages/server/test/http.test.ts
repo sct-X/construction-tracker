@@ -91,10 +91,16 @@ describe('RPC', () => {
     expect(res.json()).toEqual({ error: 'Unknown job no-such-job' });
   });
 
-  it('whitelists every DashboardApi method', () => {
+  it('the web is read-only: undo is not on HTTP (404) and nothing is changed; applySetup stays for Setup', async () => {
     expect(RPC_METHODS).toContain('getMonday');
-    expect(RPC_METHODS).toContain('undo');
-    expect(RPC_METHODS.length).toBe(21);
+    expect(RPC_METHODS).toContain('applySetup');
+    expect(RPC_METHODS).not.toContain('undo');
+    expect(RPC_METHODS.length).toBe(20);
+    const cs = store.load().changeSets.find((c) => c.status === 'confirmed')!;
+    const res = await app.inject({ method: 'POST', url: '/api/rpc/undo', payload: { args: [cs.id] } });
+    expect(res.statusCode).toBe(404);
+    expect(res.json()).toEqual({ error: 'No such method: undo' });
+    expect(store.load().changeSets.find((c) => c.id === cs.id)!.status).toBe('confirmed');
   });
 
   it('after the windows ETA moves to 16 Nov: finish Fri 12 Mar 2027, +14, $9,000, why it moved names the ETA; undo restores 26 Feb', async () => {
@@ -107,8 +113,8 @@ describe('RPC', () => {
     expect(why.causes[0]).toMatchObject({ summary: 'Park Rd windows ETA Mon 26 Oct to Mon 16 Nov', deltaDays: 14, cost: 9000, sourceText: 'Park Rd windows now arriving 16 Nov' });
     expect(why.causes[0]!.movedSteps[0]).toMatchObject({ name: 'Install windows', to: '2026-11-16' });
 
-    const undo = await rpc<{ ok: boolean }>('undo', r.changeSet.id);
-    expect(undo.ok).toBe(true);
+    // Undo is the bot's (/undo); the API shows the result on the next request.
+    expect(store.undo(r.changeSet.id).ok).toBe(true);
     expect(row(await rpc<MondayView>('getMonday'), PARK_RD)).toMatchObject({ forecastFinish: '2027-02-26', slipDays: 0 });
   });
 
@@ -140,6 +146,36 @@ describe('apply-op script (another process writing the same SQLite file)', () =>
     const why = await rpc<WhyItMoved>('getWhyItMoved', PARK_RD);
     expect(why.causes[0]!.summary).toContain('windows ETA');
   }, 30_000);
+});
+
+describe('Host / Origin check (DNS rebinding)', () => {
+  const call = (headers: Record<string, string>) => app.inject({ method: 'POST', url: '/api/rpc/getToday', headers, payload: { args: [] } });
+
+  it('allows localhost, 127.0.0.1, [::1] and *.localhost, with or without a port', async () => {
+    for (const host of ['localhost', 'localhost:8787', '127.0.0.1:4310', '[::1]:8787', 'ct.localhost:8787', 'LOCALHOST']) {
+      expect((await call({ host })).statusCode, host).toBe(200);
+    }
+    expect((await call({ host: '127.0.0.1:8787', origin: 'http://localhost:5173' })).statusCode).toBe(200);
+  });
+
+  it('refuses any other Host or a foreign Origin with 403 {"error"}, on every /api route', async () => {
+    const evil = await call({ host: 'evil.example:8787' });
+    expect(evil.statusCode).toBe(403);
+    expect(evil.json().error).toContain('Host not allowed: evil.example:8787');
+    expect((await call({ host: '127.0.0.1:8787', origin: 'http://evil.example' })).statusCode).toBe(403);
+    expect((await call({ host: '127.0.0.1:8787', origin: 'null' })).statusCode).toBe(403);
+    expect((await app.inject({ url: '/api/health', headers: { host: 'evil.example' } })).statusCode).toBe(403);
+    expect((await app.inject({ url: '/api/photos/x/file', headers: { host: '192.168.1.20' } })).statusCode).toBe(403);
+  });
+
+  it('ALLOWED_HOSTS adds names (any case, ports ignored)', async () => {
+    const other = await buildServer({ store, clock, paths, allowedHosts: ['Mini.local', '192.168.1.20:8787'] });
+    const req = (host: string) => other.inject({ url: '/api/health', headers: { host } });
+    expect((await req('mini.local:8787')).statusCode).toBe(200);
+    expect((await req('192.168.1.20')).statusCode).toBe(200);
+    expect((await req('evil.example')).statusCode).toBe(403);
+    await other.close();
+  });
 });
 
 describe('other routes', () => {

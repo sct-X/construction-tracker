@@ -27,6 +27,8 @@ export interface ServerConfig {
   todayOverride: string | null;
   webDist: string;
   reminderTime: string;
+  /** Extra host names allowed to call /api (ALLOWED_HOSTS, comma-separated), plus HOST when it is a specific address. */
+  allowedHosts: string[];
 }
 
 /** CT_TODAY wins; TZ_TODAY_OVERRIDE (the .env.example name) is the fallback. Throws on a bad date. */
@@ -42,6 +44,14 @@ export function clockFromEnv(env: Env = process.env): Clock {
   return clockFromOverride(todayOverrideFromEnv(env));
 }
 
+/** ALLOWED_HOSTS ("mini.local, 192.168.1.20") plus HOST unless it is a wildcard bind (0.0.0.0, ::). */
+export function allowedHostsFromEnv(env: Env = process.env): string[] {
+  const list = (env.ALLOWED_HOSTS ?? '').split(',').map((h) => h.trim()).filter(Boolean);
+  const host = env.HOST?.trim();
+  if (host && host !== '0.0.0.0' && host !== '::' && !list.includes(host)) list.push(host);
+  return list;
+}
+
 export function loadConfig(env: Env = process.env, cwd = process.cwd()): ServerConfig {
   const port = env.PORT?.trim() ? Number(env.PORT) : DEFAULT_PORT;
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error(`PORT must be a port number, got "${env.PORT}"`);
@@ -55,6 +65,7 @@ export function loadConfig(env: Env = process.env, cwd = process.cwd()): ServerC
     todayOverride: todayOverrideFromEnv(env),
     webDist: web ? (isAbsolute(web) ? web : resolve(cwd, web)) : DEFAULT_WEB_DIST,
     reminderTime,
+    allowedHosts: allowedHostsFromEnv(env),
   };
 }
 

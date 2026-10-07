@@ -28,7 +28,8 @@ describe('Monday screen (mock layer, today Thu 17 Sep 2026)', () => {
     const park = await row('build-row-park-rd');
     expect(park.getByTestId('finish').textContent).toBe('Fri 26 Feb 2027');
     expect(park.getByTestId('slip').textContent).toBe('On track');
-    expect(park.getByTestId('slip-cost').textContent).toBe('$0');
+    expect(park.getByTestId('slip-cost').textContent).toBe('Nothing this week');
+    expect(park.getByTestId('slip-cost').className).not.toContain('num');
 
     const seaview = await row('build-row-seaview');
     expect(seaview.getByTestId('finish').textContent).toBe('Fri 29 Oct 2027');
@@ -65,6 +66,7 @@ describe('Monday screen (mock layer, today Thu 17 Sep 2026)', () => {
     expect(cause).toContain('Harbour Tiling');
     expect(cause).toContain('Voice note on Telegram');
     expect(why.getByTestId('why-leftover').textContent).toContain('2 days earlier for reasons not in the change log');
+    expect(why.getByRole('heading', { name: /^Why it moved\s*for Beatty St$/ })).toBeTruthy();
     // Only slipping jobs get a why-it-moved block.
     expect(screen.getAllByTestId('why-it-moved')).toHaveLength(1);
   });
@@ -113,9 +115,10 @@ describe('Jobs screen', () => {
     );
     const beatty = await row('job-row-beatty');
     expect(screen.getAllByTestId(/^job-row-/)).toHaveLength(7);
-    expect(beatty.getByTestId('kind').textContent).toBe('Build');
+    expect(beatty.getByTestId('slip').textContent).toBe('5 days later');
+    expect(within(screen.getByTestId('jobs-group-builds')).getByTestId('job-row-beatty')).toBeTruthy();
     expect(beatty.getByTestId('finish').textContent).toBe('Fri 4 Dec 2026');
     expect(beatty.getByTestId('freshness').textContent).toBe('Not confirmed for 9 days');
-    expect((await row('job-row-west-st')).getByTestId('kind').textContent).toBe('Design');
+    expect(within(screen.getByTestId('jobs-group-design')).getByTestId('job-row-west-st').textContent).toContain('No program while in design');
   });
 });

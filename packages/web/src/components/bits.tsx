@@ -22,13 +22,13 @@ export function Freshness(props: { amber: boolean; daysUnconfirmed?: number | nu
   );
 }
 
-/** Small label shown above a value on a phone card; hidden in the desktop table, where the column header says it. */
+/**
+ * Label shown above a value on a phone card, and read by screen readers there (Safari drops table
+ * semantics once cells are display:block, and the phone hides the thead). display:none on desktop,
+ * where the column header says it.
+ */
 export function CellLabel({ children }: { children: ReactNode }) {
-  return (
-    <span className="cell-label" aria-hidden="true">
-      {children}
-    </span>
-  );
+  return <span className="cell-label">{children} </span>;
 }
 
 export function LoadingRows({ rows = 3, label }: { rows?: number; label: string }) {

@@ -1,6 +1,5 @@
 /** Full-page screenshots of each screen at phone and desktop width, for a human look. Git-ignored. */
 import { test } from '@playwright/test';
-import { skipIfPending } from './helpers';
 
 const WIDTHS = [
   { w: 390, h: 844 },
@@ -14,7 +13,6 @@ const SCREENS = [
 for (const { w, h } of WIDTHS) {
   for (const s of SCREENS) {
     test(`screenshot ${s.name} at ${w}`, async ({ page }, info) => {
-      skipIfPending(info);
       await page.setViewportSize({ width: w, height: h });
       await page.goto(`./${s.hash}`);
       await page.getByTestId(s.ready).waitFor();

@@ -31,58 +31,84 @@ function count(n: number, noun: string): string {
 }
 
 export function JobsTable({ view }: { view: JobsListView }) {
-  const rows = [...view.builds, ...view.design];
-  if (!rows.length) return <p className="empty">No jobs yet. New jobs are added from Setup on the desktop.</p>;
+  if (!view.builds.length && !view.design.length) {
+    return <p className="empty">No jobs yet. New jobs are added from Setup on the desktop.</p>;
+  }
+  const groups: [string, JobListRow[]][] = [
+    ['Builds', view.builds],
+    ['Design', view.design],
+  ];
   return (
     <table className="board jobs-table">
       <thead>
         <tr>
           <th scope="col">Job</th>
-          <th scope="col">Kind</th>
           <th scope="col">Stage</th>
           <th scope="col">Forecast finish</th>
+          <th scope="col">Against last Monday</th>
           <th scope="col">Last confirmed</th>
         </tr>
       </thead>
-      <tbody>
-        {rows.map((r) => (
-          <JobRow key={r.jobId} row={r} />
+      {groups
+        .filter(([, rows]) => rows.length)
+        .map(([title, rows]) => (
+          <tbody key={title} className="kind-group" data-testid={`jobs-group-${title.toLowerCase()}`}>
+            <tr>
+              <th scope="colgroup" colSpan={5} className="stage-head">
+                {title} <span className="stage-count">{rows.length === 1 ? '1 job' : `${rows.length} jobs`}</span>
+              </th>
+            </tr>
+            {rows.map((r) => (
+              <JobRow key={r.jobId} row={r} />
+            ))}
+          </tbody>
         ))}
-      </tbody>
     </table>
   );
 }
 
 function JobRow({ row }: { row: JobListRow }) {
   return (
-    <tr className="job-line" data-testid={`job-row-${row.jobId}`}>
+    <tr className={`job-line job-${row.kind}`} data-testid={`job-row-${row.jobId}`} data-kind={row.kind}>
       <th scope="row" className="c-job">
         <span className="job-name">{row.name}</span>
       </th>
-      <td className="c-kind">
-        <CellLabel>Kind</CellLabel>
-        <span data-testid="kind">{row.kind === 'build' ? 'Build' : 'Design'}</span>
-      </td>
       <td className="c-stage">
         <CellLabel>Stage</CellLabel>
         <span>{row.currentStageName ?? 'Not started'}</span>
       </td>
-      <td className="c-finish">
-        <CellLabel>Forecast finish</CellLabel>
-        {row.forecastFinish ? (
-          <span className="num-md" data-testid="finish">
-            {formatLong(row.forecastFinish)}
-          </span>
-        ) : (
-          <span className="sub" data-testid="finish">
-            {row.kind === 'design' ? 'No program while in design' : 'No finish date'}
-          </span>
-        )}
-      </td>
+      {row.kind === 'build' ? (
+        <>
+          <td className="c-finish">
+            <CellLabel>Forecast finish</CellLabel>
+            <span className="num-md" data-testid="finish">
+              {row.forecastFinish ? formatLong(row.forecastFinish) : 'No finish date'}
+            </span>
+          </td>
+          <td className="c-slip">
+            <CellLabel>Against last Monday</CellLabel>
+            <span data-testid="slip" className={row.slipDays && row.slipDays > 0 ? 'slip-words slip-words-later' : 'slip-words'}>
+              {slipText(row.slipDays)}
+            </span>
+          </td>
+        </>
+      ) : (
+        <td className="c-nofinish" colSpan={2}>
+          <span className="sub">No program while in design</span>
+        </td>
+      )}
       <td className="c-fresh">
         <CellLabel>Last confirmed</CellLabel>
         <Freshness amber={row.amber} freshnessText={row.freshnessText} testId="freshness" />
       </td>
     </tr>
   );
+}
+
+/** "5 days later", "On track", "2 days earlier"; before the first Monday snapshot there is nothing to compare. */
+function slipText(days: number | null): string {
+  if (days === null) return 'No Monday forecast yet';
+  if (days === 0) return 'On track';
+  const n = Math.abs(days);
+  return `${n} day${n === 1 ? '' : 's'} ${days > 0 ? 'later' : 'earlier'}`;
 }

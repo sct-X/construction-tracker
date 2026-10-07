@@ -31,8 +31,9 @@ a {
 }
 
 :focus-visible {
-  outline: 3px solid var(--hivis);
-  outline-offset: 2px;
+  outline: 2px solid var(--steel);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--hivis);
 }
 
 .sr-only {
@@ -296,6 +297,13 @@ a {
   background: var(--hivis);
   color: var(--steel);
 }
+.cost-none {
+  display: block;
+  padding-top: 10px;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  color: var(--steel-2);
+}
 .slip.slip-none {
   color: var(--steel-2);
 }
@@ -319,7 +327,6 @@ a {
 /* Why it moved */
 
 .why {
-  max-width: 860px;
   padding: 14px 20px 16px;
   border: 1px solid var(--rule);
   border-radius: var(--r-md);
@@ -393,9 +400,7 @@ a {
 
 /* Act by */
 
-.actby {
-  max-width: 980px;
-}
+
 .actby h3 {
   font-size: 0.9375rem;
   margin-bottom: 6px;
@@ -407,10 +412,16 @@ a {
 }
 .actby-item {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(max-content, 1fr) minmax(0, 1fr);
-  gap: 4px 16px;
+  grid-template-columns: minmax(0, 1fr) 18rem minmax(0, 1.2fr);
+  gap: 4px 24px;
   padding: 6px 0;
   border-top: 1px solid var(--rule);
+}
+.h-note {
+  margin-left: 8px;
+  font-weight: 400;
+  color: var(--steel-2);
+  font-size: var(--t-small);
 }
 .actby-title {
   font-weight: 500;
@@ -442,6 +453,34 @@ a {
 
 /* Jobs table */
 
+.jobs-table .stage-head {
+  padding: 22px 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--rule);
+}
+.jobs-table .stage-count {
+  margin-left: 8px;
+  font-weight: 400;
+  color: var(--steel-2);
+  font-size: var(--t-small);
+}
+.jobs-table tbody:first-of-type .stage-head {
+  padding-top: 12px;
+}
+.slip-words-later {
+  font-weight: 600;
+}
+.slip-words-later::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 2px;
+  background: var(--hivis);
+}
+
 .jobs-table .job-line {
   border-bottom: 1px solid var(--rule);
 }
@@ -462,11 +501,11 @@ a {
   .design .c-out {
     width: 16%;
   }
-  .jobs-table .c-kind {
-    width: 12%;
+  .jobs-table .c-slip {
+    width: 18%;
   }
   .jobs-table .c-finish {
-    width: 26%;
+    width: 24%;
   }
   .builds .c-job {
     width: 16%;
@@ -481,7 +520,7 @@ a {
     width: 22%;
   }
   .jobs-table .c-stage {
-    width: 18%;
+    width: 16%;
   }
   .fresh-amber {
     white-space: nowrap;
@@ -555,12 +594,9 @@ a {
     display: block;
     width: auto;
   }
+  /* Cards carry their own labels (CellLabel), so the column headers go entirely. */
   .board thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
+    display: none;
   }
   .board .job-main > th,
   .board .job-main > td,
@@ -690,15 +726,25 @@ a {
     grid-template-areas:
       'job job'
       'fresh fresh'
-      'kind stage'
-      'finish finish';
+      'stage stage'
+      'finish slip';
     gap: 10px 16px;
   }
   .jobs-table .c-job {
     grid-area: job;
   }
-  .jobs-table .c-kind {
-    grid-area: kind;
+  .jobs-table .c-slip {
+    grid-area: slip;
+  }
+  .jobs-table .c-nofinish {
+    display: none;
+  }
+  .jobs-table .kind-group {
+    border: 0;
+  }
+  .jobs-table .stage-head {
+    padding: 16px 0 8px;
+    border: 0;
   }
   .jobs-table .c-stage {
     grid-area: stage;

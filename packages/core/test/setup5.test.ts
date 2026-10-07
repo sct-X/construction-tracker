@@ -99,14 +99,14 @@ describe('save_as_template', () => {
 
 describe('Australian phone numbers', () => {
   it('writes them the usual way, or refuses', () => {
-    expect(formatAuPhone('0412345678')).toBe('0412 345 678');
-    expect(formatAuPhone('+61 412 345 678')).toBe('0412 345 678');
-    expect(formatAuPhone('+61 (0)412 345 678')).toBe('0412 345 678');
-    expect(formatAuPhone('(02) 9876-5432')).toBe('02 9876 5432');
-    expect(formatAuPhone('1300123456')).toBe('1300 123 456');
+    expect(formatAuPhone('0491570006')).toBe('0491 570 006');
+    expect(formatAuPhone('+61 491 570 006')).toBe('0491 570 006');
+    expect(formatAuPhone('+61 (0)491 570 006')).toBe('0491 570 006');
+    expect(formatAuPhone('(02) 5550-1234')).toBe('02 5550 1234');
+    expect(formatAuPhone('1300975707')).toBe('1300 975 707');
     expect(formatAuPhone('13 12 34')).toBe('13 12 34');
     expect(formatAuPhone('0491 570 157')).toBe('0491 570 157');
-    for (const bad of ['12345', '0412 345 67', '+1 415 555 0100', 'call Raff', '0612345678']) expect(formatAuPhone(bad), bad).toBeNull();
+    for (const bad of ['12345', '0491 570 00', '+1 415 555 0100', 'call Raff', '0612345678']) expect(formatAuPhone(bad), bad).toBeNull();
   });
 
   it('add_trade and edit_trade refuse a bad number and save a good one formatted', () => {

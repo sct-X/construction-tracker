@@ -191,7 +191,7 @@ function AddTrade({ onSaved }: { onSaved: (msg: string) => void }) {
           value={d.phone}
           error={show(errs.phone)}
           onChange={(phone) => setD({ ...d, phone })}
-          placeholder="0412 345 678"
+          placeholder="0491 570 006"
           inputMode="tel"
           hint={!errs.phone && d.phone.trim() ? `Saved as ${formatAuPhone(d.phone)}` : 'Mobile or landline with area code'}
         />

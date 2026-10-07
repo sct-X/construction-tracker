@@ -5,12 +5,12 @@
 
 /** What to tell someone whose number doesn't parse. */
 export const AU_PHONE_HELP =
-  'That doesn\'t look like an Australian phone number. Use a mobile like 0412 345 678, a landline with its area code like 02 9876 5432, or a 13, 1300 or 1800 number.';
+  'That doesn\'t look like an Australian phone number. Use a mobile like 0491 570 006, a landline with its area code like 02 5550 1234, or a 13, 1300 or 1800 number.';
 
 /**
- * "0412345678", "+61 412 345 678", "(02) 9876-5432", "1300 123 456", "13 12 34"
- * -> the number written the usual way ("0412 345 678", "02 9876 5432",
- * "1300 123 456", "13 12 34"). Null when it isn't an Australian number.
+ * "0491570006", "+61 491 570 006", "(02) 5550-1234", "1300 975 707", "13 12 34"
+ * -> the number written the usual way ("0491 570 006", "02 5550 1234",
+ * "1300 975 707", "13 12 34"). Null when it isn't an Australian number.
  */
 export function formatAuPhone(input: string | null | undefined): string | null {
   if (!input) return null;

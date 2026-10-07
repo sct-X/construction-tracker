@@ -60,6 +60,9 @@ npm start
 
 Open http://127.0.0.1:8787 in a browser. Stop the app with Ctrl+C.
 
+On the real date every demo job reads "On track". To see the demo's numbers exactly as the tests do (Beatty St
++5 days, $1,430), set `CT_TODAY=2026-09-17` in `.env` and start again.
+
 With no bot token the app still runs. The log says `Telegram bot off: TELEGRAM_BOT_TOKEN is not set.` and the
 day's reminders are written to the log instead of Telegram.
 
@@ -158,11 +161,17 @@ When it is right, the log says `Telegram bot @dominic_tracker_bot is listening.`
 | --- | --- | --- |
 | `TELEGRAM_BOT_TOKEN` | The bot's token from BotFather. | Yes, for the bot. Without it the bot is off. |
 | `DOMINIC_TELEGRAM_USER_ID` | The one Telegram user the bot listens to (a number). | Yes, for the bot. |
+| `TELEGRAM_ALLOWED_USER_ID` | Old name for `DOMINIC_TELEGRAM_USER_ID`. Only read if that line is deleted. | No. |
 | `LLM_MODEL` | The model that reads Dominic's messages. One line to switch. | Yes, to read typed messages. |
 | `LLM_PROVIDER` | Only when `LLM_MODEL` is blank or not a known family. | No. |
 | `OPENAI_API_KEY` | Key for `gpt-*` models. Also used by cloud voice. | For `gpt-*` models. |
 | `GEMINI_API_KEY` | Key for `gemini-*` models (`GOOGLE_API_KEY` also works). | For `gemini-*` models. |
 | `ANTHROPIC_API_KEY` | Key for `claude-*` models. | For `claude-*` models. |
+| `LLM_BASE_URL` | Another address for the model provider's API (a compatible server). | No. |
+| `LLM_MAX_TOKENS` | Longest reply the model may write, in tokens. Default 4096 (1024 for `claude-*`). | No. |
+| `LLM_TIMEOUT_MS` | How long to wait for the model before giving up, in milliseconds. Default 30000. | No. |
+| `LLM_REASONING_EFFORT` | `gpt-*` only: how hard the model thinks (`minimal`, `low`, `medium`, `high`). | No. |
+| `LLM_THINKING_BUDGET` | `gemini-*` only: tokens the model may spend thinking (`0` = off). | No. |
 | `TRANSCRIBER` | Voice notes: `local` (whisper.cpp on this machine) or `cloud` (OpenAI). | For voice notes. |
 | `WHISPER_CPP_BIN` | Path to whisper.cpp's program. Blank = `whisper-cli` on the PATH. | No. |
 | `WHISPER_MODEL_PATH` | The whisper model file, e.g. `./models/ggml-base.en.bin`. | For local voice. |
@@ -179,7 +188,12 @@ When it is right, the log says `Telegram bot @dominic_tracker_bot is listening.`
 | `REMINDER_TIME` | Sydney time the daily reminders go out, `HH:MM`. Default `07:00`. | No. |
 | `SEED` | What a new, empty database starts with: `demo` (default, the made-up jobs) or `empty` (template and trades, no jobs). | No. |
 | `CT_TODAY` | Pretend today is this date (`YYYY-MM-DD`). `2026-09-17` gives the demo's numbers. Blank for real use. | No. |
+| `TZ_TODAY_OVERRIDE` | Old name for `CT_TODAY`. Only read when `CT_TODAY` is blank. | No. |
 | `WEB_DIST` | Folder of the built web app. Default `packages/web/dist`. | No. |
+| `ENV_FILE` | Read a settings file other than `./.env`. Set it in the shell, not in `.env`. | No. |
+| `EVAL_MODELS` | Eval only: which models to try, comma-separated. | No. |
+| `EVAL_CONCURRENCY` | Eval only: how many cases run at once. Default 4. | No. |
+| `EVAL_TIMEOUT_MS` | Eval only: time limit for each case, in milliseconds. Default 90000. | No. |
 
 ### The model
 

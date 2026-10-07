@@ -327,19 +327,26 @@ function StepRows({ step, index, stage, ctx, open, toggle }: { step: SetupStep; 
           <label className="sr-only" htmlFor={`sn-${step.id}`}>
             Step name
           </label>
-          <input
-            id={`sn-${step.id}`}
-            className="su-input"
-            data-testid="ed-name"
-            value={nameV}
-            disabled={ctx.locked(k('name'))}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (v.trim() === step.name) return ctx.propose(null);
-              const err = checkName(v, 'step');
-              ctx.propose({ key: k('name'), label: `Rename ${step.name}`, op: 'edit_step', args: err ? null : { step: step.id, name: v.trim() }, error: err, draft: v });
-            }}
-          />
+          {/* A one-line textarea that grows, so a long step name wraps instead of being cut off. */}
+          <div className="su-grow" data-value={nameV}>
+            <textarea
+              id={`sn-${step.id}`}
+              className="su-input"
+              rows={1}
+              data-testid="ed-name"
+              value={nameV}
+              disabled={ctx.locked(k('name'))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.preventDefault();
+              }}
+              onChange={(e) => {
+                const v = e.target.value.replace(/\s*[\r\n]+\s*/g, ' ');
+                if (v.trim() === step.name) return ctx.propose(null);
+                const err = checkName(v, 'step');
+                ctx.propose({ key: k('name'), label: `Rename ${step.name}`, op: 'edit_step', args: err ? null : { step: step.id, name: v.trim() }, error: err, draft: v });
+              }}
+            />
+          </div>
           {!isTemplate && step.forecastStart && step.forecastEnd && (
             <span className="su-step-dates">
               {step.status === 'done' ? 'Done. ' : ''}
@@ -423,6 +430,7 @@ function StepRows({ step, index, stage, ctx, open, toggle }: { step: SetupStep; 
             list="trade-types"
             data-testid="ed-trade"
             value={tradeV}
+            title={tradeV || undefined}
             placeholder="None"
             disabled={ctx.locked(k('trade'))}
             onChange={(e) => {

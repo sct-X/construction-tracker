@@ -189,12 +189,12 @@ test('trades: add one with a checked AU number; a changed number rings from To c
   // Change Northern Concrete Pumping's number; To chase rings the new one.
   await page.getByTestId('trade-tr-northern-pump').getByRole('button', { name: /Change/ }).click();
   const edit = page.getByTestId('trade-edit-tr-northern-pump');
-  await edit.getByLabel('Phone').fill('0491 570 999');
+  await edit.getByLabel('Phone').fill('0491 570 737');
   await edit.getByTestId('trade-edit-save').click();
-  await expect(page.getByTestId('trade-tr-northern-pump').getByTestId('trade-phone')).toHaveText('0491 570 999');
+  await expect(page.getByTestId('trade-tr-northern-pump').getByTestId('trade-phone')).toHaveText('0491 570 737');
   await page.goto('./#/chase');
   const call = page.getByTestId('chase-row-it-sv-pump').getByTestId('call');
-  await expect(call).toHaveAttribute('href', 'tel:0491570999');
+  await expect(call).toHaveAttribute('href', 'tel:0491570737');
   await expect(call).toContainText('Northern Concrete Pumping');
 });
 

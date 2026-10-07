@@ -326,26 +326,28 @@ p.su-muted {
 .su-prog {
   table-layout: fixed;
 }
+/* At 1280 the trade column fits the longest seeded trade ("Formwork and
+   concrete"); step names wrap (.su-grow) instead of being cut off. */
 .su-prog .c-step {
   width: 26%;
 }
 .su-prog .c-days {
-  width: 8%;
+  width: 6%;
 }
 .su-prog .c-waits {
-  width: 18%;
+  width: 14%;
 }
 .su-prog .c-hold {
-  width: 8%;
+  width: 7%;
 }
 .su-prog .c-needs {
-  width: 15%;
+  width: 14%;
 }
 .su-prog .c-trade {
-  width: 11%;
+  width: 20%;
 }
 .su-prog .c-tools {
-  width: 14%;
+  width: 13%;
 }
 .su-prog > tbody > tr > th,
 .su-prog > tbody > tr > td {
@@ -364,9 +366,35 @@ p.su-muted {
   align-items: start;
   column-gap: 6px;
 }
-.su-step-cell .su-input,
+.su-step-cell .su-grow,
 .su-step-cell .su-step-dates {
   grid-column: 2;
+}
+/* Auto-growing textarea: a hidden copy of the value sizes the cell, so the text wraps. */
+.su-grow {
+  display: grid;
+  min-width: 0;
+}
+/* .su-prog prefix: beats `.su-prog .su-input` (padding 0 8px) for the textarea. */
+.su-prog .su-grow > textarea,
+.su-prog .su-grow::after {
+  grid-area: 1 / 1;
+  min-height: 34px;
+  padding: 7px 8px;
+  font: inherit;
+  font-size: var(--t-small);
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.su-prog .su-grow > textarea {
+  resize: none;
+  overflow: hidden;
+}
+.su-prog .su-grow::after {
+  content: attr(data-value) ' ';
+  border: 1px solid transparent;
+  visibility: hidden;
 }
 .su-order {
   grid-row: 1 / span 2;

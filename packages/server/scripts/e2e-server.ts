@@ -20,7 +20,8 @@ const today = process.env.E2E_TODAY || E2E_DEFAULT_TODAY;
 rmSync(dataDir, { recursive: true, force: true });
 const log = consoleLog('e2e');
 const config = loadConfig({ ...process.env, DATA_DIR: dataDir, CT_TODAY: today, PORT: String(port), HOST: process.env.HOST || '127.0.0.1' });
-const app = await startApp(config, { log });
+// Never the Telegram bot here: an exported TELEGRAM_BOT_TOKEN must not start a second poller on throwaway data.
+const app = await startApp(config, { log, bot: false });
 log.info(`e2e server ready: ${app.url}, DATA_DIR=${dataDir}, CT_TODAY=${today}`);
 
 const stop = () => void app.stop().then(() => process.exit(0));

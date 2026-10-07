@@ -41,7 +41,7 @@ describe('startApp', () => {
     const config = loadConfig({ DATA_DIR: dir, PORT: '0' });
     const notifier = memoryNotifier();
     const log = memoryLog();
-    app = await startApp(config, { log, notifier, clock: fixedClock('2026-09-21', '08:00') });
+    app = await startApp(config, { log, notifier, clock: fixedClock('2026-09-21', '08:00'), bot: false });
     expect(app.url).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
     const addr = app.server.server.address();
     expect(typeof addr === 'object' && addr?.address).toBe('127.0.0.1');

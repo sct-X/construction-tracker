@@ -1,9 +1,9 @@
 {
-  "name": "@ct/server",
+  "name": "@ct/bot",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "SQLite storage (better-sqlite3, WAL, numbered migrations), the HTTP API (Fastify), and the in-process scheduler.",
+  "description": "Telegram bot (grammY, long polling): allowlist, LLM parsing into core operations, questions, confirm cards with dry-run impact, Edit/Cancel, /undo, read-only answers.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -12,22 +12,13 @@
       "import": "./dist/index.js"
     }
   },
-  "files": [
-    "dist",
-    "migrations"
-  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ct/bot": "0.0.0",
     "@ct/core": "0.0.0",
-    "better-sqlite3": "^12.11.1",
-    "fastify": "^5.12.5",
-    "tsx": "^4.23.15"
-  },
-  "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13"
+    "@ct/llm": "0.0.0",
+    "grammy": "^1.46.0"
   }
 }

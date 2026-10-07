@@ -1,0 +1,334 @@
+/**
+ * Integration tests, one per bot flow: the real bot (grammY, fake transport)
+ * over the server's SqliteStore on a temporary file (migrations + seed),
+ * the real parser over a scripted FakeLlm, fixed clock Thu 17 Sep 2026.
+ */
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type { FastifyInstance } from 'fastify';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { DEFAULT_TODAY, fixedClock, PARK_RD, PARK_RD_WINDOWS, type MondayView, type WhyItMoved } from '@ct/core';
+import { createParser, FakeLlm, textReply, toolCall, type LlmResponse } from '@ct/llm';
+import { buildServer, dataPaths, ensureDataDirs, seedDatabase, SqliteStore } from '@ct/server';
+import { createHarness, DOMINIC_ID, STRANGER_ID, type Harness } from './harness.js';
+
+const clock = fixedClock(DEFAULT_TODAY, '10:00');
+
+let dir: string;
+let store: SqliteStore;
+let apiStore: SqliteStore;
+let app: FastifyInstance;
+let llm: FakeLlm;
+let h: Harness;
+let seedChangeSets: number;
+let seedInbound: number;
+
+async function setup(script: LlmResponse[]) {
+  llm = new FakeLlm(script);
+  h = createHarness({ store, clock, parser: createParser(llm) });
+}
+
+beforeEach(async () => {
+  dir = mkdtempSync(join(tmpdir(), 'ct-bot-'));
+  const paths = ensureDataDirs(dataPaths(dir));
+  store = new SqliteStore(paths.dbFile, { clock });
+  seedDatabase(store);
+  // The HTTP API on the same database file, through its own connection.
+  apiStore = new SqliteStore(paths.dbFile, { clock });
+  app = await buildServer({ store: apiStore, clock, paths, webDist: join(dir, 'web') });
+  const ds = store.load();
+  seedChangeSets = ds.changeSets.length;
+  seedInbound = ds.inboundMessages.length;
+});
+
+afterEach(async () => {
+  await app.close();
+  apiStore.close();
+  store.close();
+  rmSync(dir, { recursive: true, force: true });
+});
+
+async function rpc<T>(method: string, ...args: unknown[]): Promise<T> {
+  const res = await app.inject({ method: 'POST', url: `/api/rpc/${method}`, payload: { args } });
+  expect(res.statusCode, res.body).toBe(200);
+  return res.json<{ result: T }>().result;
+}
+
+async function parkRd() {
+  const m = await rpc<MondayView>('getMonday');
+  return m.builds.find((b) => b.jobId === PARK_RD)!;
+}
+
+const windowsEta = () => store.load().shipments.find((s) => s.id === PARK_RD_WINDOWS)!.eta;
+const changeSets = () => store.load().changeSets;
+const newChangeSets = () => changeSets().slice(seedChangeSets);
+
+const etaCall = (eta: string, shipment = 'windows', job: string | undefined = 'Park Rd') =>
+  toolCall('set_shipment_eta', { shipment, ...(job ? { job } : {}), eta });
+
+describe('flow a: change, confirm card, Confirm, API, /undo', () => {
+  it('"Park Rd windows now arriving 16 Nov" -> card -> Confirm -> API Fri 12 Mar 2027 -> /undo -> Fri 26 Feb 2027', async () => {
+    await setup([etaCall('16 Nov')]);
+    await h.text('Park Rd windows now arriving 16 Nov');
+
+    // The message is saved as an inbound Telegram message.
+    const inbound = store.load().inboundMessages.slice(seedInbound);
+    expect(inbound).toHaveLength(1);
+    expect(inbound[0]).toMatchObject({ channel: 'telegram', sender: String(DOMINIC_ID), rawText: 'Park Rd windows now arriving 16 Nov' });
+
+    // The parser got the context it needs.
+    expect(llm.requests).toHaveLength(1);
+
+    const card = h.lastWithButton('Confirm');
+    expect(card.buttons.map((b) => b.text)).toEqual(['Confirm', 'Edit', 'Cancel']);
+    expect(card.text).toContain('Park Rd windows ETA Mon 26 Oct to Mon 16 Nov.');
+    expect(card.text).toContain('Park Rd windows, ETA: Mon 26 Oct → Mon 16 Nov');
+    expect(card.text).toContain('Install windows starts Mon 16 Nov (was Mon 2 Nov)');
+    expect(card.text).toContain('Finish Fri 12 Mar 2027 (was Fri 26 Feb 2027)');
+    expect(card.text).toContain('Slip +14 days, $9,000');
+
+    // Recorded as proposed, linked to the message, nothing applied yet.
+    const [proposed] = newChangeSets();
+    expect(proposed).toMatchObject({ status: 'proposed', messageId: inbound[0]!.id, opName: 'set_shipment_eta' });
+    expect(windowsEta()).toBe('2026-10-26');
+    expect((await parkRd()).forecastFinish).toBe('2027-02-26');
+
+    await h.press(card.messageId, 'Confirm');
+    expect(h.messages.get(card.messageId)!.text).toMatch(/^Saved\. Park Rd windows ETA Mon 26 Oct to Mon 16 Nov\./);
+    expect(h.messages.get(card.messageId)!.text).toContain('Park Rd finishes Fri 12 Mar 2027, +14 days, $9,000 since last Monday.');
+    expect(h.messages.get(card.messageId)!.buttons.map((b) => b.text)).toEqual(['Undo']);
+    expect(h.calls.some((c) => c.method === 'answerCallbackQuery')).toBe(true);
+
+    // The HTTP API (its own connection to the same file) sees the change.
+    const after = await parkRd();
+    expect(after).toMatchObject({ forecastFinish: '2027-03-12', slipDays: 14, slipCost: 9000 });
+    const why = await rpc<WhyItMoved>('getWhyItMoved', PARK_RD);
+    expect(why.causes.map((c) => c.sourceText)).toContain('Park Rd windows now arriving 16 Nov');
+
+    const undoCalls = await h.text('/undo');
+    expect(h.sent(undoCalls).join('\n')).toContain('Undone: Park Rd windows ETA Mon 26 Oct to Mon 16 Nov.');
+    expect(h.sent(undoCalls).join('\n')).toContain('Park Rd finishes Fri 26 Feb 2027, on track.');
+    expect(h.messages.get(card.messageId)!.text).toMatch(/^Undone/);
+    expect((await parkRd()).forecastFinish).toBe('2027-02-26');
+    expect(newChangeSets()[0]!.status).toBe('undone');
+    expect(llm.remaining).toBe(0);
+  });
+});
+
+describe('flow d: ambiguity becomes a question, nothing saved', () => {
+  it('"the windows are late" -> asks which job (Park Rd / Seaview St) and saves no change set', async () => {
+    await setup([toolCall('set_shipment_eta', { shipment: 'the windows' })]);
+    const calls = await h.text('the windows are late');
+    const [question] = h.sent(calls);
+    expect(question).toBe('Which shipment do you mean by "the windows"?');
+    const q = h.last();
+    expect(q.buttons.map((b) => b.text)).toEqual(['Park Rd windows (Park Rd)', 'Seaview St windows (Seaview St)']);
+    expect(changeSets()).toHaveLength(seedChangeSets);
+    expect(windowsEta()).toBe('2026-10-26');
+  });
+
+  it('the answer resumes the operation: button for the job, then the missing ETA as text -> a card', async () => {
+    await setup([toolCall('set_shipment_eta', { shipment: 'the windows' })]);
+    await h.text('the windows are late');
+    const q = h.last();
+    const pressed = await h.press(q.messageId, 'Park Rd windows (Park Rd)');
+    expect(h.messages.get(q.messageId)!.text).toContain('→ Park Rd windows (Park Rd)');
+    expect(h.sent(pressed)).toEqual(['What is the new ETA?']);
+    expect(changeSets()).toHaveLength(seedChangeSets);
+
+    await h.text('16 Nov');
+    const card = h.lastWithButton('Confirm');
+    expect(card.text).toContain('Install windows starts Mon 16 Nov (was Mon 2 Nov)');
+    expect(newChangeSets()).toHaveLength(1);
+    // The change set links to the first message, not the answer.
+    const original = store.load().inboundMessages.find((m) => m.rawText === 'the windows are late')!;
+    expect(newChangeSets()[0]!.messageId).toBe(original.id);
+    expect(llm.requests).toHaveLength(1); // answers are matched, not re-parsed
+  });
+
+  it("the parser's own question is asked, and the reply is parsed with that history", async () => {
+    await setup([toolCall('ask_question', { question: 'Which job, Park Rd or Seaview St?' }), etaCall('16 Nov')]);
+    const calls = await h.text('windows moved to 16 Nov');
+    expect(h.sent(calls)).toEqual(['Which job, Park Rd or Seaview St?']);
+    expect(changeSets()).toHaveLength(seedChangeSets);
+    await h.text('Park Rd');
+    expect(llm.requests[1]!.messages.map((m) => m.content)).toEqual(['windows moved to 16 Nov', 'Which job, Park Rd or Seaview St?', 'Park Rd']);
+    expect(h.lastWithButton('Confirm').text).toContain('Finish Fri 12 Mar 2027');
+  });
+});
+
+describe('flow e: allowlist', () => {
+  it('a message from another Telegram user gets no reply, saves nothing, and is logged', async () => {
+    await setup([etaCall('16 Nov')]);
+    const calls = await h.text('Park Rd windows now arriving 16 Nov', { from: STRANGER_ID });
+    expect(calls).toEqual([]);
+    expect(store.load().inboundMessages).toHaveLength(seedInbound);
+    expect(changeSets()).toHaveLength(seedChangeSets);
+    expect(llm.requests).toHaveLength(0);
+    expect(h.log.lines.some((l) => l.startsWith('warn Ignored a text message from Telegram user 999001'))).toBe(true);
+  });
+
+  it("a stranger pressing Dominic's Confirm button does nothing", async () => {
+    await setup([etaCall('16 Nov')]);
+    await h.text('Park Rd windows now arriving 16 Nov');
+    const card = h.lastWithButton('Confirm');
+    const calls = await h.press(card.messageId, 'Confirm', { from: STRANGER_ID });
+    expect(calls).toEqual([]);
+    expect(newChangeSets()[0]!.status).toBe('proposed');
+    expect(h.log.lines.some((l) => l.includes('Ignored a button press from Telegram user 999001'))).toBe(true);
+  });
+});
+
+describe('Edit and Cancel', () => {
+  it('Edit cancels the card, asks for the correction, and the reply (parsed with history) makes a new card', async () => {
+    await setup([etaCall('9 Nov'), etaCall('16 Nov')]);
+    await h.text('Park Rd windows now arriving 9 Nov');
+    const first = h.lastWithButton('Confirm');
+    expect(first.text).toContain('Mon 9 Nov');
+
+    const pressed = await h.press(first.messageId, 'Edit');
+    expect(h.sent(pressed).join('\n')).toContain('Send the correction');
+    expect(h.messages.get(first.messageId)!.buttons).toEqual([]);
+    expect(newChangeSets()[0]!.status).toBe('cancelled');
+
+    await h.text('no, 16 Nov');
+    const history = llm.requests[1]!.messages.map((m) => m.content);
+    expect(history[0]).toBe('Park Rd windows now arriving 9 Nov');
+    expect(history.at(-1)).toBe('no, 16 Nov');
+    expect(history.some((c) => c.includes('Park Rd windows ETA Mon 26 Oct to Mon 9 Nov'))).toBe(true);
+
+    const second = h.lastWithButton('Confirm');
+    expect(second.messageId).not.toBe(first.messageId);
+    expect(second.text).toContain('Install windows starts Mon 16 Nov (was Mon 2 Nov)');
+    const [old, fresh] = newChangeSets();
+    expect(old!.status).toBe('cancelled');
+    expect(fresh!.status).toBe('proposed');
+    const correction = store.load().inboundMessages.find((m) => m.rawText === 'no, 16 Nov')!;
+    expect(fresh!.messageId).toBe(correction.id);
+    await h.press(second.messageId, 'Confirm');
+    expect(windowsEta()).toBe('2026-11-16');
+  });
+
+  it('Cancel marks the change set cancelled and changes nothing', async () => {
+    await setup([etaCall('16 Nov')]);
+    await h.text('Park Rd windows now arriving 16 Nov');
+    const card = h.lastWithButton('Confirm');
+    await h.press(card.messageId, 'Cancel');
+    expect(h.messages.get(card.messageId)!.text).toBe('Cancelled, nothing saved: Park Rd windows ETA Mon 26 Oct to Mon 16 Nov.');
+    expect(newChangeSets()[0]!.status).toBe('cancelled');
+    expect(windowsEta()).toBe('2026-10-26');
+    // A second press on the old card is harmless.
+    expect(() => h.press(card.messageId, 'Confirm')).toThrow(/no button/);
+  });
+
+  it('a stale card (data changed since) says so plainly and offers a fresh card', async () => {
+    await setup([etaCall('16 Nov'), etaCall('23 Nov')]);
+    await h.text('Park Rd windows now arriving 16 Nov');
+    const stale = h.lastWithButton('Confirm');
+    await h.text('actually Park Rd windows 23 Nov');
+    const other = h.lastWithButton('Confirm');
+    await h.press(other.messageId, 'Confirm');
+    expect(windowsEta()).toBe('2026-11-23');
+
+    const calls = await h.press(stale.messageId, 'Confirm');
+    expect(h.sent(calls)[0]).toMatch(/^That card was out of date: something changed since I made it, so nothing was saved\. Here's a fresh one\./);
+    expect(h.messages.get(stale.messageId)!.text).toMatch(/^Out of date, nothing saved/);
+    const fresh = h.lastWithButton('Confirm');
+    expect(fresh.text).toContain('Park Rd windows, ETA: Mon 23 Nov → Mon 16 Nov');
+    expect(windowsEta()).toBe('2026-11-23');
+    expect(newChangeSets().map((c) => c.status)).toEqual(['cancelled', 'confirmed', 'proposed']);
+  });
+});
+
+describe('read-only questions', () => {
+  it("\"what's Park Rd's finish?\" answers from the read models and creates no change set", async () => {
+    await setup([toolCall('get_job_finish', { job: 'Park Rd' })]);
+    const calls = await h.text("what's Park Rd's finish?");
+    expect(h.sent(calls)).toEqual(['Park Rd finishes Fri 26 Feb 2027, on track.']);
+    expect(changeSets()).toHaveLength(seedChangeSets);
+  });
+
+  it('"what are we waiting on at Beatty?" lists a short list, no change set', async () => {
+    await setup([toolCall('get_waiting_on', { job: 'Beatty' })]);
+    const calls = await h.text('what are we waiting on at Beatty?');
+    const [reply] = h.sent(calls);
+    expect(reply).toMatch(/^Beatty St, \d+ outstanding:/);
+    expect(reply).toMatch(/tiler/i);
+    expect(reply!.split('\n').length).toBeLessThanOrEqual(10);
+    expect(changeSets()).toHaveLength(seedChangeSets);
+    expect(changeSets().some((c) => c.status === 'proposed')).toBe(false);
+  });
+
+  it('why it moved, next hold point and plain replies also save nothing', async () => {
+    await setup([
+      toolCall('get_why_it_moved', { job: 'Beatty St' }),
+      toolCall('get_next_hold_point', { job: 'Seaview' }),
+      textReply('No worries.'),
+    ]);
+    const why = h.sent(await h.text('why did Beatty slip?'))[0]!;
+    expect(why).toContain('Beatty St finishes Fri 4 Dec, +5 days, $1,430 since Mon 14 Sep.');
+    expect(why).toContain('+7 days');
+    expect(why).toContain('2 days earlier for reasons not in the change log');
+    const hold = h.sent(await h.text('are we right for the slab inspection at Seaview?'))[0]!;
+    expect(hold).toBe(
+      'Seaview St: Slab inspection before pour, Mon 28 Sep. 1 of 3 photo categories filled. Still need: Plumbing under slab; Membrane and termite barrier.',
+    );
+    expect(h.sent(await h.text('thanks'))).toEqual(['No worries.']);
+    expect(changeSets()).toHaveLength(seedChangeSets);
+  });
+});
+
+describe('undo', () => {
+  async function confirmCard(text: string) {
+    await h.text(text);
+    const card = h.lastWithButton('Confirm');
+    await h.press(card.messageId, 'Confirm');
+    return card;
+  }
+
+  it('replying "undo" to a specific confirmation undoes that one, not the latest', async () => {
+    await setup([etaCall('16 Nov'), toolCall('confirm_job', { job: 'Beatty' })]);
+    const windows = await confirmCard('Park Rd windows now arriving 16 Nov');
+    await confirmCard('Beatty all checked');
+    const [a, b] = newChangeSets();
+    expect([a!.status, b!.status]).toEqual(['confirmed', 'confirmed']);
+
+    const calls = await h.text('undo', { replyTo: windows.messageId });
+    expect(h.sent(calls)[0]).toMatch(/^Undone: Park Rd windows ETA/);
+    const [a2, b2] = newChangeSets();
+    expect([a2!.status, b2!.status]).toEqual(['undone', 'confirmed']);
+    expect(windowsEta()).toBe('2026-10-26');
+    expect(llm.requests).toHaveLength(2); // "undo" never goes to the model
+  });
+
+  it('refuses in plain English when a later change touched the same field', async () => {
+    await setup([etaCall('16 Nov'), etaCall('23 Nov')]);
+    const first = await confirmCard('Park Rd windows now arriving 16 Nov');
+    await confirmCard('Park Rd windows 23 Nov now');
+    const calls = await h.text('undo', { replyTo: first.messageId });
+    expect(h.sent(calls)[0]).toBe(
+      'Can\'t undo "Park Rd windows ETA Mon 26 Oct to Mon 16 Nov": it was changed again since ("Park Rd windows ETA Mon 16 Nov to Mon 23 Nov"). Undo that first.',
+    );
+    expect(windowsEta()).toBe('2026-11-23');
+    // /undo takes the latest, which is allowed.
+    expect(h.sent(await h.text('/undo'))[0]).toMatch(/^Undone: Park Rd windows ETA Mon 16 Nov to Mon 23 Nov\./);
+    expect(windowsEta()).toBe('2026-11-16');
+  });
+
+  it('the Undo button on a saved card works, and "undo" after a restart reads the card\'s buttons', async () => {
+    await setup([etaCall('16 Nov'), etaCall('23 Nov')]);
+    const card = await confirmCard('Park Rd windows now arriving 16 Nov');
+    const calls = await h.press(card.messageId, 'Undo');
+    expect(h.sent(calls)[0]).toMatch(/^Undone: Park Rd windows ETA/);
+    expect(h.messages.get(card.messageId)!.buttons).toEqual([]);
+    expect(windowsEta()).toBe('2026-10-26');
+
+    const again = await confirmCard('Park Rd windows 23 Nov');
+    // Forget the in-memory cards, as after a restart: the saved card's Undo button still names it.
+    h.handle.cards.clear();
+    const replied = await h.text('undo that', { replyTo: again.messageId });
+    expect(h.sent(replied)[0]).toMatch(/^Undone: Park Rd windows ETA Mon 26 Oct to Mon 23 Nov\./);
+    expect(windowsEta()).toBe('2026-10-26');
+  });
+});

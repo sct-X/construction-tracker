@@ -72,6 +72,21 @@ describe('operations', () => {
     expect(r).toMatchObject({ kind: 'question', field: 'eta', question: 'What is the new ETA?' });
   });
 
+  it('names are resolved before a missing detail is asked', () => {
+    // "the windows are late": ambiguous shipment and no ETA -> which windows first, without the ETA in the args.
+    const r = runOperation(buildSeed(), 'set_shipment_eta', { shipment: 'the windows' }, ctx);
+    expect(r).toMatchObject({ kind: 'question', field: 'shipment' });
+    if (r.kind !== 'question') return;
+    expect(r.options?.map((o) => o.value).sort()).toEqual([PARK_RD_WINDOWS, SEAVIEW_WINDOWS].sort());
+    expect(r.args).toEqual({ shipment: 'the windows' });
+    // Answering it then asks for the missing ETA.
+    const next = runOperation(buildSeed(), 'set_shipment_eta', { ...r.args, shipment: PARK_RD_WINDOWS }, ctx);
+    expect(next).toMatchObject({ kind: 'question', field: 'eta', question: 'What is the new ETA?' });
+    // An unknown name is refused rather than asking for a detail it can't use.
+    expect(runOperation(buildSeed(), 'set_shipment_eta', { shipment: 'the bricks' }, ctx)).toMatchObject({ kind: 'refusal' });
+    expect(runOperation(buildSeed(), 'set_item_status', { item: 'Book tiler', job: 'Smith St' }, ctx)).toMatchObject({ kind: 'refusal' });
+  });
+
   it('a bad date or an unknown job is refused', () => {
     expect(runOperation(buildSeed(), 'set_shipment_eta', { shipment: 'Park Rd windows', eta: 'soonish' }, ctx).kind).toBe('refusal');
     expect(runOperation(buildSeed(), 'confirm_job', { job: 'Smith St' }, ctx)).toMatchObject({ kind: 'refusal' });

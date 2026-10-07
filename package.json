@@ -9,7 +9,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @ct/core && npm run build -w @ct/server && npm run build -w @ct/web && npm run build:pages -w @ct/web",
+    "build": "npm run build -w @ct/core && npm run build -w @ct/llm && npm run build -w @ct/bot && npm run build -w @ct/server && npm run build -w @ct/web && npm run build:pages -w @ct/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "vitest run",
     "start": "tsx --tsconfig packages/server/tsconfig.json packages/server/src/main.ts",

@@ -3,6 +3,7 @@
  * and (Stage 2) the Telegram bot, all sharing one store and one clock.
  */
 import type { FastifyInstance } from 'fastify';
+import type { RunningBot } from '@ct/bot';
 import { clockFromOverride, type Clock } from '@ct/core';
 import { consoleLog, type Log, type ServerConfig } from './config.js';
 import { buildServer } from './http.js';
@@ -20,6 +21,8 @@ export interface RunningApp {
   /** The scheduler's first pass (snapshot catch-up, missed reminders), or null when the scheduler is off. */
   firstTick: Promise<TickResult> | null;
   notifier: Notifier;
+  /** The Telegram bot (long polling), or null when it is off (no TELEGRAM_BOT_TOKEN etc.). */
+  bot: RunningBot | null;
   /** "http://127.0.0.1:8787" */
   url: string;
   stop(): Promise<void>;
@@ -33,6 +36,10 @@ export interface StartOptions {
   clock?: Clock;
   /** Default true. */
   scheduler?: boolean;
+  /** Where the bot reads TELEGRAM_BOT_TOKEN, DOMINIC_TELEGRAM_USER_ID and the LLM settings. Default process.env. */
+  env?: Record<string, string | undefined>;
+  /** Default true: start the bot when TELEGRAM_BOT_TOKEN is set. */
+  bot?: boolean;
 }
 
 export async function startApp(config: ServerConfig, opts: StartOptions = {}): Promise<RunningApp> {
@@ -56,13 +63,16 @@ export async function startApp(config: ServerConfig, opts: StartOptions = {}): P
   const started = opts.scheduler === false ? null : startScheduler({ store, clock, notifier, log, reminderTime: config.reminderTime });
   const scheduler: Scheduler = started ?? { tick: async () => ({ snapshots: [], reminders: null }), start() {}, stop() {} };
 
-  // ---------------------------------------------------------------------------
-  // STAGE 2 HOOK: start the Telegram bot here, in this process, over the same
-  // `store` and `clock`, e.g.
-  //   const bot = await startBot({ store, clock, log, env: process.env });
-  // and stop it in stop() below. Stage 3 swaps `notifier` for the bot's
-  // Telegram notifier so the scheduler's reminders go to Dominic.
-  // ---------------------------------------------------------------------------
+  // The Telegram bot, in this process, over the same store and clock (long
+  // polling: nothing is exposed to the internet). Off, with a log line, when
+  // TELEGRAM_BOT_TOKEN / DOMINIC_TELEGRAM_USER_ID / the LLM key are not set.
+  // Loaded only when a token is set, so a bot-less run never loads grammY or
+  // the LLM layer. Stage 3 swaps `notifier` for the bot's Telegram notifier.
+  const env = opts.env ?? process.env;
+  let bot: RunningBot | null = null;
+  if (opts.bot === false) log.info('Telegram bot off (disabled for this run).');
+  else if (!env.TELEGRAM_BOT_TOKEN?.trim()) log.info('Telegram bot off: TELEGRAM_BOT_TOKEN is not set.');
+  else bot = await (await import('@ct/bot')).startBot({ store, clock, log, env });
 
   let stopped = false;
   return {
@@ -72,11 +82,13 @@ export async function startApp(config: ServerConfig, opts: StartOptions = {}): P
     scheduler,
     firstTick: started?.firstTick ?? null,
     notifier,
+    bot,
     url,
     async stop() {
       if (stopped) return;
       stopped = true;
       scheduler.stop();
+      await bot?.stop();
       await server.close();
       store.close();
     },

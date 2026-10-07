@@ -17,7 +17,9 @@
     "declaration": true,
     "sourceMap": true,
     "paths": {
-      "@ct/core": ["./packages/core/src/index.ts"]
+      "@ct/core": ["./packages/core/src/index.ts"],
+      "@ct/llm": ["./packages/llm/src/index.ts"],
+      "@ct/bot": ["./packages/bot/src/index.ts"]
     }
   }
 }

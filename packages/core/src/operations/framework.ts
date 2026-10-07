@@ -147,31 +147,69 @@ export function runOp<S extends z.ZodObject>(def: OpDef<S>, ds: Dataset, rawArgs
       reason: `${def.name} doesn't take ${unknown.map((k) => `"${k}"`).join(', ')}. It takes: ${[...known].join(', ')}.`,
     };
   }
+  const runCtxFor = (args: Record<string, JsonValue>): OpRunContext => ({
+    ...ctx,
+    op: def.name,
+    args,
+    id: ctx.newId ?? defaultNewId,
+    fmt: (iso) => (iso ? formatDate(iso, ctx.today) : 'no date'),
+    stamp: () => ctx.now.toISOString(),
+  });
   const parsed = def.schema.safeParse(cleaned);
   if (!parsed.success) {
-    const missing = parsed.error.issues.find((i) => i.path.length === 1 && isMissing(cleaned[String(i.path[0])]));
-    if (missing) {
-      const field = String(missing.path[0]);
+    const missingFields = parsed.error.issues
+      .filter((i) => i.path.length === 1 && isMissing(cleaned[String(i.path[0])]))
+      .map((i) => String(i.path[0]));
+    if (missingFields.length) {
+      const field = missingFields[0]!;
       const q = (def.ask as Record<string, string> | undefined)?.[field] ?? `What should ${field} be?`;
-      return { kind: 'question', op: def.name, question: q, field, options: null, args: argsJson };
+      // Names first: an ambiguous or unknown name is asked or refused before a missing detail
+      // ("the windows are late" -> "which windows?" before "what ETA?").
+      return namesFirst(def, ds, cleaned, new Set(missingFields), runCtxFor) ?? { kind: 'question', op: def.name, question: q, field, options: null, args: argsJson };
     }
     const msg = parsed.error.issues.map((i) => `${i.path.join('.') || 'args'}: ${i.message}`).join('; ');
     return { kind: 'refusal', op: def.name, reason: `That didn't make sense to me (${msg}).` };
   }
-  const newId = ctx.newId ?? defaultNewId;
-  const runCtx: OpRunContext = {
-    ...ctx,
-    op: def.name,
-    args: parsed.data as Record<string, JsonValue>,
-    id: newId,
-    fmt: (iso) => (iso ? formatDate(iso, ctx.today) : 'no date'),
-    stamp: () => ctx.now.toISOString(),
-  };
+  const runCtx = runCtxFor(parsed.data as Record<string, JsonValue>);
   try {
     return def.run(ds, parsed.data, runCtx);
   } catch (e) {
     if (e instanceof OpStop) return e.result;
     throw e;
+  }
+}
+
+/** Thrown when a partial run reads an arg that wasn't given. */
+class NeedsMissingArg extends Error {}
+
+/**
+ * Runs the op on the args that were given, with every missing required arg
+ * guarded: the run stops with whatever question or refusal it reaches before
+ * it needs a missing arg (resolving names comes first in every op). Null when
+ * it reaches a missing arg first, or the given args don't validate on their own.
+ */
+function namesFirst(
+  def: OpDef,
+  ds: Dataset,
+  cleaned: Record<string, unknown>,
+  missing: Set<string>,
+  runCtxFor: (args: Record<string, JsonValue>) => OpRunContext,
+): OpResult | null {
+  const partial = def.schema.partial().safeParse(cleaned);
+  if (!partial.success) return null;
+  const data = partial.data as Record<string, JsonValue>;
+  const guarded = new Proxy(data, {
+    get(target, key, receiver) {
+      if (typeof key === 'string' && missing.has(key)) throw new NeedsMissingArg(key);
+      return Reflect.get(target, key, receiver);
+    },
+  });
+  try {
+    def.run(ds, guarded as never, runCtxFor(data));
+    return null;
+  } catch (e) {
+    if (e instanceof OpStop) return e.result;
+    return null;
   }
 }
 

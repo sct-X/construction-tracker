@@ -1,0 +1,22 @@
+{
+  "name": "@ct/llm",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "LLM layer for the Telegram bot: provider-agnostic interface, OpenAI/Gemini/Anthropic over plain fetch, the parser that turns a message into core operations or a read-only tool, a FakeLlm for tests, and a price table.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@ct/core": "0.0.0"
+  }
+}

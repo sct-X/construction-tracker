@@ -129,7 +129,9 @@ operationCatalogue(group?: 'daily' | 'setup'): { name, description, group, param
 OPERATIONS, OPERATION_NAMES, getOperation(name), defineOp, runOp
 ```
 
-- Args are validated with zod. A missing required arg -> `question` (per-op wording); bad values -> `refusal`;
+- Args are validated with zod. A missing required arg -> `question` (per-op wording), but names first: runOp first runs
+  the op on the given args (missing ones guarded) and returns any ambiguity question or unknown-name refusal it hits
+  before needing a missing arg (question `args` then omit the missing ones); bad values -> `refusal`;
   an unknown arg -> `refusal` naming it. Nulls and empty strings from an LLM count as "not given".
 - Rule 9: step, link and requirement ops refuse design jobs. Rule 8: no planned or actual dates ever go on a
   template (dated args refused; template steps can't be started or done).
@@ -359,3 +361,130 @@ Numbers (today Thu 17 Sep 2026), all asserted in tests:
   John St (Design, 1, 4).
 - Seeded log: 7 messages / change sets (6 confirmed, 1 cancelled). A week of Park Rd notes; placeholder photos
   (`isPlaceholder`, `filePath: placeholder/<id>.jpg`, no file on disk). Side "Norm" exists with no jobs.
+
+## LLM (`packages/llm`, `@ct/llm`)
+
+Plain fetch, no SDKs; Node globals allowed (tsconfig `types: ["node"]`). Tests use `FakeLlm` or an injected `fetch`; no keys, no network.
+
+```ts
+interface ToolDef { name; description; parameters: object /* JSON schema */ }
+type ChatMsg = { role: 'user' | 'assistant'; content: string }
+interface LlmRequest { system; messages: ChatMsg[]; tools: ToolDef[] }
+interface LlmResponse { toolCalls: { name; args; malformed?; rawArgs? }[]; text?; usage: { inputTokens; outputTokens } }
+interface LlmProvider { readonly id; readonly model; complete(req): Promise<LlmResponse> }   // throws LlmError {provider, status?}
+type ParseResult = { kind: 'ops'; calls: { op; args }[] } | { kind: 'read'; tool; args } | { kind: 'question'; text } | { kind: 'reply'; text }
+interface ParseContext { today: ISODate; jobs: string[]; trades: string[]; shipments: string[]; history?: ChatMsg[] }
+createParser(provider, { onResponse? }): Parser            // parser.parse(text, ctx): Promise<ParseResult>
+createProviderFromEnv(env, { fetch? }): LlmProvider        // plain-English Error when provider/key missing
+new FakeLlm(script: (LlmResponse | (req) => LlmResponse)[])  // .requests, .remaining; throws when exhausted
+toolCall(name, args), textReply(text)                      // script helpers
+mapResponse(res): ParseResult; buildSystemPrompt(ctx); normalizeMessages(msgs)
+costUsd(usage, model): number | null; priceFor(model); MODEL_PRICES
+```
+
+Tools the parser offers (`parserTools()`): `opTools()` = core `operationCatalogue('daily')` minus `BOT_SET_ARGS`
+(`filePath`, `messageId`: the bot sets them before `runOperation`), then `READ_TOOLS`, then `ASK_QUESTION_TOOL`
+(`ask_question {question}`). Read tools (the bot answers from read models, fuzzy-matching names itself; never a change):
+
+| tool | args | answer from |
+| --- | --- | --- |
+| get_job_finish | job | forecast finish, planned finish, slip and slip cost (`mondayRows` / `forecastJob`) |
+| get_why_it_moved | job | `whyItMoved` |
+| get_waiting_on | job?, owner? | `waitingOn` |
+| get_to_chase | owner? | `toChase` |
+| get_shipments | job? | `shipmentsList` |
+| get_next_hold_point | job | `jobOverview(...).nextHoldPoint` (date, empty categories) |
+
+Mapping (`mapResponse`): malformed args -> `question` `REPHRASE_QUESTION`; `ask_question` -> `question` (wins over ops);
+any op -> `ops` in call order (reads ignored); else the first read -> `read`; else text -> `reply` (`FALLBACK_REPLY`
+when empty). Unknown tool names are dropped (only unknown -> rephrase question). Op args go to `runOperation` as the
+model gave them: names as said (core fuzzy-matches), dates as said (core resolves against the clock).
+
+System prompt: Sydney today with weekday ("Today is Thursday 17 September 2026 (2026-09-17, ...)"), site jargon
+(lock-up, hold point, before-cover, OC, PC items, sparky/chippy/plumbo/brickie), the job/trade/shipment names, and the
+rules (only provided tools, never invent ids, names and dates as said, ask when the job is unclear, a question is never
+a change, chit-chat -> one sentence, no tool).
+
+Providers (`id`, default model, endpoint): `openai` gpt-5-mini `POST {base}/chat/completions` (Bearer; tools
+`{type:'function', function}`; `max_completion_tokens` 4096; no temperature); `gemini` gemini-2.5-flash
+`POST {base}/models/{model}:generateContent` (`x-goog-api-key` header; `systemInstruction`, `contents` user/model,
+`tools[0].functionDeclarations`, `toolConfig.functionCallingConfig.mode AUTO`; `toGeminiSchema` keeps only type,
+format (string enum/date-time, number float/double, integer int32/int64), description, nullable, enum (as strings),
+properties, required (only kept keys), items, minItems, maxItems, minimum, maximum, anyOf, title; `["x","null"]` and
+anyOf-with-null -> nullable; const -> enum; no-property tools get no `parameters`); `anthropic` claude-haiku-4-5
+`POST {base}/messages` (`x-api-key`, `anthropic-version: 2023-06-01`, `input_schema`, `tool_choice auto`, max_tokens
+1024). Options `{ apiKey, model?, fetch?, baseUrl?, maxTokens?, timeoutMs (30000), retries (1, on 429/5xx/network),
+retryDelayMs }`. Usage: Gemini output = candidates + thoughts tokens; Anthropic input includes cache tokens.
+
+Env: `LLM_PROVIDER` (openai | gemini | anthropic; may be blank when `LLM_MODEL` starts gpt-/o1../gemini-/claude-),
+`LLM_MODEL`, `OPENAI_API_KEY`, `GEMINI_API_KEY` (or `GOOGLE_API_KEY`), `ANTHROPIC_API_KEY`; optional `LLM_BASE_URL`,
+`LLM_MAX_TOKENS`, `LLM_TIMEOUT_MS`, `LLM_REASONING_EFFORT` (openai), `LLM_THINKING_BUDGET` (gemini).
+
+Prices (`MODEL_PRICES`, USD per 1M input/output, ESTIMATES from vendor pricing pages, edit when they change):
+gpt-5-mini 0.25/2.00, gpt-5-nano 0.05/0.40, gpt-5 1.25/10.00, gemini-2.5-flash 0.30/2.50, gemini-2.5-flash-lite
+0.10/0.40, claude-haiku-4-5 1.00/5.00, claude-sonnet-4-5 3.00/15.00. Dated ids match their base.
+
+## Bot (`packages/bot`, `@ct/bot`)
+
+grammY, long polling only (no webhook). Depends on `@ct/core` and `@ct/llm`; tests also use `@ct/server` (vitest alias
+and tsconfig `paths`, never a runtime import, so server -> bot is not a cycle). Started by the server (`startApp`) in the
+same process over the same store and clock; `RunningApp.bot` is the `RunningBot` or null.
+
+```ts
+createBot({ token, allowedUserId, store, clock, parser, log?, transport?, botInfo?, transcriber?, photoStore? }): BotHandle
+  // BotHandle { bot: grammY Bot, handleUpdate(update), pending: Map<chatId, Pending>, cards: Map<csId, Card>,
+  //             handleInbound(chatId, inbound, text, { transcript?, replyTo? }) }   // Stage 3: transcripts, captions
+startBot({ store, clock, log, env, parser?, transcriber?, photoStore? }): Promise<RunningBot | null>  // {handle, stop()}
+botConfigFromEnv(env) -> {ok, token, allowedUserId} | {ok:false, reason}
+cardText({ summary, transcript?, changes, impacts, ds, today }); changeLines; impactLines; finishSentence; valueText; fieldLabel
+answerRead(api: DashboardApi, tool, args) -> { text }      // the 6 read tools; unknown tool -> a plain "can't answer" text
+Transcriber / PhotoStore                                   // placeholder shapes, Stage 3 defines them properly
+```
+
+Env: `TELEGRAM_BOT_TOKEN` (unset -> "Telegram bot off" log; `@ct/server` depends on `@ct/bot`; e2e-server and server tests pass `bot: false`; startApp only then loads `@ct/bot`, by dynamic import),
+`DOMINIC_TELEGRAM_USER_ID` (digits; unset -> off), and the LLM env (provider/key missing -> off with the reason).
+`startApp(config, { env?, bot? })`: `env` default `process.env`; `bot: false` never starts it.
+
+Behaviour:
+- Allowlist middleware runs first: any update whose `from.id` is not the allowed id gets no reply, no inbound row,
+  no parse; one `warn` log line "Ignored a text message from Telegram user <id> (@name): not the allowed user."
+  (button presses: "Ignored a button press ...").
+- Every allowed text (commands too) -> `recordInbound({channel: 'telegram', sender: String(from.id), rawText})` first.
+  Non-text messages: "I can only read text messages for now." (Stage 3 adds voice/photo handlers before that one).
+- `/undo` (or "undo" / "undo that" not as a reply) -> newest confirmed change set whose message came in on Telegram.
+  "undo" (or `/undo`) as a reply to a card -> that card's change set: looked up in memory, else read off the card's
+  button callback data (survives restarts). Core's refusal text is sent as is ("Can't undo "X": it was changed again
+  since ("Y"). Undo that first."). `/start`, `/help` -> one-paragraph help; `/cancel` drops a pending question.
+- Parse context: today, live job names, trade names, live jobs' shipment names, history (only in a question/edit thread).
+  `reply` -> text; `read` -> `answerRead` via `LocalDashboardApi` (never a change set); `question` -> sent, pending
+  `parser-question` (the reply is parsed with [user, question] history); `ops` -> each call through `runOperation` in
+  order on a working copy (later calls see earlier changes). Only `daily` ops; `messageId` is set by the bot when the op
+  takes it. Refusal -> reason + "Nothing saved."
+- A core question pauses the run: options become inline buttons (`a:<n>`), one per row; a typed answer is matched
+  (number, label, fuzzy) or, for a no-options question, used as the value; re-run with `{...args, [field]: value}` plus
+  the calls before and after. An unmatched typed answer is parsed afresh with the question in the history. When core asks
+  for a missing arg, names are already resolved (core runOp, "names first"), so "the windows are late" -> "Which
+  shipment do you mean by "the windows"?" [Park Rd windows (Park Rd)] [Seaview St windows (Seaview St)], then the ETA.
+- All proposals of one message -> ONE change set (`proposeChangeSet`, status proposed, `messageId` = the first message
+  of the thread, or the correction for an Edit). `opName`/`opArgs` = the op and validated args (several calls: names
+  joined with ", " and `{calls}`). Card (plain text, no parse mode): "Heard: ..." (transcript, Stage 3), the summary,
+  "- <row>, <field>: <before> → <after>" per change, then per touched build job: up to 4 "<Step> starts Mon 16 Nov (was
+  Mon 2 Nov)", "Finish Fri 12 Mar 2027 (was Fri 26 Feb 2027)", "Slip +14 days, $9,000 since last Monday" (or "No change
+  to the forecast (finish ...)"), then "Save this?". Buttons `c:<cs>` Confirm, `e:<cs>` Edit, `x:<cs>` Cancel.
+- Confirm -> `confirmChangeSet`; card edited to "Saved. <summary>." + "<Job> finishes <date>, <slip> since last
+  Monday." with an `u:<cs>` Undo button. ChangeConflictError -> stale card cancelled and edited to "Out of date, nothing
+  saved: ...", then "That card was out of date: something changed since I made it, so nothing was saved. Here's a fresh
+  one." and the same calls re-run against current data -> a new card. Cancel -> `cancelChangeSet`, card "Cancelled,
+  nothing saved: <summary>." Edit -> cancelled at once, card "Changing this one (not saved): ...", bot asks "What should
+  it be instead? ..."; the reply is parsed with [original, "Proposed: <summary>.", the ask] history -> a NEW card.
+- Undo (button, reply or /undo) -> `store.undo`; "Undone: <summary>." + finish lines; the card loses its buttons.
+- Pending state and the card map are in memory (one chat). A restart loses pending questions, not cards' buttons.
+
+Test harness (`packages/bot/test/harness.ts`, for Stage 3 too): `createHarness({ store, clock, parser, allowedUserId?,
+transcriber?, photoStore? })` -> `{ handle, log (memory), calls (every API call), messages (bot messages by id, edits
+applied, buttons), text(text, {from?, replyTo?}), press(messageId, buttonTextOrData, {from?}), update(rawUpdate),
+sent(calls?), lastWithButton(text), last() }`. Built on a real grammY Bot with `botInfo` preset (`BOT_INFO`) and an API
+transformer that records calls and returns fake results (sendMessage -> a message with a new id). `DOMINIC_ID`,
+`STRANGER_ID`. Integration tests (`test/flows.test.ts`): server SqliteStore on a temp file + `seedDatabase`, a second
+SqliteStore on the same file behind `buildServer` (`inject` POST /api/rpc/getMonday), `createParser(new FakeLlm(...))`,
+`fixedClock('2026-09-17', '10:00')`.

@@ -117,3 +117,66 @@ page). I looked at all of them.
     - Diary notes put timber behind every entry (`review4-notes-park-1280-full.png`). That matches "words Dominic sent", but the page becomes a wall of beige.
 15. NICE-TO-HAVE. **Hi-vis does several jobs at once.** It marks the today line and chip, the current tab and nav item, late bars, overdue chips, the "1 of 3" badge, the current checklist stage and focus. Words always come with it, so no rule is broken. But on the Beatty Gantt, "today" and "late" are the same orange (`review4-program-beatty-1280-full.png`). Consider steel for the today line.
 16. NICE-TO-HAVE. **Bundle size.** The Pages build ships one 508 kB chunk. Lazy-loading the screens would shrink it and clear the build warning.
+
+## Re-check (fix commit `3101d9f`)
+
+Fresh `git clone` at `3101d9f`. HEAD has since moved to `8441d49`, but the only file it adds is
+`.github/workflows/ci.yml`, so the app tree is the same as the one checked. Ports 4310 and 4320 were free.
+
+| command | result |
+| --- | --- |
+| `npm ci` | exit 0 |
+| `npm test` | exit 0, 26 files, 320 tests |
+| `npm run typecheck` | exit 0 |
+| `npm run build` | exit 0, no chunk-size warning (screens are code-split) |
+| `npx playwright test` | exit 0, 75 passed |
+| side-switch test, `--repeat-each=40 --workers=8 --project=mock --project=api` | 80 passed, 0 failed |
+
+MUST-FIX items:
+
+1. **Side switch from a job page: fixed.**
+   - The side switcher now leaves the job page itself (`SideSwitcher.tsx` `leaveJobPage`). The job bar
+     syncs a deep-linked job's side once per route, and only while that job's route is still showing
+     (`JobBar.tsx`).
+   - By hand in the built-in browser (mock preview of the clone): opened `#/jobs/park-rd`, picked Norm.
+     It went to `#/jobs` showing "0 builds and 0 design jobs", and the switcher still read Norm two
+     seconds later.
+   - My probe (switch after the job bar, and switch before the jobs list loads, then wait 1 s): 60/60
+     passed in mock and api.
+   - The deep-link case is covered by a new test: from Norm, open `#/jobs/beatty/program` and it switches
+     to Norm and Dom.
+2. **Test: fixed.** It waits for the job bar, checks the switcher still reads Norm after network idle,
+   and checks Park Rd is gone from the list. It passed every stress run.
+3. **Named tel: link on step detail: fixed.** The link now reads "Call ClearView Window Installs 0491 575 789"
+   (`review4-step-windows-1280-full.png`) and "Call Northside Certifiers 0491 577 426"
+   (`review4-step-slab-390-full.png`).
+4. **Words beside colour on the overview: fixed.** Book cladders and Order cladding now read "1 day overdue",
+   Tile choice "3 days overdue", and Glazing "Act-by passed 38 days ago". These are the same words Waiting
+   on and To chase use (`review4-overview-park-1280-full.png`).
+
+Also fixed from the NICE-TO-HAVE list:
+
+- **Overview stage chart (6):** starts at the current stage, with the done stages listed in one line; Beatty's
+  axis no longer collides or clips (`review4-overview-beatty-1280.png`).
+- **Gantt (7):** rows show dates under underlined step names ("2 Nov to 13 Nov"; late steps add "planned ...")
+  (`review4-program-park-1280.png`, `review4-program-beatty-1280-full.png`).
+- **Hold-point lists (8):** no more checkbox squares.
+- **Type scale (9):** 12 distinct computed sizes across the screens (was 19).
+- **Lightbox (10):** traps focus; four Tabs stay on Close inside the dialog.
+- **Heading names (11):** headings no longer run words together, there is a skip link, and focus moves to main on
+  a route change.
+- **Cancelled change sets (13):** say "Would have changed (not saved):" with the after value not bolded
+  (`review4-history-1280.png`).
+- **Placeholder captions (14):** shrink to fit.
+- **Today line (15):** now steel, not hi-vis.
+- **Bundle (16):** the code is split, so the chunk warning is gone.
+
+I re-shot the changed screens at 390 and 1280 (Gantt, overview, step detail, changes, photos lightbox).
+Nothing looks broken: no sideways scroll on any of the 17 views in either mode.
+
+Left over, NICE-TO-HAVE only:
+
+- Gantt row dates drop the weekday ("2 Nov to 13 Nov") where the rest of the app writes "Mon 2 Nov".
+- The overview's "Latest photos" heading draws larger than its sibling h2s.
+
+**Verdict: SIGN-OFF.**

@@ -6,7 +6,7 @@
 - [x] Stage 1: server API over SQLite, scheduler (Monday snapshot, reminders), web shell, jobs list, Monday screen with Why it moved, both data layer implementations. Reviewer sign-off: 2026-10-07, fresh reviewer, 152 unit + 23 e2e
 - [x] Stage 2: bot: allowlist, text parsing through the LLM interface, ambiguity questions, confirm card with dry-run forecast impact, Edit, Cancel, /undo, read-only questions. Reviewer sign-off: 2026-10-07, fresh reviewer, 221 unit + 23 e2e
 - [x] Stage 3: bot: voice via Transcriber, photos with category matching, hold-point rule, reminders to Telegram. Reviewer sign-off: 2026-10-07, fresh reviewer, 308 unit + 73 e2e
-- [ ] Stage 4: remaining read-only screens and change history. Reviewer sign-off: —
+- [x] Stage 4: remaining read-only screens and change history. Reviewer sign-off: 2026-10-07, fresh reviewer, 320 unit + 75 e2e
 - [ ] Stage 5: Setup area, Pages demo deploy, README, eval script. Reviewer sign-off: —
 
 ## Decisions

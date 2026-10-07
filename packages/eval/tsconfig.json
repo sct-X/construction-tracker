@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true,
+    "paths": {
+      "@ct/core": ["../core/src/index.ts"],
+      "@ct/llm": ["../llm/src/index.ts"]
+    }
+  },
+  "include": ["src", "test"]
+}

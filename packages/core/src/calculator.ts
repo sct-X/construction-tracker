@@ -652,11 +652,3 @@ export function makeSnapshot(ds: Dataset, jobId: string, today: ISODate, savedAt
   }
   return { id, jobId, date: lastMonday(today), savedAt, forecastFinish: f.forecastFinish, stepStarts, stepEnds };
 }
-
-/** Rule 6 refusal sentence, naming the empty categories. */
-export function holdPointRefusalText(check: HoldPointCheck): string {
-  const n = check.missingCategories.length;
-  return `Can't mark ${check.stepName} done yet. The certifier needs before-cover photos and ${n} ${
-    n === 1 ? 'category is' : 'categories are'
-  } empty: ${check.missingCategories.join('; ')}.`;
-}

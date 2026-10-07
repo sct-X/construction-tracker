@@ -60,6 +60,9 @@ describe('program', () => {
     const tiling = within(gantt).getByTestId('g-step-bt-tiling');
     expect(tiling.textContent).toContain('7 days late');
     expect(tiling.className).toContain('is-late');
+    // Row dates carry the weekday: "Mon 5 Oct to Fri 16 Oct, planned Mon 28 Sep to ...".
+    const day = '(Mon|Tue|Wed|Thu|Fri) \\d{1,2} [A-Z][a-z]{2}';
+    expect(tiling.querySelector('.g-dates')!.textContent).toMatch(new RegExp(`^${day} to ${day}, planned ${day} to ${day}`));
     expect(screen.getByTestId('gantt-done').textContent).toContain('Demolition');
     expect(screen.getByTestId('program-sub').textContent).toContain('Fri 4 Dec 2026');
   });

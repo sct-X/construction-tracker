@@ -1,9 +1,9 @@
 /**
  * api-change project only (runs after the api project, against the same server):
- * apply the Park Rd windows ETA change the way the bot will after Confirm, then
+ * SPEC flow a through the real bot (packages/server/scripts/bot-change.ts: grammY
+ * with a fake Telegram transport and a scripted model) on the e2e DATA_DIR, then
  * the Monday screen must show the new finish, slip, cost and why it moved.
- * Retry-safe: the change is only applied if the ETA is not already 16 Nov.
- * Stage 2 swaps the apply-op call for a real bot flow.
+ * Retry-safe: the bot step only runs if the ETA is not already 16 Nov.
  */
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
@@ -23,14 +23,20 @@ async function parkRdWindowsEta(request: APIRequestContext): Promise<string | nu
   return result.find((s) => s.shipmentId === 'sh-pr-windows')?.eta ?? null;
 }
 
-/** `npm run apply-op`, minus npm: node runs tsx directly, so it works on Windows too (no npm.cmd spawn). */
-function applyOp(op: string, args: unknown): void {
+/**
+ * Dominic texts "Park Rd windows now arriving 16 Nov" and presses Confirm on the card.
+ * node runs tsx directly, so it works on Windows too (no npm.cmd spawn). Returns the card text.
+ */
+function botFlowA(): string {
   const tsx = join(ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs');
-  execFileSync(
+  const out = execFileSync(
     process.execPath,
-    [tsx, '--tsconfig', join(ROOT, 'packages', 'server', 'tsconfig.json'), join(ROOT, 'packages', 'server', 'scripts', 'apply-op.ts'), op, JSON.stringify(args)],
-    { cwd: ROOT, env: { ...process.env, DATA_DIR, CT_TODAY: '2026-09-17' }, stdio: 'pipe' },
+    [tsx, '--tsconfig', join(ROOT, 'packages', 'server', 'tsconfig.json'), join(ROOT, 'packages', 'server', 'scripts', 'bot-change.ts')],
+    { cwd: ROOT, env: { ...process.env, DATA_DIR, CT_TODAY: '2026-09-17' }, stdio: 'pipe', encoding: 'utf8' },
   );
+  const r = JSON.parse(out) as { ok: boolean; card: string; saved: string };
+  expect(r.ok, r.saved).toBe(true);
+  return r.card;
 }
 
 test('windows ETA moved to 16 Nov: Park Rd +14 days, $9,000, and why it moved names the ETA', async ({ page, request }) => {
@@ -39,7 +45,10 @@ test('windows ETA moved to 16 Nov: Park Rd +14 days, $9,000, and why it moved na
     expect(eta).toBe('2026-10-26');
     await openMonday(page);
     await expect(buildRow(page, 'park-rd').getByTestId('slip')).toHaveText('On track');
-    applyOp('set_shipment_eta', { shipment: 'windows', job: 'Park Rd', eta: '16 Nov' });
+    const card = botFlowA();
+    expect(card).toContain('Install windows starts Mon 16 Nov (was Mon 2 Nov)');
+    expect(card).toContain('Finish Fri 12 Mar 2027 (was Fri 26 Feb 2027)');
+    expect(card).toContain('Slip +14 days, $9,000');
     await page.reload();
   } else {
     await openMonday(page);
@@ -53,6 +62,8 @@ test('windows ETA moved to 16 Nov: Park Rd +14 days, $9,000, and why it moved na
   await expect(cause).toHaveCount(1);
   await expect(cause).toContainText('+14 days');
   await expect(cause).toContainText('Park Rd windows, ETA Mon 26 Oct → Mon 16 Nov');
+  // The source is Dominic's Telegram message, quoted.
+  await expect(cause).toContainText('Park Rd windows now arriving 16 Nov');
   // Park Rd now costs the most this week, so it leads the builds.
   await expect(page.locator('[data-testid^="build-row-"]').first()).toHaveAttribute('data-testid', 'build-row-park-rd');
 });

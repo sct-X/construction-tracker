@@ -2,7 +2,7 @@
  * Loading a Dataset (default: the core seed) into an empty SQLite database.
  */
 import { rmSync } from 'node:fs';
-import { buildSeed, type Dataset } from '@ct/core';
+import { buildEmptySeed, buildSeed, type Dataset } from '@ct/core';
 import { LOAD_ORDER } from './schema.js';
 import type { SqliteStore } from './sqliteStore.js';
 
@@ -28,6 +28,11 @@ export function seedDatabase(store: SqliteStore, dataset: Dataset = buildSeed(),
     }
     return n;
   })();
+}
+
+/** The dataset for a seed kind: the demo jobs, or the empty start (template and trades, no jobs). */
+export function seedDataset(kind: 'demo' | 'empty'): Dataset {
+  return kind === 'empty' ? buildEmptySeed() : buildSeed();
 }
 
 /** Seeds only when the database is empty (first run). Returns true when it seeded. */

@@ -10,7 +10,7 @@ import { buildServer } from './http.js';
 import { ensureDataDirs } from './paths.js';
 import { logNotifier, manualReminderText, type Notifier } from './reminders.js';
 import { startScheduler, type Scheduler, type TickResult } from './scheduler.js';
-import { seedIfEmpty } from './seed.js';
+import { seedDataset, seedIfEmpty } from './seed.js';
 import { SqliteStore } from './sqliteStore.js';
 
 export interface RunningApp {
@@ -49,7 +49,13 @@ export async function startApp(config: ServerConfig, opts: StartOptions = {}): P
 
   // Opening the store runs any migration not yet applied.
   const store = new SqliteStore(config.paths.dbFile, { clock });
-  if (seedIfEmpty(store)) log.info(`New database: loaded the seed into ${config.paths.dbFile}`);
+  if (seedIfEmpty(store, seedDataset(config.seed))) {
+    log.info(
+      config.seed === 'empty'
+        ? `New database (SEED=empty): sides, the duplex template and the trades, no jobs, in ${config.paths.dbFile}`
+        : `New database: loaded the seed into ${config.paths.dbFile}`,
+    );
+  }
   log.info(`Data: ${config.paths.dataDir}; today is ${clock.today()}${config.todayOverride ? ' (CT_TODAY override)' : ' (Sydney)'}`);
 
   const server = await buildServer({ store, clock, paths: config.paths, webDist: config.webDist, log, allowedHosts: config.allowedHosts });

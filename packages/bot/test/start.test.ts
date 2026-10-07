@@ -1,5 +1,6 @@
-// Starting the bot: off (with a log line) unless the token, Dominic's id and
-// an LLM provider are configured; the server's startApp hook logs it either way.
+// Starting the bot: off (with a log line) unless the token and Dominic's id are
+// configured (no model key: it still starts, see noModel.test.ts); the server's
+// startApp hook logs it either way.
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -25,10 +26,10 @@ describe('botConfigFromEnv / startBot', () => {
     const store = new InMemoryStore(buildSeed(), { clock });
     const log = memoryBotLog();
     expect(await startBot({ store, clock, log, env: {} })).toBeNull();
-    expect(await startBot({ store, clock, log, env: { TELEGRAM_BOT_TOKEN: 't', DOMINIC_TELEGRAM_USER_ID: '42', LLM_PROVIDER: 'openai' } })).toBeNull();
+    expect(await startBot({ store, clock, log, env: { TELEGRAM_BOT_TOKEN: 't', LLM_PROVIDER: 'openai' } })).toBeNull();
     expect(log.lines).toEqual([
       'info Telegram bot off: TELEGRAM_BOT_TOKEN is not set.',
-      'warn Telegram bot off: OPENAI_API_KEY is not set (needed for LLM_PROVIDER=openai).',
+      'info Telegram bot off: DOMINIC_TELEGRAM_USER_ID is not set, so nobody would be allowed to use it.',
     ]);
   });
 });

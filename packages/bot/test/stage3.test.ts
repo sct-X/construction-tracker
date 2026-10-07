@@ -574,7 +574,7 @@ describe('review 1: rules are re-checked at Confirm', () => {
 });
 
 describe('review 2: files over 20 MB', () => {
-  const TOO_BIG = "That file is over Telegram's 20 MB limit for bots, so I can't fetch it. Send it as a photo or a smaller file.";
+  const TOO_BIG = "That file is over Telegram's 20 MB limit for bots, so I can't fetch it. Send it as a photo or a smaller file. Nothing saved.";
 
   it('a document Telegram says is 25 MB gets its own reply, no download, nothing stored', async () => {
     setup([]);

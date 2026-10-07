@@ -104,3 +104,32 @@ const FROZEN = assemble();
 export function buildSeed(): Dataset {
   return cloneDataset(FROZEN);
 }
+
+/**
+ * The "going live" start (`npm run seed -- --reset --empty`, or SEED=empty for a new database):
+ * the sides, Dominic, the duplex template (stages, steps, links, needs, photo categories) and the
+ * trades. No jobs, items, shipments, notes, photos, snapshots or change log. Jobs are made in Setup.
+ */
+export function buildEmptySeed(): Dataset {
+  const ds = cloneDataset(FROZEN);
+  const templateIds = new Set(ds.jobs.filter((j) => j.isTemplate).map((j) => j.id));
+  const stageIds = new Set(ds.stages.filter((st) => templateIds.has(st.jobId)).map((st) => st.id));
+  const stepIds = new Set(ds.steps.filter((st) => stageIds.has(st.stageId)).map((st) => st.id));
+  return {
+    ...ds,
+    jobs: ds.jobs.filter((j) => templateIds.has(j.id)),
+    stages: ds.stages.filter((st) => stageIds.has(st.id)),
+    steps: ds.steps.filter((st) => stepIds.has(st.id)),
+    stepLinks: ds.stepLinks.filter((l) => stepIds.has(l.stepId) && stepIds.has(l.waitsForStepId)),
+    requirements: ds.requirements.filter((r) => stepIds.has(r.stepId)),
+    photoCategories: ds.photoCategories.filter((c) => templateIds.has(c.jobId)),
+    items: [],
+    shipments: [],
+    photos: [],
+    dailyNotes: [],
+    snapshots: [],
+    inboundMessages: [],
+    changeSets: [],
+    changes: [],
+  };
+}

@@ -3,8 +3,10 @@
  *   mock  vite preview of the Pages build (mock data in the browser), port 4320
  *   api   the api-mode build served by the local server (`npm run e2e:server`:
  *         port 4310, CT_TODAY=2026-09-17, seeded temp DB)
- *   api-change  runs after api, on the same server: applies the windows ETA
- *         change with `npm run apply-op` and checks the Monday screen moved.
+ *   api-change  runs after api, on the same server: makes the windows ETA
+ *         change through the real bot (packages/server/scripts/bot-change.ts,
+ *         fake Telegram, scripted model, Confirm pressed) and checks the
+ *         Monday screen moved.
  *         It changes the data, so it is the only spec in its project.
  *   api-setup  runs after api-change, same server: the Stage 5 Setup specs
  *         (new jobs, trades, templates), which add data, so they go last.
@@ -28,9 +30,11 @@ const wanted = requestedProjects();
 const runMock = !wanted || wanted.has('mock');
 const runApi = !wanted || [...wanted].some((n) => n.startsWith('api'));
 
-const MOCK_URL = 'http://localhost:4320/construction-tracker/';
+// 127.0.0.1, not localhost: both servers bind the IPv4 loopback, and on some CI images
+// "localhost" resolves to ::1 first, so the wait (and the tests) would never connect.
+const MOCK_URL = 'http://127.0.0.1:4320/construction-tracker/';
 const API_PORT = Number(process.env.E2E_PORT || 4310);
-const API_URL = `http://localhost:${API_PORT}/`;
+const API_URL = `http://127.0.0.1:${API_PORT}/`;
 
 export default defineConfig({
   testDir: './e2e',
@@ -69,7 +73,7 @@ export default defineConfig({
     ...(runMock
       ? [
           {
-            command: 'npm run build:pages -w @ct/web && npm run preview:pages -w @ct/web',
+            command: 'npm run build:pages -w @ct/web && npm run preview:pages -w @ct/web -- --host 127.0.0.1',
             url: MOCK_URL,
             reuseExistingServer: !process.env.CI,
             timeout: 120_000,

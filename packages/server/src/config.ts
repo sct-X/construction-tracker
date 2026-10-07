@@ -29,6 +29,18 @@ export interface ServerConfig {
   reminderTime: string;
   /** Extra host names allowed to call /api (ALLOWED_HOSTS, comma-separated), plus HOST when it is a specific address. */
   allowedHosts: string[];
+  /** What a NEW (empty) database starts with (SEED): 'demo' (default) or 'empty' (template and trades, no jobs). */
+  seed: SeedKind;
+}
+
+export type SeedKind = 'demo' | 'empty';
+
+/** SEED=demo|empty (blank = demo). Throws on anything else. */
+export function seedKindFromEnv(env: Env = process.env): SeedKind {
+  const raw = (env.SEED ?? '').trim().toLowerCase();
+  if (!raw || raw === 'demo') return 'demo';
+  if (raw === 'empty') return 'empty';
+  throw new Error(`SEED must be demo or empty, got "${env.SEED}"`);
 }
 
 /** CT_TODAY wins; TZ_TODAY_OVERRIDE (the .env.example name) is the fallback. Throws on a bad date. */
@@ -66,6 +78,7 @@ export function loadConfig(env: Env = process.env, cwd = process.cwd()): ServerC
     webDist: web ? (isAbsolute(web) ? web : resolve(cwd, web)) : DEFAULT_WEB_DIST,
     reminderTime,
     allowedHosts: allowedHostsFromEnv(env),
+    seed: seedKindFromEnv(env),
   };
 }
 

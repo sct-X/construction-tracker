@@ -1,7 +1,9 @@
 /**
  * Starting the bot inside the server process (long polling, no webhook:
- * nothing is exposed to the internet). Off, with a log line, when the token,
- * Dominic's user id or the LLM provider isn't configured.
+ * nothing is exposed to the internet). Off, with a log line, when the token
+ * or Dominic's user id isn't configured. With no language model (no key) it
+ * still starts: reminders, /undo, /reminders and buttons work, and typed
+ * messages get "add a model key to .env".
  */
 import type { Clock, Store } from '@ct/core';
 import { createParser, createProviderFromEnv, type Parser } from '@ct/llm';
@@ -56,13 +58,16 @@ export async function startBot(opts: StartBotOptions): Promise<RunningBot | null
     log.info(`Telegram bot off: ${config.reason}.`);
     return null;
   }
-  let parser = opts.parser;
+  let parser: Parser | null = opts.parser ?? null;
   if (!parser) {
     try {
       parser = createParser(createProviderFromEnv(opts.env));
     } catch (e) {
-      log.warn(`Telegram bot off: ${e instanceof Error ? e.message : String(e)}`);
-      return null;
+      const reason = (e instanceof Error ? e.message : String(e)).replace(/\.$/, '');
+      log.warn(
+        `No language model: ${reason}. The bot still sends reminders and handles /undo, /reminders and buttons; ` +
+          'typed messages and voice notes get "add a model key to .env" until a key is set.',
+      );
     }
   }
   let transcriber = opts.transcriber;

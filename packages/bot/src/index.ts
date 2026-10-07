@@ -6,3 +6,4 @@ export * from './notifier.js';
 export * from './reads.js';
 export * from './start.js';
 export * from './transcriber.js';
+export * from './fakeTelegram.js';

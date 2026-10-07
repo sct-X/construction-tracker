@@ -9,8 +9,8 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   addCalendarDays,
   formatDate,
-  formatDayMonth,
   formatLong,
+  formatShort,
   lastMonday,
   type DashboardApi,
   type ISODate,
@@ -234,11 +234,11 @@ function GanttStage({ stage, steps, scale, today, jobId }: { stage: StageForecas
   );
 }
 
-/** "2 Nov to 13 Nov", "12 Oct": short enough to sit under a step name. */
+/** "Mon 2 Nov to Fri 13 Nov", "Mon 12 Oct": short enough to sit under a step name (the axis gives the year). */
 function shortRange(start: ISODate | null, end: ISODate | null): string {
   if (!start) return 'no date';
-  if (!end || end === start) return formatDayMonth(start);
-  return `${formatDayMonth(start)} to ${formatDayMonth(end)}`;
+  if (!end || end === start) return formatShort(start);
+  return `${formatShort(start)} to ${formatShort(end)}`;
 }
 
 function GanttStep({ s, scale, today, jobId }: { s: ProgramStep; scale: Scale; today: ISODate; jobId: string }) {

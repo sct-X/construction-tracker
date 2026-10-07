@@ -49,7 +49,11 @@ export interface CreateBotOptions {
   allowedUserId: number | string;
   store: Store;
   clock: Clock;
-  parser: Parser;
+  /**
+   * Turns text into operations. None (no model key in .env): reminders, /undo, /reminders, buttons and
+   * photo filing by buttons still work; typed messages and voice notes get NO_MODEL_REPLY.
+   */
+  parser?: Parser | null;
   log?: BotLog;
   /** Tests: an API transformer that captures outgoing calls instead of calling Telegram. */
   transport?: Transformer;
@@ -173,7 +177,9 @@ const PHOTO_TIP_FLAG = 'photo-as-file-tip';
 const PHOTO_TIP =
   'Tip: to keep a photo at full resolution, send it as a file (paperclip, then File) instead of as a photo. Telegram shrinks normal photos. This one is filed either way.';
 const GROUP_MEMORY_MS = 10 * 60 * 1000;
-const TOO_BIG = "That file is over Telegram's 20 MB limit for bots, so I can't fetch it. Send it as a photo or a smaller file.";
+const TOO_BIG = "That file is over Telegram's 20 MB limit for bots, so I can't fetch it. Send it as a photo or a smaller file. Nothing saved.";
+/** The reply to free text when no language model is configured. */
+export const NO_MODEL_REPLY = "I can't read messages yet: add a model key to .env.";
 const NOT_A_PHOTO = "That file isn't a photo I can keep: I take JPEG, PNG, WebP or HEIC. Nothing saved.";
 
 /** A file Telegram won't let a bot download (over 20 MB). Retrying can't help, so it gets its own reply. */
@@ -536,6 +542,10 @@ export function createBot(opts: CreateBotOptions): BotHandle {
   }
 
   async function parse(chatId: number, text: string, history: ChatMsg[]): Promise<ParseResult | null> {
+    if (!parser) {
+      await send(chatId, NO_MODEL_REPLY);
+      return null;
+    }
     try {
       return await parser.parse(text, parseContext(history));
     } catch (e) {
@@ -971,7 +981,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     const g = photo.mediaGroupId ? groupInfo(photo.mediaGroupId) : undefined;
     if (g?.attachArgs && g.caption === photo.caption) {
       attach = { ...g.attachArgs }; // the album's first photo already settled job, stage and category
-    } else if (photo.caption) {
+    } else if (photo.caption && parser) {
       let result: ParseResult | null = null;
       try {
         result = await parser.parse(`Photo caption: ${photo.caption}`, parseContext([]));

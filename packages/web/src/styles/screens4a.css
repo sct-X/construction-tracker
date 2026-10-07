@@ -193,6 +193,7 @@ a.job-name:hover {
 }
 .h-row h2 {
   margin: 0;
+  font-size: var(--t-h2);
 }
 .h-link {
   font-size: var(--t-small);

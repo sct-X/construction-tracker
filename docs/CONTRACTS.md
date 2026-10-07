@@ -85,7 +85,6 @@ forecastAll(ds, today): Record<jobId, JobForecast>                     // live j
 makeSnapshot(ds, jobId, today, savedAt, id): ForecastSnapshot          // what the Monday scheduler saves
 pickSnapshot(snapshots, today)    // last Monday's, else the latest dated on/before today
 holdPointCheck(step, photoCategories, photos, forecastStart?) -> HoldPointCheck
-holdPointRefusalText(check)       // "Can't mark X done yet. ... 2 categories are empty: A; B."
 freshnessFor(job, today)          // amber = more than 7 days, or never confirmed
 ```
 
@@ -439,6 +438,12 @@ re-run with `{ ...question.args, afterChoice: id }`.
 
 ## Seed (`packages/core/src/seed`)
 
+`buildEmptySeed()`: the going-live start: `buildSeed()` minus every non-template job and its rows (keeps sides, users,
+trades, the duplex template's job/stages/steps/links/requirements/photo categories; items, shipments, photos, notes,
+snapshots and the change log empty). Server: `seedDataset('demo' | 'empty')`, `seedKindFromEnv(env)` (SEED=demo|empty,
+blank = demo), `ServerConfig.seed`; startApp seeds a new database with it; `npm run seed -- --reset --empty` (or
+`--demo`; default from SEED).
+
 `buildSeed()` (fresh copy), `SEED_VERSION`, `DEFAULT_TODAY`, ids: `SIDE_ND`, `SIDE_NORM`, `PARK_RD` ('park-rd'),
 `SEAVIEW`, `BEATTY`, `PARK_RD_WINDOWS` ('sh-pr-windows'), `SEAVIEW_WINDOWS` ('sh-sv-windows'), `BEATTY_TILER`,
 `TEMPLATE_DUPLEX` ('tpl-duplex'), `TRADE_IDS`, `SEED_SENDER`. Step ids are prefixed: Park Rd `pr-<step>` (e.g.
@@ -561,7 +566,9 @@ createTelegramNotifier(api, chatId) -> { send({ text }) }  // the server's Notif
 ```
 
 Env: `TELEGRAM_BOT_TOKEN` (unset -> "Telegram bot off" log; `@ct/server` depends on `@ct/bot`; e2e-server and server tests pass `bot: false`; startApp only then loads `@ct/bot`, by dynamic import),
-`DOMINIC_TELEGRAM_USER_ID` (digits; unset -> off), and the LLM env (provider/key missing -> off with the reason).
+`DOMINIC_TELEGRAM_USER_ID` (digits; unset -> off), and the LLM env (provider/key missing -> the bot STILL starts with
+`parser: null`, warn "No language model: <reason>. ..."; reminders, /undo, /reminders, buttons and photo filing by buttons
+work; typed text and voice transcripts get `NO_MODEL_REPLY` "I can't read messages yet: add a model key to .env.").
 Voice: `TRANSCRIBER=local|cloud` (unset: local when `WHISPER_MODEL_PATH` is set, else voice off; never cloud by itself),
 local: `WHISPER_MODEL_PATH` (required), `WHISPER_CPP_BIN` (whisper-cli), `FFMPEG_BIN` (ffmpeg), `WHISPER_THREADS`; cloud:
 `TRANSCRIBE_API_KEY` or `OPENAI_API_KEY`, `TRANSCRIBE_MODEL` (gpt-4o-mini-transcribe), `TRANSCRIBE_BASE_URL`. Optional
@@ -659,7 +666,7 @@ Stage 3 behaviour:
 - Review fixes: Confirm -> `RuleRefusalError` cancels the card (decision: cancelled, not left proposed), edits it to
   "Not saved: <summary>." and sends "<reason> Nothing saved." (e.g. a hold-point photo undone after the card was made).
   A file over 20 MB (Telegram's `file_size`, or getFile's "file is too big") -> `TooBigError` -> "That file is over
-  Telegram's 20 MB limit for bots, so I can't fetch it. Send it as a photo or a smaller file." Photo bytes are checked
+  Telegram's 20 MB limit for bots, so I can't fetch it. Send it as a photo or a smaller file. Nothing saved." Photo bytes are checked
   with `detectImageType` (media.ts; magic bytes: jpg, png, webp, heic, heif), which also gives the stored extension;
   anything else (HTML, SVG, GIF, PDF named .jpg...) -> "That file isn't a photo I can keep: I take JPEG, PNG, WebP or
   HEIC. Nothing saved." and nothing stored or recorded. `startBot` runs `handle.sweepOrphanPhotos()` (photos/telegram
@@ -670,7 +677,8 @@ Stage 3 behaviour:
 - Not done (optional Stage 2 review idea): parsing an answer to an open question once with the thread and letting the model
   say whether it's a new request. Still two calls for a free-text answer.
 
-Test harness (`packages/bot/test/harness.ts`, for Stage 3 too): `createHarness({ store, clock, parser, allowedUserId?,
+Test harness (`packages/bot/src/fakeTelegram.ts`, exported from `@ct/bot` and re-exported by `test/harness.ts`; also used by
+`packages/server/scripts/bot-change.ts`, Playwright's api-change bot step; `parser` may be null): `createHarness({ store, clock, parser, allowedUserId?,
 pendingTtlMs?, transcriber?, media?, remindersNow? })` -> `{ handle, log (memory), calls (every API call), messages (bot messages by id, edits
 applied, buttons), text(text, {from?, replyTo?, chat?}), press(messageId, buttonTextOrData, {from?}), update(rawUpdate),
 sent(calls?), lastWithButton(text), last() }`. Built on a real grammY Bot with `botInfo` preset (`BOT_INFO`) and an API

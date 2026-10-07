@@ -136,8 +136,18 @@ export function runOp<S extends z.ZodObject>(def: OpDef<S>, ds: Dataset, rawArgs
   // Treat empty strings and nulls from an LLM as "not given".
   const cleaned: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(raw)) if (!isMissing(v)) cleaned[k] = v;
-  const parsed = def.schema.safeParse(cleaned);
   const argsJson = cleaned as Record<string, JsonValue>;
+  // An arg the operation doesn't know is refused by name, never dropped silently.
+  const known = new Set(Object.keys(def.schema.shape));
+  const unknown = Object.keys(cleaned).filter((k) => !known.has(k));
+  if (unknown.length) {
+    return {
+      kind: 'refusal',
+      op: def.name,
+      reason: `${def.name} doesn't take ${unknown.map((k) => `"${k}"`).join(', ')}. It takes: ${[...known].join(', ')}.`,
+    };
+  }
+  const parsed = def.schema.safeParse(cleaned);
   if (!parsed.success) {
     const missing = parsed.error.issues.find((i) => i.path.length === 1 && isMissing(cleaned[String(i.path[0])]));
     if (missing) {

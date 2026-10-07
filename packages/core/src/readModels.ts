@@ -380,7 +380,10 @@ export function whyItMoved(ds: Dataset, jobId: string, today: ISODate): WhyItMov
     for (const m of c.movedSteps.slice(0, 3)) base.lines.push(`  ${m.text}`);
     if (c.movedSteps.length > 3) base.lines.push(`  and ${c.movedSteps.length - 3} more steps`);
   }
-  if (base.otherDays) base.lines.push(`${signed(base.otherDays)} not from a logged change`);
+  if (base.otherDays) {
+    const n = Math.abs(base.otherDays);
+    base.lines.push(`${n} day${n === 1 ? '' : 's'} ${base.otherDays < 0 ? 'earlier' : 'later'} for reasons not in the change log`);
+  }
   if (base.slipDays !== null && base.snapshotFinish) {
     base.lines.push(`Finish ${fd(base.forecastFinish)}, ${signed(base.slipDays)} against Monday's ${fd(base.snapshotFinish)}`);
   }

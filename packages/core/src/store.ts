@@ -66,6 +66,16 @@ export function undoBlocker(ds: Dataset, changeSetId: string): string | null {
   if (!cs) return 'There is no such change.';
   if (cs.status === 'undone') return 'That change was already undone.';
   if (cs.status !== 'confirmed') return `That change was never saved (it was ${cs.status}).`;
+  // Any later confirmed change to the same field (or the same row, for inserts and deletes)
+  // blocks the undo, whatever the values now are: the log must stay true.
+  const mine = changesOf(ds, changeSetId);
+  const overlaps = (a: Change, b: Change) =>
+    a.table === b.table && a.rowId === b.rowId && (a.kind !== 'update' || b.kind !== 'update' || a.field === b.field);
+  const laterHit = ds.changeSets
+    .filter((x) => x.id !== cs.id && x.status === 'confirmed' && (x.confirmedAt ?? '') > (cs.confirmedAt ?? ''))
+    .filter((x) => changesOf(ds, x.id).some((c) => mine.some((m) => overlaps(m, c))))
+    .sort((a, b) => ((a.confirmedAt ?? '') < (b.confirmedAt ?? '') ? 1 : -1))[0];
+  if (laterHit) return `Can't undo "${cs.summary}": it was changed again since ("${laterHit.summary}"). Undo that first.`;
   try {
     applyChanges(ds, invertChanges(changesOf(ds, changeSetId)));
     return null;

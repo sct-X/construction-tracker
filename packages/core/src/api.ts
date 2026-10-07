@@ -5,7 +5,9 @@
  * server routes call LocalDashboardApi over the SqliteStore). Read-only except
  * Setup, which goes through the same operations, proposals and undo as the bot.
  */
-import type { Clock } from './dates.js';
+import { isISODate, overrideClock, type Clock } from './dates.js';
+import { buildSeed, DEFAULT_TODAY } from './seed/index.js';
+import { InMemoryStore } from './store.js';
 import { dryRun, type DryRunResult } from './dryRun.js';
 import { getOperation, runOperation, type OpResult, type Proposal } from './operations/index.js';
 import {
@@ -43,7 +45,7 @@ import {
   type WhyItMoved,
 } from './readModels.js';
 import type { Store, UndoResult } from './store.js';
-import type { ChangeSet, DailyNote, Dataset, ISODate, Side, Trade } from './types.js';
+import type { ChangeSet, DailyNote, Dataset, ISODate, Photo, Side, Trade } from './types.js';
 
 export interface SetupPreview {
   result: OpResult;
@@ -79,6 +81,49 @@ export interface DashboardApi {
   /** Setup area: run and save a setup operation (one confirmed change set). */
   applySetup(op: string, args: unknown): Promise<SetupApplyResult>;
   undo(changeSetId: string): Promise<UndoResult>;
+
+  /**
+   * The URL to put in an <img src> for a photo. Synchronous so galleries can
+   * map over photos. HTTP client and server: `/api/photos/:id/file`. Browser
+   * mock: a flat placeholder SVG data URL (seed photos have no file).
+   */
+  photoUrl(photo: Pick<Photo, 'id' | 'caption' | 'isPlaceholder'>): string;
+}
+
+/**
+ * The Pages demo's dev bar ("today is" and reset). Only the browser mock
+ * implements it; the real API never does. Kept off DashboardApi on purpose.
+ */
+export interface DevControls {
+  getToday(): Promise<ISODate>;
+  setToday(today: ISODate): Promise<void>;
+  /** Back to the seed (or the dataset given). */
+  reset(dataset?: Dataset): Promise<void>;
+}
+
+/** Server-side photo file route, shared by the server and the HTTP client. */
+export function apiPhotoUrl(photoId: string): string {
+  return `/api/photos/${encodeURIComponent(photoId)}/file`;
+}
+
+const PLACEHOLDER_TONES = ['#6b6f73', '#4f5a63', '#8a7a68', '#5c6670', '#7b7268', '#3f4a54'];
+
+/** A flat SVG stand-in for a seed photo: concrete/steel tones, the caption, no stock imagery. */
+export function placeholderPhotoUrl(photo: Pick<Photo, 'id' | 'caption'>): string {
+  let h = 0;
+  for (const ch of photo.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const fill = PLACEHOLDER_TONES[h % PLACEHOLDER_TONES.length]!;
+  const label = (photo.caption ?? 'Photo').replace(/[<>&"]/g, '').slice(0, 40);
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120"><rect width="160" height="120" fill="${fill}"/>` +
+    `<rect x="12" y="78" width="136" height="30" fill="#f3f2ef" opacity="0.18"/>` +
+    `<text x="80" y="66" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#f3f2ef">${label}</text></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+export interface LocalDashboardOptions {
+  /** Default: placeholder data URL for placeholder photos, apiPhotoUrl otherwise. */
+  photoUrl?: (photo: Pick<Photo, 'id' | 'caption' | 'isPlaceholder'>) => string;
 }
 
 /** DashboardApi over any Store and Clock. The web mock uses it directly; the server routes call it. */
@@ -86,7 +131,13 @@ export class LocalDashboardApi implements DashboardApi {
   constructor(
     private readonly store: Store,
     private readonly clock: Clock,
+    private readonly opts: LocalDashboardOptions = {},
   ) {}
+
+  photoUrl(photo: Pick<Photo, 'id' | 'caption' | 'isPlaceholder'>): string {
+    if (this.opts.photoUrl) return this.opts.photoUrl(photo);
+    return photo.isPlaceholder ? placeholderPhotoUrl(photo) : apiPhotoUrl(photo.id);
+  }
 
   private get ds() {
     return this.store.load();
@@ -171,4 +222,39 @@ export class LocalDashboardApi implements DashboardApi {
   async undo(changeSetId: string) {
     return this.store.undo(changeSetId);
   }
+}
+
+/** A clock whose "today" can be moved (the demo's "today is"). now() is that date at the current Sydney time. */
+export class SettableClock implements Clock {
+  private clock: Clock;
+  constructor(private current: ISODate) {
+    this.clock = overrideClock(current);
+  }
+  today(): ISODate {
+    return this.current;
+  }
+  now(): Date {
+    return this.clock.now();
+  }
+  set(today: ISODate): void {
+    if (!isISODate(today)) throw new Error(`Not a date: ${today}`);
+    this.current = today;
+    this.clock = overrideClock(today);
+  }
+}
+
+/** The browser mock: seed data in memory, the DashboardApi, and the dev bar's controls. */
+export function createMockDashboard(
+  dataset: Dataset = buildSeed(),
+  today: ISODate = DEFAULT_TODAY,
+): { api: DashboardApi; dev: DevControls; store: InMemoryStore; clock: SettableClock } {
+  const clock = new SettableClock(today);
+  const store = new InMemoryStore(dataset, { clock });
+  const api = new LocalDashboardApi(store, clock);
+  const dev: DevControls = {
+    getToday: async () => clock.today(),
+    setToday: async (iso) => clock.set(iso),
+    reset: async (ds) => store.reset(ds ?? buildSeed()),
+  };
+  return { api, dev, store, clock };
 }

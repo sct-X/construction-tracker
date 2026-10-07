@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { forecastJob, holdPointCheck, holdPointRefusalText } from '../calculator.js';
 import type { Change } from '../changes.js';
 import { ITEM_STATUSES, ITEM_STATUS_LABELS, ITEM_TYPES, ITEM_TYPE_LABELS, SHIPMENT_STATUSES, SHIPMENT_STATUS_LABELS, STAGE_STATUSES } from '../types.js';
-import type { Item, JsonValue, Stage } from '../types.js';
+import type { Dataset, Item, JsonValue, Stage } from '../types.js';
 import {
   ask,
   dateArg,
@@ -24,7 +24,26 @@ import {
   resolveStep,
   resolveTrade,
   update,
+  OpStop,
+  type OpRunContext,
 } from './framework.js';
+import { resolveDate } from '../relativeDates.js';
+
+/** Runs a resolver; when it would refuse or ask, runs `instead` (which asks its own question). */
+function asQuestion<T>(resolve: () => T, instead: () => never, keepQuestions = false): T {
+  try {
+    return resolve();
+  } catch (e) {
+    if (e instanceof OpStop && !(keepQuestions && e.result.kind === 'question')) instead();
+    throw e;
+  }
+}
+
+/** Rule 8: actual dates never go on a template's steps. */
+function refuseTemplateStep(ds: Dataset, ctx: OpRunContext, jobId: string): void {
+  const job = ds.jobs.find((j) => j.id === jobId);
+  if (job?.isTemplate) refuse(ctx, `${job.name} is a template: it has no dates, so its steps can't be started or done.`);
+}
 
 const jobRef = z.string().describe('Job name as said, e.g. "Park Rd". Fuzzy-matched.');
 const optionalJobRef = jobRef.optional();
@@ -89,6 +108,7 @@ export const markStepStarted = defineOp({
   ask: { step: 'Which step?' },
   run(ds, a, ctx) {
     const step = resolveStep(ds, ctx, a.step, a.job);
+    refuseTemplateStep(ds, ctx, step.jobId);
     if (step.status !== 'not_started') refuse(ctx, `${step.name} at ${jobName(ds, step.jobId)} is already ${step.status === 'done' ? 'done' : 'started'}.`);
     const date = a.date ? readDate(ctx, a.date, 'past') : ctx.today;
     return proposal(
@@ -113,6 +133,7 @@ export const markStepDone = defineOp({
   ask: { step: 'Which step?' },
   run(ds, a, ctx) {
     const step = resolveStep(ds, ctx, a.step, a.job);
+    refuseTemplateStep(ds, ctx, step.jobId);
     const where = jobName(ds, step.jobId);
     if (step.status === 'done') refuse(ctx, `${step.name} at ${where} is already done.`);
     if (step.isHoldPoint) {
@@ -300,24 +321,30 @@ export const attachPhoto = defineOp({
   }),
   ask: { job: 'Which job is this photo for?' },
   run(ds, a, ctx) {
-    const job = resolveJob(ds, ctx, a.job);
-    const stage: Stage | null = a.stage ? resolveStage(ds, ctx, a.stage, job) : null;
-    const pool = ds.photoCategories
-      .filter((c) => c.jobId === job.id && (!stage || c.stageId === stage.id || c.stageId === null))
-      .sort((x, y) => x.order - y.order);
-    let category = a.category ? resolveCategory(ds, ctx, a.category, job, stage) : null;
-    if (!category) {
-      const staged = stage ? pool.filter((c) => c.stageId === stage.id) : [];
-      if (staged.length === 1) category = staged[0]!;
-      else {
-        ask(
-          ctx,
-          `Which photo category at ${job.name}${stage ? `, ${stage.name}` : ''}?`,
-          'category',
-          pool.map((c) => ({ label: c.name, value: c.id })),
-        );
-      }
-    }
+    // SPEC Telegram 7: whatever the caption can't settle, ask; never refuse, so the photo isn't lost.
+    const job = asQuestion(() => resolveJob(ds, ctx, a.job), () =>
+      ask(
+        ctx,
+        `Which job is this photo for?`,
+        'job',
+        ds.jobs.filter((j) => !j.isTemplate).map((j) => ({ label: j.name, value: j.id })),
+      ),
+      true, // an ambiguous job already asks with the matching jobs
+    );
+    const allCats = ds.photoCategories.filter((c) => c.jobId === job.id).sort((x, y) => x.order - y.order);
+    const stageName = (id: string | null) => ds.stages.find((s) => s.id === id)?.name ?? null;
+    const optionsFor = (cats: typeof allCats) => cats.map((c) => ({ label: stageName(c.stageId) ? `${stageName(c.stageId)}: ${c.name}` : c.name, value: c.id }));
+    const askCategory = (stage: Stage | null, cats = allCats): never =>
+      ask(ctx, `Which photo category at ${job.name}${stage ? `, ${stage.name}` : ''}?`, 'category', optionsFor(cats));
+    // An unmatched stage is not fatal: the category question covers the whole job.
+    const stage: Stage | null = a.stage ? asQuestion(() => resolveStage(ds, ctx, a.stage!, job), () => askCategory(null)) : null;
+    const pool = stage ? allCats.filter((c) => c.stageId === stage.id || c.stageId === null) : allCats;
+    const staged = stage ? pool.filter((c) => c.stageId === stage.id) : [];
+    const category = a.category
+      ? asQuestion(() => resolveCategory(ds, ctx, a.category!, job, stage), () => askCategory(stage, pool))
+      : staged.length === 1
+        ? staged[0]!
+        : askCategory(stage, pool);
     const row = {
       id: ctx.id('photo'),
       jobId: job.id,
@@ -325,13 +352,13 @@ export const attachPhoto = defineOp({
       categoryId: category.id,
       filePath: a.filePath,
       caption: a.caption ?? null,
-      takenOn: a.takenOn ? readDate(ctx, a.takenOn, 'past') : ctx.today,
+      takenOn: a.takenOn ? (resolveDate(a.takenOn, ctx.today, { prefer: 'past' }) ?? ctx.today) : ctx.today,
       receivedAt: ctx.stamp(),
       isPlaceholder: false,
       messageId: a.messageId ?? null,
     };
-    const stageName = ds.stages.find((s) => s.id === category.stageId)?.name;
-    return proposal(ctx, ds, [insert('photo', row)], `Photo filed: ${job.name}, ${stageName ? `${stageName}, ` : ''}${category.name}`);
+    const sn = stageName(category.stageId);
+    return proposal(ctx, ds, [insert('photo', row)], `Photo filed: ${job.name}, ${sn ? `${sn}, ` : ''}${category.name}`);
   },
 });
 

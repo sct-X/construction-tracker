@@ -129,8 +129,10 @@ operationCatalogue(group?: 'daily' | 'setup'): { name, description, group, param
 OPERATIONS, OPERATION_NAMES, getOperation(name), defineOp, runOp
 ```
 
-- Args are validated with zod. A missing required arg -> `question` (per-op wording); bad values -> `refusal`.
-  Nulls and empty strings from an LLM count as "not given".
+- Args are validated with zod. A missing required arg -> `question` (per-op wording); bad values -> `refusal`;
+  an unknown arg -> `refusal` naming it. Nulls and empty strings from an LLM count as "not given".
+- Rule 9: step, link and requirement ops refuse design jobs. Rule 8: no planned or actual dates ever go on a
+  template (dated args refused; template steps can't be started or done).
 - Names are fuzzy-matched (exact id first). Ambiguous -> `question` with `field` and `options` (value = id):
   re-run with `{ ...question.args, [field]: option.value }`. Not found -> `refusal`. Templates are excluded
   except by id or where the op asks for a template.
@@ -151,7 +153,7 @@ Daily (bot) operations, args (`?` optional):
 | override_lead_time | item, job?, weeks | item.leadTimeWeeks |
 | add_item | job, type, title, waitingOn?, owner? (default "Dominic"), trade?, step?, neededBy?, expectedDate?, leadTimeWeeks?, notes? | build job with no step and no date -> question (field step), except defect/reminder |
 | add_daily_note | job, text, date?, messageId? | |
-| attach_photo | job, category?, stage?, filePath, caption?, takenOn?, messageId? | category unclear -> question listing categories |
+| attach_photo | job, category?, stage?, filePath, caption?, takenOn?, messageId? | never refuses on names: unmatched/ambiguous job -> question (jobs); stage or category -> question (that job's/stage's categories) |
 | confirm_job | job, date? | lastConfirmed |
 | set_stage_status | job, stage, status | design jobs only |
 
@@ -210,13 +212,21 @@ actByPassed, overdue (`isOverdue`), daysSitting, notes.
 whyItMoved: confirmed change sets with `confirmedAt > snapshot.savedAt` that touch the job are taken back (lenient
 inverse), then replayed one at a time with the calculator; each cause = {changeSetId, summary, confirmedAt, messageId,
 sourceText (transcript or text), sourceChannel, finishBefore, finishAfter, deltaDays, cost, movedSteps}. `otherDays` =
-slip not explained by any change (finish with every change taken back minus the snapshot finish).
+slip not explained by any change (finish with every change taken back minus the snapshot finish); when non-zero
+`lines` has "N days earlier|later for reasons not in the change log". Rule 2 is applied as written: unstarted steps
+whose planned start has passed are not pushed to today (Orchestrator decision).
 
 `DashboardApi` (all async): getToday, listSides, getMonday, getWhyItMoved, listJobs, getJobOverview, getProgram, getStep,
 getDesignChecklist, getWaitingOn, getToChase, getShipments, getPhotos, getDailyNotes, getChangeHistory, listTrades,
 listTemplates, previewSetup(op, args) -> {result, impact}, applySetup(op, args) -> {ok, changeSet, result} | {ok:false,
-result, reason}, undo(changeSetId). `new LocalDashboardApi(store, clock)` implements it over any Store (web mock and the
-server routes); the Stage 1 HTTP client implements the same interface.
+result, reason}, undo(changeSetId), and sync `photoUrl(photo: {id, caption, isPlaceholder}): string`.
+`new LocalDashboardApi(store, clock, { photoUrl? })` implements it over any Store (web mock and the server routes);
+the Stage 1 HTTP client implements the same interface. Photo URLs: `apiPhotoUrl(id)` = `/api/photos/:id/file`
+(server route and HTTP client); `placeholderPhotoUrl(photo)` = flat SVG data URL (default for `isPlaceholder`).
+
+Demo dev bar: `DevControls { getToday(); setToday(iso); reset(dataset?) }` (all async), NOT on DashboardApi.
+`createMockDashboard(dataset = buildSeed(), today = DEFAULT_TODAY)` -> `{ api, dev, store, clock }` (InMemoryStore +
+`SettableClock`). `SettableClock implements Clock` with `set(iso)`.
 
 ## Store (`store.ts`; SqliteStore in server)
 
@@ -229,7 +239,8 @@ interface Store {                       // synchronous; wrap at the API edge
   confirmChangeSet(id): ChangeSet;      // applies; ChangeConflictError if stale (stays proposed)
   cancelChangeSet(id): ChangeSet;
   applyChangeSet(input): ChangeSet;     // propose + confirm atomically
-  undo(id): { ok: true; changeSet } | { ok: false; reason };   // refused if later changes touched the same rows
+  undo(id): { ok: true; changeSet } | { ok: false; reason };   // refused ("Undo that first") if any later confirmed
+                                        // change set touched the same row+field (or the row, for insert/delete)
   saveSnapshot(snapshot): ForecastSnapshot;                     // upsert on (jobId, date)
 }
 new InMemoryStore(dataset, { clock?, newId? })   // + reset(dataset) for the demo
@@ -263,7 +274,8 @@ Numbers (today Thu 17 Sep 2026), all asserted in tests:
   Second windows shipment "Seaview St windows" (ETA 14 Dec, design) makes "the windows" ambiguous.
 - Beatty St: finish Fri 4 Dec 2026, slip +5, $1,430, last confirmed 9 days ago (amber); tiler expected Mon 5 Oct.
   Seeded change set `cs-0915-tiler` (voice note, 15 Sep) moved the tiler 28 Sep -> 5 Oct: why-it-moved cause +7 days
-  (27 Nov -> 4 Dec), otherDays -2 because the 14 Sep snapshot is the stored Sun 29 Nov.
+  (27 Nov -> 4 Dec), otherDays -2 ("2 days earlier for reasons not in the change log") because the 14 Sep snapshot
+  is the stored Sun 29 Nov.
 - Design: West St (With council, 2, oldest 23 days), Tollbar Ave (With council, 1, 8), Lower Beach St (Design, 0),
   John St (Design, 1, 4).
 - Seeded log: 7 messages / change sets (6 confirmed, 1 cancelled). A week of Park Rd notes; placeholder photos

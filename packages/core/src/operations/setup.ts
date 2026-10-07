@@ -62,6 +62,21 @@ function plannedFor(
   return { plannedStart: start, plannedEnd: stepEnd(start, durationDays) };
 }
 
+/** Rule 9: design jobs have stages as a checklist, no steps, links or requirements. */
+function requireBuild(ds: Dataset, ctx: OpRunContext, jobId: string, what: string): Job {
+  const job = ds.jobs.find((j) => j.id === jobId);
+  if (!job) refuse(ctx, 'That job no longer exists.');
+  if (job.kind === 'design') refuse(ctx, `${job.name} is a design job: it has a stage checklist, not ${what}.`);
+  return job;
+}
+
+/** Rule 8: templates carry no dates. */
+function refuseTemplateDates(ctx: OpRunContext, job: { name: string; isTemplate: boolean }, given: Record<string, unknown>): void {
+  if (!job.isTemplate) return;
+  const dated = Object.entries(given).filter(([, v]) => v !== undefined).map(([k]) => k);
+  if (dated.length) refuse(ctx, `${job.name} is a template, and templates have no dates (${dated.join(', ')}).`);
+}
+
 function wouldCycle(links: { stepId: string; waitsForStepId: string }[], stepId: string, waitsForId: string): boolean {
   // Adding stepId -> waitsForId cycles if waitsForId already (transitively) waits for stepId.
   const seen = new Set<string>();
@@ -91,6 +106,7 @@ export const createJob = defineOp({
     isTemplate: z.boolean().optional(),
   }),
   run(ds, a, ctx) {
+    refuseTemplateDates(ctx, { name: a.name, isTemplate: !!a.isTemplate }, { startDate: a.startDate, plannedFinish: a.plannedFinish });
     if (ds.jobs.some((j) => j.name.toLowerCase() === a.name.toLowerCase() && !j.isTemplate === !a.isTemplate)) {
       refuse(ctx, `There is already a job called ${a.name}.`);
     }
@@ -99,7 +115,7 @@ export const createJob = defineOp({
       sideId: defaultSide(ds, ctx, a.side),
       name: a.name,
       kind: a.kind,
-      path: a.path ?? null,
+      path: a.path ?? (a.kind === 'design' ? 'DA' : null),
       weeklyHoldingCost: a.weeklyHoldingCost ?? null,
       lastConfirmed: a.isTemplate ? null : ctx.today,
       isTemplate: !!a.isTemplate,
@@ -134,6 +150,7 @@ export const editJob = defineOp({
   }),
   run(ds, a, ctx) {
     const job = resolveJob(ds, ctx, a.job);
+    refuseTemplateDates(ctx, job, { startDate: a.startDate, plannedFinish: a.plannedFinish });
     const changes: Change[] = [
       ...(a.name !== undefined ? update('job', job, 'name', a.name) : []),
       ...(a.path !== undefined ? update('job', job, 'path', a.path) : []),
@@ -224,7 +241,10 @@ export const addStep = defineOp({
   }),
   run(ds, a, ctx) {
     const job = resolveJob(ds, ctx, a.job);
+    requireBuild(ds, ctx, job.id, 'steps');
+    refuseTemplateDates(ctx, job, { plannedStart: a.plannedStart });
     const stage = resolveStage(ds, ctx, a.stage, job);
+    if (stage.jobId !== job.id) refuse(ctx, `${stage.name} is not a stage of ${job.name}.`);
     const afterSteps = (a.after ?? []).map((ref, i) => resolveStep(ds, ctx, ref, job.id, `after.${i}`));
     const id = ctx.id('step');
     const dates = plannedFor(job, ds, a.durationDays, a.plannedStart ? readDate(ctx, a.plannedStart) : null, afterSteps.map((s) => s.id));
@@ -264,12 +284,20 @@ export const editStep = defineOp({
   }),
   run(ds, a, ctx) {
     const step = resolveStep(ds, ctx, a.step, a.job);
-    const job = ds.jobs.find((j) => j.id === step.jobId)!;
+    const job = requireBuild(ds, ctx, step.jobId, 'steps');
+    refuseTemplateDates(ctx, job, { plannedStart: a.plannedStart });
     const changes: Change[] = [];
     if (a.name !== undefined) changes.push(...update('step', step, 'name', a.name));
     if (a.isHoldPoint !== undefined) changes.push(...update('step', step, 'isHoldPoint', a.isHoldPoint));
     if (a.tradeType !== undefined) changes.push(...update('step', step, 'tradeType', a.tradeType));
-    if (a.stage !== undefined) changes.push(...update('step', step, 'stageId', resolveStage(ds, ctx, a.stage, job).id));
+    if (a.stage !== undefined) {
+      const target = resolveStage(ds, ctx, a.stage, job);
+      if (target.jobId !== job.id) refuse(ctx, `${target.name} is not a stage of ${job.name}.`);
+      if (target.id !== step.stageId) {
+        changes.push(...update('step', step, 'stageId', target.id));
+        changes.push(...update('step', step, 'order', ds.steps.filter((s) => s.stageId === target.id).length + 1));
+      }
+    }
     const duration = a.durationDays ?? step.durationDays;
     if (a.durationDays !== undefined) changes.push(...update('step', step, 'durationDays', a.durationDays));
     if ((a.durationDays !== undefined || a.plannedStart !== undefined) && !job.isTemplate) {
@@ -310,7 +338,9 @@ export const addLink = defineOp({
   schema: z.object({ step: z.string(), waitsFor: z.string(), job: z.string().optional() }),
   run(ds, a, ctx) {
     const step = resolveStep(ds, ctx, a.step, a.job);
+    requireBuild(ds, ctx, step.jobId, 'links between steps');
     const pred = resolveStep(ds, ctx, a.waitsFor, step.jobId, 'waitsFor');
+    if (pred.jobId !== step.jobId) refuse(ctx, 'A step can only wait for a step on the same job.');
     if (pred.id === step.id) refuse(ctx, 'A step cannot wait for itself.');
     if (ds.stepLinks.some((l) => l.stepId === step.id && l.waitsForStepId === pred.id)) refuse(ctx, `${step.name} already waits for ${pred.name}.`);
     if (wouldCycle(ds.stepLinks, step.id, pred.id)) refuse(ctx, `${pred.name} already waits for ${step.name}, so that would go round in a circle.`);
@@ -347,6 +377,7 @@ export const addRequirement = defineOp({
   }),
   run(ds, a, ctx) {
     const step = resolveStep(ds, ctx, a.step, a.job);
+    requireBuild(ds, ctx, step.jobId, 'step requirements');
     const req: Requirement = {
       id: ctx.id('req'),
       jobId: step.jobId,

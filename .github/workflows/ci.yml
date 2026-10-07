@@ -1,0 +1,101 @@
+# CI for the Construction Tracker.
+#   test    typecheck + unit tests on Linux, macOS and Windows (native better-sqlite3 prebuilds, no Docker)
+#   e2e     full build + Playwright (mock Pages build and the local API stack) on Linux
+#   deploy  the web app in mock mode to GitHub Pages, base /construction-tracker/ (push to main only)
+# No secrets: nothing here needs a model API key or a Telegram bot token.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      # Keep LF line endings on Windows so text fixtures read the same as on macOS/Linux.
+      - name: Keep LF line endings
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      # playwright.config.ts starts both web servers itself (mock preview on 4320, e2e API server on 4310).
+      # Under CI the config reports with "github" only; add html so a failure leaves playwright-report/.
+      - name: Playwright
+        run: npx playwright test --reporter=github,html
+      - name: Upload Playwright report and traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-results
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test, e2e]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Mock data in the browser, base /construction-tracker/, noindex; emits packages/web/dist-pages.
+      - name: Build web app (mock mode)
+        run: npm run build:pages -w @ct/web
+      # Routing is hash-based, so any stray path under the base should still load the app.
+      - name: Add 404.html
+        run: cp packages/web/dist-pages/index.html packages/web/dist-pages/404.html
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: packages/web/dist-pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

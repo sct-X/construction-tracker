@@ -13,6 +13,7 @@ import {
   defineOp,
   insert,
   jobName,
+  OpStop,
   proposal,
   readDate,
   refuse,
@@ -235,6 +236,7 @@ export const addStep = defineOp({
     durationDays: z.number().int().min(1).max(1000),
     plannedStart: dateArg('Planned start (default: after the steps it waits for)').optional(),
     after: z.array(z.string()).optional().describe('Steps it waits for.'),
+    afterChoice: z.string().optional().describe('The answer (a step id) to "which step do you mean" about an entry in after.'),
     isHoldPoint: z.boolean().optional(),
     isPlaceholder: z.boolean().optional(),
     tradeType: z.string().optional(),
@@ -245,7 +247,29 @@ export const addStep = defineOp({
     refuseTemplateDates(ctx, job, { plannedStart: a.plannedStart });
     const stage = resolveStage(ds, ctx, a.stage, job);
     if (stage.jobId !== job.id) refuse(ctx, `${stage.name} is not a stage of ${job.name}.`);
-    const afterSteps = (a.after ?? []).map((ref, i) => resolveStep(ds, ctx, ref, job.id, `after.${i}`));
+    // An ambiguous entry in `after` asks with field "afterChoice" (a known arg), so re-running with
+    // { ...args, afterChoice: id } fills that entry in. The question's args carry the entries answered so far.
+    const refs = [...(a.after ?? [])];
+    let choice = a.afterChoice ?? null;
+    const afterSteps: Step[] = [];
+    for (let i = 0; i < refs.length; i++) {
+      try {
+        afterSteps.push(resolveStep(ds, ctx, refs[i]!, job.id, 'afterChoice'));
+      } catch (e) {
+        if (!(e instanceof OpStop) || e.result.kind !== 'question') throw e;
+        const q = e.result;
+        const picked = choice && q.options?.some((o) => o.value === choice) ? choice : null;
+        const pickedStep = picked ? ds.steps.find((s) => s.id === picked) : undefined;
+        if (pickedStep) {
+          refs[i] = pickedStep.id;
+          choice = null;
+          afterSteps.push(pickedStep);
+          continue;
+        }
+        const { afterChoice: _answered, ...rest } = ctx.args;
+        return { ...q, field: 'afterChoice', args: { ...rest, after: refs } };
+      }
+    }
     const id = ctx.id('step');
     const dates = plannedFor(job, ds, a.durationDays, a.plannedStart ? readDate(ctx, a.plannedStart) : null, afterSteps.map((s) => s.id));
     const step: Step = {

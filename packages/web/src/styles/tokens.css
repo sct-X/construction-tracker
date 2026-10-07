@@ -1,0 +1,42 @@
+/*
+ * Tokens. Palette from site materials:
+ *   concrete  page and panels (cool, poured; not cream)
+ *   formply   the face of a surface
+ *   steel     ink, blued steel
+ *   timber    plywood, used only behind words Dominic actually sent
+ *   hi-vis    the one accent: a finish that went later, focus, the current screen
+ *   amber     stale figures, always with the words "Not confirmed for N days"
+ * Type: Barlow (its roots are road and site signage) for text; Barlow Condensed
+ * for the numbers, which are the largest type on every screen.
+ */
+:root {
+  --concrete: #f1f1ee;
+  --concrete-2: #e3e4e0;
+  --formply: #fafaf8;
+  --rule: #cdcfcb;
+  --steel: #1e2830;
+  --steel-2: #535e67;
+  --timber: #eadcc7;
+  --timber-ink: #634526;
+  --hivis: #f26a1b;
+  --amber: #f2c14e;
+
+  --font: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-num: 'Barlow Condensed', 'Barlow', system-ui, sans-serif;
+
+  --t-num: 2.25rem;
+  --t-num-md: 1.5rem;
+  --t-h1: 1.5rem;
+  --t-h2: 1.125rem;
+  --t-body: 1rem;
+  --t-small: 0.875rem;
+  --t-label: 0.8125rem;
+
+  --r-sm: 3px;
+  --r-md: 6px;
+
+  --rail: 216px;
+  --tabbar: 60px;
+
+  color-scheme: light;
+}

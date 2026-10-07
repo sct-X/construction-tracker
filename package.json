@@ -9,9 +9,15 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @ct/core && npm run build -w @ct/server",
+    "build": "npm run build -w @ct/core && npm run build -w @ct/server && npm run build -w @ct/web && npm run build:pages -w @ct/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "vitest run"
+    "test": "vitest run",
+    "start": "tsx --tsconfig packages/server/tsconfig.json packages/server/src/main.ts",
+    "dev:server": "tsx watch --tsconfig packages/server/tsconfig.json packages/server/src/main.ts",
+    "seed": "tsx --tsconfig packages/server/tsconfig.json packages/server/scripts/seed.ts",
+    "e2e:server": "tsx --tsconfig packages/server/tsconfig.json packages/server/scripts/e2e-server.ts",
+    "apply-op": "tsx --tsconfig packages/server/tsconfig.json packages/server/scripts/apply-op.ts",
+    "e2e": "playwright test"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

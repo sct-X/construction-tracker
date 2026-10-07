@@ -1,6 +1,7 @@
 /**
  * Loading a Dataset (default: the core seed) into an empty SQLite database.
  */
+import { rmSync } from 'node:fs';
 import { buildSeed, type Dataset } from '@ct/core';
 import { LOAD_ORDER } from './schema.js';
 import type { SqliteStore } from './sqliteStore.js';
@@ -34,4 +35,9 @@ export function seedIfEmpty(store: SqliteStore, dataset: Dataset = buildSeed()):
   if (!store.isEmpty()) return false;
   seedDatabase(store, dataset);
   return true;
+}
+
+/** Deletes a database file and its WAL/SHM side files (for `npm run seed -- --reset`). Photos are left alone. */
+export function removeDatabaseFile(file: string): void {
+  for (const f of [file, `${file}-wal`, `${file}-shm`]) rmSync(f, { force: true });
 }

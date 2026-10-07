@@ -10,7 +10,7 @@ package.json            workspaces packages/*; scripts: test (vitest run, all pr
 tsconfig.base.json      strict, NodeNext ESM, paths @ct/core -> packages/core/src (typecheck/tests only)
 vitest.config.ts        test.projects = packages/*; each package has its own vitest.config.ts
 packages/core           @ct/core   pure TS, runs in Node and the browser (tsconfig types: [] = no Node globals)
-packages/server         @ct/server SQLite storage (Stage 0); HTTP API + scheduler come in Stage 1
+packages/server         @ct/server SQLite storage, HTTP API (Fastify), scheduler, reminders (see "Server")
 ```
 
 - Imports inside a package use `.js` extensions (`./dates.js`). Packages import each other by name (`@ct/core`).
@@ -257,6 +257,81 @@ latestUndoable(ds)  // newest confirmed change set (/undo);  undoBlocker(ds, id)
 - Paths: `resolveDataDir(env, cwd)` (DATA_DIR, default ./data), `dataPaths(dir)` -> {dataDir, dbFile: tracker.db,
   photosDir: photos, audioDir: audio}, `ensureDataDirs`, `photoFile(paths, stored)` (refuses `..`), `dataFile`,
   `storedPhotoPath`, `newPhotoPath(jobId, date, id, ext)` -> "park-rd/2026-09-17-id.jpg".
+
+## Server (`packages/server/src`: http, scheduler, reminders, app)
+
+Root scripts (tsx from source, no build; `--tsconfig packages/server/tsconfig.json` maps `@ct/core` to src):
+`npm start` (main.ts: .env, migrate, seed if empty, API + scheduler; Stage 2 bot hook marked in `app.ts`),
+`npm run dev:server` (watch), `npm run seed [-- --reset]`, `npm run e2e:server`, `npm run apply-op -- <op> '<json>'
+[--message text] [--data-dir DIR] [--today YYYY-MM-DD]` (propose + confirm one op; prints `{ok, changeSetId, summary,
+finishAfter, slipAfter, slipCostAfter}`; exit 1 on a refusal/question).
+
+Env: `DATA_DIR` (./data), `PORT` (8787), `HOST` (127.0.0.1), `CT_TODAY` (YYYY-MM-DD; `TZ_TODAY_OVERRIDE` accepted too),
+`REMINDER_TIME` (07:00 Sydney), `WEB_DIST` (packages/web/dist), `ENV_FILE` (./.env). Set variables beat `.env`.
+
+HTTP (the web HTTP client implements exactly this):
+
+| route | response |
+| --- | --- |
+| `POST /api/rpc/:method` body `{"args": [...]}` | 200 `{"result": value}` (undefined -> null); `{"error": "plain message"}` with 404 unknown method or `Unknown job/step ...`, 400 bad body/args, 409 ChangeConflictError, 500 otherwise. Missing/empty body = no args. `:method` = any DashboardApi method (`RPC_METHODS`, incl. `photoUrl`) |
+| `GET /api/photos/:id/file` | the file under DATA_DIR/photos (type from extension); placeholder seed photos -> the same SVG as `placeholderPhotoUrl`; 404 `{"error"}` otherwise |
+| `GET /api/health` | `{"ok": true, "today": "YYYY-MM-DD"}` |
+| other `/api/*` | 404 `{"error"}` |
+| any other GET | packages/web/dist: the file if it exists (also with a leading base segment stripped, e.g. `/construction-tracker/assets/x.js`), else `index.html`; 404 text when dist isn't built (checked per request) |
+
+Every request reloads the store, so writes by another process on the same SQLite file (WAL) show up at once.
+
+```ts
+buildServer({ store, clock, paths, webDist?, log? }): Promise<FastifyInstance>   // not listening; tests use .inject
+startApp(config: ServerConfig, { log?, notifier?, clock?, scheduler? }): Promise<RunningApp>  // {store, clock, server, scheduler, notifier, url, stop()}
+loadConfig(env, cwd): ServerConfig; clockFromEnv(env); todayOverrideFromEnv(env); loadEnvFile(env, cwd)
+applyOperation(store, clock, op, args, { message?, sender? }) -> {ok:true, changeSet, summary, impacts} | {ok:false, result, reason}
+removeDatabaseFile(file)                                   // db + -wal + -shm
+E2E_DEFAULT_PORT 4310, E2E_DEFAULT_TODAY '2026-09-17', e2eDataDir(port, os.tmpdir()) = <tmp>/ct-e2e-<port>
+```
+
+Scheduler (`scheduler.ts`): `startScheduler({ store, clock, notifier, log, reminderTime?, intervalMs? })` runs a tick now
+(`firstTick`) and every minute; `createScheduler(...)` -> `{ tick(), start(), stop() }` (ticks never overlap or throw).
+A tick: `ensureMondaySnapshots(store, clock)` (each live build job without a snapshot dated `lastMonday(today)` gets
+`makeSnapshot(..., savedAt = now)`, id `snap-<job>-<monday>`; catches up a missed Monday) and, from `reminderTime` on,
+`fireReminders`.
+
+Reminders (`reminders.ts`):
+
+```ts
+computeReminders(ds, today): Reminder[]   // pure. Reminder = {key, kind 'act_by'|'amber', jobId, jobName, itemId, dueOn, text}
+fireReminders(store: SqliteStore, clock, notifier): Promise<{ sent: Reminder[]; alreadySent: number; text: string | null }>
+interface Notifier { send(n: { text: string; reminders: Reminder[] }): Promise<void> }   // Stage 3: Telegram
+logNotifier(log), memoryNotifier() (.sent), reminderText(reminders, today), sentReminderKeys(store)
+```
+
+- act_by: Monday `actByDue` rows (to do, act-by <= today + 7) on live builds; key `actby:<item>:<actBy>:soon|due`
+  (`due` once act-by <= today). Text: "Seaview St: Book concrete pump. Act by Fri 18 Sep (tomorrow)."
+- amber: live jobs (build and design) with `freshness.amber`; key `amber:<job>:<lastConfirmed|never>`.
+  Text: "Beatty St is amber: last confirmed 9 days ago. Check it and confirm the job."
+- One message per run: "Reminders, Thu 17 Sep:" then "- <text>" lines (act-by first). Keys are claimed in
+  `reminder_sent` (migration 002, not a Dataset table) before sending and released if `send` throws.
+
+Core fix carried here: add_step asks "which step" for an ambiguous `after` entry with `field: 'afterChoice'`;
+re-run with `{ ...question.args, afterChoice: id }`.
+
+## Web (`packages/web`)
+
+- Vite + React, hash routes. Route table `src/app/routes.tsx` (`{ path, title, nav?, render(params) }`, ":name" params via
+  `matchPath`); nav links are the rows with `nav`, in order. Stage 1: `#/` Monday, `#/jobs` Jobs.
+- Data: screens call `useData()` / `useSideQuery((api, {sideId}) => ...)` from `src/data/DataContext.tsx`, never an
+  implementation. `src/data/layer.ts` picks one at build time from `import.meta.env.VITE_DATA`:
+  `mock` = `createBrowserMock()` (core `createMockDashboard` + localStorage `ct-demo:<SEED_VERSION>`, try/catch) with
+  DevControls; `api` = `HttpDashboardApi` (POST `api/rpc/:method` `{args}`, relative URL, trailing `undefined` args
+  dropped, `{error}` thrown as `ApiError`). `useData().refresh()` refetches every screen (dev bar uses it).
+- Scripts (`-w @ct/web`): `dev` (mock), `dev:api` (proxy /api to `CT_API`, default http://localhost:4310), `build`
+  (api, base `./`, `dist/`, what the server serves), `build:pages` (mock, base `/construction-tracker/`, noindex,
+  `dist-pages/`), `preview:pages` (port 4320), `typecheck` (src + root e2e). Vitest project `web` (jsdom).
+- Playwright (root `playwright.config.ts`, `e2e/`): projects `mock`, `api`, `api-change` (see PROGRESS). Run with
+  `npx playwright test [--project=mock]`. Stable test ids: `build-row-<jobId>` (inside: `finish`, `slip`, `slip-cost`,
+  `freshness` with `data-amber`, `why-it-moved` > `why-cause` / `why-leftover`, `act-by`), `design-row-<jobId>`
+  (`outstanding`, `oldest`), `job-row-<jobId>` (`kind`, `finish`, `freshness`), `monday-sub`, `side-switcher`, `dev-today`.
+- Design rules live in `src/styles/tokens.css` (palette and type) and `app.css`; phone layout is the same DOM at <= 760px.
 
 ## Seed (`packages/core/src/seed`)
 

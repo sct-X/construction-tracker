@@ -2,7 +2,7 @@
 
 ## Stage checklist
 
-- [ ] Stage 0: monorepo, types, seed data, calculator, operations layer, migrations, change log and undo, unit tests. Reviewer sign-off: —
+- [x] Stage 0: monorepo, types, seed data, calculator, operations layer, migrations, change log and undo, unit tests. Reviewer sign-off: 2026-10-07, fresh reviewer, 111 tests
 - [ ] Stage 1: server API over SQLite, scheduler (Monday snapshot, reminders), web shell, jobs list, Monday screen with Why it moved, both data layer implementations. Reviewer sign-off: —
 - [ ] Stage 2: bot: allowlist, text parsing through the LLM interface, ambiguity questions, confirm card with dry-run forecast impact, Edit, Cancel, /undo, read-only questions. Reviewer sign-off: —
 - [ ] Stage 3: bot: voice via Transcriber, photos with category matching, hold-point rule, reminders to Telegram. Reviewer sign-off: —

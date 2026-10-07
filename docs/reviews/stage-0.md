@@ -135,3 +135,39 @@ tsconfig program fails with TS2591, so the `types: []` guard works, test files i
 
 FIX-FIRST: items 1-3. Each is small and local (one refusal, one blocker rule, one question path) and needs a
 test. Nothing in the calculator or the seed numbers needs to change.
+
+## Re-check (commit 981d7b5)
+
+| command | result |
+| --- | --- |
+| `npm test` | exit 0: 7 test files, 111 tests passed (new: `packages/core/test/review.test.ts`) |
+| `npm run typecheck` | exit 0 |
+| `npm run build` | exit 0 |
+
+I re-ran each probe from the first review against the new code:
+
+1. MUST-FIX 1 (rule 9) is RESOLVED. `requireBuild` (`operations/setup.ts`) now refuses `add_step`, `edit_step`,
+   `add_link` and `add_requirement` on a design job. The probe `add_step` on West St now returns "West St is a
+   design job: it has a stage checklist, not steps." Build jobs are unaffected. `add_step` and `edit_step` now
+   also refuse a stage from another job.
+2. MUST-FIX 2 (A-B-A undo) is RESOLVED. `undoBlocker` (`store.ts`) now refuses the undo whenever any later
+   confirmed change set touches the same row and field (or the row, for inserts and deletes), whatever the
+   current values. Probe: ETA 16 Nov -> 23 Nov -> 16 Nov, then `undo(A)` is refused with "...Undo that first."
+   and the ETA stays 16 Nov. Undoing the latest change (C) still works (back to 23 Nov). Both stores share
+   `undoBlocker`, so SQLite is covered too.
+3. MUST-FIX 3 (attach_photo) is RESOLVED. An unmatched category now gets a question listing the job's
+   categories, labelled with their stage. An unmatched stage gets the category question too. An unmatched or
+   ambiguous job ("the windows") gets a question listing the jobs. A good caption still files the photo.
+4. The NICE items are done: the leftover wording now reads "2 days earlier for reasons not in the change log";
+   templates refuse dates in create_job, edit_job, add_step and edit_step; mark_step_started and mark_step_done
+   refuse template steps; unknown args are refused by name; DashboardApi has a sync `photoUrl`, with
+   `DevControls` and `createMockDashboard` for the demo; a design job with no path stores DA; edit_step moving
+   a step to another stage puts it last there. The "today" question (item 7) is now an Orchestrator decision in
+   PROGRESS (rule 2 as written). CONTRACTS.md matches the code.
+
+New, NICE-TO-HAVE: the unknown-arg check meets the question-re-run convention badly in one case. `add_step`
+asks with `field: "after.0"` when an `after` step is ambiguous, but re-running with `{...args, "after.0": id}`
+is now refused as an unknown arg. This only matters for Setup, which passes ids, so it rarely comes up. Either
+ask with `field: "after"` and the whole array, or teach `runOp` dotted array fields.
+
+Verdict: SIGN-OFF.

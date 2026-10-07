@@ -188,3 +188,55 @@ and logged one reminders message. A text/plain POST was refused with 400.
 Screenshots taken for this review (git-ignored): `e2e/screenshots/review-monday-390.png`,
 `review-monday-390-fold.png`, `review-monday-1280.png`, `review-jobs-390.png`, `review-jobs-1280.png`,
 `review-focus-nav-1280.png`.
+
+## Re-check (2026-10-07, after d04da69 and dd73c7e)
+
+**Verdict: SIGN-OFF.** No MUST-FIX remains.
+
+Fresh `git clone` of `dd73c7e` into a temp dir (nothing copied in):
+
+| command | result |
+| --- | --- |
+| `npm ci` | exit 0 |
+| `npm test` | exit 0, 14 files, 152 tests |
+| `npm run typecheck` | exit 0 |
+| `npm run build` | exit 0 |
+| `npx playwright test` (all projects, no flags) | exit 0, 23 passed (mock, api, api-change) |
+| `git status --ignored` in the clone | only build output, `test-results/`, `e2e/screenshots/` |
+
+Findings re-checked:
+
+- 1 (gitignore): fixed. `packages/web/src/data/` is committed, and the fresh clone builds and passes.
+- 2 (focus ring): fixed. A 2px steel outline (about 14:1 on concrete) with a 3px hi-vis ring outside it.
+- 3 (phone labels): fixed. `CellLabel` is no longer `aria-hidden`.
+- 4 (headings): fixed. "Why it moved for Beatty St" and "Act by this week for Park Rd" now include
+  the job name, visually hidden. One small slip: the heading's accessible name reads "for Park Rdto
+  Thu 24 Sep", because JSX drops the newline between the sr-only span and `.h-note`
+  (`packages/web/src/screens/Monday.tsx:286-287`). Add `{' '}`. NICE-TO-HAVE.
+- 5 (wording): fixed. The heading is "Act by this week", with "to Thu 24 Sep" as a note beside it.
+- 6 ($0): fixed. On-track jobs now read "Nothing this week" in muted text; the big type is kept for a
+  real cost.
+- 7 (design stage repeat): fixed. Rows show "DA, council" / "CDC, certifier". NICE-TO-HAVE: "DA,
+  council" under John St, which is still in Design, could be read as "with council". Showing just
+  "DA" / "CDC" would be clearer.
+- 8 (desktop layout): fixed. The Why it moved panel spans the table width, and the act-by "who"
+  column no longer wraps.
+- 9 (jobs list): fixed. There are Builds and Design group headings, and a slip column for builds:
+  "On track", or a hi-vis square plus "5 days later" in words. Design phone cards drop the empty
+  finish cell.
+- 10 (Dom vs Dominic): still open, NICE-TO-HAVE. It is seed data (Stage 0) and still shows on Monday.
+- 11 (undo on HTTP): fixed. `undo` is deliberately excluded (`RPC_EXCLUDED`, still checked at compile
+  time), and an `onRequest` hook refuses `/api` requests whose Host or Origin is not loopback or in
+  ALLOWED_HOSTS (403). The api-mode e2e still passes, so the browser's same-origin calls get through.
+- 12 (api-change): fixed. The test is retry-safe (it reads the ETA first and applies the change only
+  if needed), runs tsx through `process.execPath` rather than npm, honours `E2E_PORT`, and asserts
+  the field before/after.
+- 13 (pending scaffolding): removed.
+- 14 (.env.example): HOST, REMINDER_TIME, WEB_DIST and ALLOWED_HOSTS added.
+- 15 (full history fetch): not changed, NICE-TO-HAVE.
+- 16 (entry point test): `packages/server/test/app.test.ts` added.
+
+New screenshots of the clone's Pages build in mock mode: `e2e/screenshots/review-{monday,jobs}-{390,1280}.png`.
+No horizontal scroll at 390 (scrollWidth 390). No gradients and no uppercase text (0 of each
+computed). Numbers stay the largest type (36px desktop and 38px phone, against h1 24px). Hi-vis is
+still the one accent. Amber and slip always come with words.

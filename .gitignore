@@ -10,3 +10,18 @@ playwright-report/
 *.tsbuildinfo
 .DS_Store
 /models/
+
+# video/ (HyperFrames): keep the sources (scenes.mjs, SCRIPT.md, scripts/, the generated index.html files);
+# everything below is rebuilt by npm run shots / voice / build / render
+video/node_modules/
+video/out/
+video/renders/
+video/snapshots/
+video/assets/shots/
+video/assets/voice/
+video/assets/audio/
+video/assets/vendor/
+video/assets/timing.json
+video/portrait/assets
+video/renders.log
+video/.hyperframes/

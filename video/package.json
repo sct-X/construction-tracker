@@ -1,0 +1,16 @@
+{
+  "name": "ct-video",
+  "private": true,
+  "type": "module",
+  "description": "Explainer video for Dom, made with HyperFrames (HeyGen's open-source HTML-to-video CLI). Not an npm workspace.",
+  "scripts": {
+    "shots": "node scripts/shoot.mjs",
+    "voice": "node scripts/voice.mjs",
+    "build": "node scripts/build.mjs",
+    "render": "node scripts/render.mjs"
+  },
+  "devDependencies": {
+    "gsap": "^3.13.0",
+    "hyperframes": "^0.8.145"
+  }
+}

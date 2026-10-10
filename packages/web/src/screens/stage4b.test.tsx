@@ -7,9 +7,6 @@ import { DataProvider } from '../data/DataContext';
 import type { DataLayer } from '../data/layer';
 import { WaitingOnScreen } from './WaitingOn';
 import { ShipmentsScreen } from './Shipments';
-import { PhotosScreen } from './Photos';
-import { NotesScreen } from './Notes';
-import { HistoryScreen } from './History';
 import { shipmentTimingWords, telHref, urgencyWords } from '../ui/itemWords';
 
 function show(ui: ReactElement) {
@@ -104,69 +101,4 @@ describe('Waiting on (To chase is merged into it)', () => {
   });
 });
 
-describe('Photos', () => {
-  it('shows Seaview St slab hold point at 1 of 3 with the missing categories named', async () => {
-    show(<PhotosScreen jobId="seaview" />);
-    const slab = within(await screen.findByTestId('photo-stage-sv-st-slab'));
-    const hold = slab.getByTestId('hold-progress');
-    expect(hold.textContent).toContain('1 of 3');
-    expect(hold.textContent).toContain('Slab inspection before pour');
-    expect(hold.textContent).toContain('Mon 28 Sep');
-    expect(hold.textContent).toContain('Plumbing under slab, Membrane and termite barrier');
-    expect(slab.getAllByText('Needed for the hold point')).toHaveLength(3);
-    expect(slab.getByText('4 photos')).toBeTruthy();
-    const thumbs = slab.getAllByRole('button', { name: /^Open photo/ });
-    expect(thumbs).toHaveLength(4);
-    expect(thumbs[0]!.querySelector('img')!.getAttribute('src')).toMatch(/^data:image\/svg\+xml/);
-    fireEvent.click(thumbs[0]!);
-    expect(screen.getByTestId('lightbox')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    expect(screen.queryByTestId('lightbox')).toBeNull();
-  });
-});
-
-describe('Daily notes', () => {
-  it('lists Park Rd notes newest first with dates', async () => {
-    show(<NotesScreen jobId="park-rd" />);
-    await screen.findByTestId('note-dn-pr-0917');
-    const dates = screen.getAllByTestId('note-date').map((e) => e.textContent);
-    expect(dates[0]).toBe('Thu 17 Sep');
-    expect(dates).toHaveLength(6);
-    expect(screen.getByText(/Rain till 10/)).toBeTruthy();
-  });
-});
-
-describe('Change history', () => {
-  it('shows each change set with its source, fields before and after, and the steps it moved', async () => {
-    show(<HistoryScreen />);
-    const tiler = within(await screen.findByTestId('history-cs-0915-tiler'));
-    expect(tiler.getByTestId('status').textContent).toBe('Saved');
-    expect(tiler.getByTestId('fields').textContent).toContain('Book tiler, expected date');
-    expect(tiler.getByTestId('fields').textContent).toContain('Mon 28 Sep → Mon 5 Oct');
-    expect(tiler.getByTestId('source').textContent).toContain("Harbour Tiling can't get to Beatty till the 5th of October");
-    expect(tiler.getByTestId('source').textContent).toContain('Voice note on Telegram');
-    // Timing first: what it moved, never the finish or money.
-    expect(tiler.getByTestId('forecast').textContent).toMatch(/^Moved \d+ steps? at Beatty St$/);
-    expect(tiler.getByTestId('forecast').textContent).not.toMatch(/\$|finish/);
-
-    const cancelled = within(screen.getByTestId('history-cs-0916-cancel'));
-    expect(cancelled.getByTestId('status').textContent).toBe('Cancelled, nothing saved');
-    expect(cancelled.queryByTestId('forecast')).toBeNull();
-
-    const eta = within(screen.getByTestId('history-cs-0812-eta'));
-    expect(eta.getByTestId('forecast').textContent).toBe('Moved no forecast.');
-    // Confirming a job says nothing about forecasts.
-    expect(within(screen.getByTestId('history-cs-0915-park')).queryByTestId('forecast')).toBeNull();
-    // Newest first.
-    const ids = screen.getAllByTestId(/^history-cs-/).map((e) => e.getAttribute('data-testid'));
-    expect(ids[0]).toBe('history-cs-0916-cancel');
-  });
-
-  it('filters by job', async () => {
-    show(<HistoryScreen jobId="beatty" />);
-    await screen.findByTestId('history-cs-0915-tiler');
-    const ids = screen.getAllByTestId(/^history-cs-/).map((e) => e.getAttribute('data-testid'));
-    expect(ids).toEqual(['history-cs-0915-tiler', 'history-cs-0908-beatty']);
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Changes at Beatty St');
-  });
-});
+// Photos, Daily notes and Change history moved to stage6d.test.tsx (v1 look).

@@ -3,7 +3,10 @@ import { shootBoth } from './stage4b-helpers';
 
 test('Daily notes lists Park Rd notes newest first', async ({ page }) => {
   await page.goto('./#/jobs/park-rd/notes');
-  await expect(page.getByRole('heading', { level: 1, name: /Daily notes/ })).toBeVisible();
+  // The job header is the page's h1 (the job switcher); the diary is a section under it.
+  await expect(page.getByRole('heading', { level: 1, name: 'Park Rd' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: /Daily notes/ })).toBeVisible();
+  await expect(page.getByTestId('notes-week-2026-09-14')).toContainText('This week, 14-18 Sep');
   const dates = page.getByTestId('note-date');
   await expect(dates).toHaveCount(6);
   await expect(dates.first()).toHaveText('Thu 17 Sep');

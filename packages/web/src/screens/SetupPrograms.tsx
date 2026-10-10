@@ -1,9 +1,10 @@
 /** Setup: programs. Every build job on this side, each with a link into the program editor. */
-import type { DashboardApi, JobsListView, SideFilter } from '@ct/core';
+import { stageDisplayName, type DashboardApi, type JobsListView, type SideFilter } from '@ct/core';
 import { useSideQuery } from '../data/DataContext';
 import { href } from '../app/router';
 import { LoadError, LoadingRows } from '../components/bits';
 import { SetupFrame } from '../setup/SetupFrame';
+import { plural } from '../ui/itemWords';
 
 export function loadPrograms(api: DashboardApi, filter: SideFilter): Promise<JobsListView> {
   return api.listJobs(filter);
@@ -11,56 +12,38 @@ export function loadPrograms(api: DashboardApi, filter: SideFilter): Promise<Job
 
 export function SetupProgramsScreen() {
   const q = useSideQuery(loadPrograms);
+  const meta = q.status === 'ready' ? (q.data.builds.length ? plural(q.data.builds.length, 'build') : 'No builds yet') : null;
   return (
-    <SetupFrame title="Programs" sub="Change a build's stages and steps. Each change shows what it does to the forecast before you save it.">
+    <SetupFrame title="Programs" meta={meta}>
       {q.status === 'loading' && <LoadingRows rows={3} label="Loading jobs" />}
       {q.status === 'error' && <LoadError what="the jobs" error={q.error} retry={q.retry} />}
-      {q.status === 'ready' && <ProgramsTable view={q.data} />}
+      {q.status === 'ready' && <ProgramsList view={q.data} />}
     </SetupFrame>
   );
 }
 
-function ProgramsTable({ view }: { view: JobsListView }) {
+/** One inset grouped list: each build with its stage now, opening its editor. */
+function ProgramsList({ view }: { view: JobsListView }) {
   if (!view.builds.length) {
     return (
-      <p className="empty">
+      <p className="empty-line">
         No builds on this side yet. Start one from <a href={href('/setup')}>New job</a>.
       </p>
     );
   }
   return (
-    <>
-      <table className="su-table" data-testid="setup-programs">
-        <thead>
-          <tr>
-            <th scope="col">Build</th>
-            <th scope="col">Stage now</th>
-            <th scope="col">
-              <span className="sr-only">Edit</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {view.builds.map((j) => (
-            <tr key={j.jobId} data-testid={`setup-program-${j.jobId}`}>
-              <th scope="row" className="su-strong">
-                {j.name}
-              </th>
-              <td>{j.currentStageName ?? 'Not started'}</td>
-              <td className="su-right">
-                <a className="btn su-link-btn" href={href(`/setup/programs/${encodeURIComponent(j.jobId)}`)}>
-                  Edit {j.name}'s program
-                </a>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {view.design.length > 0 && (
-        <p className="su-muted su-below">
-          Design jobs ({view.design.map((d) => d.name).join(', ')}) have a stage checklist, not a program. Their stages move on through the bot.
-        </p>
-      )}
-    </>
+    <section className="group su-programs" aria-label="Builds">
+      <ul className="group__list" data-testid="setup-programs">
+        {view.builds.map((j) => (
+          <li key={j.jobId} data-testid={`setup-program-${j.jobId}`}>
+            <a className="cell cell--link su-programs__cell" href={href(`/setup/programs/${encodeURIComponent(j.jobId)}`)} aria-label={`Edit ${j.name}'s program`}>
+              <span className="cell__title su-programs__name">{j.name}</span>
+              <span className="cell__detail">{stageDisplayName(j.currentStageName) ?? 'Not started'}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+      {view.design.length > 0 && <p className="group__footer">Design jobs have a checklist, not a program: {view.design.map((d) => d.name).join(', ')}.</p>}
+    </section>
   );
 }

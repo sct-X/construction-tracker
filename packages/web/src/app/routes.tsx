@@ -90,19 +90,18 @@ export const ROUTES: RouteDef[] = [
 
   // Job tabs
   { path: '/jobs/:jobId', title: 'Overview', nav: true, kinds: ['build'], render: ({ jobId }) => <JobOverviewScreen key={jobId} jobId={jobId!} /> },
-  { path: '/jobs/:jobId/checklist', title: 'Checklist', nav: true, kinds: ['design'], ownHeading: true, render: ({ jobId }) => <DesignChecklistScreen jobId={jobId!} /> },
-  { path: '/jobs/:jobId/program', title: 'Program', nav: true, kinds: ['build'], ownHeading: true, render: ({ jobId }) => <ProgramScreen jobId={jobId!} /> },
+  { path: '/jobs/:jobId/checklist', title: 'Checklist', nav: true, kinds: ['design'], render: ({ jobId }) => <DesignChecklistScreen key={jobId} jobId={jobId!} /> },
+  { path: '/jobs/:jobId/program', title: 'Program', nav: true, kinds: ['build'], render: ({ jobId }) => <ProgramScreen key={jobId} jobId={jobId!} /> },
   { path: '/jobs/:jobId/waiting', title: 'Waiting on', nav: true, render: ({ jobId }) => <WaitingOnScreen key={jobId} jobId={jobId!} /> },
   { path: '/jobs/:jobId/shipments', title: 'Shipments', nav: true, kinds: ['build'], render: ({ jobId }) => <ShipmentsScreen key={jobId} jobId={jobId!} /> },
-  { path: '/jobs/:jobId/photos', title: 'Photos', nav: true, kinds: ['build'], ownHeading: true, render: ({ jobId }) => <PhotosScreen key={jobId} jobId={jobId!} /> },
-  { path: '/jobs/:jobId/notes', title: 'Daily notes', tab: 'Notes', nav: true, kinds: ['build'], ownHeading: true, render: ({ jobId }) => <NotesScreen key={jobId} jobId={jobId!} /> },
+  { path: '/jobs/:jobId/photos', title: 'Photos', nav: true, kinds: ['build'], render: ({ jobId }) => <PhotosScreen key={jobId} jobId={jobId!} /> },
+  { path: '/jobs/:jobId/notes', title: 'Daily notes', tab: 'Notes', nav: true, kinds: ['build'], render: ({ jobId }) => <NotesScreen key={jobId} jobId={jobId!} /> },
 
   // Pages under a job tab
   {
     path: '/jobs/:jobId/steps/:stepId',
     title: 'Step',
     parent: '/jobs/:jobId/program',
-    ownHeading: true,
-    render: ({ jobId, stepId }) => <StepDetailScreen jobId={jobId!} stepId={stepId!} />,
+    render: ({ jobId, stepId }) => <StepDetailScreen key={stepId} jobId={jobId!} stepId={stepId!} />,
   },
 ];

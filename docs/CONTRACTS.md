@@ -216,7 +216,7 @@ All pure `(ds, ..., today)`; lists skip templates; `SideFilter = { sideId? }`.
 | shipmentsList(ds, today) | ShipmentRow: eta, status(+Label), linkedCount, earliestNeededBy, isLate, lateDays, owners |
 | changeHistory(ds, {jobId?, sideId?, statuses?, limit?}, today?) | newest first: summary, status, message {rawText, transcript}, jobNames, changes [{rowLabel, field, before, after}], effects (with today) |
 | designChecklist(ds, jobId, today) | stages with isCurrent, outstanding, oldestDays, items oldest first |
-| photoGallery, dailyNotes, tradesList, templatesList | gallery by stage/category; notes newest first; trades with openItems; templates with counts |
+| photoGallery, dailyNotes, tradesList, templatesList | gallery by stage/category; notes newest first; trades with openItems and (6d) jobNames; templates with counts, (6d) path, needs, photoSets, stageNames |
 
 `WaitingRow`: itemId, jobId, jobName, title, type(+Label), status(+Label), owner, waitingOn, tradeId, tradeName,
 tradePhone, stepId/Name, shipmentId/Name, neededBy, actBy, expected, leadTimeWeeks, isLate, lateDays, lateText,
@@ -240,6 +240,7 @@ Stage 6a read models (timing first; files `readModelsOverview.ts`, `readModelsTi
 | waitingKeyDate(row) | act-by while to do (else expected, else needed-by); once ordered/booked/confirmed: expected, else needed-by |
 | tradesThisWeek(ds, forecast, today) | `TradeOnRow[]` {key, trade, stepId, stepName, start, end, underWay, when ("On site, until Fri 25 Sep" / "Mon 21 Sep, in 4 days")}: not-done steps meeting today..today+7, named by the trade items booked on the step (trade name, else waitingOn), else the step's trade type |
 | overdueFirst(rows), rowsForJob(ds, forecast, today, includeDone?) | now exported |
+| Stage 6c `readModelsProgram.ts` | `isStepOverdue(step, today)` (not done, late, and not started after its planned start or open after its planned end: Dom's red cue; late with both dates ahead is plain words), `isStageOverdue`, `daysLateWords` ("7 days late"), `workStatusWords` (Not started / Under way / Done), `stepWhenWords` ("starts in 6 weeks", "ends today"), `lengthWords` ("3 wks"), `weekRangeWords` ("28 Sep-2 Oct"), `shortWithRelative`, `lookAhead(steps, today)` -> `{weeks: [{n, title, from, to, range, rows: [{step, mode starts/finishes, line "Mon to Thu, Roof plumber, started", late, overdue}]}], horizon, horizonWords, laterLate, laterRest}` (v1 LookAhead), `stageProgressWords` ("In progress, week 3 of 12"), `stageTimeThrough` (0..1), `leadTimeWords`, `holdPointReadinessWords` ("1 of 3 required photo sets uploaded"). `DesignChecklist.done[]` gained `type`. |
 
 - `WaitingRow.keyDate` (waitingKeyDate). `waitingOn()` groups are now THREE (Stage 6a, v1 Waiting on): `overdue` (exactly
   isOverdue, overdueFirst order), `this_week` (key date before next Monday), `later` (the rest and anything without a key date);
@@ -428,16 +429,86 @@ re-run with `{ ...question.args, afterChoice: id }`.
   - Shipments `screens/Shipments.tsx` + `styles/shipments.css` (`#/shipments` side-wide with `ship-job`; job tab
     `/jobs/:jobId/shipments` that job only): `shipment-row-<id>` > `ship-status`, `eta`, `needed-by` ("Mon 2 Nov, in 6 weeks"),
     `timing` (plain words), `linked-items`. Desktop table on a plate, phone cards.
+  - Program `screens/Program.tsx` + `styles/program.css` + `components/gantt/{Gantt,LookAhead,StagesStrip,timeScale}` (Stage 6c,
+    v1 port, read-only): section head (h2 "Program", `program-sub`, view switch). Desktop: v1 Gantt (`gantt`, views All /
+    Look-ahead / Late only `program-view-all|lookahead|late`, "Edit program" glass link `program-edit` to the Setup editor);
+    rows `gantt-stage-<stageId>` and `g-step-<stepId>` (`data-overdue`; a placeholder-only stage is drawn as its step row) >
+    `gantt-bar-<id>` (link to the step; its sr-only text is the step sentence "Mon 2 Nov to Fri 13 Nov, starts in 6 weeks. ..."),
+    `gantt-planned-<id>`, `gantt-late-<id>` ("7 days late", red with "!" only when `isStepOverdue`); `gantt-today`,
+    `gantt-caption` (legend, or the hovered/focused step's sentence). Phone (< 768px): `program-lookahead-link` /
+    `program-full-link`; `stages-strip` > `stage-chip-<stageId>` (current `aria-current`), `lookahead` > `lookahead-week-1..3`,
+    `la-step-<stepId>` (line, late words, needs via `needLines`: overdue red, late plain, "not confirmed"), `lookahead-later`,
+    `lookahead-more`; `stages` > `stage-band-<stageId>`. Full program = the dense Gantt (164px labels, 44px rows).
+  - Step detail `screens/StepDetail.tsx` + `styles/step.css` (v1, read-only, no Mark buttons): h2 step name + meta ("Lock-up
+    stage, Window installer"), `step-dates` > `step-forecast` (value only, `rangeWords`), "Forecast, starts in 6 weeks",
+    `step-late` (on plan / 7 days late / N days early), `step-planned`, `step-duration`, `step-status`; `step-reason` only when
+    there is a why; `hold-point` > `hold-readiness`, `hold-category` ("4 photos" / "! none yet" on the neutral fill),
+    `hold-photos` (link to the Photos tab); Order of work `waits-for` / `holds-up` (dates with relative time); Needs: lead times
+    line, `needs` list of `components/ItemRow` rows `need-<itemId>` (`data-overdue`; type column, title, "waiting on X, with
+    you|<owner>", `when` from `whenWords`, status, `call` glass button "Call <trade>").
+  - Design checklist `screens/DesignChecklist.tsx` + `styles/checklist.css` (v1, read-only, no status segments or Add item):
+    `ck-summary` > `ck-outstanding` ("2 outstanding, oldest 23 days"), `ck-freshness`; `ck-stages` > `ck-stage-<order>`
+    (tick box, `stageDisplayName`, `ck-stage-words-<order>`; the current one a plate with `aria-current=step` and its items
+    `ck-item-<itemId>`: "outstanding 23 days" plain, or "! Needed Fri 25 Sep, overdue by 3 days" when past needed-by with
+    nothing to come), `ck-empty`; `ck-done` (Done (N), folded). ItemRow: `components/ItemRow.tsx` + `styles/itemrow.css`.
 - **Timing first on every screen**: no forecast finish, slip, slip cost, holding cost or Why it moved on the web. Program's
   subtitle is `programSubWords` ("Rough-in. 3 steps later than planned."); Changes shows "Moved N steps at <job>" per effect;
   Setup's change bar shows the steps that move (no finish, no $); Setup New job keeps the PLANNED finish (v1 did) and the weekly
   holding cost input (the bot's confirm card prices a slip with it). Words: `ui/when.ts` (`shortRelative` "Mon 21 Sep, in 4 days",
   `whenWords`, `stepWhen`), core `freshnessWords`, `stageDisplayName`. `components/bits.tsx` `Freshness` renders words only
   (`data-unconfirmed`), no amber.
-- **Not yet restyled** (pending the next agent; they render in the new tokens through `styles/legacy.css`, which holds the old
-  shared `.screen`/`.board`/`.cell-label`/`.num`/`.sub` bits, and their own `lists.css`, `screens4a.css`, `setup.css`, whose old
-  token names were mapped to the v1 roles): Program, Step detail, Design checklist, Photos, Notes, Changes, Setup. Their routes
-  carry `ownHeading: true` (job screens). Program's old segmented control is `.oseg` (renamed from `.seg`).
+- **Stage 6d screens (v1 look; legacy.css, lists.css and the old setup.css rules for them are gone)**. Shared:
+  `components/FilterSelect.tsx` (v1 FilterSelect: one `<select class="input filter__select">` in `.filter`, sr-only label unless
+  `labelShown`, options may carry `group` for `<optgroup>`).
+  - Photos `screens/Photos.tsx` + `styles/photos.css` (job tab, no `ownHeading`): h2 "Photos" + `photos-sub` ("17 photos");
+    `photos-filters` > `photos-stage` (All stages / each stage / "General" = the job-wide set, last) and, desktop only,
+    `photos-sort` (Newest / Oldest first); stage plates `photo-stage-<stageId|job>` > h3 name and the count words
+    (`hold-progress` when the stage has required sets: "4 photos, 1 of 3 required sets", else `stage-count`), `hold-step`
+    ("Slab inspection before pour, Mon 28 Sep, in 11 days", open hold points only); categories `photo-cat-<id>`
+    (`data-required`) > h4 name, count, `cat-needed` ("needed for inspection", or the neutral "!" note "Needed before the slab
+    inspection before pour" while empty); square thumbnail grid (3 across on the phone, 120px auto-fill on the desktop), buttons
+    "Open photo: <caption>, taken <date>". Full-size view `lightbox` (`role=dialog`, solid panel over the page: title, Close,
+    the image, `view-taken`, `view-received` ("From the bot, Wed 16 Sep, 5:10pm" / "Filed ..."), `view-category`); Escape,
+    focus trapped and returned. No upload, no move/delete.
+  - Daily notes `screens/Notes.tsx` + `styles/diary.css` (classes `diary__*`; `.notes` belongs to the old job overview):
+    h2 "Daily notes" + `notes-sub` ("6 notes"); `notes-list`; weeks `notes-week-<monday>` ("This week, 14-18 Sep", "Last
+    week, 7-11 Sep", "Week of 31 Aug-4 Sep"); rows `note-<id>` > `note-date` ("Thu 17 Sep") with the relative day and "From the
+    bot, 3:55pm" / "Saved ...". Phone: a plate per day; desktop: a hairline table Day / Note / Came in. No entry box.
+  - Changes `screens/History.tsx` + `styles/history.css` (`#/history`, `#/history/:jobId`; v1 Activity): PageHeader "Changes",
+    `history-sub` ("7 changes", "2 changes at Beatty St"); `history-filters` > `job-picker` (FilterSelect: All jobs, Builds,
+    Design; it moves to `#/history/<id>`); days (h2 "Yesterday", "Tue 15 Sep, 2 days ago") down a timeline rail; rows
+    `history-<changeSetId>` (`data-status`) > time, `status` ("Saved" / "Undone" / "Cancelled" / "Waiting for Confirm"), the
+    summary, job links (not when filtered), the "Would have changed (not saved):" / "Changed, then undone:" lead, `fields`
+    (row, field, before → after; > 12 changes counted by table), `forecast` ("Moved 3 steps at Beatty St" / "Moved no
+    forecast."; nothing for confirm-job, note and photo sets), `source-setup` or `source` (the quoted text or transcript and
+    "Voice note on Telegram, Tue 15 Sep, 10:11am"). Never a finish or money.
+  - Setup (desktop only; `setup/SetupFrame.tsx` = PageHeader (title, meta, back, actions) or, below 768px (`usePhoneWidth`),
+    `setup-phone` "Setup works on a computer. Open this page on a desktop."; the old "Setup pages" tab strip is gone, the
+    sidebar's Setup group navigates). New job `su-nj`: one 560px column (v1 newJob): Job name, Side (`nj-side-<id>`), Kind
+    (`nj-kind`: Build / Design), Approval path (`nj-path`: Not set (builds) / DA / CDC), Template (`nj-template-<id>`, a
+    segmented pick with "8 stages, 29 steps, 25 needs, 13 photo sets"), Weekly holding cost ($ ... a week), Start on site,
+    Starts from = the stage ladder `nj-stages` > `nj-from-<stageId>` (number, name, "done" or the stage's planned dates from the
+    preview); `nj-preview` (aria-live): "Planned finish" + `nj-finish` (the one finish on the web, as v1), "29 steps, about 35
+    weeks, from Mon 21 Sep 2026, in 4 days.", `nj-done`; design: "Pending approval" names and "no program and no finish date";
+    `nj-problem`; `nj-create` (the one filled button). Programs `setup-programs`: an inset grouped list, `setup-program-<id>`
+    cells (name, stage now, chevron) to the editor. Templates `su-tpl`: meta "1 template on Norm and Dom", header actions
+    `fromjob-open` "Save job as template" (toggles the `fromjob` plate: `fj-job-<id>` segmented pick, Template name,
+    `fromjob-preview`, `fromjob-create`) and `templates-new-job` "New job"; rows `template-<id>` (name link to the editor,
+    "Build, CDC", counts, the numbered stage sequence, Edit / Use for a new job). Trades `su-trades`: meta "18 trades on Norm and
+    Dom", header `add-trade-open` "Add trade" opens the `add-trade` plate (Name, What they do, Phone, `add-trade-save` "Save
+    trade"); table Trade / Type / Phone (`trade-phone`, Title 3 bold `tel:` link) / On jobs (`trade-jobs`) / Edit
+    (`trade-edit-<id>` inline plate, `trade-edit-save`). Program editor `su-ed` (`/setup/programs/:id`, `/setup/templates/:id`):
+    PageHeader back "Programs" / "Templates", h1 the job's name, meta "Program editor, 8 stages, 29 steps" / "Template editor,
+    8 stages, 29 steps, 160 working days", "See the program" link; numbered stage chips `ed-stages` (scroll to the stage); the
+    stages-and-steps table on one plate (grey stage bands, ids as before: `editor`, `ed-stage-*`, `ed-step-*`, `ed-detail-*`,
+    ...); v1's footer, always there: Thick Liquid Glass, sticky (`editor-foot` at rest: "Edit a step to see what moves.", "No
+    unsaved changes", Discard and Save disabled; `change-bar` while one edit is pending: the summary, `preview-moved`,
+    `bar-note` / `template-impact`, `bar-problem`, "1 unsaved change", `bar-discard` glass, `bar-save` "Save 1 change"
+    prominent glass). Still one change at a time, each a setup op previewed first.
+  - Read models for them (additive): `tradesList` rows gain `jobNames` (live jobs with open items for the trade, by name);
+    `TemplateRow` gains `path`, `needs`, `photoSets`, `stageNames`.
+- **All screens are now in the v1 look** (6a, 6c, 6d). `styles/legacy.css` keeps only shared old bits other screens may still
+  use; `lists.css` keeps the Waiting on / Shipments leftovers and `.tag`.
 
 #### How to build a screen in the v1 style (for the next agent)
 

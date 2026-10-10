@@ -1,0 +1,128 @@
+/* ItemRow (ported from v1 src/components/itemRow.css): a fixed type column, then
+   title and who, then the date phrase and status. Phone: the date drops under the
+   title. Wide list: one line each. Rows are separated by an iOS hairline; an
+   overdue row carries its words in the late ink with the "!", never a coloured edge. */
+.itemrow__list {
+  display: flex;
+  flex-direction: column;
+  container: itemrows / inline-size;
+}
+.itemrow__li + .itemrow__li {
+  border-top: 0.5px solid var(--line);
+}
+.itemrow__li--with-action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.itemrow__li--with-action > .itemrow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.itemrow__action {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+}
+.itemrow {
+  display: grid;
+  grid-template-columns: 5.5em minmax(0, 1fr);
+  column-gap: var(--space-2);
+  row-gap: var(--space-1);
+  align-items: baseline;
+  min-height: var(--tap);
+  padding: var(--space-3) 0;
+  color: var(--text);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: background var(--motion-fast) var(--ease);
+}
+.itemrow__type {
+  grid-column: 1;
+  font-size: var(--type-caption);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+}
+.itemrow__main {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.itemrow__title {
+  font-weight: var(--weight-medium);
+}
+.itemrow--flagged .itemrow__title {
+  font-weight: var(--weight-bold);
+}
+.itemrow__who {
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+}
+.itemrow__side {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  font-size: var(--type-subhead);
+}
+.itemrow__when {
+  white-space: normal;
+}
+.itemrow__status {
+  color: var(--text-muted);
+}
+/* One line each only when the list itself is wide: a half-width column on
+   the desktop keeps the stacked phone layout rather than crushing the title. */
+@container itemrows (min-width: 640px) {
+  .itemrow {
+    grid-template-columns: 5.5em minmax(0, 1fr) auto;
+    column-gap: var(--space-3);
+  }
+  .itemrow__side {
+    grid-column: 3;
+    justify-content: flex-end;
+  }
+  /* the date phrase stays on one line; the title column yields instead */
+  .itemrow__when {
+    white-space: nowrap;
+  }
+}
+/* Call: a static glass button under the row's words (v1 Waiting on), the tint on its label and glyph. */
+.itemrow__li--with-action {
+  display: block;
+}
+.itemrow__li--with-action > .itemrow {
+  padding-bottom: var(--space-2);
+}
+.itemrow__action {
+  display: flex;
+  min-height: 0;
+  padding: 0 0 var(--space-3) calc(5.5em + var(--space-2));
+}
+@container itemrows (min-width: 640px) {
+  .itemrow__action {
+    padding-left: calc(5.5em + var(--space-3));
+  }
+}
+.itemrow__call {
+  gap: 6px;
+  min-height: var(--tap-min);
+  max-width: 16rem;
+  padding: 0 var(--space-4) 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--type-subhead);
+  color: var(--lg-btn-tint-ink);
+}
+.itemrow__call-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.itemrow__list .status__mark {
+  margin-right: 0.1em;
+}

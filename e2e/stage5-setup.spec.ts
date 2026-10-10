@@ -41,7 +41,8 @@ test('new job from the duplex template: preview, create, then it is on the Overv
   await expect(card.getByTestId('card-next').getByRole('listitem')).toHaveCount(3);
 
   await page.goto(`./#/jobs/${jobId}/program`);
-  await page.getByRole('button', { name: 'Whole program' }).click();
+  // The Gantt opens on All (Stage 6c, v1); a phone shows the look-ahead.
+  await expect(page.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('gantt').locator('[data-testid^="g-step-"]')).toHaveCount(29);
   await expect(page.getByTestId('program-sub')).toContainText('Every step on plan.');
 });
@@ -49,13 +50,15 @@ test('new job from the duplex template: preview, create, then it is on the Overv
 test('a design job gets its checklist', async ({ page }, info) => {
   const name = unique(info, 'Design Rd');
   await page.goto('./#/setup');
-  await page.getByRole('button', { name: 'Design, approval checklist' }).click();
+  await page.getByTestId('nj-kind').getByRole('button', { name: 'Design', exact: true }).click();
   await page.getByLabel('Job name').fill(name);
-  await page.getByLabel('Approval path').selectOption('CDC');
-  await expect(page.getByTestId('nj-preview')).toContainText('With certifier');
+  await page.getByTestId('nj-path').getByRole('button', { name: 'CDC', exact: true }).click();
+  // "With certifier" reads "Pending approval" (v1 W3), and a design job has no finish.
+  await expect(page.getByTestId('nj-preview')).toContainText('Pending approval');
+  await expect(page.getByTestId('nj-preview')).toContainText('no program and no finish date');
   await page.getByTestId('nj-create').click();
   await expect(page).toHaveURL(/#\/jobs\/job-[a-z0-9]+\/checklist$/);
-  await expect(page.getByTestId('ck-stages')).toContainText('With certifier');
+  await expect(page.getByTestId('ck-stages')).toContainText('Pending approval'); // With certifier, as Dom reads it (Stage 6c)
 });
 
 test('the form says what is wrong in plain words', async ({ page }) => {
@@ -73,7 +76,8 @@ test('program editor: a longer step shows what moves before Save, then Program s
   const { jobId } = await createJob(page, name, { cost: '7000' });
 
   await page.goto(`./#/setup/programs/${jobId}`);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Program: ${name}`);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(name);
+  await expect(page.getByTestId('editor-foot')).toContainText('Edit a step to see what moves.');
   const tiling = page.locator('[data-step-name="Tiling"]');
   await expect(tiling.getByTestId('ed-days')).toHaveValue('10');
 
@@ -95,6 +99,7 @@ test('program editor: a longer step shows what moves before Save, then Program s
   await bar.getByTestId('bar-save').click();
   await expect(page.getByTestId('ed-saved')).toContainText(`Saved: Edited step Tiling at ${name}`);
   await expect(page.getByTestId('change-bar')).toHaveCount(0);
+  await expect(page.getByTestId('editor-foot')).toContainText('No unsaved changes');
   await expect(tiling.getByTestId('ed-days')).toHaveValue('15');
 
   await page.goto(`./#/jobs/${jobId}/program`);
@@ -139,7 +144,8 @@ test('program editor: add a step and a need, discard a change, and a template ha
 
   // The Duplex template: same editor, no dates, the change measured in working days. Previewed only.
   await page.goto('./#/setup/templates/tpl-duplex');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Template: Duplex');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Duplex');
+  await expect(page.locator('.page-header__meta')).toContainText('Template editor');
   await expect(page.locator('.su-step-dates')).toHaveCount(0);
   await page.locator('[data-step-name="Frame"]').getByTestId('ed-days').fill('20');
   await expect(page.getByTestId('template-impact')).toContainText('working days. Templates have no dates.');
@@ -149,21 +155,24 @@ test('program editor: add a step and a need, discard a change, and a template ha
 test('templates: list, and make one from a job', async ({ page }, info) => {
   await page.goto('./#/setup/templates');
   await expect(page.getByTestId('template-tpl-duplex')).toContainText('Duplex');
-  await expect(page.getByTestId('template-tpl-duplex')).toContainText('29');
+  await expect(page.getByTestId('template-tpl-duplex')).toContainText('8 stages, 29 steps, 25 needs, 13 photo sets');
   const name = unique(info, 'Park Rd copy');
-  await page.getByLabel('Copy the program of').selectOption({ label: 'Park Rd' });
+  await page.getByRole('button', { name: 'Save job as template' }).click();
+  await page.getByTestId('fj-job-park-rd').click();
   await page.getByLabel('Template name').fill(name);
   await expect(page.getByTestId('fromjob-preview')).toContainText('No dates.');
   await page.getByTestId('fromjob-create').click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Template: ${name}`);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(name);
   await expect(page.locator('.su-step-dates')).toHaveCount(0);
-  await page.getByRole('navigation', { name: 'Setup pages' }).getByRole('link', { name: 'Templates', exact: true }).click();
-  await expect(page.getByRole('row', { name: new RegExp(name) })).toBeVisible();
+  await page.getByRole('navigation', { name: 'Setup' }).getByRole('link', { name: 'Templates', exact: true }).click();
+  await expect(page.locator('[data-testid^="template-"]').filter({ hasText: name })).toBeVisible();
 });
 
 test('trades: add one with a checked AU number; a changed number rings from Waiting on', async ({ page }, info) => {
   await page.goto('./#/setup/trades');
   const name = unique(info, 'Kerbside Concrete');
+  await expect(page.getByTestId('trade-tr-harbour-tiling').getByTestId('trade-jobs')).toHaveText('Beatty St, Park Rd');
+  await page.getByTestId('add-trade-open').click();
   const add = page.getByTestId('add-trade');
   await add.getByLabel('Name').fill(name);
   await add.getByLabel('What they do').fill('Concreter');
@@ -179,7 +188,7 @@ test('trades: add one with a checked AU number; a changed number rings from Wait
   await expect(row.getByTestId('trade-phone')).toHaveText('0491 579 212');
 
   // Change Northern Concrete Pumping's number; Waiting on (To chase merged in) rings the new one.
-  await page.getByTestId('trade-tr-northern-pump').getByRole('button', { name: /Change/ }).click();
+  await page.getByTestId('trade-tr-northern-pump').getByRole('button', { name: /Edit/ }).click();
   const edit = page.getByTestId('trade-edit-tr-northern-pump');
   await edit.getByLabel('Phone').fill('0491 570 737');
   await edit.getByTestId('trade-edit-save').click();

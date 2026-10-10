@@ -11,6 +11,7 @@ import { LoadError, LoadingRows } from '../components/bits';
 import { SetupFrame } from '../setup/SetupFrame';
 import { canSave, previewProblem, usePreview, type SetupCall } from '../setup/preview';
 import { checkName } from '../setup/validate';
+import { templateCountWords } from './SetupNewJob';
 import { plural } from '../ui/itemWords';
 
 interface TemplatesData {
@@ -25,61 +26,84 @@ export async function loadTemplates(api: DashboardApi, filter: SideFilter): Prom
 
 export function SetupTemplatesScreen() {
   const q = useSideQuery(loadTemplates);
+  const { sides, sideId } = useData();
+  const [fromJob, setFromJob] = useState(false);
+  const sideName = sides.find((s) => s.id === sideId)?.name;
+  const meta = q.status === 'ready' ? `${q.data.templates.length ? plural(q.data.templates.length, 'template') : 'No templates'}${sideName ? ` on ${sideName}` : ''}` : null;
+  const canCopy = q.status === 'ready' && q.data.builds.length > 0;
   return (
-    <SetupFrame title="Templates" sub="A template is a program with no dates. A new job copies its stages, steps, links, needs and photo categories.">
+    <SetupFrame
+      title="Templates"
+      meta={meta}
+      className="su-tpl"
+      actions={
+        <>
+          {canCopy && (
+            <button type="button" className="btn btn--desktop" aria-pressed={fromJob} data-testid="fromjob-open" onClick={() => setFromJob((v) => !v)}>
+              Save job as template
+            </button>
+          )}
+          <a className={fromJob ? 'btn btn--desktop' : 'btn btn--primary btn--desktop'} href={href('/setup')} data-testid="templates-new-job">
+            New job
+          </a>
+        </>
+      }
+    >
       {q.status === 'loading' && <LoadingRows rows={3} label="Loading templates" />}
       {q.status === 'error' && <LoadError what="the templates" error={q.error} retry={q.retry} />}
-      {q.status === 'ready' && <TemplatesBody data={q.data} />}
+      {q.status === 'ready' && (
+        <>
+          {fromJob && <FromJob builds={q.data.builds} onCancel={() => setFromJob(false)} />}
+          <TemplatesList templates={q.data.templates} />
+        </>
+      )}
     </SetupFrame>
   );
 }
 
-function TemplatesBody({ data }: { data: TemplatesData }) {
+/** v1 templates list: each row is its name, kind, counts and the stage sequence, like a table of contents. */
+function TemplatesList({ templates }: { templates: TemplateRow[] }) {
+  if (!templates.length) return <p className="empty-line">No templates yet. Save a running job as one.</p>;
   return (
-    <>
-      {data.templates.length ? (
-        <table className="su-table" data-testid="templates">
-          <thead>
-            <tr>
-              <th scope="col">Template</th>
-              <th scope="col">Stages</th>
-              <th scope="col">Steps</th>
-              <th scope="col">
-                <span className="sr-only">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.templates.map((t) => (
-              <tr key={t.jobId} data-testid={`template-${t.jobId}`}>
-                <th scope="row" className="su-strong">
-                  {t.name}
-                </th>
-                <td>{t.stages}</td>
-                <td>{t.steps}</td>
-                <td className="su-right">
-                  <span className="su-row-actions">
-                    <a className="btn su-link-btn" href={href(`/setup/templates/${encodeURIComponent(t.jobId)}`)}>
-                      Edit the program<span className="sr-only"> of {t.name}</span>
-                    </a>
-                    <a className="btn su-link-btn" href={href(`/setup?template=${encodeURIComponent(t.jobId)}`)}>
-                      Start a job from {t.name}
-                    </a>
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p className="empty">No templates yet. Build the duplex template first, or copy a job's program below.</p>
-      )}
-      <FromJob builds={data.builds} />
-    </>
+    <ul className="su-tpl__list" data-testid="templates">
+      {templates.map((t) => (
+        <li key={t.jobId} className="su-tpl__row" data-testid={`template-${t.jobId}`}>
+          <div className="su-tpl__main">
+            <a className="su-tpl__name" href={href(`/setup/templates/${encodeURIComponent(t.jobId)}`)}>
+              {t.name}
+            </a>
+            <span className="su-tpl__kind">{[t.kind === 'build' ? 'Build' : 'Design', t.path].filter(Boolean).join(', ')}</span>
+            <p className="su-tpl__counts">{templateCountWords(t)}</p>
+            {t.stageNames?.length > 0 && (
+              <ol className="su-tpl__seq" aria-label="Stages in order">
+                {t.stageNames.map((n, i) => (
+                  <li key={`${i}-${n}`}>
+                    <span className="su-tpl__seq-n" aria-hidden="true">
+                      {i + 1}
+                    </span>
+                    {n}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+          <div className="su-tpl__actions">
+            <a className="btn btn--desktop" href={href(`/setup/templates/${encodeURIComponent(t.jobId)}`)}>
+              Edit<span className="sr-only"> the program of {t.name}</span>
+            </a>
+            {t.kind === 'build' && (
+              <a className="btn btn--desktop" href={href(`/setup?template=${encodeURIComponent(t.jobId)}`)}>
+                Use for a new job<span className="sr-only">: {t.name}</span>
+              </a>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
-function FromJob({ builds }: { builds: JobListRow[] }) {
+function FromJob({ builds, onCancel }: { builds: JobListRow[]; onCancel: () => void }) {
   const { api, refresh } = useData();
   const [jobId, setJobId] = useState(builds[0]?.jobId ?? '');
   const [name, setName] = useState('');
@@ -91,8 +115,6 @@ function FromJob({ builds }: { builds: JobListRow[] }) {
   const preview = usePreview(call);
   const problem = previewProblem(preview);
   const counts = preview.status === 'ready' && preview.preview.result.kind === 'proposal' ? countInserts(preview.preview.result.changes) : null;
-
-  if (!builds.length) return null;
 
   async function create() {
     setTouched(true);
@@ -114,38 +136,40 @@ function FromJob({ builds }: { builds: JobListRow[] }) {
 
   return (
     <form
-      className="block su-panel su-fromjob"
+      className="plate su-form-plate su-fromjob"
       noValidate
       aria-labelledby="fromjob-h"
+      data-testid="fromjob"
       onSubmit={(e) => {
         e.preventDefault();
         void create();
       }}
     >
-      <h2 id="fromjob-h" className="su-panel-h">
-        Make a template from a job's program
+      <h2 id="fromjob-h" className="su-form-plate__title">
+        Save a job as a template
       </h2>
-      <p className="su-muted">Copies the stages, steps, links, needs and photo categories. Dates, progress and items stay with the job.</p>
-      <div className="su-row2">
-        <div className="su-field">
-          <label htmlFor="fj-job">Copy the program of</label>
-          <select id="fj-job" value={jobId} onChange={(e) => setJobId(e.target.value)}>
-            {builds.map((b) => (
-              <option key={b.jobId} value={b.jobId}>
-                {b.name}
-              </option>
-            ))}
-          </select>
+      <div className="su-field">
+        <span className="su-label" id="fj-job-label">
+          Copy the program of
+        </span>
+        <div className="seg su-seg--wrap" role="group" aria-labelledby="fj-job-label">
+          {builds.map((b) => (
+            <button key={b.jobId} type="button" className="seg__btn" aria-pressed={b.jobId === jobId} data-testid={`fj-job-${b.jobId}`} onClick={() => setJobId(b.jobId)}>
+              {b.name}
+            </button>
+          ))}
         </div>
-        <div className={touched && nameError ? 'su-field has-error' : 'su-field'}>
-          <label htmlFor="fj-name">Template name</label>
-          <input id="fj-name" type="text" value={name} placeholder="Duplex, two storey" onChange={(e) => setName(e.target.value)} />
-          {touched && nameError && (
-            <span className="su-error" role="alert">
-              {nameError}
-            </span>
-          )}
-        </div>
+      </div>
+      <div className={touched && nameError ? 'su-field has-error' : 'su-field'}>
+        <label className="su-label" htmlFor="fj-name">
+          Template name
+        </label>
+        <input id="fj-name" className="input input--desktop" type="text" value={name} placeholder="Duplex, two storey" onChange={(e) => setName(e.target.value)} />
+        {touched && nameError && (
+          <span className="su-error" role="alert">
+            {nameError}
+          </span>
+        )}
       </div>
       <div aria-live="polite">
         {problem && (
@@ -153,16 +177,21 @@ function FromJob({ builds }: { builds: JobListRow[] }) {
             {problem}
           </p>
         )}
-        {counts && (
-          <p className="su-fromjob-what" data-testid="fromjob-preview">
+        {counts ? (
+          <p className="su-hint" data-testid="fromjob-preview">
             {plural(counts.stage, 'stage')}, {plural(counts.step, 'step')}, {plural(counts.step_link, 'link')}, {plural(counts.requirement, 'need')} and{' '}
             {plural(counts.photo_category, 'photo category', 'photo categories')}. No dates.
           </p>
+        ) : (
+          <p className="su-hint">Dates, progress and items stay with the job.</p>
         )}
       </div>
       <div className="su-actions">
-        <button type="submit" className="btn btn-primary" disabled={saving || (touched && !canSave(preview))} data-testid="fromjob-create">
-          {saving ? 'Making it…' : 'Make the template'}
+        <button type="submit" className="btn btn--primary btn--desktop" disabled={saving || (touched && !canSave(preview))} data-testid="fromjob-create">
+          {saving ? 'Saving…' : 'Save as template'}
+        </button>
+        <button type="button" className="btn btn--desktop" onClick={onCancel}>
+          Cancel
         </button>
         {saveError && (
           <p className="su-error" role="alert">

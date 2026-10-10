@@ -4,11 +4,18 @@ import { shootBoth } from './stage4b-helpers';
 test('Photos shows Seaview St slab hold point at 1 of 3 and opens a photo', async ({ page }) => {
   await page.goto('./#/jobs/seaview/photos');
   const slab = page.getByTestId('photo-stage-sv-st-slab');
-  await expect(slab.getByTestId('hold-progress')).toContainText('1 of 3');
-  await expect(slab.getByTestId('hold-progress')).toContainText('Plumbing under slab, Membrane and termite barrier');
-  await expect(slab.getByText('Needed for the hold point')).toHaveCount(3);
+  // v1 gallery words: the stage's count and required sets, the hold point with its date, each required set marked.
+  await expect(slab.getByTestId('hold-progress')).toHaveText('4 photos, 1 of 3 required sets');
+  await expect(slab.getByTestId('hold-step')).toContainText('Slab inspection before pour, Mon 28 Sep');
+  await expect(slab.getByTestId('cat-needed')).toHaveText([
+    'needed for inspection',
+    '!Needed before the slab inspection before pour',
+    '!Needed before the slab inspection before pour',
+  ]);
+  await expect(page.locator('main')).not.toContainText('$');
   await slab.getByRole('button', { name: /^Open photo/ }).first().click();
   await expect(page.getByTestId('lightbox')).toBeVisible();
+  await expect(page.getByTestId('lightbox').getByTestId('view-category')).toHaveText('Slab, Steel reinforcement in place');
   // Focus is trapped in the dialog, and goes back to the photo that opened it.
   for (let i = 0; i < 4; i++) {
     await page.keyboard.press('Tab');

@@ -11,7 +11,7 @@ import { SetupFrame } from '../setup/SetupFrame';
 import { checkName, checkPhone } from '../setup/validate';
 import { telHref, plural } from '../ui/itemWords';
 
-type TradeRow = Trade & { openItems: number };
+type TradeRow = Trade & { openItems: number; jobNames?: string[] };
 
 export function loadTrades(api: DashboardApi, filter: SideFilter): Promise<TradeRow[]> {
   return api.listTrades(filter);
@@ -20,12 +20,23 @@ export function loadTrades(api: DashboardApi, filter: SideFilter): Promise<Trade
 export function SetupTradesScreen() {
   const q = useSideQuery(loadTrades);
   const { sides, sideId } = useData();
+  const [adding, setAdding] = useState(false);
   const side = sides.find((s) => s.id === sideId)?.name;
+  const meta = q.status === 'ready' ? `${q.data.length ? plural(q.data.length, 'trade') : 'No trades'}${side ? ` on ${side}` : ''}` : null;
   return (
-    <SetupFrame title="Trades" sub={`The trade directory${side ? ` for ${side}` : ''}. Numbers show as tap-to-call links on To chase, Waiting on and each step.`}>
+    <SetupFrame
+      title="Trades"
+      meta={meta}
+      className="su-trades"
+      actions={
+        <button type="button" className="btn btn--primary btn--desktop" aria-expanded={adding} data-testid="add-trade-open" onClick={() => setAdding((v) => !v)}>
+          Add trade
+        </button>
+      }
+    >
       {q.status === 'loading' && <LoadingRows rows={5} label="Loading trades" />}
       {q.status === 'error' && <LoadError what="the trades" error={q.error} retry={q.retry} />}
-      {q.status === 'ready' && <TradesBody trades={q.data} />}
+      {q.status === 'ready' && <TradesBody trades={q.data} adding={adding} setAdding={setAdding} />}
     </SetupFrame>
   );
 }
@@ -44,7 +55,7 @@ function draftErrors(d: Draft) {
   };
 }
 
-export function TradesBody({ trades }: { trades: TradeRow[] }) {
+export function TradesBody({ trades, adding, setAdding }: { trades: TradeRow[]; adding: boolean; setAdding: (v: boolean) => void }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const types = [...new Set(trades.map((t) => t.type))].sort((a, b) => a.localeCompare(b));
@@ -55,29 +66,33 @@ export function TradesBody({ trades }: { trades: TradeRow[] }) {
           <option key={t} value={t} />
         ))}
       </datalist>
-      <AddTrade
-        onSaved={(msg) => {
-          setNotice(msg);
-          setEditing(null);
-        }}
-      />
+      {adding && (
+        <AddTrade
+          onCancel={() => setAdding(false)}
+          onSaved={(msg) => {
+            setNotice(msg);
+            setEditing(null);
+            setAdding(false);
+          }}
+        />
+      )}
       {notice && (
         <p className="su-saved" role="status" data-testid="trade-saved">
           {notice}
         </p>
       )}
       {trades.length === 0 ? (
-        <p className="empty">No trades yet. Add them as you book them.</p>
+        <p className="empty-line">No trades yet. Add them as you book them.</p>
       ) : (
-        <table className="su-table su-trades" data-testid="trades">
+        <table className="table su-trades__table" data-testid="trades">
           <thead>
             <tr>
               <th scope="col">Trade</th>
-              <th scope="col">Does</th>
+              <th scope="col">Type</th>
               <th scope="col">Phone</th>
-              <th scope="col">Open items</th>
+              <th scope="col">On jobs</th>
               <th scope="col">
-                <span className="sr-only">Change</span>
+                <span className="sr-only">Edit</span>
               </th>
             </tr>
           </thead>
@@ -94,30 +109,32 @@ export function TradesBody({ trades }: { trades: TradeRow[] }) {
                 />
               ) : (
                 <tr key={t.id} data-testid={`trade-${t.id}`}>
-                  <th scope="row" className="su-strong">
+                  <th scope="row" className="su-trades__name">
                     {t.name}
                   </th>
-                  <td>{t.type}</td>
-                  <td>
+                  <td className="su-trades__type">{t.type}</td>
+                  <td className="su-trades__phone">
                     {telHref(t.phone) ? (
-                      <a className="su-tel" href={telHref(t.phone)!} data-testid="trade-phone">
+                      <a className="su-trades__tel" href={telHref(t.phone)!} data-testid="trade-phone">
                         {t.phone}
                       </a>
                     ) : (
                       <span className="su-muted">No number</span>
                     )}
                   </td>
-                  <td>{t.openItems ? plural(t.openItems, 'item') : <span className="su-muted">None</span>}</td>
-                  <td className="su-right">
+                  <td className="su-trades__jobs" data-testid="trade-jobs">
+                    {t.jobNames?.length ? t.jobNames.join(', ') : <span className="su-muted">Not on a job yet</span>}
+                  </td>
+                  <td className="su-trades__actions">
                     <button
                       type="button"
-                      className="btn btn-small"
+                      className="btn btn--desktop"
                       onClick={() => {
                         setNotice(null);
                         setEditing(t.id);
                       }}
                     >
-                      Change<span className="sr-only"> {t.name}</span>
+                      Edit<span className="sr-only"> {t.name}</span>
                     </button>
                   </td>
                 </tr>
@@ -155,7 +172,7 @@ function useSaveTrade() {
   return { save, saving, error };
 }
 
-function AddTrade({ onSaved }: { onSaved: (msg: string) => void }) {
+function AddTrade({ onSaved, onCancel }: { onSaved: (msg: string) => void; onCancel: () => void }) {
   const [d, setD] = useState<Draft>({ name: '', type: '', phone: '' });
   const [touched, setTouched] = useState(false);
   const { save, saving, error } = useSaveTrade();
@@ -163,7 +180,7 @@ function AddTrade({ onSaved }: { onSaved: (msg: string) => void }) {
   const show = (m: string | null) => (touched ? m : null);
   return (
     <form
-      className="su-panel su-addtrade"
+      className="plate su-form-plate su-addtrade"
       noValidate
       aria-labelledby="addtrade-h"
       data-testid="add-trade"
@@ -179,8 +196,8 @@ function AddTrade({ onSaved }: { onSaved: (msg: string) => void }) {
         });
       }}
     >
-      <h2 id="addtrade-h" className="su-panel-h">
-        Add a trade
+      <h2 id="addtrade-h" className="su-form-plate__title">
+        New trade
       </h2>
       <div className="su-row3">
         <TradeField id="at-name" label="Name" value={d.name} error={show(errs.name)} onChange={(name) => setD({ ...d, name })} placeholder="Kerbside Concrete" />
@@ -197,8 +214,11 @@ function AddTrade({ onSaved }: { onSaved: (msg: string) => void }) {
         />
       </div>
       <div className="su-actions">
-        <button type="submit" className="btn btn-primary" disabled={saving} data-testid="add-trade-save">
-          {saving ? 'Adding…' : 'Add trade'}
+        <button type="submit" className="btn btn--primary btn--desktop" disabled={saving} data-testid="add-trade-save">
+          {saving ? 'Saving…' : 'Save trade'}
+        </button>
+        <button type="button" className="btn btn--desktop" onClick={onCancel}>
+          Cancel
         </button>
         {error && (
           <p className="su-error" role="alert">
@@ -224,11 +244,12 @@ function TradeField(props: {
 }) {
   return (
     <div className={props.error ? 'su-field has-error' : 'su-field'}>
-      <label htmlFor={props.id} className={props.hideLabel ? 'sr-only' : undefined}>
+      <label htmlFor={props.id} className={props.hideLabel ? 'sr-only' : 'su-label'}>
         {props.label}
       </label>
       <input
         id={props.id}
+        className="input input--desktop"
         type="text"
         value={props.value}
         placeholder={props.placeholder}
@@ -267,11 +288,12 @@ function EditTradeRow({ trade, onDone }: { trade: TradeRow; onDone: (msg: string
     if (msg) onDone(`Saved: ${msg}.`);
   }
   return (
-    <tr className="su-trade-edit" data-testid={`trade-edit-${trade.id}`}>
+    <tr className="su-trades__edit" data-testid={`trade-edit-${trade.id}`}>
       <td colSpan={5}>
         <form
+          className="su-form-plate su-trades__edit-form"
           noValidate
-          aria-label={`Change ${trade.name}`}
+          aria-label={`Edit ${trade.name}`}
           onSubmit={(e) => {
             e.preventDefault();
             void submit();
@@ -290,10 +312,10 @@ function EditTradeRow({ trade, onDone }: { trade: TradeRow; onDone: (msg: string
             />
           </div>
           <div className="su-actions">
-            <button type="submit" className="btn btn-primary" disabled={saving} data-testid="trade-edit-save">
+            <button type="submit" className="btn btn--glass-prominent btn--desktop" disabled={saving} data-testid="trade-edit-save">
               {saving ? 'Saving…' : 'Save'}
             </button>
-            <button type="button" className="btn" onClick={() => onDone(null)}>
+            <button type="button" className="btn btn--glass btn--desktop" onClick={() => onDone(null)}>
               Cancel
             </button>
             {error && (

@@ -952,7 +952,7 @@ export interface DesignChecklist {
     notes: string | null;
   }[];
   /** Items finished on this job, newest first. */
-  done: { itemId: string; title: string; typeLabel: string; doneAt: ISODate | null }[];
+  done: { itemId: string; title: string; type: ItemType; typeLabel: string; doneAt: ISODate | null }[];
   lastConfirmed: ISODate | null;
   daysUnconfirmed: number | null;
   amber: boolean;
@@ -983,7 +983,7 @@ export function designChecklist(ds: Dataset, jobId: string, today: ISODate): Des
     .sort((a, b) => b.daysSitting - a.daysSitting);
   const done = ds.items
     .filter((i) => i.jobId === jobId && i.status === 'done')
-    .map((i) => ({ itemId: i.id, title: i.title, typeLabel: ITEM_TYPE_LABELS[i.type], doneAt: i.doneAt }))
+    .map((i) => ({ itemId: i.id, title: i.title, type: i.type, typeLabel: ITEM_TYPE_LABELS[i.type], doneAt: i.doneAt }))
     .sort((a, b) => (b.doneAt ?? '').localeCompare(a.doneAt ?? ''));
   const fresh = forecastJob(ds, jobId, today).freshness;
   return {
@@ -1033,10 +1033,17 @@ export function dailyNotes(ds: Dataset, jobId: string, opts: { from?: ISODate; t
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
 }
 
-export function tradesList(ds: Dataset, filter: SideFilter = {}): (Trade & { openItems: number })[] {
+/** Each trade with its open item count and (Stage 6d, v1 "On jobs") the live jobs those open items are on, by name. */
+export function tradesList(ds: Dataset, filter: SideFilter = {}): (Trade & { openItems: number; jobNames: string[] })[] {
   return ds.trades
     .filter((t) => !filter.sideId || t.sideId === filter.sideId)
-    .map((t) => ({ ...t, openItems: ds.items.filter((i) => i.tradeId === t.id && i.status !== 'done').length }))
+    .map((t) => {
+      const open = ds.items.filter((i) => i.tradeId === t.id && i.status !== 'done');
+      const jobNames = [...new Set(open.map((i) => ds.jobs.find((j) => j.id === i.jobId)).filter((j) => !!j && !j.isTemplate).map((j) => j!.name))].sort((a, b) =>
+        a.localeCompare(b),
+      );
+      return { ...t, openItems: open.length, jobNames };
+    })
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -1047,6 +1054,11 @@ export interface TemplateRow {
   stages: number;
   steps: number;
   workingDays: number;
+  /** Stage 6d (v1 Templates row): approval path, needs and photo sets counted, stage names in order. */
+  path: ApprovalPath | null;
+  needs: number;
+  photoSets: number;
+  stageNames: string[];
 }
 
 export function templatesList(ds: Dataset, filter: SideFilter = {}): TemplateRow[] {
@@ -1061,6 +1073,13 @@ export function templatesList(ds: Dataset, filter: SideFilter = {}): TemplateRow
         stages: ds.stages.filter((s) => s.jobId === j.id).length,
         steps: steps.length,
         workingDays: steps.reduce((n, s) => n + s.durationDays, 0),
+        path: j.path,
+        needs: ds.requirements.filter((r) => r.jobId === j.id).length,
+        photoSets: ds.photoCategories.filter((c) => c.jobId === j.id).length,
+        stageNames: ds.stages
+          .filter((s) => s.jobId === j.id)
+          .sort((a, b) => a.order - b.order)
+          .map((s) => s.name),
       };
     });
 }

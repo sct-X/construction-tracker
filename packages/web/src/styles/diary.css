@@ -1,0 +1,107 @@
+/*
+  Daily notes (v1 dailyNotes.css look): the site diary. Phone: the days as
+  plates under muted week titles, each day's date as its figure (Title 3)
+  with how long ago beside it. Desktop: the same days as a hairline table on
+  the ground, week titles as row-group headers.
+*/
+.diary {
+  max-width: var(--content-max);
+}
+.diary__head {
+  margin-bottom: var(--space-4);
+}
+.diary__title {
+  font-family: var(--font-display);
+  font-size: var(--type-title-2);
+  font-weight: var(--weight-bold);
+  line-height: 1.2;
+}
+.diary__day-date {
+  font-family: var(--font-display);
+  font-size: var(--type-title-3);
+  font-weight: var(--weight-bold);
+  line-height: 1.2;
+  letter-spacing: var(--tracking-display);
+  color: var(--text);
+  white-space: nowrap;
+}
+.diary__day-when {
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+}
+
+/* ---- phone: plates under week titles ---- */
+.diary__week + .diary__week {
+  margin-top: var(--space-8);
+}
+.diary__week-title {
+  margin: 0 0 var(--space-3) var(--space-1);
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+}
+.diary__days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.diary__day {
+  padding: var(--space-4) var(--space-4) var(--space-5);
+}
+.diary__day-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-2);
+}
+.diary__day-text {
+  margin-top: var(--space-2);
+  max-width: var(--measure);
+}
+.diary__day-source {
+  margin-top: var(--space-2);
+  font-size: var(--type-footnote);
+  color: var(--text-muted);
+}
+
+/* ---- desktop: a hairline table ---- */
+.diary__table {
+  max-width: 920px;
+  font-size: var(--type-body);
+}
+.diary__table thead th:first-child,
+.diary__table td:first-child,
+.diary__table .diary__week-row th {
+  padding-left: var(--space-4);
+}
+.diary__table .diary__week-row th {
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-2);
+  border-bottom: 0;
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+}
+.diary__table tbody:first-of-type .diary__week-row th {
+  padding-top: var(--space-2);
+}
+.diary__table tbody tr:hover {
+  background: transparent;
+}
+.diary__cell-day {
+  width: 1%;
+  white-space: nowrap;
+}
+.diary__cell-day .diary__day-date {
+  display: block;
+}
+.diary__cell-text {
+  max-width: var(--measure);
+  color: var(--text);
+}
+.diary__cell-source {
+  width: 1%;
+  white-space: nowrap;
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+}

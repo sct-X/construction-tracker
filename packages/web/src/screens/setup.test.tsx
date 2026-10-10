@@ -10,6 +10,7 @@ import { SetupNewJobScreen } from './SetupNewJob';
 import { SetupProgramEditorScreen } from './SetupProgramEditor';
 import { SetupTradesScreen } from './SetupTrades';
 import { SetupTemplatesScreen } from './SetupTemplates';
+import { SetupProgramsScreen } from './SetupPrograms';
 import { checkDays, checkMoney, checkName, checkPhone, checkWeeks, moneyValue } from '../setup/validate';
 import { setupTabFor } from '../setup/SetupFrame';
 
@@ -40,7 +41,7 @@ describe('Setup checks, in plain words', () => {
     expect(checkPhone('555 1234')).toMatch(/Australian phone number/);
   });
 
-  it('puts every Setup page under its tab', () => {
+  it('puts every Setup page under its Setup page', () => {
     expect(setupTabFor('/setup')).toBe('/setup');
     expect(setupTabFor('/setup/programs/park-rd')).toBe('/setup/programs');
     expect(setupTabFor('/setup/templates/tpl-duplex')).toBe('/setup/templates');
@@ -53,12 +54,19 @@ describe('New job', () => {
     fireEvent.change(await screen.findByLabelText('Job name'), { target: { value: 'Smith St' } });
     fireEvent.change(screen.getByLabelText('Weekly holding cost'), { target: { value: '3200' } });
     // Start date defaults to next Monday, Mon 21 Sep.
-    expect((screen.getByLabelText('Start date') as HTMLInputElement).value).toBe('2026-09-21');
+    expect((screen.getByLabelText('Start on site') as HTMLInputElement).value).toBe('2026-09-21');
+    // The template is a segmented pick with its counts (v1).
+    expect(screen.getByTestId('nj-template-tpl-duplex').getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByTestId('nj-template-tpl-duplex').textContent).toContain('8 stages, 29 steps, 25 needs, 13 photo sets');
     expect((await screen.findByTestId('nj-finish')).textContent).toBe('Fri 21 May 2027');
+    // The "starts from" ladder carries each stage's planned dates.
+    await waitFor(() => expect(within(screen.getByTestId('nj-stages')).getAllByRole('listitem')[0]!.textContent).toContain('Mon 21 Sep to Fri 9 Oct'));
     const stages = within(screen.getByTestId('nj-stages')).getAllByRole('listitem');
     expect(stages).toHaveLength(8);
     expect(stages[0]!.textContent).toContain('Site establishment');
-    expect(stages[0]!.textContent).toContain('Mon 21 Sep to Fri 9 Oct');
+    expect(screen.getByTestId('nj-preview').textContent).toContain('29 steps, about 35 weeks, from Mon 21 Sep 2026, in 4 days.');
+    // No slip, no $ beyond the holding cost field (timing first).
+    expect(screen.getByTestId('nj-preview').textContent).not.toMatch(/\$|slip/i);
 
     fireEvent.click(screen.getByTestId('nj-create'));
     await waitFor(() => expect(window.location.hash).toMatch(/^#\/jobs\/job-/));
@@ -71,10 +79,11 @@ describe('New job', () => {
   it('starts from a later stage: earlier stages are marked done', async () => {
     show(<SetupNewJobScreen />);
     fireEvent.change(await screen.findByLabelText('Job name'), { target: { value: 'Live St' } });
-    const from = screen.getByLabelText('Starts from stage') as HTMLSelectElement;
-    await waitFor(() => expect(from.options.length).toBeGreaterThan(1));
-    fireEvent.change(from, { target: { value: [...from.options].find((o) => o.text === 'Frame')!.value } });
+    const frame = await screen.findByRole('button', { name: /Frame/ });
+    fireEvent.click(frame);
+    expect(frame.getAttribute('aria-pressed')).toBe('true');
     expect((await screen.findByTestId('nj-done')).textContent).toBe('Marked done: Site establishment, Slab.');
+    expect(within(screen.getByTestId('nj-stages')).getAllByRole('listitem')[0]!.textContent).toContain('done');
   });
 
   it('says what is wrong instead of creating', async () => {
@@ -119,11 +128,28 @@ describe('Program editor', () => {
     fireEvent.click(await screen.findByTestId('bar-discard'));
     expect((row.getByTestId('ed-days') as HTMLInputElement).value).toBe('10');
     expect(screen.queryByTestId('change-bar')).toBeNull();
+    // v1's footer stays, with nothing to save.
+    const foot = within(screen.getByTestId('editor-foot'));
+    expect(foot.getByText('Edit a step to see what moves.')).toBeTruthy();
+    expect(foot.getByText('No unsaved changes')).toBeTruthy();
+    expect((foot.getByTestId('bar-save') as HTMLButtonElement).disabled).toBe(true);
+    // Numbered stage chips above the table.
+    expect(within(screen.getByTestId('ed-stages')).getAllByRole('button').map((b) => b.textContent)).toEqual([
+      '1Site establishment',
+      '2Slab',
+      '3Frame',
+      '4Roof',
+      '5Lock-up',
+      '6External works',
+      '7Fit-out',
+      '8Handover',
+    ]);
   });
 
   it('a template: no dates, the change measured in working days', async () => {
     show(<SetupProgramEditorScreen jobId="tpl-duplex" />);
-    expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('Template: Duplex');
+    expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('Duplex');
+    expect(await screen.findByText(/^Template editor, 8 stages, 29 steps/)).toBeTruthy();
     const row = within(await screen.findByTestId('ed-step-tpl-frame'));
     fireEvent.change(row.getByTestId('ed-days'), { target: { value: '20' } });
     expect((await screen.findByTestId('template-impact')).textContent).toContain('Longest chain 160 to 165 working days.');
@@ -139,10 +165,25 @@ describe('Program editor', () => {
   });
 });
 
+describe('Programs', () => {
+  it('lists each build with its stage now, each opening its editor', async () => {
+    show(<SetupProgramsScreen />);
+    const park = await screen.findByTestId('setup-program-park-rd');
+    expect(park.textContent).toBe('Park RdLock-up');
+    expect(within(park).getByRole('link', { name: "Edit Park Rd's program" }).getAttribute('href')).toBe('#/setup/programs/park-rd');
+    expect(screen.getByText(/^Design jobs have a checklist, not a program: /)).toBeTruthy();
+  });
+});
+
 describe('Templates', () => {
   it('lists the duplex template and previews a copy of a job', async () => {
     show(<SetupTemplatesScreen />);
-    expect((await screen.findByTestId('template-tpl-duplex')).textContent).toContain('Duplex');
+    const row = await screen.findByTestId('template-tpl-duplex');
+    expect(row.textContent).toContain('Duplex');
+    expect(row.textContent).toContain('8 stages, 29 steps, 25 needs, 13 photo sets');
+    expect(within(row).getByRole('list', { name: 'Stages in order' }).textContent).toContain('1Site establishment');
+    // The copy-a-job form opens from the header (v1 "Save job as template").
+    fireEvent.click(screen.getByTestId('fromjob-open'));
     fireEvent.change(screen.getByLabelText('Template name'), { target: { value: 'Park Rd program' } });
     expect((await screen.findByTestId('fromjob-preview')).textContent).toMatch(/^8 stages, \d+ steps, .* No dates\.$/);
   });
@@ -151,6 +192,9 @@ describe('Templates', () => {
 describe('Trades', () => {
   it('refuses a number that is not Australian, saves a good one written the usual way', async () => {
     const mock = show(<SetupTradesScreen />);
+    // v1: "Add trade" in the header opens the form; the table shows the jobs each trade is on.
+    expect(within(await screen.findByTestId('trade-tr-harbour-tiling')).getByTestId('trade-jobs').textContent).toBe('Beatty St, Park Rd');
+    fireEvent.click(screen.getByTestId('add-trade-open'));
     const form = within(await screen.findByTestId('add-trade'));
     fireEvent.change(form.getByLabelText('Name'), { target: { value: 'Kerbside Concrete' } });
     fireEvent.change(form.getByLabelText('What they do'), { target: { value: 'Concreter' } });

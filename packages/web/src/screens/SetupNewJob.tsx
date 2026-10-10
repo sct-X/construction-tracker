@@ -10,6 +10,8 @@ import {
   formatDate,
   formatLong,
   lastMonday,
+  relativeDays,
+  stageDisplayName,
   type Change,
   type DashboardApi,
   type ISODate,
@@ -54,7 +56,7 @@ function templateFromHash(): string | null {
 export function SetupNewJobScreen() {
   const q = useSideQuery(loadNewJob);
   return (
-    <SetupFrame title="New job" sub="Start a build from a template, or a design job with its approval checklist. Nothing is saved until you press Create.">
+    <SetupFrame title="New job" className="su-nj">
       {q.status === 'loading' && <LoadingRows rows={4} label="Loading templates" />}
       {q.status === 'error' && <LoadError what="the templates" error={q.error} retry={q.retry} />}
       {q.status === 'ready' && <NewJobForm data={q.data} />}
@@ -63,6 +65,12 @@ export function SetupNewJobScreen() {
 }
 
 type Kind = 'build' | 'design';
+
+const PATHS: { value: '' | 'DA' | 'CDC'; label: string }[] = [
+  { value: '', label: 'Not set' },
+  { value: 'DA', label: 'DA' },
+  { value: 'CDC', label: 'CDC' },
+];
 
 export function NewJobForm({ data }: { data: NewJobData }) {
   const { api, sides, sideId, refresh } = useData();
@@ -103,6 +111,7 @@ export function NewJobForm({ data }: { data: NewJobData }) {
     };
   }, [valid, kind, name, path, side, cost, templateId, startDate, fromStage]);
   const preview = usePreview(call);
+  const lines = preview.status === 'ready' ? stageLines(preview.preview) : null;
 
   async function create() {
     setTouched(true);
@@ -126,119 +135,183 @@ export function NewJobForm({ data }: { data: NewJobData }) {
   }
 
   const show = (msg: string | null) => (touched ? msg : null);
+  const pickKind = (k: Kind) => {
+    setKind(k);
+    if (k === 'design' && !path) setPath('DA');
+  };
+  const paths = kind === 'build' ? PATHS : PATHS.slice(1);
+  const fromIndex = Math.max(0, tplStages.findIndex((s) => s.id === fromStage));
 
   return (
     <form
-      className="su-newjob"
+      className="su-nj__form"
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
         void create();
       }}
     >
-      <div className="su-form">
-        <fieldset className="su-fieldset">
-          <legend className="su-legend">What kind of job</legend>
-          <div className="oseg seg-small" role="group" aria-label="Kind of job">
-            <button type="button" className="seg-btn" aria-pressed={kind === 'build'} onClick={() => setKind('build')} disabled={!templates.length}>
-              Build, from a template
+      <Field id="nj-name" label="Job name" error={show(errors.name)}>
+        <input id="nj-name" className="input input--desktop" type="text" value={name} placeholder="12 Smith St" autoComplete="off" onChange={(e) => setName(e.target.value)} onBlur={() => name && setTouched(true)} />
+      </Field>
+
+      {sides.length > 1 && (
+        <Choice label="Side" id="nj-side">
+          {sides.map((s) => (
+            <button key={s.id} type="button" className="seg__btn" aria-pressed={side === s.id} data-testid={`nj-side-${s.id}`} onClick={() => setSide(s.id)}>
+              {s.name}
             </button>
-            <button type="button" className="seg-btn" aria-pressed={kind === 'design'} onClick={() => setKind('design')}>
-              Design, approval checklist
-            </button>
-          </div>
-          {!templates.length && (
-            <p className="su-hint">
-              No templates yet. Build the duplex template first on <a href={href('/setup/templates')}>Templates</a>.
-            </p>
-          )}
-        </fieldset>
+          ))}
+        </Choice>
+      )}
 
-        {kind === 'build' && (
-          <Field id="nj-template" label="Template" error={show(errors.template)}>
-            <select id="nj-template" value={templateId} onChange={(e) => (setTemplateId(e.target.value), setFromStage(''))}>
-              {templates.map((t) => (
-                <option key={t.jobId} value={t.jobId}>
-                  {t.name} ({plural(t.stages, 'stage')}, {plural(t.steps, 'step')})
-                </option>
-              ))}
-            </select>
-          </Field>
-        )}
+      <Choice label="Kind" id="nj-kind">
+        <button type="button" className="seg__btn" aria-pressed={kind === 'build'} disabled={!templates.length} onClick={() => pickKind('build')}>
+          Build
+        </button>
+        <button type="button" className="seg__btn" aria-pressed={kind === 'design'} onClick={() => pickKind('design')}>
+          Design
+        </button>
+      </Choice>
+      {!templates.length && (
+        <p className="su-hint">
+          No build templates yet. Make one on <a href={href('/setup/templates')}>Templates</a>.
+        </p>
+      )}
 
-        <Field id="nj-name" label="Job name" hint='As you say it, like "Smith St".' error={show(errors.name)}>
-          <input id="nj-name" type="text" value={name} autoComplete="off" onChange={(e) => setName(e.target.value)} onBlur={() => name && setTouched(true)} />
-        </Field>
-
-        <div className="su-row2">
-          <Field id="nj-side" label="Side">
-            <select id="nj-side" value={side} onChange={(e) => setSide(e.target.value)}>
-              {sides.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field id="nj-path" label="Approval path">
-            <select id="nj-path" value={path} onChange={(e) => setPath(e.target.value as '' | 'DA' | 'CDC')}>
-              {kind === 'build' && <option value="">Not set</option>}
-              <option value="DA">DA, through council</option>
-              <option value="CDC">CDC, through a certifier</option>
-            </select>
-          </Field>
-        </div>
-
-        {kind === 'build' && (
-          <div className="su-row2">
-            <Field id="nj-start" label="Start date" hint="Planned dates run forward from here, in working days." error={show(errors.startDate)}>
-              <input id="nj-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            </Field>
-            <Field id="nj-from" label="Starts from stage" hint="For a job already under way: earlier stages are marked done.">
-              <select id="nj-from" value={fromStage} onChange={(e) => setFromStage(e.target.value)}>
-                <option value="">The first stage</option>
-                {tplStages.slice(1).map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-        )}
-
-        <Field id="nj-cost" label="Weekly holding cost" hint="Dollars a week. The bot prices a slip with it on its confirm card." error={show(errors.cost)}>
-          <span className="su-money">
-            <span aria-hidden="true">$</span>
-            <input id="nj-cost" type="text" inputMode="decimal" value={cost} placeholder="4500" onChange={(e) => setCost(e.target.value)} />
-          </span>
-        </Field>
-
-        <div className="su-actions">
-          <button type="submit" className="btn btn-primary" disabled={saving || (touched && (!valid || !canSave(preview)))} data-testid="nj-create">
-            {saving ? 'Creating…' : name.trim() ? `Create ${name.trim()}` : 'Create job'}
+      <Choice label="Approval path" id="nj-path">
+        {paths.map((p) => (
+          <button key={p.label} type="button" className="seg__btn" aria-pressed={path === p.value} data-testid={`nj-path-${p.value || 'none'}`} onClick={() => setPath(p.value)}>
+            {p.label}
           </button>
-          {saveError && (
-            <p className="su-error" role="alert">
-              {saveError}
-            </p>
-          )}
+        ))}
+      </Choice>
+
+      {kind === 'build' && (
+        <Choice label="Template" id="nj-template" wrap error={show(errors.template)}>
+          {templates.map((t) => (
+            <button
+              key={t.jobId}
+              type="button"
+              className="seg__btn su-nj__pick"
+              aria-pressed={templateId === t.jobId}
+              data-testid={`nj-template-${t.jobId}`}
+              onClick={() => {
+                setTemplateId(t.jobId);
+                setFromStage('');
+              }}
+            >
+              {t.name}
+              <span className="su-nj__pick-sub">{templateCountWords(t)}</span>
+            </button>
+          ))}
+        </Choice>
+      )}
+
+      <Field id="nj-cost" label="Weekly holding cost" hint="Used by the bot's confirm card." error={show(errors.cost)}>
+        <span className="su-money">
+          <span className="su-money__sign" aria-hidden="true">
+            $
+          </span>
+          <input id="nj-cost" className="input input--desktop" type="text" inputMode="decimal" value={cost} placeholder="4500" onChange={(e) => setCost(e.target.value)} />
+          <span className="su-money__unit" aria-hidden="true">
+            a week
+          </span>
+        </span>
+      </Field>
+
+      {kind === 'build' && (
+        <Field id="nj-start" label="Start on site" error={show(errors.startDate)}>
+          <input id="nj-start" className="input input--desktop su-nj__date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        </Field>
+      )}
+
+      {kind === 'build' && tplStages.length > 0 && (
+        <div className="su-field">
+          <span className="su-label" id="nj-from-label">
+            Starts from
+          </span>
+          <ol className="su-nj__stages" aria-labelledby="nj-from-label" data-testid="nj-stages">
+            {tplStages.map((s, i) => {
+              const pressed = i === fromIndex;
+              const done = i < fromIndex;
+              const line = lines?.stages[i];
+              return (
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    className="su-nj__stage"
+                    aria-pressed={pressed}
+                    data-done={done ? 'true' : 'false'}
+                    data-testid={`nj-from-${s.id}`}
+                    onClick={() => setFromStage(i === 0 ? '' : s.id)}
+                  >
+                    <span className="su-nj__stage-num" aria-hidden="true">
+                      {i + 1}
+                    </span>
+                    <span className="su-nj__stage-name">{s.name}</span>
+                    <span className="su-nj__stage-words">
+                      {done ? 'done' : line?.start && line.end ? `${formatDate(line.start, today)} to ${formatDate(line.end, today)}` : ''}
+                      {pressed && <span className="sr-only">{i === 0 ? ', the start' : ', starts here'}</span>}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
         </div>
-      </div>
+      )}
 
       <NewJobPreview kind={kind} preview={preview} today={today} valid={valid} name={name.trim()} />
+
+      <div className="su-actions">
+        <button type="submit" className="btn btn--primary" disabled={saving || (touched && (!valid || !canSave(preview)))} data-testid="nj-create">
+          {saving ? 'Creating…' : name.trim() ? `Create ${name.trim()}` : 'Create job'}
+        </button>
+        {saveError && (
+          <p className="su-error" role="alert">
+            {saveError}
+          </p>
+        )}
+      </div>
     </form>
   );
+}
+
+/** "8 stages, 29 steps, 25 needs, 13 photo sets" (v1 countWords). */
+export function templateCountWords(t: Pick<TemplateRow, 'stages' | 'steps' | 'needs' | 'photoSets'>): string {
+  return [plural(t.stages, 'stage'), plural(t.steps, 'step'), plural(t.needs ?? 0, 'need'), plural(t.photoSets ?? 0, 'photo set')].join(', ');
 }
 
 function Field({ id, label, hint, error, children }: { id: string; label: string; hint?: string; error?: string | null; children: ReactNode }) {
   return (
     <div className={error ? 'su-field has-error' : 'su-field'}>
-      <label htmlFor={id}>{label}</label>
+      <label className="su-label" htmlFor={id}>
+        {label}
+      </label>
       {children}
       {hint && !error && <span className="su-hint">{hint}</span>}
       {error && (
         <span className="su-error" id={`${id}-error`} role="alert">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** A picker as a segmented control (v1: never a dropdown), with its label. */
+function Choice({ id, label, wrap, error, children }: { id: string; label: string; wrap?: boolean; error?: string | null; children: ReactNode }) {
+  return (
+    <div className="su-field">
+      <span className="su-label" id={`${id}-label`}>
+        {label}
+      </span>
+      <div className={wrap ? 'seg su-seg--wrap' : 'seg'} role="group" aria-labelledby={`${id}-label`} data-testid={id}>
+        {children}
+      </div>
+      {error && (
+        <span className="su-error" role="alert">
           {error}
         </span>
       )}
@@ -278,19 +351,16 @@ export function stageLines(preview: SetupPreview): { finish: ISODate | null; sta
 function NewJobPreview({ kind, preview, today, valid, name }: { kind: Kind; preview: PreviewState; today: ISODate; valid: boolean; name: string }) {
   const problem = previewProblem(preview);
   return (
-    <aside className="su-panel su-nj-preview" aria-label="Preview" aria-live="polite" data-testid="nj-preview">
-      <h2 className="su-panel-h">Before you create it</h2>
-      {!valid && <p className="su-muted">Fill in the job name{kind === 'build' ? ' and start date' : ''} to see the {kind === 'build' ? 'planned dates' : 'checklist'}.</p>}
-      {valid && preview.status === 'checking' && <p className="su-muted">Working out the dates…</p>}
+    <div className="su-nj__finish" aria-live="polite" data-testid="nj-preview">
+      {!valid && <p className="su-nj__words">{kind === 'build' ? 'Give it a name and a start date.' : 'Give it a name.'}</p>}
+      {valid && preview.status === 'checking' && <p className="su-nj__words">Working out the dates…</p>}
       {problem && (
         <p className="su-error" role="alert" data-testid="nj-problem">
           {problem}
         </p>
       )}
-      {valid && preview.status === 'ready' && preview.preview.result.kind === 'proposal' && (
-        <PreviewBody kind={kind} preview={preview.preview} today={today} name={name} />
-      )}
-    </aside>
+      {valid && preview.status === 'ready' && preview.preview.result.kind === 'proposal' && <PreviewBody kind={kind} preview={preview.preview} today={today} name={name} />}
+    </div>
   );
 }
 
@@ -299,49 +369,44 @@ function PreviewBody({ kind, preview, today, name }: { kind: Kind; preview: Setu
   if (kind === 'design') {
     return (
       <>
-        <p className="su-panel-lead">{name} gets this checklist, starting at the first stage:</p>
-        <ol className="su-nj-checklist">
-          {stages.map((s) => (
-            <li key={s.id}>{s.name}</li>
+        <p className="su-nj__words">
+          {name} starts at {stageDisplayName(stages[0]?.name ?? 'Design')}. A design job has no program and no finish date.
+        </p>
+        <ol className="su-nj__checklist" aria-label="Checklist stages">
+          {stages.map((s, i) => (
+            <li key={s.id}>
+              <span className="su-nj__stage-num" aria-hidden="true">
+                {i + 1}
+              </span>
+              {stageDisplayName(s.name)}
+            </li>
           ))}
         </ol>
-        <p className="su-muted">Design jobs have no program and no finish date until they become a build.</p>
       </>
     );
   }
   const live = stages.filter((s) => !s.done && s.start && s.end);
   const done = stages.filter((s) => s.done);
   const first = live[0]?.start ?? null;
-  const span = first && finish ? Math.max(1, dayNumber(finish) - dayNumber(first) + 1) : 1;
+  const steps = live.reduce((n, s) => n + s.steps, 0);
+  const weeks = first && finish ? Math.max(1, Math.round((dayNumber(finish) - dayNumber(first) + 1) / 7)) : null;
   return (
     <>
-      <p className="su-nj-finish-label">Planned finish</p>
-      <p className="su-nj-finish" data-testid="nj-finish">
+      <p className="su-nj__finish-label">Planned finish</p>
+      <p className="su-nj__finish-date" data-testid="nj-finish">
         {finish ? formatLong(finish) : 'No finish'}
       </p>
-      {first && <p className="su-muted">Starts {formatDate(first, today)}. The forecast starts equal to the plan.</p>}
+      {first && (
+        <p className="su-nj__words">
+          {plural(steps, 'step')}
+          {weeks ? `, about ${plural(weeks, 'week')}` : ''}, from {formatLong(first)}, {relativeDays(first, today)}.
+        </p>
+      )}
       {done.length > 0 && (
-        <p className="su-nj-done" data-testid="nj-done">
+        <p className="su-nj__words" data-testid="nj-done">
           Marked done: {done.map((s) => s.name).join(', ')}.
         </p>
       )}
-      <ol className="su-nj-stages" data-testid="nj-stages">
-        {live.map((s) => {
-          const left = ((dayNumber(s.start!) - dayNumber(first!)) / span) * 100;
-          const width = Math.max(1.5, ((dayNumber(s.end!) - dayNumber(s.start!) + 1) / span) * 100);
-          return (
-            <li key={s.id} className="su-nj-stage">
-              <span className="su-nj-stage-name">{s.name}</span>
-              <span className="su-nj-stage-dates">
-                {formatDate(s.start!, today)} to {formatDate(s.end!, today)}
-              </span>
-              <span className="su-nj-track" aria-hidden="true">
-                <span className="su-nj-bar" style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }} />
-              </span>
-            </li>
-          );
-        })}
-      </ol>
     </>
   );
 }

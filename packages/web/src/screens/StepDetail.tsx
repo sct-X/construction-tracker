@@ -1,18 +1,37 @@
 /**
- * Step detail: one step's planned and forecast dates, the one sentence that
- * says what sets its start, what it waits for, what it holds up, the items it
- * needs (needed-by, act-by, expected), and for a hold point how many of the
- * required photo categories have a photo.
+ * Step detail (v1 src/screens/StepDetail.tsx, read-only: the bot marks steps
+ * started or done): one step's dates, what sets them, what it needs and, for
+ * a hold point, the before-cover photo sets.
+ *
+ * The dates are a two-figure readout, forecast (with "7 days late" or "on
+ * plan" beside it) and planned, then duration and status as small facts. One
+ * calculator sentence says why, only when there is a why. The hold-point
+ * check comes before the order of work and the items, because it is the
+ * thing that stops a tick. Red only for what is overdue (Dom's cue).
  */
-import { formatDate, type DashboardApi, type ISODate, type StepDetail, type WaitingRow } from '@ct/core';
-import { href } from '../app/router';
-import { CellLabel, LoadError, LoadingRows } from '../components/bits';
+import {
+  daysLateWords,
+  holdPointReadinessWords,
+  isStepOverdue,
+  leadTimeWords,
+  shortWithRelative,
+  stepWhenWords,
+  workStatusWords,
+  type DashboardApi,
+  type ISODate,
+  type StepDetail,
+} from '@ct/core';
+import { LoadError, LoadingRows } from '../components/bits';
+import { ItemRow, ItemRowList } from '../components/ItemRow';
+import { StatusText, type Tone } from '../components/StatusText';
+import { stepHref } from '../components/gantt/Gantt';
+import { tabHref } from '../app/jobNav';
 import { useJobQuery } from '../data/useJobQuery';
 import { useData } from '../data/DataContext';
-import { lateWords, plural, rangeWords, statusWords, UNKNOWN_TODAY } from '../ui/format';
-import { tabHref } from '../app/jobNav';
-import { CallLink } from '../components/listBits';
-import { photoCount, urgencyWords } from '../ui/itemWords';
+import { plural, rangeWords, UNKNOWN_TODAY } from '../ui/format';
+import { photoCount } from '../ui/itemWords';
+import { whenWords } from '../ui/when';
+import '../styles/step.css';
 
 export function loadStep(api: DashboardApi, stepId: string): Promise<StepDetail> {
   return api.getStep(stepId);
@@ -22,20 +41,16 @@ export function StepDetailScreen({ jobId, stepId }: { jobId: string; stepId: str
   const q = useJobQuery(loadStep, stepId);
   const { today } = useData();
   return (
-    <div className="screen step">
-      <p className="crumb">
-        <a href={href(`/jobs/${encodeURIComponent(jobId)}/program`)}>Program</a>
-        {q.status === 'ready' && <span className="crumb-here"> / {q.data.stageName}</span>}
-      </p>
+    <div className="step" data-testid="step-detail" data-job={jobId}>
       {q.status === 'loading' && (
         <>
-          <h1>Step</h1>
+          <h2 className="step__title">Step</h2>
           <LoadingRows rows={4} label="Loading the step" />
         </>
       )}
       {q.status === 'error' && (
         <>
-          <h1>Step</h1>
+          <h2 className="step__title">Step</h2>
           <LoadError what="this step" error={q.error} retry={q.retry} />
         </>
       )}
@@ -44,96 +59,132 @@ export function StepDetailScreen({ jobId, stepId }: { jobId: string; stepId: str
   );
 }
 
+/** "7 days late", "3 days early", "on plan", and the tone: red only once the step is past its planned date. */
+export function stepLate(s: StepDetail['step'], today: ISODate): { text: string; tone: Tone } {
+  if (s.lateDays > 0 && s.status !== 'done') return { text: daysLateWords(s.lateDays), tone: isStepOverdue(s, today) ? 'late' : 'plain' };
+  if (s.lateDays < 0) {
+    const n = -s.lateDays;
+    return { text: `${n} day${n === 1 ? '' : 's'} early`, tone: 'ok' };
+  }
+  return { text: 'on plan', tone: 'muted' };
+}
+
 export function StepBody({ d, today }: { d: StepDetail; today: ISODate }) {
   const s = d.step;
-  const late = s.isLate && s.status !== 'done';
-  const meta = [d.stageName, s.tradeType, statusWords(s.status)].filter(Boolean).join(', ');
+  const late = stepLate(s, today);
+  const meta = [d.stageName ? `${d.stageName} stage` : '', s.isHoldPoint ? 'hold point' : '', s.tradeType ?? ''].filter(Boolean).join(', ');
+  const showReason = s.lateDays !== 0 || /after|because/.test(s.reason);
   return (
     <>
-      <header className="screen-head step-head">
-        <h1>
+      <header className="step__head">
+        <h2 className="step__title">
           {s.name}
           <span className="sr-only">, {d.jobName}</span>
-        </h1>
-        <p className="screen-sub">
-          {meta}
-          {s.isHoldPoint && (
-            <>
-              {' '}
-              <span className="hp-tag">Hold point</span>
-            </>
-          )}
-        </p>
+        </h2>
+        {meta && <p className="page-header__meta">{meta}</p>}
       </header>
 
-      <section className="step-dates" aria-label="Dates" data-testid="step-dates">
-        <div className="sd-cell">
-          <span className="sd-label">Forecast</span>
-          <span className={late ? 'num-md sd-forecast is-late' : 'num-md sd-forecast'} data-testid="step-forecast">
-            {rangeWords(s.forecastStart, s.forecastEnd, today)}
+      <section className="step__dates" aria-label="Dates" data-testid="step-dates">
+        <div className="step__readout">
+          <span className={late.tone === 'late' ? 'step__figure step__figure--late' : 'step__figure'}>
+            <span className="step__value" data-testid="step-forecast">
+              {rangeWords(s.forecastStart, s.forecastEnd, today)}
+            </span>
+            <span className="step__label">Forecast, {stepWhenWords(s, today)}</span>
+          </span>
+          {s.plannedStart && (
+            <StatusText tone={late.tone} plain={late.tone !== 'late'} testId="step-late" className="step__late">
+              {late.text}
+            </StatusText>
+          )}
+        </div>
+        <div className="step__readout">
+          <span className="step__figure step__figure--muted">
+            <span className="step__value" data-testid="step-planned">
+              {s.plannedStart ? rangeWords(s.plannedStart, s.plannedEnd, today) : 'No planned dates'}
+            </span>
+            <span className="step__label">Planned</span>
           </span>
         </div>
-        <div className="sd-cell">
-          <span className="sd-label">Planned</span>
-          <span className="num-md sd-planned" data-testid="step-planned">
-            {rangeWords(s.plannedStart, s.plannedEnd, today)}
-          </span>
-        </div>
-        <div className="sd-cell">
-          <span className="sd-label">Length</span>
-          <span className="num-md">{plural(s.durationDays, 'working day')}</span>
-        </div>
-        <p className={late ? 'sd-reason is-late' : 'sd-reason'} data-testid="step-reason">
-          {late && <strong className="late-words">{lateWords(s.lateDays)}. </strong>}
+        <dl className="step__facts">
+          <div className="step__fact">
+            <dt>Duration</dt>
+            <dd data-testid="step-duration">{plural(s.durationDays, 'working day')}</dd>
+          </div>
+          <div className="step__fact">
+            <dt>Status</dt>
+            <dd data-testid="step-status">{workStatusWords(s.status)}</dd>
+          </div>
+        </dl>
+      </section>
+      {showReason && (
+        <p className="step__reason" data-testid="step-reason">
           {s.reason}
         </p>
-      </section>
+      )}
 
       {d.holdPoint && <HoldPointBlock d={d} />}
 
-      <section className="block" aria-labelledby="needs-h">
-        <h2 id="needs-h">What it needs</h2>
-        {d.items.length ? <NeedsTable rows={d.items} today={today} /> : <p className="empty">No items are linked to this step.</p>}
-        {d.requirements.length > 0 && (
-          <p className="req-line">
-            Lead times:{' '}
-            {d.requirements
-              .map((r) => `${r.name} ${r.leadTimeWeeks ? `${plural(r.leadTimeWeeks, 'week')}` : 'no lead time'}`)
-              .join('; ')}
-            .
-          </p>
-        )}
-      </section>
-
-      <div className="links-pair">
-        <section className="block" aria-labelledby="waits-h">
-          <h2 id="waits-h">Waits for</h2>
-          {d.waitsFor.length ? (
-            <ul className="link-list" data-testid="waits-for">
-              {d.waitsFor.map((w) => (
-                <li key={w.stepId}>
-                  <a href={href(`/jobs/${encodeURIComponent(d.jobId)}/steps/${encodeURIComponent(w.stepId)}`)}>{w.name}</a>
-                  <span className="sub">finishes {formatDate(w.forecastEnd, today)}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="empty">No earlier step. It can start on its planned date.</p>
-          )}
+      <div className="step__cols">
+        <section className="step__section" aria-labelledby="step-links">
+          <h3 id="step-links" className="step__section-title">
+            Order of work
+          </h3>
+          <dl className="step__links">
+            <div className="step__link-group">
+              <dt>Waits for</dt>
+              <dd>
+                {d.waitsFor.length ? (
+                  <ul className="step__link-list" data-testid="waits-for">
+                    {d.waitsFor.map((w) => (
+                      <li key={w.stepId}>
+                        <a href={stepHref(d.jobId, w.stepId)} className="step__link">
+                          {w.name}
+                        </a>
+                        <span className="step__link-when"> ends {shortWithRelative(w.forecastEnd, today)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span className="step__quiet">Nothing</span>
+                )}
+              </dd>
+            </div>
+            <div className="step__link-group">
+              <dt>Holds up</dt>
+              <dd>
+                {d.holdsUp.length ? (
+                  <ul className="step__link-list" data-testid="holds-up">
+                    {d.holdsUp.map((w) => (
+                      <li key={w.stepId}>
+                        <a href={stepHref(d.jobId, w.stepId)} className="step__link">
+                          {w.name}
+                        </a>
+                        <span className="step__link-when"> starts {shortWithRelative(w.forecastStart, today)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span className="step__quiet">Nothing</span>
+                )}
+              </dd>
+            </div>
+          </dl>
         </section>
-        <section className="block" aria-labelledby="holds-h">
-          <h2 id="holds-h">Holds up</h2>
-          {d.holdsUp.length ? (
-            <ul className="link-list" data-testid="holds-up">
-              {d.holdsUp.map((w) => (
-                <li key={w.stepId}>
-                  <a href={href(`/jobs/${encodeURIComponent(d.jobId)}/steps/${encodeURIComponent(w.stepId)}`)}>{w.name}</a>
-                  <span className="sub">starts {formatDate(w.forecastStart, today)}</span>
-                </li>
-              ))}
-            </ul>
+
+        <section className="step__section" aria-labelledby="step-needs">
+          <h3 id="step-needs" className="step__section-title">
+            Needs
+          </h3>
+          {d.requirements.length > 0 && <p className="step__requirements">{leadTimeWords(d.requirements)}</p>}
+          {d.items.length === 0 ? (
+            <p className="step__quiet">No items.</p>
           ) : (
-            <p className="empty">Nothing waits for this step.</p>
+            <ItemRowList testId="needs">
+              {d.items.map((r) => (
+                <ItemRow key={r.itemId} row={r} when={r.status === 'done' ? { text: 'Done', tone: 'muted' } : whenWords(r, today)} testId={`need-${r.itemId}`} />
+              ))}
+            </ItemRowList>
           )}
         </section>
       </div>
@@ -141,88 +192,38 @@ export function StepBody({ d, today }: { d: StepDetail; today: ISODate }) {
   );
 }
 
+/** v1 HoldPointCheck, read-only: the required photo sets with their counts in words. */
 function HoldPointBlock({ d }: { d: StepDetail }) {
   const h = d.holdPoint!;
   const photos = tabHref({ jobId: d.jobId, kind: 'build' }, 'Photos');
   return (
-    <section className="block hp-block" aria-labelledby="hold-h" data-testid="hold-point">
-      <h2 id="hold-h">
-        Hold point photos{' '}
-        <span className="h-note">
-          {h.filledCount} of {h.required.length} required categories have photos
-        </span>
-      </h2>
-      <p className="hold-rule">
-        {h.ok
-          ? 'Every required category has a photo, so this step can be marked done.'
-          : `It can't be marked done until ${h.missingCategories.length === 1 ? 'this category has' : 'these categories have'} a photo: ${h.missingCategories.join('; ')}.`}
-      </p>
-      <ul className="cats">
-        {h.required.map((c) => (
-          <li key={c.categoryId} className={c.photoCount ? 'cat cat-ok' : 'cat cat-missing'} data-testid="hold-category">
-            <span className="cat-name">{c.name}</span>
-            <span className="cat-count">{photoCount(c.photoCount)}</span>
-          </li>
-        ))}
-      </ul>
+    <section className="step__section holdpoint" aria-labelledby="hold-h" data-testid="hold-point">
+      <div className="holdpoint__head">
+        <h3 id="hold-h" className="holdpoint__title">
+          Before-cover photos
+        </h3>
+        <StatusText tone={h.ok ? 'ok' : 'note'} testId="hold-readiness">
+          {holdPointReadinessWords(h)}
+        </StatusText>
+      </div>
+      {h.required.length > 0 && (
+        <ul className="holdpoint__list">
+          {h.required.map((c) => (
+            <li key={c.categoryId} className="holdpoint__row" data-testid="hold-category">
+              <span className="holdpoint__name">{c.name}</span>
+              <StatusText tone={c.photoCount ? 'plain' : 'note'} className="holdpoint__count">
+                {c.photoCount ? photoCount(c.photoCount) : 'none yet'}
+              </StatusText>
+            </li>
+          ))}
+        </ul>
+      )}
+      {h.required.length > 0 && h.ok && <p className="holdpoint__ready">Every required set has a photo.</p>}
       {photos && (
-        <p className="more-link">
-          <a href={photos}>See the photos</a>
-        </p>
+        <a className="holdpoint__photos" href={photos} data-testid="hold-photos">
+          See photos
+        </a>
       )}
     </section>
-  );
-}
-
-export function NeedsTable({ rows, today }: { rows: WaitingRow[]; today: ISODate }) {
-  return (
-    <table className="board needs" data-testid="needs">
-      <thead>
-        <tr>
-          <th scope="col">Item</th>
-          <th scope="col">Status</th>
-          <th scope="col">Needed by</th>
-          <th scope="col">Act by</th>
-          <th scope="col">Expected</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.itemId} className={`need-row${urgencyWords(r, today) ? ' is-late' : ''}`} data-testid={`need-${r.itemId}`}>
-            <th scope="row" className="c-item">
-              <span className="need-title">{r.title}</span>
-              {urgencyWords(r, today) && (
-                <span className="sub strong late-words" data-testid="urgency">
-                  {urgencyWords(r, today)!.text}
-                </span>
-              )}
-              <span className="sub">
-                {[r.typeLabel, r.owner, r.waitingOn ? `waiting on ${r.waitingOn}` : null].filter(Boolean).join(', ')}
-              </span>
-              {r.tradePhone && <CallLink name={r.tradeName ?? r.waitingOn} phone={r.tradePhone} />}
-            </th>
-            <td className="c-status">
-              <CellLabel>Status</CellLabel>
-              {r.statusLabel}
-            </td>
-            <td className="c-needed">
-              <CellLabel>Needed by</CellLabel>
-              {r.neededBy ? formatDate(r.neededBy, today) : 'No date'}
-            </td>
-            <td className="c-actby">
-              <CellLabel>Act by</CellLabel>
-              {r.actBy ? formatDate(r.actBy, today) : 'No date'}
-
-            </td>
-            <td className="c-expected">
-              <CellLabel>Expected</CellLabel>
-              {r.expected ? formatDate(r.expected, today) : 'Not set'}
-              {r.shipmentName && <span className="sub">from {r.shipmentName}</span>}
-
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }

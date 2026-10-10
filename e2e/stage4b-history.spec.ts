@@ -11,7 +11,10 @@ test('Changes shows the source, each field before and after, and the steps it mo
   await expect(tiler.getByTestId('source')).toContainText("Harbour Tiling can't get to Beatty");
   await expect(tiler.getByTestId('forecast')).toHaveText(/^Moved \d+ steps? at Beatty St$/);
   await expect(page.locator('main')).not.toContainText('$');
-  await expect(page.getByTestId('history-cs-0916-cancel').getByTestId('status')).toHaveText('Cancelled, nothing saved');
+  await expect(page.getByTestId('history-cs-0916-cancel').getByTestId('status')).toHaveText('Cancelled');
+  await expect(page.getByTestId('history-cs-0916-cancel')).toContainText('Would have changed (not saved):');
+  // v1 activity: days as titles, newest first.
+  await expect(page.locator('.changes__day-title').first()).toHaveText('Yesterday');
 });
 
 test('Changes filters by job', async ({ page }) => {

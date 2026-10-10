@@ -16,3 +16,4 @@ export * from './setupViews.js';
 export * from './store.js';
 export * from './api.js';
 export * from './seed/index.js';
+export * from './readModelsProgram.js';

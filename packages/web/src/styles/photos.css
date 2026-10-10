@@ -1,0 +1,196 @@
+/*
+  Photos (v1 photoGallery.css look). The photos are the only images in the
+  app, so they get the room. Each stage is a plate: its name in Title 3 with
+  the count as quiet words on the right, then each category on a hairline
+  with a tight grid of square thumbnails, three across on the phone and as
+  many 120px squares as fit on the desktop. The full-size view is a plain
+  panel over the page (media is content: no glass). Nothing here is red; an
+  empty required set is the neutral "!" note.
+*/
+.photos {
+  max-width: var(--content-max);
+}
+.photos__head {
+  margin-bottom: var(--space-4);
+}
+.photos__title {
+  font-family: var(--font-display);
+  font-size: var(--type-title-2);
+  font-weight: var(--weight-bold);
+  line-height: 1.2;
+}
+.photos__filters {
+  margin-bottom: var(--space-4);
+}
+.photos__empty {
+  max-width: var(--measure);
+  margin: 0 0 var(--space-4);
+  color: var(--text-secondary);
+}
+
+/* stages: plates */
+.photos__stages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.photos__stage {
+  padding: var(--space-4) var(--space-4) var(--space-5);
+}
+.photos__stage-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+}
+.photos__stage-name {
+  font-family: var(--font-display);
+  font-size: var(--type-title-3);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+}
+.photos__stage-count {
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+}
+.photos__hold {
+  margin-top: var(--space-1);
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+}
+
+/* categories: hairline rows inside the plate */
+.photos__cat {
+  padding-top: var(--space-4);
+}
+.photos__cat + .photos__cat {
+  margin-top: var(--space-4);
+  border-top: 0.5px solid var(--line);
+}
+.photos__cat-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-2);
+  margin-bottom: var(--space-2);
+  font-size: var(--type-callout);
+  font-weight: var(--weight-medium);
+}
+.photos__cat-count,
+.photos__tag {
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+}
+.photos__cat-title .status {
+  font-weight: var(--weight-medium);
+}
+
+/* the grid */
+.photos__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+.photos__thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--raised);
+  overflow: hidden;
+  cursor: pointer;
+}
+.photos__thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity var(--motion-fast) var(--ease);
+}
+.photos__thumb:hover img {
+  opacity: 0.85;
+}
+.photos__thumb:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* full-size view */
+.photos__view {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow: auto;
+  padding: var(--space-4) var(--gutter) var(--space-12);
+  background: var(--ground);
+}
+.photos__view-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.photos__view-title {
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: var(--type-title-2);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+}
+.photos__close {
+  flex-shrink: 0;
+}
+.photos__view-img {
+  display: block;
+  width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  background: var(--plate);
+}
+.photos__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-8);
+  margin: var(--space-4) 0 0;
+}
+.photos__facts dt {
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+}
+.photos__facts dd {
+  margin: 0;
+}
+
+/* phone: each filter takes half the row, 56px */
+.shell--phone .photos__filters .filter {
+  flex: 1 1 40%;
+}
+.shell--phone .photos__filters .filter .filter__select {
+  width: 100%;
+  min-height: var(--tap);
+}
+
+@media (min-width: 768px) {
+  .shell--desktop .photos__stage {
+    padding: var(--space-5) var(--space-5) var(--space-6);
+    border-radius: var(--radius-md);
+  }
+  .shell--desktop .photos__grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--space-2);
+  }
+  .shell--desktop .photos__view {
+    padding: var(--space-6) var(--space-10) var(--space-12);
+  }
+  .shell--desktop .photos__view-img {
+    max-height: 70vh;
+  }
+}

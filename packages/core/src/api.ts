@@ -93,7 +93,7 @@ export interface DashboardApi {
   getPhotos(jobId: string): Promise<PhotoGallery>;
   getDailyNotes(jobId: string, opts?: { from?: ISODate; to?: ISODate }): Promise<DailyNote[]>;
   getChangeHistory(filter?: HistoryFilter): Promise<HistoryEntry[]>;
-  listTrades(filter?: SideFilter): Promise<(Trade & { openItems: number })[]>;
+  listTrades(filter?: SideFilter): Promise<(Trade & { openItems: number; jobNames: string[] })[]>;
   listTemplates(filter?: SideFilter): Promise<TemplateRow[]>;
   /** Setup area: one job's or template's program as stored (stages, steps, links, requirements). */
   getProgramSetup(jobId: string): Promise<ProgramSetupView>;

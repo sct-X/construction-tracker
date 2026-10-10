@@ -1,0 +1,192 @@
+/*
+  Changes (v1 notifications.css Activity look): days are muted titles; rows
+  run down a rail, a dot per change on a hairline: the time in tabular
+  figures, whether it was saved, then the words. What v1 lacked sits under
+  each change: the fields before -> after, the steps it moved, and the
+  message it came from, quoted on the neutral fill. Nothing here is red or
+  orange (the job links are quiet); undone and cancelled changes are dimmed.
+*/
+.changes {
+  max-width: 860px;
+}
+.changes__filters {
+  margin-bottom: var(--space-6);
+}
+.shell--phone .changes__filters .filter {
+  flex: 1 1 40%;
+}
+.shell--phone .changes__filters .filter .filter__select {
+  width: 100%;
+  min-height: var(--tap);
+}
+
+/* days */
+.changes__day + .changes__day {
+  margin-top: var(--space-6);
+}
+.changes__day-title {
+  padding-bottom: var(--space-1);
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+}
+
+/* the rail */
+.changes__rows {
+  position: relative;
+  padding-left: var(--space-5);
+}
+.changes__rows::before {
+  content: '';
+  position: absolute;
+  top: var(--space-2);
+  bottom: var(--space-2);
+  left: 3px;
+  width: 1px;
+  background: var(--line-strong);
+}
+.changes__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4.5em minmax(0, 1fr);
+  grid-template-areas:
+    'time status'
+    'time body';
+  column-gap: var(--space-2);
+  row-gap: 2px;
+  align-items: baseline;
+  padding: var(--space-2) 0 var(--space-4);
+}
+.changes__row::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--space-5));
+  top: calc(var(--space-2) + 0.55em);
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--text-muted);
+}
+.changes__time {
+  grid-area: time;
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.changes__status {
+  grid-area: status;
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+}
+.changes__status--off {
+  color: var(--text-muted);
+  font-weight: var(--weight-medium);
+}
+.changes__body {
+  grid-area: body;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.changes__summary {
+  color: var(--text-secondary);
+  line-height: var(--leading-body);
+  max-width: var(--measure);
+}
+.changes__later {
+  color: var(--text-muted);
+}
+.changes__row--off .changes__summary {
+  color: var(--text-muted);
+}
+.changes__jobs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+}
+.changes__job {
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 3px;
+}
+.changes__job:hover {
+  color: var(--text-secondary);
+  text-decoration-color: var(--line-strong);
+}
+
+/* what it changed */
+.changes__lead {
+  margin-top: var(--space-1);
+  font-size: var(--type-footnote);
+  color: var(--text-muted);
+}
+.changes__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: var(--space-1);
+  font-size: var(--type-subhead);
+}
+.changes__field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+}
+.changes__what {
+  color: var(--text);
+}
+.changes__before {
+  color: var(--text-muted);
+}
+.changes__after {
+  color: var(--text);
+  font-weight: var(--weight-semibold);
+}
+.changes__fields--off .changes__what,
+.changes__fields--off .changes__after {
+  color: var(--text-muted);
+  font-weight: var(--weight-regular);
+}
+.changes__effects {
+  display: flex;
+  flex-direction: column;
+}
+.changes__effect {
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+}
+.changes__effect--none {
+  color: var(--text-muted);
+}
+.changes__setup {
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+}
+
+/* the message it came from */
+.changes__source {
+  max-width: var(--measure);
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--plate);
+}
+.changes__source p {
+  color: var(--text);
+}
+.changes__source footer {
+  margin-top: 2px;
+  font-size: var(--type-footnote);
+  color: var(--text-muted);
+}
+
+/* desktop: time, status, words on one line */
+@media (min-width: 768px) {
+  .changes__row {
+    grid-template-columns: 4.5em 6.5em minmax(0, 1fr);
+    grid-template-areas: 'time status body';
+  }
+}

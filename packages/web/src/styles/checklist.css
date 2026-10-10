@@ -1,0 +1,165 @@
+/*
+  Design checklist (ported from v1 src/screens/designChecklist.css, read-only):
+  a vertical stage ladder. The one big figure is what is outstanding. Under it
+  the ladder: drawn tick boxes down the left, the stage name, and its status in
+  words at the right. The live stage is a plate with its open items inside; the
+  other rungs sit on the ground with hairlines between them.
+*/
+.checklist__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-12);
+}
+.checklist__outstanding {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+.checklist__count {
+  font-size: var(--text-display);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+.checklist__count-words {
+  font-size: var(--type-title-3);
+  color: var(--text-secondary);
+}
+.checklist__outstanding--none .checklist__count {
+  color: var(--text-muted);
+}
+.checklist__count--words {
+  font-size: var(--type-title-1);
+}
+
+/* the ladder */
+.checklist__stages {
+  display: flex;
+  flex-direction: column;
+}
+.checklist__stage {
+  padding: 0 var(--space-4);
+  border-top: var(--hairline);
+}
+.checklist__stage:first-child,
+.checklist__stage--current,
+.checklist__stage--current + .checklist__stage {
+  border-top: 0;
+}
+.checklist__stage--current {
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  background: var(--plate);
+  border-radius: var(--radius-lg);
+}
+.checklist__row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-areas: 'box name status';
+  column-gap: var(--space-3);
+  align-items: center;
+  min-height: var(--tap-min);
+  padding: var(--space-3) 0;
+}
+.checklist__box {
+  grid-area: box;
+  fill: var(--raised);
+  stroke: var(--bar-done);
+  stroke-width: 1.6;
+}
+.checklist__box--done {
+  fill: var(--chosen-fill);
+  stroke: var(--chosen-fill);
+}
+.checklist__tick {
+  fill: none;
+  stroke: var(--text-on-dark);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.checklist__half {
+  fill: var(--bar-done);
+  stroke: none;
+}
+.checklist__name {
+  grid-area: name;
+  font-size: var(--type-title-3);
+  color: var(--text-secondary);
+}
+.checklist__stage--done .checklist__name {
+  color: var(--text-muted);
+}
+.checklist__stage--current .checklist__name {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--type-title-2);
+  line-height: var(--leading-tight);
+  color: var(--text);
+}
+.checklist__words {
+  grid-area: status;
+  text-align: right;
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+}
+.checklist__stage--current .checklist__words {
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+}
+
+/* items under the live stage, indented to the name column */
+.checklist__items {
+  padding-left: calc(24px + var(--space-3));
+}
+.checklist__empty {
+  padding: 0 0 var(--space-2);
+  color: var(--text-muted);
+}
+.checklist__leftover {
+  margin-top: var(--space-8);
+}
+.checklist__section-title {
+  margin-bottom: var(--space-3);
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+}
+
+/* done items, folded */
+.checklist__done {
+  margin-top: var(--space-8);
+}
+.checklist__done-summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.checklist__done-summary:hover {
+  color: var(--text);
+}
+
+@media (max-width: 767.98px) {
+  .checklist__hero {
+    margin-bottom: var(--space-8);
+  }
+  .checklist__stage {
+    padding: 0 var(--space-3);
+  }
+  .checklist__stage--current {
+    padding: var(--space-1) var(--space-3) var(--space-2);
+  }
+  .checklist__items {
+    padding-left: 0;
+  }
+}
+@media (min-width: 768px) {
+  .checklist__stages,
+  .checklist__leftover,
+  .checklist__done {
+    max-width: 760px;
+  }
+}

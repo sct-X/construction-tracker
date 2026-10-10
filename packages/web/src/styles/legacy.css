@@ -54,33 +54,6 @@
   margin: 0 0 12px;
 }
 
-
-/* ---------- Board tables (desktop) ---------- */
-
-.board {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-.board thead th {
-  padding: 0 16px 8px 0;
-  font-size: var(--type-footnote);
-  font-weight: 500;
-  color: var(--text-secondary);
-  border-bottom: 2px solid var(--text);
-  vertical-align: bottom;
-}
-.board tbody.job {
-  border-bottom: 1px solid var(--line);
-}
-.board .job-main > th,
-.board .job-main > td,
-.board .job-line > th,
-.board .job-line > td {
-  padding: 18px 16px 18px 0;
-  vertical-align: top;
-  font-weight: 400;
-}
 .cell-label {
   display: none;
 }
@@ -97,22 +70,6 @@
   font-size: var(--type-subhead);
 }
 
-.num {
-  display: block;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: var(--type-title-1);
-  line-height: 1.05;
-  letter-spacing: -0.005em;
-  white-space: nowrap;
-}
-.num-md {
-  display: block;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: var(--type-title-3);
-  line-height: 1.1;
-}
 .sub {
   display: block;
   margin-top: 4px;
@@ -126,39 +83,6 @@
   font-size: var(--type-subhead);
 }
 
-.source {
-  margin: 8px 0 0;
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  background: var(--fill);
-  max-width: 68ch;
-}
-.source p {
-  margin: 0;
-}
-.source footer {
-  margin-top: 4px;
-  font-size: var(--type-footnote);
-  color: var(--text-secondary);
-}
-
-
-/* Old button variants, drawn as v1 buttons. */
-.btn-primary {
-  background: var(--tint-fill);
-  color: var(--on-tint);
-  font-weight: var(--weight-semibold);
-}
-.btn-primary:hover {
-  background: var(--tint-fill-pressed);
-}
-.btn-small,
-.btn-quiet {
-  min-height: var(--control);
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-md);
-  font-size: var(--type-subhead);
-}
 .screen h1 {
   font-family: var(--font-display);
   font-size: var(--type-large-title);
@@ -172,31 +96,6 @@
   }
   .block + .block {
     margin-top: 32px;
-  }
-  .board,
-  .board thead,
-  .board tbody,
-  .board tr,
-  .board th,
-  .board td {
-    display: block;
-    width: auto;
-  }
-  /* Cards carry their own labels (CellLabel), so the column headers go entirely. */
-  .board thead {
-    display: none;
-  }
-  .board .job-main > th,
-  .board .job-main > td,
-  .board .job-line > th,
-  .board .job-line > td {
-    padding: 0;
-  }
-  .board tbody.job {
-    margin-bottom: 12px;
-    padding: 16px;
-    border-radius: var(--radius-lg);
-    background: var(--plate);
   }
   .cell-label {
     display: block;

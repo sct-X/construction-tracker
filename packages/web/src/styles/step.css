@@ -1,0 +1,202 @@
+/*
+  Step detail (ported from v1 src/screens/stepDetail.css, holdPointCheck.css and
+  the BigNumber "row" size). The dates are a two-figure readout: forecast (with
+  the late words beside it) and planned, in the display face at row scale, with
+  duration and status as small facts under them. One calculator sentence says
+  why, only when there is a why. The hold-point check comes before the order of
+  work and the items. Read-only: no buttons.
+*/
+.step__head {
+  margin-bottom: var(--space-6);
+}
+.step__title {
+  font-family: var(--font-display);
+  font-size: var(--type-title-1);
+  font-weight: var(--weight-bold);
+  line-height: 1.15;
+  letter-spacing: var(--tracking-display);
+}
+
+.step__dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-5) var(--space-10);
+}
+.step__readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2) var(--space-3);
+}
+.step__readout .step__late {
+  margin-bottom: 20px; /* beside the figure, above its label */
+}
+.step__figure {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  color: var(--text);
+}
+.step__value {
+  font-family: var(--font-display);
+  font-size: var(--type-title-1);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+  font-variant-numeric: tabular-nums;
+}
+.step__figure--late .step__value {
+  color: var(--late-ink);
+}
+.step__figure--muted .step__value {
+  color: var(--text-muted);
+}
+.step__label {
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+@media (min-width: 768px) {
+  .step__value {
+    font-size: var(--type-large-title);
+  }
+}
+.step__facts {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-8);
+  margin: 0;
+}
+.step__fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.step__fact dt {
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+}
+.step__fact dd {
+  margin: 0;
+  font-size: var(--type-body);
+  color: var(--text);
+}
+.step__reason {
+  margin-top: var(--space-5);
+  max-width: var(--measure);
+  color: var(--text-secondary);
+}
+.step__section {
+  margin-top: var(--space-12);
+  min-width: 0;
+}
+.step__section-title {
+  margin-bottom: var(--space-3);
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+}
+.step__quiet {
+  color: var(--text-muted);
+}
+.step__links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin: 0;
+}
+.step__link-group dd {
+  margin: 0;
+}
+.step__link-group dt {
+  margin-bottom: 2px;
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+}
+.step__link-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.step__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  color: var(--text);
+  font-weight: var(--weight-medium);
+}
+.shell--phone .step__link {
+  min-height: var(--tap-min);
+}
+.step__link-when {
+  color: var(--text-muted);
+  font-size: var(--type-subhead);
+}
+.step__requirements {
+  margin-bottom: var(--space-3);
+  max-width: var(--measure);
+  color: var(--text-secondary);
+  font-size: var(--type-subhead);
+}
+@media (min-width: 768px) {
+  .step__cols {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: var(--space-10);
+  }
+  .step__section {
+    margin-top: var(--space-10);
+  }
+}
+
+/* The hold point: a ledger of required photo sets with their counts in words. */
+.holdpoint__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-2);
+}
+.holdpoint__title {
+  font-size: var(--type-body);
+  font-weight: var(--weight-bold);
+}
+.holdpoint__list {
+  display: flex;
+  flex-direction: column;
+}
+.holdpoint__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: var(--space-3);
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  border-top: var(--hairline);
+}
+.holdpoint__name {
+  min-width: 0;
+}
+.holdpoint__count {
+  justify-self: end;
+}
+.holdpoint__ready {
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  max-width: var(--measure);
+  border-radius: var(--radius-md);
+  background: var(--ok-bg);
+  color: var(--ok-ink);
+}
+.holdpoint__photos {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  margin-top: var(--space-2);
+  color: var(--text);
+  font-weight: var(--weight-medium);
+}

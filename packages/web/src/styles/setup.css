@@ -1,362 +1,481 @@
 /*
- * Setup (desktop only). Same tokens as every other screen. Token plan:
- *   concrete page, formply forms and the change bar, steel ink and the one
- *   filled button (Save / Create), rule lines between rows, hi-vis only where
- *   a finish goes later (with the words) and on focus / the current tab.
- *   (Type is now the system face from tokens.css.)
- * The memorable thing is the change bar: a docked card like the bot's confirm
- * card, saying what moves before anything is saved. Everything else is quiet.
- * Class names start "su-" so they never meet lists.css or screens4a.css.
- */
-
+  Setup (desktop only), in the v1 look (newJob.css, templates.css,
+  trades.css, programEditor.css). Forms are one column of fields with
+  footnote labels; every picker is a segmented control; the planned finish
+  is New job's hero figure. Templates read like a table of contents; Trades
+  is a hairline table with the phone number as the figure. The program
+  editor is the stages and steps table on one plate, numbered stage chips
+  above it, and v1's footer: Thick Liquid Glass, sticky, Save as the
+  prominent glass button. One filled tint button per screen. Every value
+  is a token.
+*/
 .su {
-  max-width: 1120px;
+  max-width: var(--content-max);
+}
+.su__phone-msg {
+  max-width: var(--measure);
+  font-size: var(--type-title-3);
+  line-height: var(--leading-body);
+  color: var(--text-secondary);
 }
 
-.su-tabs {
-  display: flex;
-  gap: 4px;
-  margin: -8px 0 18px;
-  border-bottom: 1px solid var(--line);
-}
-.su-tabs .tab[aria-current] {
-  font-weight: 600;
-  border-bottom-color: var(--tint);
-}
-.su-tabs .tab[aria-current='true'] {
-  font-weight: 500;
-}
-
-.su-phone-msg {
-  max-width: 34ch;
-  font-size: var(--type-headline);
-}
-
-/* ---------- Form parts ---------- */
-
-.btn-primary {
-  background: var(--tint-fill);
-  color: var(--on-tint);
-  font-weight: var(--weight-semibold);
-}
-.btn-primary:hover {
-  background: var(--tint-fill-pressed);
-}
-.btn:disabled,
-.su-icon:disabled,
-.su-add:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-.btn-primary:disabled:hover {
-  background: var(--tint-fill);
-}
-.btn-small {
-  min-height: 32px;
-  padding: 0 10px;
-  font-size: var(--type-subhead);
-}
-.su-link-btn {
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
+/* ---- shared form pieces ---- */
 .su-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 0;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
 }
-.su-field > label {
-  font-size: var(--type-subhead);
-  font-weight: 600;
+.su-field > .input,
+.su-field > select {
+  align-self: stretch;
 }
-.su-field input,
-.su-field select,
-.su-input {
-  font: inherit;
-  min-height: 40px;
-  width: 100%;
-  min-width: 0;
-  padding: 0 10px;
-  border: 1px solid var(--text-secondary);
-  border-radius: var(--radius-sm);
-  background: var(--plate);
-  color: var(--text);
-}
-.su-field input[type='date'] {
-  padding-right: 6px;
-}
-.su-input:disabled,
-.su-field input:disabled,
-.su-field select:disabled {
-  border-color: var(--line);
+.su-label {
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-medium);
   color: var(--text-secondary);
-  background: var(--ground);
 }
-.su-field.has-error input,
-.su-field.has-error select {
-  border-color: var(--text);
-  border-width: 2px;
+.su-field.has-error .input {
+  border-color: var(--line-strong);
 }
 .su-hint {
-  color: var(--text-secondary);
-  font-size: var(--type-subhead);
+  font-size: var(--type-footnote);
+  color: var(--text-muted);
 }
 .su-error {
-  margin: 0;
   font-size: var(--type-subhead);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   color: var(--text);
 }
 .su-error::before {
-  content: '';
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  margin-right: 7px;
-  border-radius: 2px;
-  background: var(--tint);
+  content: '! ';
+  font-weight: var(--weight-bold);
 }
 .su-muted {
-  color: var(--text-secondary);
-}
-p.su-muted {
-  margin: 4px 0;
-}
-.su-below {
-  margin-top: 16px;
-  max-width: 70ch;
-}
-.su-money {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 12rem;
-  font-weight: 600;
-}
-.su-fieldset {
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-.su-legend {
-  margin-bottom: 6px;
-  padding: 0;
-  font-size: var(--type-subhead);
-  font-weight: 600;
-}
-.su-fieldset .seg {
-  margin-bottom: 0;
-}
-.su-row2 {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
-}
-.su-row3 {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
+  color: var(--text-muted);
 }
 .su-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
-.su-panel {
-  padding: 18px 20px 20px;
+.su-saved {
+  margin-bottom: var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--ok-bg);
+  color: var(--ok-ink);
+  font-size: var(--type-subhead);
+  max-width: var(--measure);
+}
+.su-saved a {
+  color: inherit;
+}
+.su-seg--wrap {
+  flex-wrap: wrap;
+}
+/* A form on a plate (save as template, new trade, edit a trade). */
+.su-form-plate {
+  max-width: 640px;
+  margin: 0 0 var(--space-8);
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+}
+.su-form-plate__title {
+  margin-bottom: var(--space-5);
+  font-family: var(--font-display);
+  font-size: var(--type-title-3);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+.su-form-plate .su-field {
+  margin-bottom: var(--space-5);
+}
+.su-row3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 var(--space-4);
+}
+.su-row3 .su-field {
+  align-items: stretch;
+}
+
+/* ---- New job (v1 newJob.css) ---- */
+.su-nj__form {
+  max-width: 560px;
+}
+.su-nj__date {
+  max-width: 14em;
+}
+.su-nj__pick {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+  text-align: left;
+  white-space: normal;
+}
+.su-nj__pick-sub {
+  display: block;
+  font-size: var(--type-caption);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+}
+.su-money {
+  display: flex;
+  align-items: stretch;
+  max-width: 18em;
+}
+.su-money__sign,
+.su-money__unit {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-3);
   border: 1px solid var(--line);
+  background: var(--fill);
+  color: var(--text-secondary);
+  font-size: var(--type-subhead);
+}
+.su-money__sign {
+  border-right: 0;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+.su-money__unit {
+  border-left: 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  white-space: nowrap;
+}
+.su-money .input {
+  border-radius: 0;
+  text-align: right;
+}
+/* the stage ladder: a numbered column, so "starts from" reads as a place in the sequence */
+.su-nj__stages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-self: stretch;
+}
+.su-nj__stage {
+  display: grid;
+  grid-template-columns: 2em minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--control);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--plate);
+  color: var(--text);
+  text-align: left;
+  font-weight: var(--weight-medium);
+  transition: background-color var(--motion-fast) var(--ease);
+}
+.su-nj__stage:hover {
+  background: var(--raised);
+}
+.su-nj__stage[aria-pressed='true'] {
+  background: var(--chosen-fill);
+  color: var(--text-on-dark);
+}
+.su-nj__stage[data-done='true'] .su-nj__stage-name {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--line-strong);
+}
+.su-nj__stage-num {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--type-title-3);
+  color: var(--text-muted);
+}
+.su-nj__stage[aria-pressed='true'] .su-nj__stage-num,
+.su-nj__stage[aria-pressed='true'] .su-nj__stage-words {
+  color: var(--text-on-dark);
+}
+.su-nj__stage-words {
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+/* the planned finish: the hero figure, on the ground with room around it */
+.su-nj__finish {
+  margin: var(--space-10) 0 var(--space-8);
+}
+.su-nj__finish-label {
+  font-size: var(--type-footnote);
+  color: var(--text-muted);
+}
+.su-nj__finish-date {
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  font-weight: var(--weight-bold);
+  line-height: 1.05;
+  letter-spacing: var(--tracking-display);
+}
+.su-nj__words {
+  margin-top: var(--space-3);
+  max-width: var(--measure);
+  color: var(--text-secondary);
+}
+.su-nj__checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-4);
+}
+.su-nj__checklist li {
+  display: grid;
+  grid-template-columns: 2em minmax(0, 1fr);
+  align-items: center;
+  min-height: var(--control);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--plate);
+  font-weight: var(--weight-medium);
+}
+
+/* ---- Programs: an inset grouped list ---- */
+.su-programs {
+  max-width: 640px;
+}
+.su-programs__name {
+  font-weight: var(--weight-semibold);
+}
+
+/* ---- Templates (v1 templates.css) ---- */
+.su-tpl__list {
+  border-top: 0.5px solid var(--line);
+}
+.su-tpl__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3) var(--space-4);
+  align-items: start;
+  padding: var(--space-5) 0;
+  border-bottom: 0.5px solid var(--line);
+}
+.su-tpl__main {
+  min-width: 0;
+}
+.su-tpl__name {
+  font-family: var(--font-display);
+  font-size: var(--type-title-1);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+  color: var(--text);
+  text-decoration: none;
+}
+.su-tpl__name:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+}
+.su-tpl__kind {
+  margin-left: var(--space-2);
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+}
+.su-tpl__counts {
+  margin-top: var(--space-1);
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+}
+.su-tpl__seq {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin-top: var(--space-3);
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+}
+.su-tpl__seq li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+.su-tpl__seq-n {
+  font-weight: var(--weight-bold);
+  color: var(--text-muted);
+}
+.su-tpl__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* ---- Trades (v1 trades.css): the number is the figure ---- */
+.su-trades__table th,
+.su-trades__table td {
+  vertical-align: middle;
+}
+.su-trades__table tbody tr:hover {
+  background: transparent;
+}
+.su-trades__name {
+  font-weight: var(--weight-semibold);
+}
+.su-trades__type,
+.su-trades__jobs {
+  color: var(--text-secondary);
+}
+.su-trades__jobs {
+  width: 32%;
+}
+.su-trades__phone {
+  white-space: nowrap;
+}
+.su-trades__tel {
+  font-family: var(--font-display);
+  font-size: var(--type-title-3);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-display);
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.su-trades__tel:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+}
+.su-trades__actions {
+  text-align: right;
+}
+.su-trades__edit > td {
+  padding: var(--space-3) 0 !important;
+}
+.su-trades__edit-form {
+  max-width: none;
+  margin: 0;
+  background: var(--plate);
+}
+.su-addtrade {
+  max-width: none;
+}
+
+/* ---- Program editor (v1 programEditor.css) ---- */
+.su-ed {
+  max-width: none;
+}
+.su-ed__body {
+  padding-bottom: var(--space-2);
+}
+/* the stage row: numbered chips, the number is the sequence */
+.su-ed__stages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.su-ed__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control);
+  padding: 0 var(--space-3) 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--plate);
+  color: var(--text-secondary);
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-medium);
+  transition: background-color var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+}
+.su-ed__chip:hover {
+  background: var(--raised);
+  color: var(--text);
+}
+.su-ed__chip-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  background: var(--fill);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-bold);
+}
+/* the table on one plate */
+.su-ed__plate {
+  padding: 0 var(--space-4) var(--space-3);
   border-radius: var(--radius-md);
   background: var(--plate);
 }
-.su-panel-h {
-  margin-bottom: 6px;
-  font-size: var(--type-headline);
-}
-.su-saved {
-  margin: 0 0 16px;
-  padding: 10px 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--plate);
-  max-width: 80ch;
-}
-.su-strong {
-  font-weight: 600;
-}
-.su-right {
-  text-align: right;
-}
-.su-nowrap {
-  white-space: nowrap;
-}
-.su-row-actions {
-  display: inline-flex;
-  gap: 8px;
-}
-
-/* ---------- Plain setup tables ---------- */
-
-.su-table {
+.su-ed__table {
   width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-.su-table thead th {
-  padding: 0 12px 8px 0;
-  font-size: var(--type-footnote);
-  font-weight: 500;
-  color: var(--text-secondary);
-  border-bottom: 2px solid var(--text);
-  vertical-align: bottom;
-}
-.su-table > tbody > tr > th,
-.su-table > tbody > tr > td {
-  padding: 12px 12px 12px 0;
-  border-bottom: 1px solid var(--line);
-  vertical-align: middle;
-  font-weight: 400;
-}
-.su-table > tbody > tr > th.su-strong {
-  font-weight: 600;
-}
-.su-tel {
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-/* ---------- New job ---------- */
-
-.su-newjob {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
-  gap: 32px;
-  align-items: start;
-}
-.su-form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  max-width: 34rem;
-}
-.su-nj-preview {
-  position: sticky;
-  top: 24px;
-}
-.su-nj-finish-label {
-  margin: 8px 0 0;
-  font-size: var(--type-subhead);
-  color: var(--text-secondary);
-}
-.su-nj-finish {
-  margin: 0 0 4px;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: var(--type-title-1);
-  line-height: 1.05;
-}
-.su-nj-done {
-  margin: 10px 0 0;
-  font-size: var(--type-subhead);
-}
-.su-nj-stages {
-  list-style: none;
-  margin: 14px 0 0;
-  padding: 0;
-}
-.su-nj-stage {
-  display: grid;
-  grid-template-columns: minmax(0, 8.5rem) minmax(0, 1fr);
-  grid-template-areas:
-    'name dates'
-    'name track';
-  column-gap: 12px;
-  padding: 7px 0;
-  border-top: 1px solid var(--line);
-}
-.su-nj-stage-name {
-  grid-area: name;
-  font-weight: 600;
-}
-.su-nj-stage-dates {
-  grid-area: dates;
-  font-size: var(--type-subhead);
-  color: var(--text-secondary);
-}
-.su-nj-track {
-  grid-area: track;
-  position: relative;
-  height: 8px;
-  margin-top: 4px;
-  background: var(--fill);
-  border-radius: 2px;
-}
-.su-nj-bar {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background: var(--text);
-  border-radius: 2px;
-}
-.su-nj-checklist {
-  margin: 8px 0 12px;
-  padding-left: 1.4em;
-}
-.su-nj-checklist li + li {
-  margin-top: 4px;
-}
-.su-panel-lead {
-  margin: 4px 0 0;
-}
-
-/* ---------- Program editor ---------- */
-
-.su-editor {
-  max-width: none;
-}
-.su-editor-body {
-  padding-bottom: 8px;
-}
-.su-prog {
   table-layout: fixed;
+  border-collapse: collapse;
+  font-size: var(--type-subhead);
 }
 /* At 1280 the trade column fits the longest seeded trade ("Formwork and
    concrete"); step names wrap (.su-grow) instead of being cut off. */
-.su-prog .c-step {
-  width: 26%;
+.su-ed__table .c-step {
+  width: 24%;
 }
-.su-prog .c-days {
-  width: 6%;
-}
-.su-prog .c-waits {
-  width: 14%;
-}
-.su-prog .c-hold {
+.su-ed__table .c-days {
   width: 7%;
 }
-.su-prog .c-needs {
+.su-ed__table .c-waits {
   width: 14%;
 }
-.su-prog .c-trade {
-  width: 20%;
+.su-ed__table .c-hold {
+  width: 7%;
 }
-.su-prog .c-tools {
-  width: 13%;
+.su-ed__table .c-needs {
+  width: 14%;
 }
-.su-prog > tbody > tr > th,
-.su-prog > tbody > tr > td {
-  padding: 8px 10px 8px 0;
+.su-ed__table .c-trade {
+  width: 19%;
+}
+.su-ed__table .c-tools {
+  width: 15%;
+}
+.su-ed__table thead th {
+  padding: var(--space-3) var(--space-2) var(--space-2) 0;
+  text-align: left;
+  vertical-align: bottom;
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+  border-bottom: 0.5px solid var(--line);
+}
+.su-ed__table > tbody > tr > th,
+.su-ed__table > tbody > tr > td {
+  padding: var(--space-2) var(--space-2) var(--space-2) 0;
+  text-align: left;
   vertical-align: top;
+  font-weight: var(--weight-regular);
+}
+.su-ed__table .su-step > th,
+.su-ed__table .su-step > td {
+  border-bottom: 0.5px solid var(--line);
+}
+.su-input {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--field-bg);
+  color: var(--text);
+  font: inherit;
   font-size: var(--type-subhead);
 }
-.su-prog .su-input {
-  min-height: 34px;
-  padding: 0 8px;
-  font-size: var(--type-subhead);
+.su-input:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+.su-input:disabled {
+  color: var(--text-muted);
+  background-color: var(--ground);
 }
 .su-step-cell {
   display: grid;
@@ -373,23 +492,22 @@ p.su-muted {
   display: grid;
   min-width: 0;
 }
-/* .su-prog prefix: beats `.su-prog .su-input` (padding 0 8px) for the textarea. */
-.su-prog .su-grow > textarea,
-.su-prog .su-grow::after {
+.su-ed__table .su-grow > textarea,
+.su-ed__table .su-grow::after {
   grid-area: 1 / 1;
   min-height: 34px;
-  padding: 7px 8px;
+  padding: 7px var(--space-2);
   font: inherit;
   font-size: var(--type-subhead);
   line-height: 1.35;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.su-prog .su-grow > textarea {
+.su-ed__table .su-grow > textarea {
   resize: none;
   overflow: hidden;
 }
-.su-prog .su-grow::after {
+.su-ed__table .su-grow::after {
   content: attr(data-value) ' ';
   border: 1px solid transparent;
   visibility: hidden;
@@ -401,150 +519,142 @@ p.su-muted {
   gap: 2px;
 }
 .su-icon {
-  font: inherit;
   width: 26px;
-  height: 17px;
+  height: 16px;
   padding: 0;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: var(--radius-sm);
-  background: var(--plate);
-  color: var(--text);
-  font-size: var(--type-caption);
+  background: var(--fill);
+  color: var(--text-secondary);
+  font-size: var(--type-caption-2);
   line-height: 1;
-  cursor: pointer;
 }
 .su-icon:hover:not(:disabled) {
-  border-color: var(--text-secondary);
-  background: var(--fill);
+  background: var(--fill-strong);
+  color: var(--text);
+}
+.su-icon:disabled {
+  opacity: 0.4;
 }
 .su-stage-head .su-icon {
-  height: 30px;
   width: 30px;
+  height: 30px;
   font-size: var(--type-subhead);
 }
 .su-step-dates {
   display: block;
   margin-top: 3px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: var(--type-footnote);
 }
 .su-flag {
-  margin: 0 0 0 8px;
-  color: var(--text);
-  font-size: var(--type-footnote);
+  margin-left: var(--space-2);
+  color: var(--text-secondary);
 }
 .su-num-input {
   max-width: 5rem;
   text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 .su-c-waits,
 .su-c-needs {
   line-height: 1.35;
   padding-top: 15px !important;
-}
-.su-needs {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  color: var(--text-secondary);
 }
 .su-check {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-height: 34px;
-  cursor: pointer;
 }
 .su-check input {
   width: 18px;
   height: 18px;
   margin: 0;
-  accent-color: var(--text);
+  accent-color: var(--tint);
 }
 .su-c-tools {
-  text-align: right;
+  text-align: right !important;
 }
 .su-c-tools .btn {
   white-space: nowrap;
 }
 .su-step.is-pending > th,
 .su-step.is-pending > td {
+  background: var(--tint-wash);
+}
+/* stage rows: the v1 Gantt's grey stage band */
+.su-stage-row > th {
+  padding: var(--space-2) var(--space-3) !important;
   background: var(--fill);
 }
-
-.su-stage-row > th {
-  padding: 22px 0 8px !important;
-  border-bottom: 2px solid var(--text) !important;
-}
-.su-stage:first-of-type .su-stage-row > th {
-  padding-top: 12px !important;
+.su-stage:not(:first-of-type) .su-stage-row > th {
+  border-top: var(--space-3) solid var(--plate);
 }
 .su-stage-head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
 }
 .su-stage-num {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: var(--type-title-3);
-  line-height: 1;
   min-width: 1.4rem;
+  font-family: var(--font-display);
+  font-size: var(--type-title-3);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  color: var(--text-muted);
 }
 .su-stage-name.su-input {
   width: 16rem;
-  min-height: 34px;
-  font-size: var(--type-body);
-  font-weight: 600;
+  font-size: var(--type-headline);
+  font-weight: var(--weight-semibold);
   border-color: transparent;
   background: transparent;
 }
 .su-stage-name.su-input:hover:not(:disabled),
 .su-stage-name.su-input:focus {
-  border-color: var(--text-secondary);
-  background: var(--plate);
+  border-color: var(--line-strong);
+  background: var(--field-bg);
 }
 .su-stage-count {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: var(--type-subhead);
-  font-weight: 400;
 }
 .su-stage-tools {
   display: inline-flex;
-  gap: 6px;
+  gap: var(--space-2);
   margin-left: auto;
 }
-
 .su-addstep > td,
 .su-addstage > td {
-  padding: 6px 0 10px !important;
-  border-bottom: 0 !important;
+  padding: var(--space-2) 0 var(--space-3) !important;
 }
 .su-add {
-  font: inherit;
-  font-size: var(--type-subhead);
-  font-weight: 500;
   min-height: 32px;
-  padding: 0 10px;
-  border: 1px dashed var(--text-secondary);
-  border-radius: var(--radius-sm);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
   background: transparent;
-  color: var(--text);
-  cursor: pointer;
+  color: var(--tint);
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-medium);
 }
 .su-add:hover:not(:disabled) {
-  background: var(--plate);
+  background: var(--tint-wash);
+}
+.su-add:disabled {
+  color: var(--text-muted);
 }
 .su-addstep-form {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 10px 12px;
+  gap: var(--space-3);
   margin: 0;
-  padding: 10px 14px 12px;
-  border: 1px solid var(--line);
+  padding: var(--space-3) var(--space-4);
+  border: 0;
   border-radius: var(--radius-md);
-  background: var(--plate);
+  background: var(--ground);
 }
 .su-addstep-form legend,
 .su-addreq legend {
@@ -568,17 +678,17 @@ p.su-muted {
   gap: 3px;
   min-width: 0;
   font-size: var(--type-footnote);
-  font-weight: 600;
+  color: var(--text-secondary);
 }
 .su-mini-hold {
-  min-height: 34px;
   font-size: var(--type-subhead);
+  color: var(--text);
 }
 .su-mini-label {
   display: block;
-  margin: 10px 0 4px;
+  margin: var(--space-3) 0 var(--space-1);
   font-size: var(--type-footnote);
-  font-weight: 600;
+  color: var(--text-secondary);
 }
 .su-addstep-form .su-mini-label {
   margin-top: 0;
@@ -586,8 +696,8 @@ p.su-muted {
 .su-addstage-form {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 18px;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
 }
 .su-addstage-form .su-mini-label {
   margin: 0;
@@ -596,45 +706,39 @@ p.su-muted {
 .su-addstage-form .su-input {
   max-width: 18rem;
 }
-
+/* a step's links and needs, opened under its row */
 .su-detail > td {
-  padding: 4px 0 16px !important;
+  padding: 0 0 var(--space-4) !important;
 }
 .su-detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 0.7fr);
-  gap: 24px;
-  padding: 14px 16px 16px;
-  border: 1px solid var(--line);
+  gap: var(--space-6);
+  padding: var(--space-4);
   border-radius: var(--radius-md);
-  background: var(--plate);
+  background: var(--ground);
 }
 .su-detail-h {
-  margin-bottom: 6px;
+  margin-bottom: var(--space-2);
   font-size: var(--type-subhead);
+  font-weight: var(--weight-semibold);
 }
 .su-detail-sec .su-hint {
   display: block;
-  margin-bottom: 8px;
-}
-.su-links,
-.su-reqs {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  margin-bottom: var(--space-2);
 }
 .su-link,
 .su-req {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-2);
   padding: 5px 0;
-  border-top: 1px solid var(--line);
+  border-top: 0.5px solid var(--line);
 }
 .su-link.is-pending,
 .su-req.is-pending {
-  background: var(--fill);
+  background: var(--tint-wash);
 }
 .su-req-name {
   flex: 1;
@@ -653,8 +757,8 @@ p.su-muted {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin: 8px 0 0;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
   padding: 0;
   border: 0;
 }
@@ -663,84 +767,44 @@ p.su-muted {
   width: auto;
 }
 
-/* The change bar: what this change does, docked at the bottom until it's saved or discarded. */
-.su-bar {
+/* the footer: what this change moves, Save. Sticky over the scrolling
+   program, so it is Thick Liquid Glass (.glass--thick.glass--float). */
+.su-ed__foot {
   position: sticky;
-  bottom: 0;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 15rem;
-  gap: 4px 28px;
-  margin-top: 24px;
-  padding: 12px 20px 14px;
-  border: 1px solid var(--text);
-  border-top-width: 3px;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-  background: var(--plate);
-  box-shadow: 0 -6px 18px rgba(30, 40, 48, 0.12);
-}
-.su-bar-body > p {
-  margin: 0;
-}
-.su-bar-body > * + * {
-  margin-top: 4px !important;
-}
-.su-bar-what {
-  font-weight: 600;
-}
-.su-bar-actions {
+  bottom: var(--space-3);
+  z-index: 3;
   display: flex;
   flex-wrap: wrap;
-  align-content: flex-start;
-  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-6);
+  margin-top: var(--space-6);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-sheet);
 }
-.su-bar-note {
-  max-width: 78ch;
+.su-ed__foot-body {
+  flex: 1 1 28rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.su-ed__foot-what {
+  font-weight: var(--weight-semibold);
+}
+.su-ed__foot-note {
   color: var(--text-secondary);
   font-size: var(--type-subhead);
 }
-.su-bar-one {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: 1.35;
-}
-.su-finish {
+.su-ed__foot-actions {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 8px;
+  align-items: center;
+  gap: var(--space-3);
 }
-.su-date-big {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: var(--type-title-3);
-  line-height: 1.1;
-}
-.su-date-was {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: var(--type-title-3);
-  line-height: 1.1;
-  color: var(--text-secondary);
-  text-decoration: line-through;
-  text-decoration-thickness: 1px;
-}
-.su-delta {
-  font-weight: 600;
-}
-.su-delta-later {
-  padding: 0 0.3em;
-  border-radius: 2px;
-  background: var(--tint);
-  color: var(--text);
-}
-.su-cost {
-  color: var(--text-secondary);
-}
-.su-moved-head {
-  margin: 0;
-  font-weight: 600;
+.su-ed__changes {
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 .su-moved {
   font-size: var(--type-subhead);
@@ -748,12 +812,12 @@ p.su-muted {
 }
 .su-moved-head {
   display: inline;
+  margin: 0;
+  font-weight: var(--weight-semibold);
 }
 .su-moved-list {
   display: inline;
-  margin: 0;
-  padding: 0 0 0 4px;
-  list-style: none;
+  padding-left: 4px;
 }
 .su-moved-list li {
   display: inline;
@@ -765,57 +829,17 @@ p.su-muted {
   content: '.';
 }
 .su-moved-name {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 .su-moved-more {
   color: var(--text-secondary);
 }
 .su-moved-acts,
 .su-moved-none {
-  margin: 4px 0 0;
+  margin-top: var(--space-1);
   font-size: var(--type-subhead);
 }
-
-/* ---------- Templates and trades ---------- */
-
-.su-fromjob {
-  max-width: 46rem;
-  margin-top: 40px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.su-fromjob > p {
-  margin: 0;
-}
-.su-fromjob-what {
-  margin: 0;
-  font-weight: 500;
-}
-.su-addtrade {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-bottom: 28px;
-}
-.su-addtrade .su-panel-h {
-  margin: 0;
-}
-.su-trade-edit > td {
-  padding: 14px 0 !important;
-  background: var(--plate);
-}
-.su-trade-edit form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 0 14px;
-}
-.su-trades td {
-  vertical-align: middle;
-}
-
-/* Keep the input being edited clear of the docked change bar when the browser scrolls to it. */
-html:has(.su-bar) {
-  scroll-padding-bottom: 260px;
+/* Keep the input being edited clear of the docked footer when the browser scrolls to it. */
+html:has(.su-ed__foot) {
+  scroll-padding-bottom: 220px;
 }

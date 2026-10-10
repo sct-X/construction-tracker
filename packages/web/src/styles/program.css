@@ -1,0 +1,655 @@
+/*
+  Program (ported from v1 src/screens/program.css, src/components/gantt/gantt.css,
+  lookahead.css and stagesStrip.css; v1's legacy token names mapped to the v1 roles):
+  the section head (title, timing line, the view switch), the desktop Gantt, and the
+  phone's stages strip, three-week look-ahead and stages list.
+
+  The Gantt: a well chart ground under a plate label column and axis. Forecast bars
+  are the dark chosen fill; a step that has run is the done grey; where a step was
+  planned stays behind its bar as a thin outline. Today is the one tint line. The
+  shutdown is a faint hatch. Only the chart scrolls; the page never does sideways.
+*/
+.program__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-5);
+}
+.program__title {
+  font-family: var(--font-display);
+  font-size: var(--type-title-2);
+  font-weight: var(--weight-bold);
+  line-height: 1.2;
+}
+.program__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.program[data-layout='phone'] .program__actions,
+.program__phone-views {
+  width: 100%;
+}
+.program__phone-views .seg__btn {
+  flex: 1 1 0;
+}
+.program[data-layout='phone'] .gantt {
+  margin: 0 calc(-1 * var(--gutter));
+  border-radius: 0;
+}
+
+.gantt {
+  --gantt-row: 36px;
+  --gantt-label: 248px;
+  --gantt-bar-inset: 10px;
+  margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  border-radius: var(--radius-md);
+  background: var(--well);
+  overflow: hidden;
+}
+.gantt--empty {
+  padding: var(--space-8) var(--space-5);
+  background: var(--plate);
+  color: var(--text-secondary);
+}
+.gantt__scroll {
+  overflow: auto;
+  max-height: calc(100dvh - var(--above, 0px) - 360px);
+  min-height: 320px;
+  overscroll-behavior-x: contain;
+}
+.gantt__inner {
+  position: relative;
+}
+
+/* ---- axis ---- */
+.gantt__head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  height: 44px;
+  background: var(--plate);
+  border-bottom: 1px solid var(--line-strong);
+}
+.gantt__corner {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  flex: 0 0 var(--gantt-label);
+  background: var(--plate);
+  border-right: var(--hairline);
+}
+.gantt__axis {
+  position: relative;
+  flex: 0 0 auto;
+}
+.gantt__months,
+.gantt__weeks {
+  position: relative;
+  height: 22px;
+}
+.gantt__month {
+  position: absolute;
+  top: 0;
+  height: 22px;
+  padding-left: 6px;
+  border-left: var(--hairline);
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--type-subhead);
+  line-height: 22px;
+  letter-spacing: 0.01em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.gantt__week {
+  position: absolute;
+  top: 0;
+  height: 22px;
+  padding-left: 4px;
+  border-left: var(--hairline);
+  font-size: var(--type-caption);
+  line-height: 22px;
+  color: var(--text-muted);
+}
+.gantt__lookahead-wash {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--tint-wash);
+  opacity: 0.6;
+}
+.gantt__today-label {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  padding: 0 5px;
+  font-size: var(--type-caption);
+  font-weight: var(--weight-bold);
+  line-height: 22px;
+  color: var(--tint);
+  background: var(--tint-wash);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+/* ---- body ---- */
+.gantt__body {
+  position: relative;
+}
+.gantt__under {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.gantt__gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--plate);
+}
+.gantt__shutdown {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(135deg, var(--raised) 0 1px, transparent 1px 7px);
+}
+.gantt__shutdown-label {
+  position: absolute;
+  top: 8px;
+  left: 6px;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  font-size: var(--type-caption);
+  color: var(--text-muted);
+  background: var(--well);
+  white-space: nowrap;
+}
+.gantt__row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  height: var(--gantt-row);
+  border-bottom: 1px solid var(--plate);
+}
+.gantt__row--stage {
+  background: var(--plate);
+  border-bottom-color: var(--raised);
+}
+.gantt__row--active {
+  background: var(--plate);
+}
+.gantt__label {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  flex: 0 0 var(--gantt-label);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: 0 var(--space-3) 0 var(--space-4);
+  background: var(--plate);
+  border-right: var(--hairline);
+  font-size: var(--type-subhead);
+  line-height: 1.15;
+  transition: background var(--motion-fast) var(--ease);
+}
+.gantt__row--stage .gantt__label {
+  background: var(--raised);
+}
+.gantt__row--active .gantt__label {
+  background: var(--raised);
+}
+.gantt__row--step:not(.gantt__row--stagebar) .gantt__label {
+  padding-left: var(--space-6);
+}
+.gantt__stage-name {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--type-body);
+  letter-spacing: 0.005em;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gantt__step-name {
+  min-width: 0;
+  color: var(--text-secondary);
+}
+.gantt__row--active .gantt__step-name {
+  color: var(--text);
+}
+.gantt__hold-glyph {
+  flex-shrink: 0;
+  color: var(--text);
+}
+.gantt__hold-word {
+  margin-left: 6px;
+  font-size: var(--type-caption);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.gantt__track {
+  position: relative;
+  flex: 0 0 auto;
+  width: calc(100% - var(--gantt-label));
+}
+
+/* the phone's full program: a narrow label column, smaller words */
+.gantt--dense .gantt__label {
+  font-size: var(--type-caption);
+  padding-left: var(--space-3);
+}
+.gantt--dense .gantt__row--step:not(.gantt__row--stagebar) .gantt__label {
+  padding-left: var(--space-4);
+}
+.gantt--dense .gantt__stage-name {
+  font-size: var(--type-subhead);
+}
+
+/* stage bands: a lifted step across the stage's span */
+.gantt__band {
+  position: absolute;
+  top: calc(var(--gantt-bar-inset) + 2px);
+  height: calc(var(--gantt-row) - var(--gantt-bar-inset) * 2 - 4px);
+  background: var(--lifted);
+  border-radius: 2px;
+}
+
+/* the planned position: a thin timber ghost left behind */
+.gantt__planned {
+  position: absolute;
+  top: var(--gantt-bar-inset);
+  height: calc(var(--gantt-row) - var(--gantt-bar-inset) * 2);
+  border: 1px solid var(--bar-done);
+  border-radius: 2px;
+  background: transparent;
+  opacity: 0.9;
+}
+.gantt__planned--hold {
+  width: 12px;
+  height: 12px;
+  top: calc(var(--gantt-row) / 2 - 6px);
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 1px;
+}
+
+/* the forecast bar: light steel, crisp on the dark */
+.gantt__bar {
+  position: absolute;
+  top: var(--gantt-bar-inset);
+  height: calc(var(--gantt-row) - var(--gantt-bar-inset) * 2);
+  min-width: 3px;
+  border: 0;
+  padding: 0;
+  border-radius: 2px;
+  background: var(--chosen-fill);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--motion-fast) var(--ease);
+}
+.gantt__bar--done {
+  background: var(--bar-done);
+}
+.gantt__bar--in_progress {
+  background: var(--text);
+}
+.gantt__bar--hold {
+  width: 14px;
+  height: 14px;
+  min-width: 0;
+  top: calc(var(--gantt-row) / 2 - 7px);
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 1px;
+}
+.gantt__bar:hover,
+.gantt__bar--active {
+  background: var(--text);
+}
+.gantt__bar--done:hover,
+.gantt__bar--done.gantt__bar--active {
+  background: var(--text-muted);
+}
+.gantt__bar:focus-visible {
+  box-shadow: 0 0 0 2px var(--well), 0 0 0 4px var(--tint-fill);
+  border-radius: 2px;
+}
+.gantt__late {
+  position: absolute;
+  top: 0;
+  height: var(--gantt-row);
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  font-size: var(--type-caption);
+}
+
+/* step links: thin elbows behind the bars, brighter when a bar is pointed at */
+.gantt__links {
+  position: absolute;
+  top: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.gantt__link {
+  fill: none;
+  stroke: var(--bar-done);
+  stroke-width: 1;
+  opacity: 0.7;
+}
+.gantt__link--active {
+  stroke: var(--chosen-fill);
+  stroke-width: 1.5;
+  opacity: 1;
+}
+
+/* today: the one hi-vis line */
+.gantt__today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--tint-fill);
+  pointer-events: none;
+}
+
+/* ---- caption: the legend, or the pointed-at step in words ---- */
+.gantt__caption {
+  min-height: 40px;
+  padding: var(--space-2) var(--space-4);
+  background: var(--plate);
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+  line-height: 24px;
+}
+.gantt__caption strong {
+  color: var(--text);
+  font-weight: var(--weight-medium);
+}
+.gantt__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-5);
+  color: var(--text-muted);
+}
+.gantt__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.gantt__key {
+  display: inline-block;
+  width: 18px;
+  height: 8px;
+  border-radius: 2px;
+}
+.gantt__key--bar {
+  background: var(--chosen-fill);
+}
+.gantt__key--planned {
+  border: 1px solid var(--bar-done);
+  background: transparent;
+}
+.gantt__key--hold {
+  width: 12px;
+  height: 12px;
+  color: var(--chosen-fill);
+}
+.gantt__key--today {
+  width: 2px;
+  height: 14px;
+  background: var(--tint-fill);
+}
+
+.lookahead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.lookahead__plate {
+  padding: var(--space-4) var(--space-4) var(--space-2);
+  background: var(--plate);
+  border-radius: var(--radius-lg);
+}
+.lookahead__week {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--type-title-2);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+  color: var(--text);
+}
+.lookahead__range {
+  font-family: var(--font-ui);
+  font-weight: var(--weight-regular);
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+}
+.lookahead__nothing {
+  padding: var(--space-2) 0 var(--space-3);
+  color: var(--text-muted);
+}
+.lookahead__list li + li {
+  border-top: var(--hairline);
+}
+.lookahead__row {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--tap);
+  padding: var(--space-3) 0;
+  color: var(--text);
+  text-decoration: none;
+  transition: background var(--motion-fast) var(--ease);
+}
+.lookahead__row:active {
+  background: var(--raised);
+}
+.lookahead__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.lookahead__name {
+  font-weight: var(--weight-medium);
+  font-size: var(--type-body);
+}
+.lookahead__hold {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 4px;
+  color: var(--text);
+  font-weight: var(--weight-medium);
+  font-size: var(--type-subhead);
+}
+.lookahead__hold-glyph {
+  color: var(--text);
+}
+.lookahead__stage {
+  flex-shrink: 0;
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+}
+.lookahead__line {
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+}
+.lookahead__muted {
+  color: var(--text-muted);
+}
+.lookahead__more {
+  margin-top: var(--space-1);
+}
+.lookahead__summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+.lookahead__summary:hover {
+  color: var(--text);
+}
+/* Sentences on a wash wrap on a narrow phone; the mark stays on the first line. */
+.lookahead__line .status,
+.stages__late .status {
+  display: inline;
+  white-space: normal;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.lookahead__line .status__mark {
+  margin-right: 0.35em;
+}
+
+.stages-strip {
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 0 var(--gutter);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.stages-strip::-webkit-scrollbar {
+  display: none;
+}
+.stages-strip__list {
+  display: flex;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+  width: max-content;
+}
+.stages-strip__chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
+  min-height: var(--tap);
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--plate);
+  color: var(--text-secondary);
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  transition: background var(--motion-fast) var(--ease);
+}
+.stages-strip__chip:active {
+  background: var(--raised);
+}
+.stages-strip__chip[aria-current='true'] {
+  background: var(--chosen-fill);
+  color: var(--text-on-dark);
+  font-weight: var(--weight-bold);
+}
+.stages-strip__chip-when {
+  font-size: var(--type-caption);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+}
+.stages-strip__chip[aria-current='true'] .stages-strip__chip-when {
+  color: var(--text-on-dark);
+  opacity: 0.8;
+}
+
+.stages {
+  margin-top: var(--space-10);
+}
+.stages__heading {
+  margin-bottom: var(--space-3);
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--type-title-2);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+  color: var(--text);
+}
+.stages__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.stages__band {
+  padding: var(--space-4) var(--space-4) var(--space-5);
+  background: var(--plate);
+  border-radius: var(--radius-lg);
+  scroll-margin-top: calc(var(--tap) + var(--space-2));
+}
+.stages__band[aria-current='true'] {
+  background: var(--raised);
+}
+.stages__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.stages__name {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--type-title-2);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+}
+.stages__status {
+  flex-shrink: 0;
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+}
+.stages__dates {
+  margin-top: var(--space-1);
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+}
+.stages__progress {
+  height: 4px;
+  margin-top: var(--space-3);
+  background: var(--lifted);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.stages__band[aria-current='true'] .stages__progress {
+  background: var(--bar-ahead);
+}
+.stages__progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--chosen-fill);
+}
+.stages__band[data-status='done'] .stages__progress-fill {
+  background: var(--bar-done);
+}
+.stages__late {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.stages__late-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  text-decoration: none;
+}

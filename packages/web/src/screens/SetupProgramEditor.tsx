@@ -49,9 +49,21 @@ export interface PendingEdit {
 export function SetupProgramEditorScreen({ jobId }: { jobId: string }) {
   const q = useJobQuery(loadEditor, jobId);
   const view = q.status === 'ready' ? q.data.view : null;
-  const title = view ? (view.job.isTemplate ? `Template: ${view.job.name}` : `Program: ${view.job.name}`) : 'Program editor';
+  const template = !!view?.job.isTemplate;
   return (
-    <SetupFrame title={title} sub={view ? <EditorSub data={q.status === 'ready' ? q.data : null} /> : undefined} className="su-editor">
+    <SetupFrame
+      title={view ? view.job.name : 'Program editor'}
+      meta={view ? <EditorMeta view={view} /> : undefined}
+      back={template ? { href: href('/setup/templates'), label: 'Templates' } : { href: href('/setup/programs'), label: 'Programs' }}
+      actions={
+        view && !template && view.job.kind === 'build' ? (
+          <a className="btn btn--desktop" href={href(`/jobs/${encodeURIComponent(view.job.id)}/program`)}>
+            See the program
+          </a>
+        ) : undefined
+      }
+      className="su-ed"
+    >
       {q.status === 'loading' && <LoadingRows rows={6} label="Loading the program" />}
       {q.status === 'error' && <LoadError what="the program" error={q.error} retry={q.retry} />}
       {q.status === 'ready' && <ProgramEditor data={q.data} />}
@@ -59,25 +71,13 @@ export function SetupProgramEditorScreen({ jobId }: { jobId: string }) {
   );
 }
 
-function EditorSub({ data }: { data: EditorData | null }) {
-  if (!data) return null;
-  const { view } = data;
+/** "Program editor, 8 stages, 29 steps" / "Template editor, 8 stages, 29 steps, 160 working days". */
+function EditorMeta({ view }: { view: ProgramSetupView }) {
   const steps = view.stages.reduce((n, s) => n + s.steps.length, 0);
-  if (view.job.isTemplate) {
-    return (
-      <>
-        {plural(view.stages.length, 'stage')}, {plural(steps, 'step')}, {view.workingDays} working days along the longest chain. Templates have no
-        dates: a job made from one gets its dates from its start date.
-      </>
-    );
-  }
-  if (view.job.kind === 'design') return <>A design job has a stage checklist, not a program.</>;
-  return (
-    <>
-      Changes save one at a time and are listed in{' '}
-      <a href={href(`/history/${encodeURIComponent(view.job.id)}`)}>Changes</a>. <a href={href(`/jobs/${encodeURIComponent(view.job.id)}/program`)}>See the Gantt</a>.
-    </>
-  );
+  const counts = `${plural(view.stages.length, 'stage')}, ${plural(steps, 'step')}`;
+  if (view.job.isTemplate) return <>Template editor, {counts}, {view.workingDays} working days</>;
+  if (view.job.kind === 'design') return <>Checklist</>;
+  return <>Program editor, {counts}</>;
 }
 
 export function ProgramEditor({ data }: { data: EditorData }) {
@@ -94,7 +94,7 @@ export function ProgramEditor({ data }: { data: EditorData }) {
 
   if (job.kind === 'design') {
     return (
-      <p className="empty">
+      <p className="empty-line">
         {job.name} is a design job: its stages are a checklist that moves on through the bot. <a href={href('/setup/programs')}>Pick a build</a>.
       </p>
     );
@@ -131,8 +131,22 @@ export function ProgramEditor({ data }: { data: EditorData }) {
     }
   }
 
+  const jump = (stageId: string) => {
+    document.querySelector(`[data-testid="ed-stage-${stageId}"]`)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  };
+
   return (
-    <div className="su-editor-body">
+    <div className="su-ed__body">
+      <div className="su-ed__stages" role="group" aria-label="Stages" data-testid="ed-stages">
+        {view.stages.map((st, i) => (
+          <button key={st.id} type="button" className="su-ed__chip" onClick={() => jump(st.id)}>
+            <span className="su-ed__chip-n" aria-hidden="true">
+              {i + 1}
+            </span>
+            {st.name}
+          </button>
+        ))}
+      </div>
       {saved && (
         <p className="su-saved" role="status" data-testid="ed-saved">
           Saved: {saved}. It's listed in <a href={href(`/history/${encodeURIComponent(job.id)}`)}>Changes</a>.
@@ -143,55 +157,55 @@ export function ProgramEditor({ data }: { data: EditorData }) {
           <option key={t} value={t} />
         ))}
       </datalist>
-      <table className="su-table su-prog" data-testid="editor">
-        <colgroup>
-          <col className="c-step" />
-          <col className="c-days" />
-          <col className="c-waits" />
-          <col className="c-hold" />
-          <col className="c-needs" />
-          <col className="c-trade" />
-          <col className="c-tools" />
-        </colgroup>
-        <thead>
-          <tr>
-            <th scope="col">Step</th>
-            <th scope="col">Working days</th>
-            <th scope="col">Waits for</th>
-            <th scope="col">Hold point</th>
-            <th scope="col">Needs, with lead time</th>
-            <th scope="col">Trade</th>
-            <th scope="col">
-              <span className="sr-only">Order and details</span>
-            </th>
-          </tr>
-        </thead>
-        {view.stages.map((st, i) => (
-          <StageRows key={st.id} stage={st} index={i} ctx={ctx} open={open} setOpen={setOpen} />
-        ))}
-        <tbody>
-          <tr className="su-addstage">
-            <td colSpan={7}>
-              <AddStage key={reset} ctx={ctx} />
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      {edit && (
-        <ChangeBar
-          edit={edit}
-          preview={preview}
-          view={view}
-          today={today}
-          saving={saving}
-          saveError={saveError}
-          onSave={() => void save()}
-          onDiscard={() => {
-            propose(null);
-            setReset((n) => n + 1);
-          }}
-        />
-      )}
+      <div className="su-ed__plate">
+        <table className="su-ed__table" data-testid="editor">
+          <colgroup>
+            <col className="c-step" />
+            <col className="c-days" />
+            <col className="c-waits" />
+            <col className="c-hold" />
+            <col className="c-needs" />
+            <col className="c-trade" />
+            <col className="c-tools" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col">Step</th>
+              <th scope="col">Working days</th>
+              <th scope="col">Waits for</th>
+              <th scope="col">Hold point</th>
+              <th scope="col">Needs, with lead time</th>
+              <th scope="col">Trade</th>
+              <th scope="col">
+                <span className="sr-only">Order and details</span>
+              </th>
+            </tr>
+          </thead>
+          {view.stages.map((st, i) => (
+            <StageRows key={st.id} stage={st} index={i} ctx={ctx} open={open} setOpen={setOpen} />
+          ))}
+          <tbody>
+            <tr className="su-addstage">
+              <td colSpan={7}>
+                <AddStage key={reset} ctx={ctx} />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ChangeBar
+        edit={edit}
+        preview={preview}
+        view={view}
+        today={today}
+        saving={saving}
+        saveError={saveError}
+        onSave={() => void save()}
+        onDiscard={() => {
+          propose(null);
+          setReset((n) => n + 1);
+        }}
+      />
     </div>
   );
 }
@@ -259,7 +273,7 @@ function StageRows({ stage, index, ctx, open, setOpen }: { stage: SetupStage; in
               {stage.steps.length === 0 && (
                 <button
                   type="button"
-                  className="btn btn-small"
+                  className="btn btn--small"
                   disabled={ctx.locked(`stage:${stage.id}:delete`)}
                   onClick={() => ctx.propose({ key: `stage:${stage.id}:delete`, label: `Delete the empty ${stage.name} stage`, op: 'delete_stage', args: { stage: stage.id }, error: null })}
                 >
@@ -440,7 +454,7 @@ function StepRows({ step, index, stage, ctx, open, toggle }: { step: SetupStep; 
           />
         </td>
         <td className="su-c-tools">
-          <button type="button" className="btn btn-small" aria-expanded={open} aria-controls={`more-${step.id}`} data-testid="ed-more" onClick={toggle}>
+          <button type="button" className="btn btn--small" aria-expanded={open} aria-controls={`more-${step.id}`} data-testid="ed-more" onClick={toggle}>
               {open ? 'Close' : 'Links and needs'}
               <span className="sr-only"> for {step.name}</span>
             </button>
@@ -479,7 +493,7 @@ function StepDetailEditor({ step, ctx }: { step: SetupStep; ctx: RowCtx }) {
                   <span>{name}</span>
                   <button
                     type="button"
-                    className="btn btn-small"
+                    className="btn btn--small"
                     disabled={ctx.locked(key)}
                     onClick={() => ctx.propose({ key, label: `${step.name} stops waiting for ${name}`, op: 'remove_link', args: { step: step.id, waitsFor: id }, error: null })}
                   >
@@ -541,7 +555,7 @@ function StepDetailEditor({ step, ctx }: { step: SetupStep; ctx: RowCtx }) {
         ) : (
           <button
             type="button"
-            className="btn"
+            className="btn btn--desktop"
             disabled={ctx.locked(`step:${step.id}:delete`)}
             onClick={() =>
               ctx.propose({ key: `step:${step.id}:delete`, label: `Delete ${step.name}, with its links and needs`, op: 'delete_step', args: { step: step.id }, error: null })
@@ -589,7 +603,7 @@ function RequirementLine({ req, step, ctx }: { req: Requirement; step: SetupStep
       </label>
       <button
         type="button"
-        className="btn btn-small"
+        className="btn btn--small"
         disabled={ctx.locked(delKey)}
         onClick={() => ctx.propose({ key: delKey, label: `${step.name} no longer needs ${req.name}`, op: 'delete_requirement', args: { requirement: req.id }, error: null })}
       >
@@ -721,7 +735,7 @@ function AddStep({ stage, ctx }: { stage: SetupStage; ctx: RowCtx }) {
       </label>
       <button
         type="button"
-        className="btn btn-small"
+        className="btn btn--small"
         onClick={() => {
           setOpen(false);
           if (ctx.edit?.key === key) ctx.propose(null);
@@ -758,8 +772,13 @@ function AddStage({ ctx }: { ctx: RowCtx }) {
   );
 }
 
+/**
+ * v1 editor footer: Thick Liquid Glass, sticky over the scrolling program, always there. With nothing
+ * pending it says how to start; with an edit it says what it does (the steps that move, never the
+ * finish or money; for a template, the working days) and its Save lights up. One change at a time.
+ */
 function ChangeBar(props: {
-  edit: PendingEdit;
+  edit: PendingEdit | null;
   preview: PreviewState;
   view: ProgramSetupView;
   today: ISODate;
@@ -769,37 +788,42 @@ function ChangeBar(props: {
   onDiscard: () => void;
 }) {
   const { edit, preview, view, today } = props;
-  const problem = edit.error ?? previewProblem(preview);
-  const ok = !edit.error && canSave(preview);
-  const p = preview.status === 'ready' ? preview.preview : null;
+  const problem = edit ? (edit.error ?? previewProblem(preview)) : null;
+  const ok = !!edit && !edit.error && canSave(preview);
+  const p = edit && preview.status === 'ready' ? preview.preview : null;
   const proposal = p && p.result.kind === 'proposal' ? p.result : null;
   const impact = p?.impact?.find((i) => i.jobId === view.job.id) ?? null;
   const tpl = p?.templates.find((t) => t.jobId === view.job.id) ?? null;
   return (
-    <section className="su-bar" aria-label="This change, before you save it" data-testid="change-bar">
-      <div className="su-bar-body" aria-live="polite">
-        <p className="su-bar-what">{proposal?.summary ?? edit.label}</p>
+    <section
+      className="su-ed__foot glass glass--thick glass--float"
+      aria-label={edit ? 'This change, before you save it' : 'Changes'}
+      data-testid={edit ? 'change-bar' : 'editor-foot'}
+    >
+      <div className="su-ed__foot-body" aria-live="polite">
+        {!edit && <p className="su-ed__foot-note">{view.job.isTemplate ? 'Edit a step to see the working days.' : 'Edit a step to see what moves.'}</p>}
+        {edit && <p className="su-ed__foot-what">{proposal?.summary ?? edit.label}</p>}
         {problem && (
           <p className="su-error" role="alert" data-testid="bar-problem">
             {problem}
           </p>
         )}
-        {!problem && preview.status === 'checking' && <p className="su-muted">Working out what moves…</p>}
-        {!problem && proposal && view.job.isTemplate && (
-          <p className="su-bar-note" data-testid="template-impact">
+        {edit && !problem && preview.status === 'checking' && <p className="su-ed__foot-note">Working out what moves…</p>}
+        {edit && !problem && proposal && view.job.isTemplate && (
+          <p className="su-ed__foot-note" data-testid="template-impact">
             {tpl && tpl.workingDaysAfter !== tpl.workingDaysBefore
               ? `Longest chain ${tpl.workingDaysBefore} to ${tpl.workingDaysAfter} working days. `
               : `Longest chain stays ${tpl?.workingDaysAfter ?? view.workingDays} working days. `}
-            Templates have no dates. Jobs started from this template from now on get the change; jobs already started keep their own program.
+            Templates have no dates. New jobs from it get the change; jobs already started keep their own.
           </p>
         )}
-        {!problem && proposal && !view.job.isTemplate && impact && (
+        {edit && !problem && proposal && !view.job.isTemplate && impact && (
           <>
             <MovedSteps impact={impact} today={today} max={3} />
-            <p className="su-bar-note" data-testid="bar-note">
+            <p className="su-ed__foot-note" data-testid="bar-note">
               {edit.op === 'edit_step' && edit.args && 'durationDays' in edit.args
-                ? "Planned dates don't change, apart from this step's own planned end. The steps it pushes read as late against the plan."
-                : "Planned dates don't change. Forecast against planned shows any step this pushes as late."}
+                ? "Planned dates don't change, apart from this step's own planned end."
+                : "Planned dates don't change."}
             </p>
           </>
         )}
@@ -809,14 +833,14 @@ function ChangeBar(props: {
           </p>
         )}
       </div>
-      <div className="su-bar-actions">
-        <button type="button" className="btn btn-primary" disabled={!ok || props.saving} onClick={props.onSave} data-testid="bar-save">
-          {props.saving ? 'Saving…' : 'Save change'}
-        </button>
-        <button type="button" className="btn" onClick={props.onDiscard} data-testid="bar-discard">
+      <div className="su-ed__foot-actions">
+        <span className="su-ed__changes">{edit ? '1 unsaved change' : 'No unsaved changes'}</span>
+        <button type="button" className="btn btn--glass btn--desktop" disabled={!edit} onClick={props.onDiscard} data-testid="bar-discard">
           Discard
         </button>
-        <p className="su-bar-one">One change at a time: save or discard this one to change something else.</p>
+        <button type="button" className="btn btn--glass-prominent btn--desktop" disabled={!ok || props.saving} onClick={props.onSave} data-testid="bar-save">
+          {props.saving ? 'Saving…' : edit ? 'Save 1 change' : 'Save'}
+        </button>
       </div>
     </section>
   );

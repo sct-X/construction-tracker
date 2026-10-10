@@ -14,7 +14,8 @@ export interface TelegramNotifier {
   send(n: ReminderNotification): Promise<void>;
 }
 
-const MAX = 4000;
+/** Telegram's message limit. */
+const MAX = 4096;
 
 /** Sends each notification to one chat (Dominic's private chat id = his user id). Throws when the (first) message
  * fails, so the scheduler releases the reminders and tries again later. Long texts are split on line breaks. */

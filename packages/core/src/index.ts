@@ -10,6 +10,8 @@ export * from './fuzzy.js';
 export * from './operations/index.js';
 export * from './dryRun.js';
 export * from './readModels.js';
+export * from './readModelsTiming.js';
+export * from './readModelsOverview.js';
 export * from './setupViews.js';
 export * from './store.js';
 export * from './api.js';

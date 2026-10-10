@@ -6,7 +6,6 @@
  */
 import {
   formatDate,
-  formatDays,
   formatStamp,
   sydneyDate,
   type DashboardApi,
@@ -15,7 +14,7 @@ import {
   type SideFilter,
 } from '@ct/core';
 import { useSideQuery } from '../data/DataContext';
-import { LoadError, LoadingRows, Money } from '../components/bits';
+import { LoadError, LoadingRows } from '../components/bits';
 import { JobPicker } from '../components/listBits';
 import { fieldWords, valueWords } from '../ui/format';
 import { plural } from '../ui/itemWords';
@@ -197,24 +196,9 @@ function ForecastLine({ entry, today }: { entry: HistoryEntry; today: string }) 
   return (
     <ul className="effects" data-testid="forecast">
       {entry.effects.map((e) => (
+        // Timing first (SPEC revision): the steps it moved, never the finish or money.
         <li key={e.jobId} className="effect">
-          {e.deltaDays !== 0 && e.finishBefore && e.finishAfter ? (
-            <>
-              <span className="effect-days">{formatDays(e.deltaDays)}</span>
-              <span>
-                {e.jobName} finish {formatDate(e.finishBefore, today)} → {formatDate(e.finishAfter, today)}
-                {e.cost ? (
-                  <>
-                    , <Money amount={Math.abs(e.cost)} /> of holding cost{e.cost < 0 ? ' saved' : ''}
-                  </>
-                ) : null}
-              </span>
-            </>
-          ) : (
-            <span>
-              Moved {plural(e.movedSteps, 'step')} at {e.jobName}, not the finish
-            </span>
-          )}
+          <span>{e.movedSteps ? `Moved ${plural(e.movedSteps, 'step')} at ${e.jobName}` : `Moved no steps at ${e.jobName}`}</span>
         </li>
       ))}
     </ul>

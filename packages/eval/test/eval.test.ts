@@ -5,9 +5,9 @@ import { fakeProviderFor, planProviders, runCase, runDry, runProvider } from '..
 import { summaryTable } from '../src/report.js';
 
 describe('eval cases', () => {
-  it('has 30 cases with unique ids and a one-line why', () => {
-    expect(CASES).toHaveLength(30);
-    expect(new Set(CASES.map((c) => c.id)).size).toBe(30);
+  it('has 32 cases with unique ids and a one-line why', () => {
+    expect(CASES).toHaveLength(32);
+    expect(new Set(CASES.map((c) => c.id)).size).toBe(32);
     for (const c of CASES) expect(c.why.trim().length, c.id).toBeGreaterThan(10);
   });
 
@@ -21,12 +21,12 @@ describe('eval cases', () => {
 });
 
 describe('dry run (FakeLlm returns each case\'s expected calls)', () => {
-  it('passes 30/30', async () => {
+  it('passes 32/32', async () => {
     const run = await runDry();
     const failed = run.results.filter((r) => !r.grade.pass).map((r) => `${r.id}: ${r.grade.reason}`);
     expect(failed).toEqual([]);
-    expect(run.passed).toBe(30);
-    expect(run.total).toBe(30);
+    expect(run.passed).toBe(32);
+    expect(run.total).toBe(32);
   });
 
   it('fails a case when the model answers with another case\'s calls', async () => {
@@ -40,8 +40,9 @@ describe('dry run (FakeLlm returns each case\'s expected calls)', () => {
     const g2 = await swapped('q-windows-late', 'eta-park-windows');
     expect(g2).toMatchObject({ pass: false });
     expect(g2.reason).toContain('want a question');
-    // A question where a change was wanted.
-    expect((await swapped('item-booked-seaview-pump', 'q-sparky-back-a-week')).pass).toBe(false);
+    // A question where a change was wanted, and a change without its expected date.
+    expect((await swapped('item-booked-seaview-pump-dated', 'q-sparky-back-a-week')).pass).toBe(false);
+    expect((await swapped('item-booked-seaview-pump-dated', 'item-booked-seaview-pump')).pass).toBe(false);
     // One op of two is not enough.
     expect((await swapped('confirm-park-and-seaview', 'confirm-beatty')).pass).toBe(false);
     // A read where a change was wanted, and a change where a read was wanted.

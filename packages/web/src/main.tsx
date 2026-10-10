@@ -1,12 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import '@fontsource/barlow/400.css';
-import '@fontsource/barlow/500.css';
-import '@fontsource/barlow/600.css';
-import '@fontsource/barlow-condensed/500.css';
-import '@fontsource/barlow-condensed/600.css';
+// One token set (v1's Apple foundation and Liquid Glass passes); no web font ships: the system face is the type.
 import './styles/tokens.css';
-import './styles/app.css';
+import './styles/base.css';
+import './styles/shell.css';
+import './styles/legacy.css';
 import './styles/screens4a.css';
 import { App } from './app/App';
 import { DataProvider } from './data/DataContext';

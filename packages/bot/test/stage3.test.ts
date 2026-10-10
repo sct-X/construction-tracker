@@ -474,14 +474,15 @@ describe('voice notes: failures', () => {
 // ---------------------------------------------------------------------------
 
 describe('flow f: reminders to Telegram', () => {
-  it('"fire reminders" (no LLM) sends what is due now: Book concrete pump act-by Fri 18 Sep, Beatty St amber', async () => {
+  it('"fire reminders" (no LLM) sends what is due now: Book concrete pump act-by Fri 18 Sep, "Beatty St: not confirmed for 9 days"', async () => {
     setup([]);
     const calls = await h.text('fire reminders');
     const [text] = h.sent(calls);
     expect(sendsIn(calls)[0]!.payload.chat_id).toBe(DOMINIC_ID);
     expect(text).toMatch(/^Reminders due now, Thu 17 Sep \(you asked, so this includes any already sent today\):/);
-    expect(text).toContain('- Seaview St: Book concrete pump. Act by Fri 18 Sep (tomorrow).');
-    expect(text).toContain('- Beatty St is amber: last confirmed 9 days ago. Check it and confirm the job.');
+    expect(text).toContain('Seaview St:\n- Book concrete pump. Act by Fri 18 Sep (tomorrow).');
+    expect(text).toContain('\nBeatty St: not confirmed for 9 days. Check it and confirm the job.');
+    expect(text).not.toMatch(/amber/i);
     expect(llm.requests).toHaveLength(0);
     expect(newChangeSets()).toHaveLength(0);
   });
@@ -499,8 +500,9 @@ describe('flow f: reminders to Telegram', () => {
     expect(daily).toHaveLength(1);
     expect(daily[0]!.payload.chat_id).toBe(DOMINIC_ID);
     expect(String(daily[0]!.payload.text)).toMatch(/^Reminders, Thu 17 Sep:/);
-    expect(String(daily[0]!.payload.text)).toContain('Seaview St: Book concrete pump. Act by Fri 18 Sep (tomorrow).');
-    expect(String(daily[0]!.payload.text)).toContain('Beatty St is amber');
+    expect(String(daily[0]!.payload.text)).toContain('Seaview St:\n- Book concrete pump. Act by Fri 18 Sep (tomorrow).');
+    expect(String(daily[0]!.payload.text)).toContain('Beatty St: not confirmed for 9 days.');
+    expect(String(daily[0]!.payload.text)).not.toMatch(/amber/i);
 
     // Dedup: the next tick sends nothing.
     const mid = h.calls.length;
@@ -664,5 +666,18 @@ describe('review 8: a spoken "fire reminders" skips the LLM too', () => {
     const calls = await h.voice(OGG);
     expect(h.sent(calls)[0]).toMatch(/^Reminders due now, Thu 17 Sep/);
     expect(llm.requests).toHaveLength(0);
+  });
+});
+
+describe('/reminders: the full list, split only at Telegram\'s 4096-character limit', () => {
+  it('a long list goes as several messages, each at most 4096 characters, every line once', async () => {
+    const lines = Array.from({ length: 300 }, (_, i) => `- Item ${String(i).padStart(3, '0')}. Act by Fri 18 Sep (tomorrow).`);
+    const long = ['Reminders due now, Thu 17 Sep (you asked, so this includes any already sent today):', ...lines].join('\n');
+    llm = new FakeLlm([]);
+    h = createHarness({ store, clock, parser: createParser(llm), remindersNow: async () => long });
+    const parts = h.sent(await h.text('/reminders'));
+    expect(parts.length).toBeGreaterThan(1);
+    expect(parts.every((p) => p.length <= 4096)).toBe(true);
+    expect(parts.join('\n')).toBe(long);
   });
 });

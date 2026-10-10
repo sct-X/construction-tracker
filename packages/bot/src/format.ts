@@ -4,6 +4,7 @@
  * Replies are sent as plain text (no parse mode), so nothing needs escaping.
  */
 import {
+  calendarDaysBetween,
   formatDate,
   formatDays,
   formatMoney,
@@ -13,6 +14,7 @@ import {
   ITEM_TYPE_LABELS,
   SHIPMENT_STATUS_LABELS,
   STAGE_STATUSES,
+  stageDisplayName,
   STEP_STATUS_LABELS,
   type Change,
   type Dataset,
@@ -110,8 +112,10 @@ export function rowLabel(ds: Dataset, change: Change): string {
         return ds.shipments.find((x) => x.id === id)?.name;
       case 'step':
         return ds.steps.find((x) => x.id === id)?.name;
-      case 'stage':
-        return ds.stages.find((x) => x.id === id)?.name;
+      case 'stage': {
+        const n = ds.stages.find((x) => x.id === id)?.name;
+        return n ? (stageDisplayName(n) ?? n) : undefined;
+      }
       case 'job':
         return ds.jobs.find((x) => x.id === id)?.name;
       case 'trade':
@@ -164,12 +168,16 @@ export function slipText(days: number | null, cost: number | null): string | nul
 
 const MAX_MOVED_STEPS = 4;
 
-/** The forecast impact lines for one job on a confirm card. */
-export function impactLines(impact: JobImpact, today: ISODate): string[] {
+/**
+ * The forecast impact lines for one job on a confirm card. `before` (the data before the change) lets a
+ * confirm say how long the job had gone unconfirmed; rule 7 is told in words, never as "amber".
+ */
+export function impactLines(impact: JobImpact, today: ISODate, before?: Dataset): string[] {
   if (impact.kind === 'design') return [];
   const moved = impact.movedSteps;
+  const confirmed = impact.amberBefore && !impact.amberAfter ? [confirmedAgainLine(impact.jobId, today, before)] : [];
   if (!moved.length && impact.finishDeltaDays === 0) {
-    return [`No change to the forecast${impact.finishAfter ? ` (finish ${formatDate(impact.finishAfter, today)})` : ''}`];
+    return [`No change to the forecast${impact.finishAfter ? ` (finish ${formatDate(impact.finishAfter, today)})` : ''}`, ...confirmed];
   }
   const lines: string[] = [];
   for (const m of moved.slice(0, MAX_MOVED_STEPS)) {
@@ -186,8 +194,15 @@ export function impactLines(impact: JobImpact, today: ISODate): string[] {
   const slip = slipText(impact.slipAfter, impact.slipCostAfter);
   if (slip && impact.slipAfter !== 0) lines.push(`Slip ${slip} since last Monday`);
   else if (slip) lines.push('Slip: none since last Monday');
-  if (impact.amberBefore && !impact.amberAfter) lines.push('No longer amber');
-  return lines;
+  return [...lines, ...confirmed];
+}
+
+/** "Confirmed again: it hadn't been confirmed for 9 days" (or "Confirmed for the first time"). */
+function confirmedAgainLine(jobId: string, today: ISODate, before?: Dataset): string {
+  const job = before?.jobs.find((j) => j.id === jobId);
+  if (job && !job.lastConfirmed) return 'Confirmed for the first time';
+  const days = job?.lastConfirmed ? calendarDaysBetween(job.lastConfirmed, today) : null;
+  return days !== null ? `Confirmed again: it hadn't been confirmed for ${days} days` : 'Confirmed again: it had gone over 7 days unconfirmed';
 }
 
 export interface CardInput {
@@ -210,7 +225,7 @@ export function cardText(c: CardInput): string {
   parts.push(`${c.summary}.`);
   parts.push(changeLines(c.ds, c.changes, c.today).map((l) => `- ${l}`).join('\n'));
   for (const impact of c.impacts) {
-    const lines = impactLines(impact, c.today);
+    const lines = impactLines(impact, c.today, c.ds);
     if (lines.length) parts.push(`${impact.jobName}:\n${lines.map((l) => `- ${l}`).join('\n')}`);
   }
   if (c.notes?.length) parts.push(c.notes.join('\n'));

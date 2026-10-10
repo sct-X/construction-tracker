@@ -142,8 +142,8 @@ describe('startApp with the bot on: reminders go to Dominic on Telegram', () => 
     const daily = sent.filter((m) => m.text.startsWith('Reminders, Thu 17 Sep:'));
     expect(daily).toHaveLength(1);
     expect(daily[0]!.chat_id).toBe('42');
-    expect(daily[0]!.text).toContain('Seaview St: Book concrete pump. Act by Fri 18 Sep (tomorrow).');
-    expect(daily[0]!.text).toContain('Beatty St is amber');
+    expect(daily[0]!.text).toContain('Seaview St:\n- Book concrete pump. Act by Fri 18 Sep (tomorrow).');
+    expect(daily[0]!.text).toContain('Beatty St: not confirmed for 9 days.');
     expect(log.lines).toContain('info Reminders go to Dominic on Telegram from 07:00 Sydney.');
     expect(log.lines.some((l) => l.startsWith('info Voice notes off:'))).toBe(true);
     expect(existsSync(join(dir, 'photos', 'telegram', '2026-09-16-0123456789ab.jpg'))).toBe(false);

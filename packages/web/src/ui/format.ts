@@ -1,7 +1,6 @@
 /** Plain-English wording shared by the screens. Pure, so tests can check the words. */
 import {
   formatDate,
-  formatDays,
   isISODate,
   ITEM_STATUS_LABELS,
   SHIPMENT_STATUS_LABELS,
@@ -10,26 +9,7 @@ import {
   type ISODate,
 } from '@ct/core';
 
-export interface SlipWords {
-  /** The number: "+14 days", "-2 days", "On track", or a dash before the first snapshot. */
-  big: string;
-  /** What it is measured against, in words. */
-  small: string;
-  direction: 'later' | 'earlier' | 'same' | 'none';
-}
-
-export function slipWords(slipDays: number | null, snapshotDate: ISODate | null, today: ISODate): SlipWords {
-  if (slipDays === null || !snapshotDate) {
-    return { big: '–', small: 'Slip appears after the first Monday', direction: 'none' };
-  }
-  const when = formatDate(snapshotDate, today);
-  if (slipDays === 0) return { big: 'On track', small: `Same as ${when}`, direction: 'same' };
-  return slipDays > 0
-    ? { big: formatDays(slipDays), small: `Later than ${when}`, direction: 'later' }
-    : { big: formatDays(slipDays), small: `Earlier than ${when}`, direction: 'earlier' };
-}
-
-/** Amber reads as the problem ("Not confirmed for 9 days"); otherwise the calm version. */
+/** Over 7 days unconfirmed reads as the problem ("Not confirmed for 9 days"); otherwise the calm version. Words only, never a colour. */
 export function freshnessWords(f: { amber: boolean; daysUnconfirmed?: number | null; freshnessText: string }): string {
   if (!f.amber) return f.freshnessText;
   if (f.daysUnconfirmed === null || f.daysUnconfirmed === undefined) {

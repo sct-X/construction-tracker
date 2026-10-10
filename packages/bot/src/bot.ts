@@ -34,6 +34,7 @@ import {
 import { BOT_SET_ARGS, type ChatMsg, type ParseResult, type Parser } from '@ct/llm';
 import { cardText, finishSentence } from './format.js';
 import { detectImageType, extensionFor, telegramDownloader, type FileDownloader, type MediaStore } from './media.js';
+import { splitText } from './notifier.js';
 import { answerRead } from './reads.js';
 import { transcriptionPrompt, type Transcriber } from './transcriber.js';
 
@@ -163,7 +164,8 @@ export interface InboundOptions {
   botArgs?: BotArgs;
 }
 
-const MAX_TEXT = 4000;
+/** Telegram's message limit. */
+const MAX_TEXT = 4096;
 /** The model's free-text replies are meant to be a sentence or two. */
 const MAX_MODEL_REPLY = 400;
 const DEFAULT_PENDING_TTL_MS = 30 * 60 * 1000;
@@ -1013,7 +1015,8 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       return;
     }
     const text = await opts.remindersNow();
-    await send(chatId, text ?? `Nothing due right now, ${formatDate(clock.today(), clock.today())}.`);
+    // The full list: split only at Telegram's 4096-character limit, on line breaks.
+    for (const part of splitText(text ?? `Nothing due right now, ${formatDate(clock.today(), clock.today())}.`)) await send(chatId, part);
     log.info(`Reminders sent on request${text ? '' : ' (none due)'}.`);
   }
 

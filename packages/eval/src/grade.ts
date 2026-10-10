@@ -95,6 +95,7 @@ export function resolvedArgs(p: Proposal, ds: Dataset): Record<string, JsonValue
       case 'set_item_status':
         if (field === 'status') set('status', after);
         if ((field === 'confirmedDate' || field === 'doneAt') && after !== null) set('date', after);
+        if (field === 'expectedDate') set('expectedDate', after);
         break;
       case 'set_item_expected_date':
         if (field === 'expectedDate') set('date', after);

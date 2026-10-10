@@ -1,0 +1,114 @@
+/*
+  Shipments (v1 shipments.css look): a table on one plate on the desktop, the
+  ETA as the row's figure (Title 3 bold) with its relative time under it; one
+  card per shipment on the phone. Red only for an ETA gone and not delivered.
+*/
+.ships {
+  max-width: var(--content-max);
+}
+.ships__head {
+  margin-bottom: var(--space-4);
+}
+.ships__title {
+  font-family: var(--font-display);
+  font-size: var(--type-title-2);
+  font-weight: var(--weight-bold);
+  line-height: 1.2;
+}
+.ships__plate {
+  padding: 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.ships__table tbody tr:last-child th,
+.ships__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.ships__table tbody tr:hover {
+  background: transparent;
+}
+.ships__table thead th {
+  padding-top: var(--space-3);
+}
+.ships__name-block,
+.ships__eta-block,
+.ships__needed-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ships__job {
+  font-size: var(--type-footnote);
+  color: var(--text-muted);
+  font-weight: var(--weight-regular);
+}
+.ships__name {
+  font-size: var(--type-body);
+  font-weight: var(--weight-semibold);
+}
+.ships__supplier,
+.ships__rel,
+.ships__timing,
+.ships__linked-meta {
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+  font-weight: var(--weight-regular);
+}
+.ships__rel.status {
+  padding: 0;
+  white-space: normal;
+}
+.ships__rel.status--late {
+  color: var(--late-ink);
+  font-weight: var(--weight-semibold);
+}
+.ships__status {
+  font-size: var(--type-subhead);
+}
+.ships__eta {
+  font-family: var(--font-display);
+  font-size: var(--type-title-3);
+  font-weight: var(--weight-bold);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.ships__needed {
+  font-size: var(--type-subhead);
+}
+.ships__quiet,
+.ships__eta-none {
+  color: var(--text-muted);
+}
+.ships__linked {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.ships__linked li {
+  display: flex;
+  flex-direction: column;
+}
+.ships__linked-title {
+  font-size: var(--type-subhead);
+}
+
+.ships__cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.ships__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.ships__card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.ships__card .ships__linked {
+  padding-top: var(--space-3);
+  border-top: 0.5px solid var(--line);
+}

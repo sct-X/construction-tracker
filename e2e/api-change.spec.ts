@@ -1,8 +1,10 @@
 /**
  * api-change project only (runs after the api project, against the same server):
  * SPEC flow a through the real bot (packages/server/scripts/bot-change.ts: grammY
- * with a fake Telegram transport and a scripted model) on the e2e DATA_DIR, then
- * the Monday screen must show the new finish, slip, cost and why it moved.
+ * with a fake Telegram transport and a scripted model) on the e2e DATA_DIR. The
+ * bot's confirm card keeps the dry-run finish, slip and $ (SPEC revision 2); the
+ * web is timing first, so it must show Install windows on Mon 16 Nov (Program,
+ * step detail, the job's Shipments tab) and still no finish or money.
  * Retry-safe: the bot step only runs if the ETA is not already 16 Nov.
  */
 import { execFileSync } from 'node:child_process';
@@ -10,7 +12,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type APIRequestContext } from '@playwright/test';
-import { buildRow, openMonday } from './helpers';
+import { openOverview } from './helpers';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PORT = Number(process.env.E2E_PORT || 4310);
@@ -39,31 +41,38 @@ function botFlowA(): string {
   return r.card;
 }
 
-test('windows ETA moved to 16 Nov: Park Rd +14 days, $9,000, and why it moved names the ETA', async ({ page, request }) => {
+test('windows ETA moved to 16 Nov through the bot: Park Rd Install windows shows Mon 16 Nov', async ({ page, request }) => {
   const eta = await parkRdWindowsEta(request);
   if (eta !== '2026-11-16') {
     expect(eta).toBe('2026-10-26');
-    await openMonday(page);
-    await expect(buildRow(page, 'park-rd').getByTestId('slip')).toHaveText('On track');
+    await page.goto('./#/jobs/park-rd/steps/pr-install-windows');
+    await expect(page.getByTestId('step-forecast')).toHaveText('Mon 2 Nov to Fri 13 Nov');
     const card = botFlowA();
+    // The confirm card keeps the dry-run impact.
     expect(card).toContain('Install windows starts Mon 16 Nov (was Mon 2 Nov)');
     expect(card).toContain('Finish Fri 12 Mar 2027 (was Fri 26 Feb 2027)');
     expect(card).toContain('Slip +14 days, $9,000');
     await page.reload();
-  } else {
-    await openMonday(page);
   }
 
-  const park = buildRow(page, 'park-rd');
-  await expect(park.getByTestId('finish')).toHaveText('Fri 12 Mar 2027');
-  await expect(park.getByTestId('slip')).toHaveText('+14 days');
-  await expect(park.getByTestId('slip-cost')).toHaveText('$9,000');
-  const cause = park.getByTestId('why-it-moved').getByTestId('why-cause');
-  await expect(cause).toHaveCount(1);
-  await expect(cause).toContainText('+14 days');
-  await expect(cause).toContainText('Park Rd windows, ETA Mon 26 Oct → Mon 16 Nov');
-  // The source is Dominic's Telegram message, quoted.
-  await expect(cause).toContainText('Park Rd windows now arriving 16 Nov');
-  // Park Rd now costs the most this week, so it leads the builds.
-  await expect(page.locator('[data-testid^="build-row-"]').first()).toHaveAttribute('data-testid', 'build-row-park-rd');
+  // The step page and the Gantt row.
+  await page.goto('./#/jobs/park-rd/steps/pr-install-windows');
+  await expect(page.getByTestId('step-forecast')).toHaveText(/^Mon 16 Nov to /);
+  await page.goto('./#/jobs/park-rd/program');
+  await expect(page.getByTestId('g-step-pr-install-windows')).toContainText('Mon 16 Nov');
+
+  // The job's Shipments tab: the new ETA, now after it's needed (plain words, two future dates).
+  await page.goto('./#/jobs/park-rd/shipments');
+  const ship = page.getByTestId('shipment-row-sh-pr-windows');
+  await expect(ship.getByTestId('eta')).toHaveText('Mon 16 Nov');
+  await expect(ship.getByTestId('timing')).toHaveText('14 days late');
+
+  // Waiting on: the windows are expected Mon 16 Nov.
+  await page.goto('./#/jobs/park-rd/waiting');
+  await page.getByTestId('waiting-group-later').locator('summary').click();
+  await expect(page.getByTestId('waiting-row-it-pr-windows').getByTestId('when')).toContainText('Expected Mon 16 Nov');
+
+  // The Overview stays timing first: no finish, slip or money even after a slip.
+  await openOverview(page);
+  for (const banned of ['$', 'Fri 12 Mar 2027', '+14 days', 'Why it moved']) await expect(page.getByTestId('overview-screen')).not.toContainText(banned);
 });

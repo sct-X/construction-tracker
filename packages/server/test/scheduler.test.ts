@@ -62,14 +62,16 @@ describe('Monday snapshot', () => {
 });
 
 describe('reminders (flow f: "fire reminders", today Thu 17 Sep)', () => {
-  it('computeReminders: Book concrete pump act-by Fri 18 Sep, and Beatty St amber', () => {
+  it('computeReminders: Book concrete pump act-by Fri 18 Sep, and Beatty St not confirmed for 9 days', () => {
     const r = computeReminders(buildSeed(), DEFAULT_TODAY);
     const pump = r.find((x) => x.kind === 'act_by' && x.jobId === SEAVIEW && x.text.includes('Book concrete pump'))!;
     expect(pump).toMatchObject({ dueOn: '2026-09-18', text: 'Seaview St: Book concrete pump. Act by Fri 18 Sep (tomorrow).' });
-    const amber = r.filter((x) => x.kind === 'amber');
-    expect(amber.map((x) => x.jobName)).toContain('Beatty St');
-    expect(amber.find((x) => x.jobId === BEATTY)!.text).toBe('Beatty St is amber: last confirmed 9 days ago. Check it and confirm the job.');
-    expect(amber.some((x) => x.jobId === SEAVIEW)).toBe(false);
+    const unconfirmed = r.filter((x) => x.kind === 'unconfirmed');
+    expect(unconfirmed.map((x) => x.jobName)).toContain('Beatty St');
+    expect(unconfirmed.find((x) => x.jobId === BEATTY)!.text).toBe('Beatty St: not confirmed for 9 days. Check it and confirm the job.');
+    expect(unconfirmed.some((x) => x.jobId === SEAVIEW)).toBe(false);
+    // Rule 7 is sent in words only: never "amber" (SPEC revision 2026-10-10).
+    expect(r.some((x) => /amber/i.test(x.text))).toBe(false);
     expect(new Set(r.map((x) => x.key)).size).toBe(r.length);
   });
 
@@ -82,7 +84,8 @@ describe('reminders (flow f: "fire reminders", today Thu 17 Sep)', () => {
     const text = notifier.sent[0]!.text;
     expect(text.split('\n')[0]).toBe('Reminders, Thu 17 Sep:');
     expect(text).toContain('Book concrete pump. Act by Fri 18 Sep');
-    expect(text).toContain('Beatty St is amber');
+    expect(text).toContain('Beatty St: not confirmed for 9 days.');
+    expect(text).not.toMatch(/amber/i);
     expect(first.sent.length).toBeGreaterThanOrEqual(2);
 
     const second = await fireReminders(store, clock, notifier);
@@ -96,13 +99,13 @@ describe('reminders (flow f: "fire reminders", today Thu 17 Sep)', () => {
     other.close();
   });
 
-  it('a moved act-by or a job going amber again is a new reminder; the next day the pump is "due"', async () => {
+  it('a moved act-by or a job unconfirmed again is a new reminder; the next day the pump is "due"', async () => {
     const store = new SqliteStore(file);
     const notifier = memoryNotifier();
     await fireReminders(store, fixedClock(DEFAULT_TODAY), notifier);
     const fri = await fireReminders(store, fixedClock('2026-09-18'), notifier);
     expect(fri.sent.map((r) => r.text)).toContain('Seaview St: Book concrete pump. Act by Fri 18 Sep (today).');
-    expect(fri.sent.some((r) => r.jobId === BEATTY && r.kind === 'amber')).toBe(false);
+    expect(fri.sent.some((r) => r.jobId === BEATTY && r.kind === 'unconfirmed')).toBe(false);
     store.close();
   });
 
@@ -148,13 +151,71 @@ describe('manualReminderText ("/reminders" in the bot)', () => {
     const sentBefore = sentReminderKeys(store).size;
     const text = manualReminderText(store.load(), DEFAULT_TODAY)!;
     expect(text.split('\n')[0]).toBe('Reminders due now, Thu 17 Sep (you asked, so this includes any already sent today):');
-    expect(text).toContain('- Seaview St: Book concrete pump. Act by Fri 18 Sep (tomorrow).');
-    expect(text).toContain('- Beatty St is amber: last confirmed 9 days ago. Check it and confirm the job.');
+    expect(text).toContain('Seaview St:\n- Book concrete pump. Act by Fri 18 Sep (tomorrow).');
+    expect(text).toContain('\nBeatty St: not confirmed for 9 days. Check it and confirm the job.');
     expect(sentReminderKeys(store).size).toBe(sentBefore);
     const quiet = buildSeed();
     quiet.items = [];
     quiet.jobs = quiet.jobs.map((j) => ({ ...j, lastConfirmed: DEFAULT_TODAY }));
     expect(manualReminderText(quiet, DEFAULT_TODAY)).toBeNull();
     store.close();
+  });
+});
+
+describe('daily digest (Stage 6b): one message, grouped by job, overdue first, capped; weekly repeats', () => {
+  const at = (date: string) => fixedClock(date, '07:05');
+  const body = (text: string) => text.split('\n').slice(1);
+
+  it('on Sat 10 Oct (20 reminders) the daily send is ONE message of at most 15 lines ending "+N more"', async () => {
+    const store = new SqliteStore(file);
+    expect(computeReminders(store.load(), '2026-10-10')).toHaveLength(20);
+    const notifier = memoryNotifier();
+    const r = await fireReminders(store, at('2026-10-10'), notifier);
+    expect(notifier.sent).toHaveLength(1);
+    const lines = body(notifier.sent[0]!.text);
+    expect(notifier.sent[0]!.text.split('\n')[0]).toBe('Reminders, Sat 10 Oct:');
+    expect(lines.length).toBeLessThanOrEqual(15);
+    expect(lines.at(-1)).toBe(`+${20 - r.sent.length} more: /reminders for the full list`);
+    // Grouped: each job's line once, its items under it; overdue items before ones coming up.
+    const jobLines = lines.filter((l) => !l.startsWith('- ') && !l.startsWith('+'));
+    expect(new Set(jobLines.map((l) => l.split(':')[0])).size).toBe(jobLines.length);
+    expect(lines).toContain('Beatty St: not confirmed for 32 days. Check it and confirm the job.');
+    const items = lines.filter((l) => l.startsWith('- '));
+    expect(items.every((l) => l.includes('(overdue by'))).toBe(true); // 10 Oct: the overdue ones fill the digest
+    expect(r.sent).toHaveLength(items.length + jobLines.filter((l) => l.includes('not confirmed')).length);
+
+    // The ones left out lead the next day's digest; nothing shown yesterday comes back.
+    const next = await fireReminders(store, at('2026-10-11'), notifier);
+    expect(next.sent.length).toBeGreaterThan(0);
+    const shownFirst = new Set(r.sent.map((x) => x.key));
+    expect(next.sent.some((x) => shownFirst.has(x.key))).toBe(false);
+    store.close();
+  });
+
+  it('a long-past act-by (and an unconfirmed job) goes again at most once a week after the first time', async () => {
+    const store = new SqliteStore(file);
+    const notifier = memoryNotifier();
+    const glazing = (text: string | null) => (text ?? '').includes('Glazing energy compliance certificate');
+    const beatty = (text: string | null) => (text ?? '').includes('Beatty St: not confirmed');
+    const first = await fireReminders(store, at(DEFAULT_TODAY), notifier); // Thu 17 Sep: act-by Mon 10 Aug, long past
+    expect(glazing(first.text) && beatty(first.text)).toBe(true);
+    for (const day of ['2026-09-18', '2026-09-21', '2026-09-23']) {
+      const r = await fireReminders(store, at(day), notifier);
+      expect(glazing(r.text), day).toBe(false);
+      expect(beatty(r.text), day).toBe(false);
+    }
+    const week = await fireReminders(store, at('2026-09-24'), notifier);
+    expect(glazing(week.text)).toBe(true);
+    expect(week.text).toContain('Beatty St: not confirmed for 16 days.');
+    expect(week.sent.map((x) => x.key)).toContain('amber:beatty:2026-09-08:again-2026-09-24');
+    expect(glazing((await fireReminders(store, at('2026-09-25'), notifier)).text)).toBe(false);
+    store.close();
+  });
+
+  it('"/reminders" text is the full list, uncut, grouped the same way', () => {
+    const text = manualReminderText(buildSeed(), '2026-10-10')!;
+    expect(text).not.toContain('more: /reminders');
+    expect(body(text).filter((l) => l.startsWith('- '))).toHaveLength(13);
+    expect(text).toContain('Lower Beach St: not confirmed for 26 days. Check it and confirm the job.');
   });
 });

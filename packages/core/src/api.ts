@@ -45,6 +45,7 @@ import {
   type WhyItMoved,
 } from './readModels.js';
 import { programSetup, programWorkingDays, type ProgramSetupView } from './setupViews.js';
+import { overview, type OverviewView } from './readModelsOverview.js';
 import { applyChanges, jobIdsOfChanges } from './changes.js';
 import type { Store, UndoResult } from './store.js';
 import type { ChangeSet, DailyNote, Dataset, ISODate, Photo, Side, Trade } from './types.js';
@@ -78,6 +79,8 @@ export interface DashboardApi {
   listSides(): Promise<Side[]>;
 
   getMonday(filter?: SideFilter): Promise<MondayView>;
+  /** The web's home (timing first): one row per job, no finish, slip or money. */
+  getOverview(filter?: SideFilter): Promise<OverviewView>;
   getWhyItMoved(jobId: string): Promise<WhyItMoved>;
   listJobs(filter?: SideFilter): Promise<JobsListView>;
   getJobOverview(jobId: string): Promise<JobOverview>;
@@ -175,6 +178,9 @@ export class LocalDashboardApi implements DashboardApi {
   }
   async getMonday(filter?: SideFilter) {
     return mondayRows(this.ds, this.today, filter);
+  }
+  async getOverview(filter?: SideFilter) {
+    return overview(this.ds, this.today, filter);
   }
   async getWhyItMoved(jobId: string) {
     return whyItMoved(this.ds, jobId, this.today);

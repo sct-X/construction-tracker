@@ -1,0 +1,168 @@
+/*
+  A build's first page (ported from v1 src/screens/jobOverview.css, the
+  timing-first part): a progress plate (the stage's name as a Title 2,
+  "Stage 5 of 8", the large stage bar, then the next hold point as a cell),
+  then two inset grouped lists, Overdue and Trades on this week, and the
+  freshness line at the foot. Red is only the overdue dates.
+*/
+.job__none {
+  color: var(--text-muted);
+}
+/* ---- partners, admin, builder: timing first ---- */
+.job__timing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  max-width: 760px;
+}
+
+/* progress: the stage, where it sits among the rest, the next hold point */
+.job__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-4) 0;
+  border-radius: var(--radius-lg);
+  background: var(--plate);
+  overflow: hidden;
+}
+.job__progress-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+}
+.job__stage-title {
+  font-family: var(--font-display);
+  font-size: var(--type-title-2);
+  font-weight: var(--weight-bold);
+  line-height: 1.2;
+  color: var(--text);
+}
+.job__stage-of {
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.job__hp {
+  position: relative;
+  margin: 0 calc(-1 * var(--space-4));
+}
+.job__hp::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--space-4);
+  right: 0;
+  border-top: 0.5px solid var(--line);
+  z-index: 1;
+}
+.job__hp-cell {
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+.job__hp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.job__hp-label {
+  font-size: var(--type-footnote);
+  color: var(--text-muted);
+}
+.job__hp-name {
+  font-size: var(--type-headline);
+  font-weight: var(--weight-semibold);
+}
+.job__hp-when {
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+}
+.job__hp-photos.status {
+  align-self: flex-start;
+  margin-top: var(--space-1);
+  font-size: var(--type-footnote);
+}
+.job__hp-none {
+  min-height: var(--tap-min);
+  display: flex;
+  align-items: center;
+  padding: 11px var(--space-4);
+  color: var(--text-muted);
+}
+
+/* the lists */
+.job__group .group__header--large {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.job__group-count {
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+/* The row is the link: keep the inset separator on the li pairs. */
+.job__li {
+  position: relative;
+}
+.job__li + .job__li::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--space-4);
+  right: 0;
+  border-top: 0.5px solid var(--line);
+  z-index: 1;
+}
+.job__row {
+  align-items: center;
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+.job__row-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.job__row-title {
+  font-size: var(--type-body);
+  font-weight: var(--weight-semibold);
+  line-height: 1.3;
+}
+.job__row-detail {
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
+}
+.job__row-late.status {
+  padding: 0;
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-medium);
+  color: var(--late-ink);
+  white-space: normal;
+}
+.job__row-when {
+  font-size: var(--type-subhead);
+  color: var(--text);
+}
+.job__none {
+  color: var(--text-muted);
+}
+
+/* freshness, in words, quiet at the foot (no amber: rule 7 is words only) */
+.job__fresh {
+  padding: 0 var(--space-1);
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+}
+
+@media (max-width: 767.98px) {
+  .job__timing {
+    gap: var(--space-6);
+  }
+}

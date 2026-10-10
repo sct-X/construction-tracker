@@ -1,5 +1,5 @@
 /** Setup: programs. Every build job on this side, each with a link into the program editor. */
-import { formatLong, type DashboardApi, type JobsListView, type SideFilter } from '@ct/core';
+import type { DashboardApi, JobsListView, SideFilter } from '@ct/core';
 import { useSideQuery } from '../data/DataContext';
 import { href } from '../app/router';
 import { LoadError, LoadingRows } from '../components/bits';
@@ -35,7 +35,6 @@ function ProgramsTable({ view }: { view: JobsListView }) {
           <tr>
             <th scope="col">Build</th>
             <th scope="col">Stage now</th>
-            <th scope="col">Forecast finish</th>
             <th scope="col">
               <span className="sr-only">Edit</span>
             </th>
@@ -48,7 +47,6 @@ function ProgramsTable({ view }: { view: JobsListView }) {
                 {j.name}
               </th>
               <td>{j.currentStageName ?? 'Not started'}</td>
-              <td className="su-nowrap">{j.forecastFinish ? formatLong(j.forecastFinish) : 'No finish yet'}</td>
               <td className="su-right">
                 <a className="btn su-link-btn" href={href(`/setup/programs/${encodeURIComponent(j.jobId)}`)}>
                   Edit {j.name}'s program

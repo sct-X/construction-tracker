@@ -350,3 +350,85 @@ describe('undo', () => {
     expect(windowsEta()).toBe('2026-10-26');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Stage 6b (SPEC revision 2026-10-10): v1 rules in the bot's words
+// ---------------------------------------------------------------------------
+
+const SEAVIEW_PUMP = 'it-sv-pump';
+const pump = () => store.load().items.find((i) => i.id === SEAVIEW_PUMP)!;
+const bookPump = (extra: Record<string, string> = {}) =>
+  toolCall('set_item_status', { item: 'pump', job: 'Seaview', status: 'ordered_or_booked', ...extra });
+
+describe('"Booked needs an expected date": the bot asks, then resumes', () => {
+  it('"booked the pump for seaview" -> "When is it expected?", nothing saved -> "next Thursday" -> card -> Confirm', async () => {
+    await setup([
+      bookPump(),
+      textReply('Next Thursday for what?'), // "next Thursday" alone is not a change: it answers the open question
+      bookPump({ expectedDate: 'next Thursday' }), // parsed again with the thread
+    ]);
+    const asked = await h.text('booked the pump for seaview');
+    expect(h.sent(asked)).toEqual(['Book concrete pump at Seaview St needs an expected date to be ordered or booked. When is it expected?']);
+    expect(h.last().buttons).toEqual([]);
+    expect(changeSets()).toHaveLength(seedChangeSets);
+    expect(pump()).toMatchObject({ status: 'to_do', expectedDate: null });
+
+    await h.text('next Thursday');
+    const card = h.lastWithButton('Confirm');
+    expect(card.text).toContain('Book concrete pump at Seaview St: To do to Ordered or booked, expected Thu 24 Sep.');
+    expect(card.text).toContain('- Book concrete pump, status: To do → Ordered or booked');
+    expect(card.text).toContain('- Book concrete pump, expected date: none → Thu 24 Sep');
+    // The thread the model saw: the message, core's question, the answer.
+    expect(llm.requests[2]!.messages.map((m) => m.content)).toEqual([
+      'booked the pump for seaview',
+      'Book concrete pump at Seaview St needs an expected date to be ordered or booked. When is it expected?',
+      'next Thursday',
+    ]);
+    // The change set links to the message that started it.
+    const original = store.load().inboundMessages.find((m) => m.rawText === 'booked the pump for seaview')!;
+    expect(newChangeSets()[0]!.messageId).toBe(original.id);
+
+    await h.press(card.messageId, 'Confirm');
+    expect(pump()).toMatchObject({ status: 'ordered_or_booked', expectedDate: '2026-09-24' });
+  });
+
+  it('a date in the message itself gives a card straight away', async () => {
+    await setup([bookPump({ expectedDate: 'Fri 2 Oct' })]);
+    await h.text('pump booked at seaview for fri 2 oct');
+    const card = h.lastWithButton('Confirm');
+    expect(card.text).toContain('- Book concrete pump, expected date: none → Fri 2 Oct');
+    expect(llm.requests).toHaveLength(1);
+  });
+});
+
+describe('wording: late but not overdue, Pending approval, no amber', () => {
+  it('waiting on: late-but-not-overdue in plain words; overdue says so and comes first', async () => {
+    await setup([toolCall('get_waiting_on', { job: 'Beatty' }), toolCall('get_waiting_on', { job: 'Park Rd' })]);
+    const beatty = h.sent(await h.text('what are we waiting on at Beatty?'))[0]!;
+    // Expected Mon 5 Oct, needed Mon 28 Sep: both still ahead, so late, not overdue.
+    expect(beatty).toContain('- Book tiler (Harbour Tiling): expected Mon 5 Oct, 7 days late (needed Mon 28 Sep)');
+    expect(beatty).not.toMatch(/overdue/);
+    const park = h.sent(await h.text('what are we waiting on at Park Rd?'))[0]!;
+    // Tile choice: needed Mon 14 Sep, nothing expected, not done.
+    expect(park.split('\n')[1]).toBe('- Tile choice (Dominic): needed Mon 14 Sep, overdue by 3 days');
+  });
+
+  it('design stages "With council" / "With certifier" read "Pending approval"', async () => {
+    await setup([toolCall('get_job_finish', { job: 'West St' }), toolCall('set_stage_status', { job: 'West St', stage: 'with council', status: 'done' })]);
+    const finish = h.sent(await h.text("what's West St's finish?"))[0]!;
+    expect(finish).toBe("West St is a design job, so it has no finish date. It's at the Pending approval stage.");
+    await h.text('west st approved by council');
+    const card = h.lastWithButton('Confirm');
+    expect(card.text).toContain('West St: Pending approval done.');
+    expect(card.text).toContain('- Pending approval, status: In progress → Done');
+    expect(card.text).not.toMatch(/with council|with certifier/i);
+  });
+
+  it('confirming an unconfirmed job says how long it had gone, never "amber"', async () => {
+    await setup([toolCall('confirm_job', { job: 'Beatty' })]);
+    await h.text('beatty all checked');
+    const card = h.lastWithButton('Confirm');
+    expect(card.text).toContain("- Confirmed again: it hadn't been confirmed for 9 days");
+    expect(card.text).not.toMatch(/amber/i);
+  });
+});

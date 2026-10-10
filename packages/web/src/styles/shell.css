@@ -1,0 +1,716 @@
+/*
+  Ported from the v1 prototype (src/shell/shell.css at 2f6d8a7), minus the
+  bell, the person, the offline bar and the site role. App shell, drawn to
+  Apple's patterns. Two layouts, one token set.
+
+  Phone: an iOS navigation bar (the Cruise mark, the side, the bell, me),
+  edge-attached Regular glass with a hairline, and an iOS tab bar (a glyph
+  over a label), a floating Regular glass capsule inset from the edges. The
+  content scrolls under both and shows through, blurred and colour-lifted.
+  The current tab takes the tint on a glass pill; the rest are secondary
+  grey. With the job tabs or the Waiting on filter (sticky glass on those
+  screens) that is the phone's whole budget of three. Desktop: a macOS source list beside the grouped
+  ground: a quiet translucent-looking column, a rounded selection fill, the
+  glyph tinted on the current row. The site role gets the phone layout
+  centred on a wide window.
+*/
+
+/* ---- frame ---- */
+.shell {
+  --above: 0px; /* height of whatever sits above the shell (the dev bar) */
+  min-height: calc(100dvh - var(--above));
+}
+.shell--desktop {
+  display: grid;
+  grid-template-columns: var(--sidebar) minmax(0, 1fr);
+}
+.shell--phone {
+  display: flex;
+  flex-direction: column;
+  background: var(--ground);
+}
+.shell--phone .shell__content {
+  order: 2;
+  flex: 1 0 auto;
+}
+/* ---- glyphs ---- */
+.icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+.icon__solid {
+  transition: fill var(--motion-fast) var(--ease);
+}
+
+/* ---- desktop sidebar: a macOS source list ---- */
+.sidebar {
+  position: sticky;
+  top: var(--above);
+  align-self: start;
+  height: calc(100dvh - var(--above));
+  display: flex;
+  flex-direction: column;
+  background: var(--sidebar-bg);
+  border-right: 0.5px solid var(--lg-hairline);
+  padding: var(--space-5) var(--space-3) var(--space-3);
+  overflow-y: auto;
+}
+.sidebar__brand {
+  padding: 0 var(--space-2) var(--space-5);
+}
+.sidebar__wordmark {
+  display: block;
+  color: var(--text);
+  margin-bottom: var(--space-3);
+}
+.logo__dot {
+  fill: var(--logo-accent);
+}
+.sidebar__nav,
+.sidebar__setup {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sidebar__setup {
+  margin-top: var(--space-5);
+}
+.sidebar__group {
+  font-size: var(--type-caption);
+  font-weight: var(--weight-semibold);
+  color: var(--text-muted);
+  padding: 0 var(--space-2) var(--space-1);
+}
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-row);
+  color: var(--text);
+  text-decoration: none;
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-regular);
+  transition: background-color var(--motion-fast) var(--ease);
+}
+.sidebar__link-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-muted);
+}
+.sidebar__link-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar__link:hover {
+  background: var(--sidebar-hover);
+}
+.sidebar__link[aria-current='page'] {
+  background: var(--sidebar-current);
+  font-weight: var(--weight-semibold);
+}
+.sidebar__link[aria-current='page'] .sidebar__link-icon {
+  color: var(--tint);
+}
+/* ---- side switcher: a pop-up button ---- */
+.side-switcher select {
+  width: 100%;
+  min-height: 32px;
+  padding: 0 var(--space-8) 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-row);
+  background-color: var(--fill);
+  color: var(--text);
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-medium);
+}
+.side-name {
+  display: block;
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+}
+
+/* ---- phone: iOS navigation bar ---- */
+.topbar {
+  order: 1;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 52px;
+  padding: 0 var(--space-2) 0 var(--gutter);
+  border-bottom: 0.5px solid var(--lg-hairline);
+  /* edge-attached: the caustic line sits just above the hairline foot */
+  box-shadow: inset 0 -1px 0 var(--lg-highlight-low);
+}
+/* No scroll edge fade: the content is meant to be seen through the bars.
+   The blur (24px) already dissolves text that passes under them, and the
+   labels hold contrast on their own weight (DESIGN.md "Material"). */
+.topbar__mark {
+  flex-shrink: 0;
+  color: var(--text);
+}
+.topbar__side {
+  flex: 1;
+  min-width: 0;
+}
+.topbar .side-switcher select {
+  width: auto;
+  max-width: 200px;
+}
+.topbar .side-name {
+  font-weight: var(--weight-semibold);
+  font-size: var(--type-headline);
+  color: var(--text);
+}
+.topbar__tools {
+  display: flex;
+  flex-shrink: 0;
+}
+.topbar__tool {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-height: var(--tap-min);
+  color: var(--text);
+  border-radius: var(--radius-md);
+  transition: opacity var(--motion-fast) var(--ease);
+}
+.topbar__tool:active {
+  opacity: 0.5;
+}
+/* ---- phone: iOS tab bar, a floating glass capsule ----
+   Inset 12px from the sides and 8px (or the safe area) from the foot, 4px
+   inside, so a 56px tab sits in a 64px capsule: outer radius 32, the tab's
+   focus shape a pill inside it (concentric). */
+.tabbar {
+  --tabbar-foot: max(var(--space-2), env(safe-area-inset-bottom, 0px));
+  order: 3;
+  position: sticky;
+  bottom: var(--tabbar-foot);
+  z-index: 5;
+  display: flex;
+  margin: var(--space-2) var(--space-3) var(--tabbar-foot);
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+}
+.tabbar__tab {
+  flex: 1 1 0;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--tap);
+  padding: 6px var(--space-1) 4px;
+  border-radius: var(--radius-pill);
+  color: var(--lg-ink-muted);
+  font-size: var(--type-caption-2);
+  font-weight: var(--weight-semibold); /* medium thins out over a moving backdrop */
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  text-align: center;
+}
+.tabbar__tab-icon {
+  width: 26px;
+  height: 26px;
+}
+/* The selected tab: a glass pill inside the capsule (a fill, never a second
+   glass; brighter than the glass in light, deeper in dark, so it is also
+   the scrim behind the one label that has to hold over photos), the tint
+   ink, the glyph filled. */
+.tabbar__tab[aria-current='page'] {
+  color: var(--lg-tint-ink);
+  background-color: var(--lg-selected);
+  box-shadow: var(--lg-selected-shadow);
+  font-weight: var(--weight-bold);
+}
+.tabbar__tab[aria-current='page'] .icon__solid {
+  fill: currentColor;
+}
+.tabbar__tab:active {
+  transform: scale(0.96);
+}
+.tabbar__tab:focus-visible {
+  box-shadow: inset var(--focus-ring);
+  border-radius: var(--radius-pill);
+}
+
+/* Minimised on scroll down (useTabBarMinimise): the capsule shrinks to its
+   glyphs and settles a little lower, from its foot. Transform and opacity
+   only (the blur radius never animates); the layout box stays, so the page's
+   foot padding is unchanged and nothing is ever covered that wasn't before.
+   Every tab stays visible and tappable (46px tall at this scale); the labels
+   fade but remain the links' accessible names. Focus inside restores it
+   (and :focus-within holds it open while the keyboard is in the bar).
+   Reduced motion: the global rule makes the change instant. */
+.tabbar {
+  --tabbar-mini-scale: 0.82;
+  transform-origin: 50% 100%;
+  transition: transform var(--motion-sheet) var(--ease-out);
+}
+.tabbar__tab-icon,
+.tabbar__tab-label {
+  transition:
+    transform var(--motion-sheet) var(--ease-out),
+    opacity var(--motion-fast) var(--ease);
+}
+.tabbar[data-minimised]:not(:focus-within) {
+  transform: translateY(var(--space-2)) scale(var(--tabbar-mini-scale));
+}
+/* Glyphs drop to the middle of the tab as the labels fade out. */
+.tabbar[data-minimised]:not(:focus-within) .tabbar__tab-icon {
+  transform: translateY(7px) scale(1.08);
+}
+.tabbar[data-minimised]:not(:focus-within) .tabbar__tab-label {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+/* ---- page frame, shared by every screen ---- */
+.page {
+  max-width: var(--content-max);
+  padding: var(--space-5) var(--gutter) var(--space-16);
+}
+.page__lede {
+  max-width: var(--measure);
+  color: var(--text-secondary);
+  margin-top: var(--space-3);
+}
+.page-header {
+  margin-bottom: var(--space-6);
+}
+/* The iOS back button: a chevron.left and the previous page's name, in the tint. */
+.page-header__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  margin-bottom: var(--space-2);
+  margin-left: -3px;
+  font-size: var(--type-body);
+  color: var(--tint);
+  text-decoration: none;
+  transition: opacity var(--motion-fast) var(--ease);
+}
+.page-header__back::before {
+  content: '';
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border-left: 2.2px solid currentColor;
+  border-bottom: 2.2px solid currentColor;
+  transform: rotate(45deg);
+  margin-left: 4px;
+}
+.page-header__back:hover {
+  opacity: 0.7;
+}
+.page-header__back:active {
+  opacity: 0.5;
+}
+.shell--phone .page-header__back {
+  min-height: 44px;
+}
+.page-header__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+}
+/* The large title: 34 bold, the iOS navigation title in its expanded form. */
+.page-header__title {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--type-large-title);
+  line-height: 1.2;
+  letter-spacing: var(--tracking-display);
+  color: var(--text);
+}
+.page-header__meta {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: var(--type-subhead);
+}
+.page-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+@media (min-width: 768px) {
+  .page {
+    padding-top: var(--space-8);
+  }
+  .page-header {
+    margin-bottom: var(--space-8);
+  }
+}
+
+/* ---- job switcher (JobHeader): the job's name is the title and a menu button ---- */
+.page-header__lead {
+  min-width: 0;
+  max-width: 100%;
+}
+.job-switch {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  /* Hang the padding into the gutter so the name lines up with the text below.
+     `left`, not a negative margin: a margin would shrink the width the name gets. */
+  left: calc(-1 * var(--space-2));
+}
+.job-switch__title {
+  margin: 0;
+}
+/* The title is the button: the heading's own size and weight, no chrome. */
+.job-switch__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  min-height: 48px;
+  padding: 2px var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: opacity var(--motion-fast) var(--ease);
+}
+.job-switch__text {
+  min-width: 0;
+}
+/* The menu affordance: SF chevron.down in a small filled circle, as on an iOS title menu. */
+.job-switch__chevron {
+  flex: none;
+  width: 26px;
+  max-width: none; /* base.css caps svg at 100% */
+  height: 26px;
+  margin-top: 3px;
+  color: var(--text-secondary);
+  transition:
+    color var(--motion-fast) var(--ease),
+    transform var(--lg-menu-motion) var(--ease-out);
+}
+.job-switch__chevron-disc {
+  fill: var(--fill);
+  transition: fill var(--motion-fast) var(--ease);
+}
+.job-switch__name:hover .job-switch__chevron,
+.job-switch[data-open] .job-switch__chevron {
+  color: var(--tint);
+}
+.job-switch__name:hover .job-switch__chevron-disc,
+.job-switch[data-open] .job-switch__chevron-disc {
+  fill: var(--tint-wash);
+}
+.job-switch[data-open] .job-switch__chevron {
+  transform: rotate(180deg);
+}
+.job-switch__name:active {
+  opacity: 0.6;
+}
+.job-switch__name:focus-visible {
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-md);
+}
+
+/* The menu: Thick Liquid Glass that grows out of the title (the web's
+   glassEffectID morph): a scale and fade from the chevron, 240ms ease-out,
+   and back in 160ms. The blur radius never animates. It fits the viewport
+   (max-height is set on open from the room under the title, above the tab
+   bar) and scrolls inside when the side has more jobs than that. */
+.job-menu {
+  position: absolute;
+  z-index: 6;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  /* On the phone it spans the column, 8px in from each side (the switcher hangs 8px into the gutter). */
+  width: min(24rem, calc(100vw - 2 * var(--gutter) + 2 * var(--space-2)));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  border-radius: var(--lg-menu-radius);
+  font-size: var(--type-body);
+  font-weight: var(--weight-regular);
+  letter-spacing: normal;
+  line-height: 1.3;
+  transform-origin: var(--job-menu-origin-x, 24px) calc(-1 * var(--space-4));
+  animation: job-menu-in var(--lg-menu-motion) var(--ease-out) both;
+}
+.job-menu[data-state='closing'] {
+  pointer-events: none;
+  animation: job-menu-out 160ms var(--ease) both;
+}
+@keyframes job-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.2, 0.12);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes job-menu-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.6, 0.4);
+  }
+}
+@keyframes job-menu-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes job-menu-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+/* Reduced motion: the menu fades, it does not grow (beats the global 0.01ms rule). */
+@media (prefers-reduced-motion: reduce) {
+  .job-menu {
+    animation-name: job-menu-fade-in;
+    animation-duration: 150ms !important;
+  }
+  .job-menu[data-state='closing'] {
+    animation-name: job-menu-fade-out;
+    animation-duration: 120ms !important;
+  }
+}
+.job-menu__head {
+  padding: var(--space-3) var(--space-3) var(--space-1) 38px;
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-semibold);
+  color: var(--lg-ink-muted);
+}
+.job-menu__group + .job-menu__group {
+  margin-top: var(--space-1);
+  border-top: 0.5px solid var(--lg-hairline);
+}
+/* An iOS menu row: the checkmark column leading, the name, the overdue words. */
+.job-menu__option {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  min-height: var(--tap-min);
+  padding: 11px var(--space-3) 11px 0;
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.job-menu__mark {
+  flex: none;
+  align-self: center;
+  display: inline-flex;
+  justify-content: center;
+  width: 38px;
+  color: var(--text);
+}
+.job-menu__check {
+  display: block;
+}
+.job-menu__option[aria-selected='true'] .job-menu__name {
+  font-weight: var(--weight-semibold);
+}
+.job-menu__name {
+  min-width: 0;
+}
+.job-menu__overdue {
+  flex: none;
+  white-space: pre;
+  color: var(--late-ink);
+  font-weight: var(--weight-semibold);
+}
+.job-menu__option[data-active] {
+  background: var(--lg-selected);
+  box-shadow: var(--lg-selected-shadow);
+}
+.job-menu__option:active {
+  background: var(--lg-btn-fill-hover);
+}
+.job-menu__option:focus-visible {
+  box-shadow: inset var(--focus-ring);
+  border-radius: var(--radius-md);
+}
+
+/* ==== added for the rebuild ==== */
+
+.shell__content:focus {
+  outline: none;
+  box-shadow: none; /* focus lands here on a route change, for screen readers only */
+}
+.sidebar__brand-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  color: var(--text);
+  text-decoration: none;
+}
+.sidebar__brand-name {
+  font-family: var(--font-display);
+  font-size: var(--type-title-3);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-display);
+}
+.topbar__title {
+  font-family: var(--font-display);
+  font-size: var(--type-headline);
+  font-weight: var(--weight-semibold);
+}
+
+/* Job tabs (v1 jobOverview.css): an underlined strip in flow on the desktop;
+   on the phone a floating Regular glass capsule stuck under the nav bar,
+   scrolling sideways inside, the current section on the selected pill. */
+.job__tabs {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  margin: calc(-1 * var(--space-3)) 0 var(--space-8);
+}
+.job__tab {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  transition: color var(--motion-fast) var(--ease);
+}
+.job__tab:hover {
+  color: var(--text);
+}
+.job__tab[aria-current='page'] {
+  color: var(--text);
+  border-bottom-color: var(--text);
+}
+.shell--phone .job__tabs {
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--space-2));
+  z-index: 4;
+  gap: 0;
+  padding: var(--space-1);
+  margin-left: calc(-1 * var(--space-1));
+  margin-right: calc(-1 * var(--space-1));
+  margin-bottom: var(--space-6);
+  border-radius: var(--radius-pill);
+  scrollbar-width: none;
+}
+.shell--phone .job__tabs::-webkit-scrollbar {
+  display: none;
+}
+.shell--phone .job__tab {
+  padding: 0 14px;
+  border-bottom: 0;
+  border-radius: var(--radius-pill);
+  color: var(--lg-ink-muted);
+  font-weight: var(--weight-semibold);
+}
+.shell--phone .job__tab[aria-current='page'] {
+  color: var(--text);
+  background-color: var(--lg-selected);
+  box-shadow: var(--lg-selected-shadow);
+}
+.shell--phone .job__tab:active {
+  transform: scale(0.96);
+}
+.shell--phone .job__tab:focus-visible {
+  box-shadow: inset var(--focus-ring);
+}
+.jobbar-loading {
+  height: 120px;
+}
+
+/* The dev bar (mock mode only): one quiet strip on the well tone, obviously not the app. */
+.devbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  background: var(--well);
+  color: var(--text-secondary);
+  font-size: var(--type-caption);
+  border-bottom: var(--hairline);
+}
+.devbar__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--type-subhead);
+  letter-spacing: 0.04em;
+}
+.devbar__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--logo-accent);
+}
+.devbar__field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+.devbar__field input[type='date'] {
+  min-height: 26px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background-color: var(--plate);
+  color: var(--text-secondary);
+  font: inherit;
+}
+.devbar__button {
+  min-height: 26px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  white-space: nowrap;
+}
+.devbar__button:hover {
+  background: var(--plate);
+  color: var(--text);
+}
+
+@media print {
+  .devbar,
+  .tabbar,
+  .sidebar,
+  .topbar {
+    display: none;
+  }
+}

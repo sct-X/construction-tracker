@@ -9,6 +9,7 @@ import { jobIdsOfChanges } from '../changes.js';
 import { formatDate } from '../dates.js';
 import { fuzzyMatch, type MatchCandidate } from '../fuzzy.js';
 import { resolveDate } from '../relativeDates.js';
+import { stageDisplayName } from '../readModelsTiming.js';
 import type {
   Dataset,
   ISODate,
@@ -349,10 +350,14 @@ export function resolveStage(ds: Dataset, ctx: OpRunContext, query: string, job:
   if (exact) return exact;
   const live = new Set(ds.jobs.map((j) => j.id));
   const pool = ds.stages.filter((s) => (job ? s.jobId === job.id : live.has(s.jobId)));
+  // Shown as "Pending approval"; the stored name still matches ("with council").
   return pick(
     ctx,
     query,
-    pool.map((s) => ({ id: s.id, name: s.name, aliases: [jobName(ds, s.jobId)], value: s })),
+    pool.map((s) => {
+      const shown = stageDisplayName(s.name) ?? s.name;
+      return { id: s.id, name: shown, aliases: [jobName(ds, s.jobId), ...(shown !== s.name ? [s.name] : [])], value: s };
+    }),
     field,
     'stage',
     inJob(job),

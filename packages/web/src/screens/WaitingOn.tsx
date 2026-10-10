@@ -1,182 +1,207 @@
 /**
- * Waiting on: everything that can hold a job up, for one job or all of them,
- * grouped Overdue / This week / Later by act-by. Desktop table, phone cards
- * (same DOM). Read-only: changes go through the bot.
+ * Waiting on: one list of everything that can hold a job up (v1, Dom 24 Sep:
+ * "waiting on only needs one view, not list and call together. just
+ * simplify"). The same list on the phone and the desktop, grouped Overdue
+ * (exactly core isOverdue, the Overview's red count), This week and Later
+ * (folded by default). Each row: the title, the job and who it is waiting on,
+ * one date phrase with its relative time, and a Call button (a tel: link that
+ * names the trade) when the trade has a number. This replaces To chase
+ * (#/chase forwards here). Read-only: changes come through the bot.
+ *
+ * Filters: Everyone | Mine (Dominic's own items) and, across all jobs, a job
+ * menu that opens that job's Waiting on tab. On the phone the filter bar
+ * sticks under the nav bar as floating Regular glass.
  */
-import { addCalendarDays, formatDate, lastMonday, type DashboardApi, type JobListRow, type SideFilter, type WaitingOnView, type WaitingRow } from '@ct/core';
+import { useState } from 'react';
+import type { DashboardApi, OverviewRow, SideFilter, WaitingOnView, WaitingRow } from '@ct/core';
 import { useSideQuery } from '../data/DataContext';
+import { usePhoneWidth } from '../shell/useNarrow';
+import { PhoneGlyph } from '../shell/icons';
 import { LoadError, LoadingRows } from '../components/bits';
-import { CallLink, DateCell, JobPicker } from '../components/listBits';
-import { plural, urgencyWords } from '../ui/itemWords';
+import { PageHeader } from '../components/PageHeader';
+import { StatusText } from '../components/StatusText';
+import { href } from '../app/router';
+import { telHref } from '../ui/itemWords';
+import { whenWords } from '../ui/when';
+import '../styles/waiting.css';
+
+/** Whose items "Mine" means: the app has one user (SPEC), and items carry their owner as plain text. */
+export const ME = 'Dominic';
 
 export interface WaitingData {
   today: string;
   view: WaitingOnView;
-  jobs: JobListRow[];
+  jobs: Pick<OverviewRow, 'jobId' | 'name' | 'kind'>[];
   jobId: string | null;
 }
 
 export async function loadWaiting(api: DashboardApi, filter: SideFilter, jobId: string | null): Promise<WaitingData> {
-  const [today, view, list] = await Promise.all([
-    api.getToday(),
-    api.getWaitingOn({ ...filter, ...(jobId ? { jobId } : {}) }),
-    api.listJobs(filter),
-  ]);
+  const [today, view, list] = await Promise.all([api.getToday(), api.getWaitingOn({ ...filter, ...(jobId ? { jobId } : {}) }), api.listJobs(filter)]);
   return { today, view, jobs: [...list.builds, ...list.design], jobId };
 }
 
 export function WaitingOnScreen({ jobId = null }: { jobId?: string | null }) {
   const q = useSideQuery((api, f) => loadWaiting(api, f, jobId));
-  const jobName = q.status === 'ready' && jobId ? (q.data.jobs.find((j) => j.jobId === jobId)?.name ?? null) : null;
+  if (q.status === 'loading') return <LoadingRows rows={6} label="Loading the waiting-on list" />;
+  if (q.status === 'error') return <LoadError what="the waiting-on list" error={q.error} retry={q.retry} />;
+  return <WaitingBody data={q.data} />;
+}
+
+/** "47 to act on, 5 overdue", "Nothing waiting". */
+export function waitingMeta(total: number, overdue: number): string {
+  if (total === 0) return 'Nothing waiting';
+  return `${total} to act on${overdue ? `, ${overdue} overdue` : ''}`;
+}
+
+export function WaitingBody({ data }: { data: WaitingData }) {
+  const { today, view, jobs, jobId } = data;
+  const phone = usePhoneWidth();
+  const [mine, setMine] = useState(false);
+  const keep = (r: WaitingRow) => !mine || (r.owner ?? '').toLowerCase() === ME.toLowerCase();
+  const groups = view.groups.map((g) => ({ ...g, rows: g.rows.filter(keep) }));
+  const total = groups.reduce((n, g) => n + g.rows.length, 0);
+  const overdue = groups.find((g) => g.key === 'overdue')?.rows.length ?? 0;
+  const jobName = jobId ? jobs.find((j) => j.jobId === jobId)?.name : undefined;
+  const meta = waitingMeta(total, overdue);
+
   return (
-    <div className="screen waiting">
-      <header className="screen-head screen-head-tools">
-        <div>
-          <h1>
-            Waiting on
-            {jobName && (
-              <>
-                {' '}
-                <span className="sr-only">at {jobName}</span>
-              </>
-            )}
-          </h1>
-          {q.status === 'ready' && q.data.view.total > 0 && (
-            <p className="screen-sub" data-testid="waiting-sub">
-              {summary(q.data)}
-            </p>
-          )}
+    <div className="waiting" data-testid="waiting-on">
+      {jobId ? (
+        <div className="waiting__head">
+          <h2 className="waiting__title">
+            Waiting on<span className="sr-only"> at {jobName}</span>
+          </h2>
+          <p className="page-header__meta" data-testid="waiting-sub">
+            {meta}
+          </p>
         </div>
-        {/* Inside a job the job bar switches jobs; across all jobs this narrows to one. */}
-        {q.status === 'ready' && !jobId && (
-          <JobPicker id="waiting-job" jobs={q.data.jobs} current={null} allPath="/waiting" pathFor={(id) => `/jobs/${encodeURIComponent(id)}/waiting`} />
+      ) : (
+        <PageHeader title="Waiting on" meta={<span data-testid="waiting-sub">{meta}</span>} />
+      )}
+
+      <div className={phone ? 'filterbar waiting__filters glass glass--regular glass--float' : 'filterbar waiting__filters'} data-testid="waiting-filters">
+        <span className="seg waiting__owner" role="group" aria-label="Whose items">
+          <button type="button" className="seg__btn" aria-pressed={!mine} onClick={() => setMine(false)} data-testid="waiting-owner-all">
+            Everyone
+          </button>
+          <button type="button" className="seg__btn" aria-pressed={mine} onClick={() => setMine(true)} data-testid="waiting-owner-me">
+            Mine
+          </button>
+        </span>
+        {!jobId && (
+          <label className="filter">
+            <span className="filter__label">Job</span>
+            <select
+              className="filter__select"
+              value=""
+              data-testid="job-picker"
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v) globalThis.location.hash = href(`/jobs/${encodeURIComponent(v)}/waiting`);
+              }}
+            >
+              <option value="">All jobs</option>
+              {(['build', 'design'] as const).map((kind) => {
+                const list = jobs.filter((j) => j.kind === kind);
+                return list.length ? (
+                  <optgroup key={kind} label={kind === 'build' ? 'Builds' : 'Design'}>
+                    {list.map((j) => (
+                      <option key={j.jobId} value={j.jobId}>
+                        {j.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null;
+              })}
+            </select>
+          </label>
         )}
-      </header>
-      {q.status === 'loading' && <LoadingRows rows={6} label="Loading the waiting-on list" />}
-      {q.status === 'error' && <LoadError what="the waiting-on list" error={q.error} retry={q.retry} />}
-      {q.status === 'ready' && <WaitingBody data={q.data} />}
+      </div>
+
+      {total === 0 ? (
+        <p className="empty-line" data-testid="waiting-empty">
+          Nothing waiting{jobName ? ` on ${jobName}` : mine ? ' with you' : ''}.
+        </p>
+      ) : (
+        <div className="waiting__groups">
+          {groups.map((g) => {
+            if (g.rows.length === 0) return null;
+            const list = (
+              <ul className="group__list waiting__list">
+                {g.rows.map((r) => (
+                  <WaitingItem key={r.itemId} r={r} today={today} showJob={!jobId} />
+                ))}
+              </ul>
+            );
+            const head = (
+              <>
+                {g.label}
+                <span className="waiting__count">{g.rows.length}</span>
+              </>
+            );
+            // Later is long: folded by default, one tap opens it.
+            if (g.key === 'later') {
+              return (
+                <details key={g.key} className="group waiting__group waiting__fold" data-testid={`waiting-group-${g.key}`} data-count={g.rows.length}>
+                  <summary className="group__header group__header--large waiting__group-head">{head}</summary>
+                  {list}
+                </details>
+              );
+            }
+            return (
+              <section key={g.key} className="group waiting__group" aria-labelledby={`waiting-${g.key}-title`} data-testid={`waiting-group-${g.key}`} data-count={g.rows.length}>
+                <h3 id={`waiting-${g.key}-title`} className="group__header group__header--large waiting__group-head">
+                  {head}
+                </h3>
+                {list}
+              </section>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-function summary(d: WaitingData): string {
-  const overdue = d.view.groups.find((g) => g.key === 'overdue')?.rows.length ?? 0;
-  const where = d.jobId ? '' : ` across ${plural(new Set(d.view.groups.flatMap((g) => g.rows.map((r) => r.jobId))).size, 'job')}`;
-  if (!d.view.total) return '';
-  return `${plural(d.view.total, 'open item')}${where}, ${overdue} overdue.`;
+/** "Park Rd · waiting on HiHaus (China), with Raff". */
+export function detailWords(r: WaitingRow, showJob: boolean): string {
+  const sameOwner = !!r.waitingOn && !!r.owner && r.waitingOn.toLowerCase() === r.owner.toLowerCase();
+  const who = [r.waitingOn ? `waiting on ${r.waitingOn}` : '', r.owner && !sameOwner ? `with ${r.owner}` : ''].filter(Boolean).join(', ');
+  return [showJob ? r.jobName : '', who].filter(Boolean).join(' · ');
 }
 
-/** The read model's four act-by groups, shown as three: next week folds into Later. */
-export function threeGroups(view: WaitingOnView, today: string) {
-  const by = (k: string) => view.groups.find((g) => g.key === k)?.rows ?? [];
-  const endOfWeek = addCalendarDays(lastMonday(today), 6);
-  return [
-    { key: 'overdue', title: 'Overdue', note: 'Needed-by gone, or act-by gone while still to do', rows: by('overdue') },
-    { key: 'this_week', title: 'This week', note: `Act by ${formatDate(endOfWeek, today)}`, rows: by('this_week') },
-    { key: 'later', title: 'Later', note: `Act after ${formatDate(endOfWeek, today)}`, rows: [...by('next_week'), ...by('later')] },
-  ];
-}
-
-export function WaitingBody({ data }: { data: WaitingData }) {
-  const { today, view } = data;
-  if (!view.total) {
-    return <p className="empty">Nothing waiting{data.jobId ? ' on this job' : ''}.</p>;
-  }
-  const showJob = !data.jobId;
-  const cols = showJob ? 7 : 6;
-  return (
-    <table className={`board items-table${showJob ? ' with-job' : ''}`}>
-      <thead>
-        <tr>
-          <th scope="col">Item</th>
-          {showJob && <th scope="col">Job</th>}
-          <th scope="col">Needed by</th>
-          <th scope="col">Act by</th>
-          <th scope="col">Expected</th>
-          <th scope="col">Who</th>
-          <th scope="col">Status</th>
-        </tr>
-      </thead>
-      {threeGroups(view, today).map((g) => (
-        <GroupRows key={g.key} group={g} cols={cols} showJob={showJob} today={today} />
-      ))}
-    </table>
-  );
-}
-
-function GroupRows({ group, cols, showJob, today }: { group: ReturnType<typeof threeGroups>[number]; cols: number; showJob: boolean; today: string }) {
-  return (
+export function WaitingItem({ r, today, showJob }: { r: WaitingRow; today: string; showJob: boolean }) {
+  const when = whenWords(r, today);
+  const tel = telHref(r.tradePhone);
+  const detail = detailWords(r, showJob);
+  const to = r.stepId ? href(`/jobs/${encodeURIComponent(r.jobId)}/steps/${encodeURIComponent(r.stepId)}`) : null;
+  const words = (
     <>
-      <tbody className="group-head-body" data-testid={`waiting-group-${group.key}`} data-count={group.rows.length}>
-        <tr>
-          <th scope="colgroup" colSpan={cols} className="group-head">
-            <span className="group-title">{group.title}</span>
-            <span className="group-count">{group.rows.length === 0 ? 'nothing' : plural(group.rows.length, 'item')}</span>
-            <span className="group-note">{group.note}</span>
-          </th>
-        </tr>
-      </tbody>
-      {group.rows.map((r) => (
-        <ItemRow key={r.itemId} row={r} showJob={showJob} today={today} />
-      ))}
+      <span className="wrow__title">{r.title}</span>
+      {detail && <span className="wrow__detail">{detail}</span>}
+      <StatusText tone={when.tone === 'late' ? 'late' : when.tone === 'muted' ? 'muted' : 'plain'} plain className="wrow__when" testId="when">
+        {when.text}
+      </StatusText>
     </>
   );
-}
-
-export function ItemRow({ row, showJob, today }: { row: WaitingRow; showJob: boolean; today: string }) {
-  const u = urgencyWords(row, today);
-  const context = row.shipmentName ? `On ${row.shipmentName}` : row.stepName ? `For ${row.stepName}` : null;
   return (
-    <tbody className="job item" data-testid={`waiting-row-${row.itemId}`} data-urgency={u?.level ?? 'none'}>
-      <tr className="job-main">
-        <th scope="row" className="c-item">
-          <span className="item-title">{row.title}</span>
-          <span className="sub">
-            {row.typeLabel}
-            {context ? `. ${context}` : ''}
-          </span>
-          {u && (
-            <span className={`flag flag-${u.level}`} data-testid="urgency">
-              {u.text}
-            </span>
-          )}
-        </th>
-        {showJob && (
-          <td className="c-jobname">
-            <span className="cell-label">Job </span>
-            <span className="jobname">{row.jobName}</span>
-          </td>
-        )}
-        <td className="c-needed">
-          <DateCell label="Needed by" iso={row.neededBy} today={today} testId="needed-by" />
-        </td>
-        <td className="c-actby">
-          <DateCell label="Act by" iso={row.actBy} today={today} testId="act-by">
-            {row.actBy && row.leadTimeWeeks ? `${plural(row.leadTimeWeeks, 'week')} lead time` : undefined}
-          </DateCell>
-        </td>
-        <td className="c-expected">
-          <DateCell label="Expected" iso={row.expected} today={today} testId="expected">
-            {row.shipmentName && row.expected ? 'From the shipment ETA' : undefined}
-          </DateCell>
-        </td>
-        <td className="c-who">
-          <span className="cell-label">Who </span>
-          <span className="owner" data-testid="owner">
-            {row.owner ?? 'No owner'}
-          </span>
-          {row.waitingOn && row.waitingOn !== row.owner && !(row.tradePhone && row.waitingOn === row.tradeName) && (
-            <span className="sub">Waiting on {row.waitingOn}</span>
-          )}
-          <CallLink name={row.tradeName} phone={row.tradePhone} />
-        </td>
-        <td className="c-status">
-          <span className="cell-label">Status </span>
-          <span className="status-words" data-testid="status">
-            {row.statusLabel}
-          </span>
-        </td>
-      </tr>
-    </tbody>
+    <li className={to ? 'wrow wrow--link' : 'wrow'} data-testid={`waiting-row-${r.itemId}`} data-overdue={r.overdue || undefined}>
+      {to ? (
+        <a href={to} className="wrow__open">
+          {words}
+        </a>
+      ) : (
+        <div className="wrow__open">{words}</div>
+      )}
+      {to && <span className="chevron wrow__chevron" aria-hidden="true" />}
+      {tel && (
+        <div className="wrow__actions">
+          <a className="btn btn--glass wrow__btn wrow__call" href={tel} aria-label={`Call ${r.tradeName ?? 'the trade'}, ${r.tradePhone}`} title={r.tradePhone ?? undefined} data-testid="call">
+            <PhoneGlyph />
+            <span className="wrow__call-name">Call {r.tradeName ?? 'the trade'}</span>
+          </a>
+        </div>
+      )}
+    </li>
   );
 }

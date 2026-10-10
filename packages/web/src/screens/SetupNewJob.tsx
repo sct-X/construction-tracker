@@ -139,7 +139,7 @@ export function NewJobForm({ data }: { data: NewJobData }) {
       <div className="su-form">
         <fieldset className="su-fieldset">
           <legend className="su-legend">What kind of job</legend>
-          <div className="seg seg-small" role="group" aria-label="Kind of job">
+          <div className="oseg seg-small" role="group" aria-label="Kind of job">
             <button type="button" className="seg-btn" aria-pressed={kind === 'build'} onClick={() => setKind('build')} disabled={!templates.length}>
               Build, from a template
             </button>
@@ -207,7 +207,7 @@ export function NewJobForm({ data }: { data: NewJobData }) {
           </div>
         )}
 
-        <Field id="nj-cost" label="Weekly holding cost" hint="Dollars a week. Slip cost on Monday is worked out from it." error={show(errors.cost)}>
+        <Field id="nj-cost" label="Weekly holding cost" hint="Dollars a week. The bot prices a slip with it on its confirm card." error={show(errors.cost)}>
           <span className="su-money">
             <span aria-hidden="true">$</span>
             <input id="nj-cost" type="text" inputMode="decimal" value={cost} placeholder="4500" onChange={(e) => setCost(e.target.value)} />

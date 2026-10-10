@@ -325,7 +325,7 @@ npx playwright test
 
 ### The eval
 
-The eval sends 30 realistic messages from Dominic through each model you have a key for, and checks that the
+The eval sends 32 realistic messages from Dominic through each model you have a key for, and checks that the
 right change (or the right question) comes out. Nothing is written anywhere. It is not part of `npm test`, and
 it costs a few cents per model.
 
@@ -335,7 +335,7 @@ npm run eval
 
 Keys come from `.env` (or the shell). A model with no key shows `skipped (no key)`. The run still exits 0.
 
-A free run with a fake model that always gives the right answer (it should say 30/30):
+A free run with a fake model that always gives the right answer (it should say 32/32):
 
 ```bash
 npm run eval -- --dry

@@ -1,54 +1,266 @@
 /*
- * Tokens. Palette from site materials:
- *   concrete  page and panels (cool, poured; not cream)
- *   formply   the face of a surface
- *   steel     ink, blued steel
- *   timber    plywood, used only behind words Dominic actually sent
- *   hi-vis    the one accent: a finish that went later, focus, the current screen
- *   amber     stale figures, always with the words "Not confirmed for N days"
- * Type: Barlow (its roots are road and site signage) for text; Barlow Condensed
- * for the numbers, which are the largest type on every screen.
- */
-:root {
-  --concrete: #f1f1ee;
-  --concrete-2: #e3e4e0;
-  --formply: #fafaf8;
-  --rule: #cdcfcb;
-  --steel: #1e2830;
-  --steel-2: #535e67;
-  --timber: #eadcc7;
-  --timber-ink: #634526;
-  --hivis: #f26a1b;
-  --amber: #f2c14e;
+  The one token set, ported from the v1 prototype's final look (v1 DESIGN.md,
+  commit 2f6d8a7; SPEC "Revision 2026-10-10"). Light by default; the dark
+  alternate lives under :root[data-theme='dark'] with the same role names, so
+  screen CSS never branches on the theme.
 
-  --font: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-num: 'Barlow Condensed', 'Barlow', system-ui, sans-serif;
+  World: an Apple app. iOS grouped surfaces (a grey ground, white cells), the
+  system face, one tint colour (the orange, deepened until it reads as text),
+  red only for overdue, no amber anywhere. Chrome is Liquid Glass over the
+  content (the floating layer only: phone bars, tab bar, job tabs, the job
+  switcher menu, glass buttons); content stays solid. Nothing at rest casts a
+  shadow.
 
-  --t-hero: 2.75rem;
-  --t-num: 2.25rem;
-  --t-num-md: 1.5rem;
-  --t-title: 1.75rem;
-  --t-h1: 1.5rem;
-  --t-h2: 1.125rem;
-  --t-body: 1rem;
-  --t-small: 0.875rem;
-  --t-label: 0.8125rem;
-  /* Chart annotations only: week numbers, the today and shutdown labels. */
-  --t-tiny: 0.75rem;
+  Surfaces (iOS grouped backgrounds):
+                light      dark
+    ground      #f2f2f7    #000000   the page
+    plate       #ffffff    #1c1c1e   cells, cards
+    raised      #e9e9ee    #2c2c2e   a pressed or hovered cell, a chip
+    lifted      #ffffff    #2c2c2e   menus, banners
+    well        #e5e5ea    #0e0e10   sunk: the dev bar, chart grounds
+    fill        #e4e4e9    #26262a   segmented trough, gray buttons
+  Labels (AA on ground, plate and raised): text / text-secondary / text-muted.
+  Tint (#b0501a; #ff9a52 dark): "you can act here" or "you are here" only.
+  Red (#d70015 on #fdecee): overdue, and only overdue, always with the word.
+  Green (#1e7b34 on #e8f5ea): done, on plan, always with the words.
+  Type: the system face, iOS text styles. Large Title 34, Title 1 28,
+  Title 2 22, Title 3 20, Headline 17 semibold, Body 17, Callout 16,
+  Subhead 15, Footnote 13, Caption 12, Caption 2 11.
+  Shape: 6 chips, 10 cells and fields, 12 buttons, 14 cards, 16 menus.
+  Motion: 150ms state changes, 240-280ms authored moments, ease-out, no bounce.
+*/
 
-  --r-sm: 3px;
-  --r-md: 6px;
-
-  --rail: 216px;
-  --tabbar: 60px;
-
+:root,
+:root[data-theme='light'] {
   color-scheme: light;
+
+  /* ---- surfaces ---- */
+  --ground: #f2f2f7;
+  --plate: #ffffff;
+  --raised: #e9e9ee;
+  --lifted: #ffffff;
+  --well: #e5e5ea;
+  --fill: #e4e4e9;
+  --fill-strong: #d8d8dd;
+  --field-bg: #ffffff;
+  --segment-on: #ffffff;
+  --segment-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04);
+
+  /* ---- labels and lines ---- */
+  --text: #1d1d1f;
+  --text-secondary: #48484d;
+  --text-muted: #636366;
+  --text-on-dark: #ffffff;
+  --line: #c6c6c8;
+  --line-strong: #aeaeb2;
+  --chosen-fill: #3a3a3c; /* the chosen half of a pair: takes white text (11:1) */
+  --chosen-fill-hover: #1d1d1f;
+
+  /* ---- the stage bar (no tint: orange is for acting, red for overdue) ---- */
+  --bar-ahead: #d1d1d6;
+  --bar-done: #8e8e93;
+  --bar-current: var(--text);
+
+  /* ---- the tint ---- */
+  --tint: #b0501a;
+  --tint-fill: #b0501a;
+  --tint-fill-pressed: #9a4516;
+  --tint-wash: #fbeee5;
+  --on-tint: #ffffff;
+  --logo-accent: #c1652e; /* the dot in the mark only; too light for text */
+  --focus: var(--tint);
+
+  /* ---- status: ink for the words, bg for the wash ---- */
+  --late-ink: #d70015;
+  --late-bg: #fdecee;
+  --ok-ink: #1e7b34;
+  --ok-bg: #e8f5ea;
+  /* Can't-do-yet states (a hold point's empty photo sets) are label on the neutral fill with a "!". */
+  --note-ink: var(--text);
+  --note-bg: var(--fill);
+
+  /* ---- Liquid Glass material (v1 DESIGN.md "Material") ---- */
+  --lg-surface: #fafafc;
+  --lg-surface-thick: var(--lifted);
+  --lg-ink: #1d1d1f;
+  --lg-regular-fill: color-mix(in srgb, var(--lg-surface) 52%, transparent);
+  --lg-regular-solid: var(--lg-surface);
+  --lg-regular-blur: 20px;
+  --lg-regular-saturation: 175%; /* above the skill's 150%, at Scott's request (v1 override) */
+  --lg-thick-fill: color-mix(in srgb, var(--lg-surface-thick) 78%, transparent);
+  --lg-thick-solid: var(--lg-surface-thick);
+  --lg-thick-blur: 30px;
+  --lg-thick-saturation: 175%;
+  --lg-edge: color-mix(in srgb, var(--lg-ink) 10%, transparent);
+  --lg-hairline: rgba(60, 60, 67, 0.2);
+  --lg-highlight: rgba(255, 255, 255, 0.95);
+  --lg-highlight-low: rgba(255, 255, 255, 0.5);
+  --lg-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 55%);
+  --lg-shadow: 0 10px 30px color-mix(in srgb, var(--lg-ink) 12%, transparent), 0 2px 6px color-mix(in srgb, var(--lg-ink) 6%, transparent);
+  --lg-shadow-thick: 0 14px 40px color-mix(in srgb, var(--lg-ink) 16%, transparent), 0 2px 6px color-mix(in srgb, var(--lg-ink) 8%, transparent);
+  /* The selected pill inside glass; brighter than the glass, so it is also the label's local scrim. */
+  --lg-selected: rgba(255, 255, 255, 0.72);
+  --lg-selected-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--lg-ink) 8%, transparent), 0 1px 4px color-mix(in srgb, var(--lg-ink) 10%, transparent);
+  --lg-press-glow: rgba(255, 255, 255, 0.85);
+  --lg-ink-muted: var(--text-secondary);
+  --lg-tint-ink: #9a4516;
+  --lg-tint-fill: var(--tint-fill);
+  /* Glass buttons: the static material (no blur; they sit on solid plates). */
+  --lg-btn-fill: rgba(120, 120, 128, 0.14);
+  --lg-btn-fill-hover: rgba(120, 120, 128, 0.2);
+  --lg-btn-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 60%);
+  --lg-btn-edge: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 0.5px color-mix(in srgb, var(--lg-ink) 12%, transparent), 0 1px 2px color-mix(in srgb, var(--lg-ink) 8%, transparent);
+  --lg-btn-ink: var(--text);
+  --lg-btn-tint-ink: var(--lg-tint-ink); /* 5.5:1 on the glass fill over white */
+  /* Opaque in light: white on the tint at any translucency drops under 4.5:1 (v1 measured). */
+  --lg-btn-prominent-fill: var(--lg-tint-fill);
+  --lg-btn-prominent-fill-hover: var(--tint-fill-pressed);
+  --lg-btn-prominent-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 40%);
+  --lg-btn-prominent-edge: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 0 0 0.5px color-mix(in srgb, var(--lg-ink) 18%, transparent), 0 1px 2px color-mix(in srgb, var(--lg-ink) 12%, transparent);
+  --lg-btn-press-glow: rgba(255, 255, 255, 0.7);
+  --lg-btn-press-scale: 0.97;
+  --lg-menu-motion: 240ms;
+  --lg-menu-radius: var(--radius-sheet);
+
+  --sidebar-bg: #f5f5f7; /* macOS source list */
+  --sidebar-hover: rgba(0, 0, 0, 0.05);
+  --sidebar-current: rgba(0, 0, 0, 0.085);
+
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='14' viewBox='0 0 10 14'%3E%3Cpath d='M1.5 5L5 1.5 8.5 5M1.5 9L5 12.5 8.5 9' fill='none' stroke='%23636366' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --disclosure-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='14' viewBox='0 0 8 14'%3E%3Cpath d='M1.5 1.5L6.5 7l-5 5.5' fill='none' stroke='%23aeaeb2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+
+  /* ---- type: the system face; no web font ships ---- */
+  --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, 'Segoe UI', sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, 'Segoe UI', sans-serif;
+  --type-large-title: 2.125rem;
+  --type-title-1: 1.75rem;
+  --type-title-2: 1.375rem;
+  --type-title-3: 1.25rem;
+  --type-headline: 1.0625rem;
+  --type-body: 1.0625rem;
+  --type-callout: 1rem;
+  --type-subhead: 0.9375rem;
+  --type-footnote: 0.8125rem;
+  --type-caption: 0.75rem;
+  --type-caption-2: 0.6875rem;
+  --text-display: 2.75rem; /* the one hero figure: 44 on the phone, 56 on the desktop */
+  --leading-tight: 1.12;
+  --leading-body: 1.35;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --tracking-display: -0.012em;
+
+  /* ---- spacing: 4px steps ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---- shape ---- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-row: 8px;
+  --radius-segment: 9px;
+  --radius-thumb: 7px;
+  --radius-button: 12px;
+  --radius-lg: 14px;
+  --radius-sheet: 16px;
+  --radius-pill: 999px;
+  --hairline: 1px solid var(--line);
+
+  /* ---- controls ---- */
+  --tap: 56px;
+  --tap-min: 44px;
+  --control: 36px;
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--focus) 80%, transparent);
+
+  /* ---- motion ---- */
+  --motion-fast: 150ms;
+  --motion-sheet: 280ms;
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ---- layout (phone below 768px: CSS can't read a property in a media query) ---- */
+  --measure: 64ch;
+  --gutter: var(--space-4);
+  --content-max: 1200px;
+  --sidebar: 240px;
+  --topbar-h: 52px;
 }
 
-/* Phone: the same scale, the two largest steps smaller. Every font-size in the app is one of these tokens. */
-@media (max-width: 760px) {
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ground: #000000;
+  --plate: #1c1c1e;
+  --raised: #2c2c2e;
+  --lifted: #2c2c2e;
+  --well: #0e0e10;
+  --fill: #26262a;
+  --fill-strong: #3a3a3c;
+  --field-bg: #1c1c1e;
+  --segment-on: #636366;
+  --segment-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  --text: #f5f5f7;
+  --text-secondary: #c7c7cc;
+  --text-muted: #98989f;
+  --line: #38383a;
+  --line-strong: #545458;
+  --chosen-fill: #636366;
+  --chosen-fill-hover: #737378;
+  --bar-ahead: #3a3a3c;
+  --bar-done: #636366;
+  --tint: #ff9a52;
+  --tint-fill: #b8541c;
+  --tint-fill-pressed: #a34a18;
+  --tint-wash: #3a2414;
+  --logo-accent: #eb6a2e;
+  --late-ink: #ff6961;
+  --late-bg: #3a1d1d;
+  --ok-ink: #30d158;
+  --ok-bg: #17311f;
+  --lg-surface: #1c1c1e;
+  --lg-ink: #000000;
+  --lg-regular-fill: color-mix(in srgb, var(--lg-surface) 66%, transparent);
+  --lg-thick-fill: color-mix(in srgb, var(--lg-surface-thick) 82%, transparent);
+  --lg-edge: rgba(255, 255, 255, 0.12);
+  --lg-hairline: rgba(84, 84, 88, 0.5);
+  --lg-highlight: rgba(255, 255, 255, 0.24);
+  --lg-highlight-low: rgba(255, 255, 255, 0.07);
+  --lg-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 55%);
+  --lg-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
+  --lg-shadow-thick: 0 14px 40px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.45);
+  --lg-selected: rgba(0, 0, 0, 0.26);
+  --lg-selected-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --lg-press-glow: rgba(255, 255, 255, 0.22);
+  --lg-tint-ink: var(--tint);
+  --lg-tint-fill: color-mix(in srgb, var(--tint-fill) 86%, transparent);
+  --lg-btn-fill: rgba(120, 120, 128, 0.32);
+  --lg-btn-fill-hover: rgba(120, 120, 128, 0.42);
+  --lg-btn-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 60%);
+  --lg-btn-edge: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 0 0 0.5px rgba(255, 255, 255, 0.1), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --lg-btn-prominent-fill: color-mix(in srgb, var(--tint-fill) 84%, transparent);
+  --lg-btn-prominent-edge: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --lg-btn-press-glow: rgba(255, 255, 255, 0.2);
+  --sidebar-bg: #1c1c1e;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-current: rgba(255, 255, 255, 0.11);
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='14' viewBox='0 0 10 14'%3E%3Cpath d='M1.5 5L5 1.5 8.5 5M1.5 9L5 12.5 8.5 9' fill='none' stroke='%2398989f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --disclosure-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='14' viewBox='0 0 8 14'%3E%3Cpath d='M1.5 1.5L6.5 7l-5 5.5' fill='none' stroke='%23636366' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+@media (min-width: 768px) {
   :root {
-    --t-hero: 2.375rem;
-    --t-num: 2rem;
+    --text-display: 3.5rem;
+    --gutter: var(--space-8);
   }
 }

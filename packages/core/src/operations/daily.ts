@@ -28,6 +28,10 @@ import {
   type OpRunContext,
 } from './framework.js';
 import { resolveDate } from '../relativeDates.js';
+import { stageDisplayName } from '../readModelsTiming.js';
+
+/** v1 copy rule (SPEC revision 2026-10-10): "With council" / "With certifier" read "Pending approval". */
+const shownStage = (name: string): string => stageDisplayName(name) ?? name;
 
 /** Runs a resolver; when it would refuse or ask, runs `instead` (which asks its own question). */
 function asQuestion<T>(resolve: () => T, instead: () => never, keepQuestions = false): T {
@@ -163,12 +167,14 @@ export const setItemStatus = defineOp({
   name: 'set_item_status',
   group: 'daily',
   description:
-    'Move a waiting-on item along: to_do, ordered_or_booked, confirmed, done (e.g. "pump is booked", "tiles confirmed").',
+    'Move a waiting-on item along: to_do, ordered_or_booked, confirmed, done (e.g. "pump is booked", "tiles confirmed"). ' +
+    'Booked or confirmed needs an expected date: pass expectedDate when the message says when it comes ("booked for Friday").',
   schema: z.object({
     item: z.string().describe('Item as said, e.g. "concrete pump". Fuzzy-matched against item titles and who it waits on.'),
     job: optionalJobRef,
     status: z.enum(ITEM_STATUSES),
-    date: dateArg('When it happened (default today)').optional(),
+    date: dateArg('When it happened (default today). Not when the trade comes or the delivery arrives: that is expectedDate').optional(),
+    expectedDate: dateArg('When the trade comes or the delivery arrives, if the message says ("booked for Friday")').optional(),
   }),
   ask: { item: 'Which item?', status: 'Is it booked, confirmed or done?' },
   run(ds, a, ctx) {
@@ -179,14 +185,32 @@ export const setItemStatus = defineOp({
     if (a.status === 'confirmed') changes.push(...update('item', item, 'confirmedDate', date));
     if (a.status === 'done') changes.push(...update('item', item, 'doneAt', date));
     if (a.status !== 'done' && item.doneAt) changes.push(...update('item', item, 'doneAt', null));
+    // v1 rule: booked (or confirmed) needs an expected date, its own or its shipment's ETA,
+    // so a booked item with no date never looks overdue. Missing -> ask, never guess.
+    const shipment = item.shipmentId ? ds.shipments.find((s) => s.id === item.shipmentId) : undefined;
+    let expected: string | null = null;
+    if (a.expectedDate) {
+      if (shipment) refuse(ctx, `${item.title} takes its date from the ${shipment.name} ETA. Change the shipment ETA instead.`);
+      expected = readDate(ctx, a.expectedDate);
+      changes.push(...update('item', item, 'expectedDate', expected));
+    } else if (NEEDS_EXPECTED.has(a.status) && !(shipment ? shipment.eta : item.expectedDate)) {
+      if (shipment) {
+        refuse(ctx, `${ITEM_STATUS_LABELS[a.status]} needs an expected date, and ${item.title} takes its date from the ${shipment.name} ETA, which isn't set. Give the shipment an ETA first.`);
+      }
+      ask(ctx, `${item.title} at ${jobName(ds, item.jobId)} needs an expected date to be ${ITEM_STATUS_LABELS[a.status].toLowerCase()}. When is it expected?`, 'expectedDate');
+    }
+    const when = expected ? `, expected ${ctx.fmt(expected)}` : '';
     return proposal(
       ctx,
       ds,
       changes,
-      `${item.title} at ${jobName(ds, item.jobId)}: ${ITEM_STATUS_LABELS[item.status]} to ${ITEM_STATUS_LABELS[a.status]}`,
+      `${item.title} at ${jobName(ds, item.jobId)}: ${ITEM_STATUS_LABELS[item.status]} to ${ITEM_STATUS_LABELS[a.status]}${when}`,
     );
   },
 });
+
+/** Statuses that need an expected date (v1: "Ordered or booked needs an expected date"). */
+const NEEDS_EXPECTED = new Set<string>(['ordered_or_booked', 'confirmed']);
 
 export const setItemExpectedDate = defineOp({
   name: 'set_item_expected_date',
@@ -352,10 +376,13 @@ export const attachPhoto = defineOp({
       true, // an ambiguous job already asks with the matching jobs
     );
     const allCats = ds.photoCategories.filter((c) => c.jobId === job.id).sort((x, y) => x.order - y.order);
-    const stageName = (id: string | null) => ds.stages.find((s) => s.id === id)?.name ?? null;
+    const stageName = (id: string | null) => {
+      const n = ds.stages.find((s) => s.id === id)?.name;
+      return n ? shownStage(n) : null;
+    };
     const optionsFor = (cats: typeof allCats) => cats.map((c) => ({ label: stageName(c.stageId) ? `${stageName(c.stageId)}: ${c.name}` : c.name, value: c.id }));
     const askCategory = (stage: Stage | null, cats = allCats): never =>
-      ask(ctx, `Which photo category at ${job.name}${stage ? `, ${stage.name}` : ''}?`, 'category', optionsFor(cats));
+      ask(ctx, `Which photo category at ${job.name}${stage ? `, ${shownStage(stage.name)}` : ''}?`, 'category', optionsFor(cats));
     // An unmatched stage is not fatal: the category question covers the whole job.
     const stage: Stage | null = a.stage ? asQuestion(() => resolveStage(ds, ctx, a.stage!, job), () => askCategory(null)) : null;
     const pool = stage ? allCats.filter((c) => c.stageId === stage.id || c.stageId === null) : allCats;
@@ -387,7 +414,7 @@ export const attachPhoto = defineOp({
 export const confirmJob = defineOp({
   name: 'confirm_job',
   group: 'daily',
-  description: 'Stamp a job as confirmed today (figures checked with the builder). Clears the amber "not confirmed" flag.',
+  description: 'Stamp a job as confirmed today (figures checked with the builder). Clears the "not confirmed for over 7 days" warning.',
   schema: z.object({
     job: jobRef,
     date: dateArg('Day it was confirmed (default today)').optional(),
@@ -404,7 +431,7 @@ export const confirmJob = defineOp({
 export const setStageStatus = defineOp({
   name: 'set_stage_status',
   group: 'daily',
-  description: 'Tick a design-job stage (design checklist): not_started, in_progress or done (e.g. "West St DA is with council").',
+  description: 'Tick a design-job stage (design checklist): not_started, in_progress or done (e.g. "West St DA is with council" = the "With council" stage, shown as "Pending approval").',
   schema: z.object({
     job: jobRef,
     stage: z.string().describe('Stage name as said. Fuzzy-matched.'),
@@ -416,8 +443,9 @@ export const setStageStatus = defineOp({
     if (job.kind !== 'design') refuse(ctx, `${job.name} is a build: its stages follow its steps. Mark the steps instead.`);
     const stage = resolveStage(ds, ctx, a.stage, job);
     const words = { not_started: 'not started', in_progress: 'in progress', done: 'done' } as const;
-    if (stage.status === a.status) refuse(ctx, `${stage.name} at ${job.name} is already ${words[a.status]}.`);
-    return proposal(ctx, ds, update('stage', stage, 'status', a.status), `${job.name}: ${stage.name} ${words[a.status]}`);
+    const shown = shownStage(stage.name);
+    if (stage.status === a.status) refuse(ctx, `${shown} at ${job.name} is already ${words[a.status]}.`);
+    return proposal(ctx, ds, update('stage', stage, 'status', a.status), `${job.name}: ${shown} ${words[a.status]}`);
   },
 });
 

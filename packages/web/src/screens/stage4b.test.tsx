@@ -6,7 +6,6 @@ import type { ReactElement } from 'react';
 import { DataProvider } from '../data/DataContext';
 import type { DataLayer } from '../data/layer';
 import { WaitingOnScreen } from './WaitingOn';
-import { ToChaseScreen } from './ToChase';
 import { ShipmentsScreen } from './Shipments';
 import { PhotosScreen } from './Photos';
 import { NotesScreen } from './Notes';
@@ -47,20 +46,19 @@ describe('Stage 4b wording', () => {
 });
 
 describe('Shipments (mock layer, today Thu 17 Sep 2026)', () => {
-  it('lists both windows shipments, each with its job, status, ETA and linked items', async () => {
+  it('lists both windows shipments side-wide, each with its job, status, ETA and linked items', async () => {
     show(<ShipmentsScreen />);
     const park = within(await screen.findByTestId('shipment-row-sh-pr-windows'));
     expect(park.getByTestId('ship-job').textContent).toBe('Park Rd');
     expect(park.getByText('Park Rd windows')).toBeTruthy();
     expect(park.getByTestId('ship-status').textContent).toBe('In production');
     expect(park.getByTestId('eta').textContent).toBe('Mon 26 Oct');
-    expect(park.getByTestId('needed-by').textContent).toBe('Mon 2 Nov');
+    expect(park.getByTestId('needed-by').textContent).toBe('Mon 2 Nov, in 6 weeks');
     expect(park.getByTestId('timing').textContent).toBe('7 days to spare');
     const linked = within(park.getByTestId('linked-items'));
     expect(linked.getAllByRole('listitem')).toHaveLength(3);
     expect(linked.getByText('Windows')).toBeTruthy();
     expect(linked.getAllByText('Raff, needed Mon 2 Nov')).toHaveLength(2);
-    expect(park.getByRole('list', { name: 'In production, step 2 of 4' })).toBeTruthy();
 
     const sea = within(screen.getByTestId('shipment-row-sh-sv-windows'));
     expect(sea.getByTestId('ship-job').textContent).toBe('Seaview St');
@@ -72,66 +70,37 @@ describe('Shipments (mock layer, today Thu 17 Sep 2026)', () => {
   });
 });
 
-describe('Waiting on', () => {
-  it('groups every job into Overdue, This week and Later with dates and words', async () => {
+describe('Waiting on (To chase is merged into it)', () => {
+  it('every job, grouped Overdue / This week / Later, one date phrase per row, Call buttons', async () => {
     show(<WaitingOnScreen />);
-    const overdue = await screen.findByTestId('waiting-group-overdue');
-    expect(overdue.getAttribute('data-count')).toBe('5');
-    expect(screen.getByTestId('waiting-group-this_week').getAttribute('data-count')).toBe('11');
-    expect(screen.getByTestId('waiting-group-later').getAttribute('data-count')).toBe('31');
-    expect(screen.getByTestId('waiting-sub').textContent).toContain('47 open items');
-
-    const steel = within(screen.getByTestId('waiting-row-it-sv-slab-steel'));
-    expect(steel.getByTestId('urgency').textContent).toBe('3 days overdue');
-    expect(steel.getByTestId('needed-by').textContent).toBe('Mon 14 Sep');
-    expect(steel.getByTestId('expected').textContent).toBe('Wed 16 Sep');
-    expect(steel.getByTestId('status').textContent).toBe('Confirmed');
-    expect(steel.getByText('Seaview St')).toBeTruthy();
-
+    const steel = within(await screen.findByTestId('waiting-row-it-sv-slab-steel'));
+    expect(steel.getByTestId('when').textContent).toBe('!Needed Mon 14 Sep, overdue by 3 days');
+    expect(steel.getByText(/Seaview St · waiting on/)).toBeTruthy();
     const glazing = within(screen.getByTestId('waiting-row-it-pr-glazing-cert'));
-    expect(glazing.getByTestId('urgency').textContent).toBe('Act-by passed 38 days ago');
-    expect(glazing.getByTestId('act-by').textContent).toBe('Mon 10 Aug');
-
+    expect(glazing.getByTestId('when').textContent).toBe('!Act by Mon 10 Aug, overdue by 5 weeks');
     const pump = within(screen.getByTestId('waiting-row-it-sv-pump'));
-    expect(pump.getByTestId('act-by').textContent).toBe('Fri 18 Sep');
-    expect(pump.getByTestId('owner').textContent).toBe('Raff');
+    expect(pump.getByText(/with Raff/)).toBeTruthy();
     expect(pump.getByTestId('call').getAttribute('href')).toBe('tel:0491570157');
+    // To chase's Call coverage: the trade is named, the number is in the accessible name.
+    expect(pump.getByTestId('call').textContent).toContain('Northern Concrete Pumping');
+    expect(pump.getByTestId('call').getAttribute('aria-label')).toContain('0491 570 157');
   });
 
-  it('shows one job without the job column', async () => {
+  it('shows one job without the job name on rows', async () => {
     show(<WaitingOnScreen jobId="beatty" />);
-    await screen.findByTestId('waiting-group-overdue');
+    await screen.findByTestId('waiting-row-it-bt-tiler');
     const rows = screen.getAllByTestId(/^waiting-row-/);
-    expect(rows.length).toBeGreaterThan(0);
     expect(rows.every((r) => r.getAttribute('data-testid')!.startsWith('waiting-row-it-bt-'))).toBe(true);
-    expect(screen.queryByText('Job', { selector: 'th' })).toBeNull();
     expect(screen.queryByTestId('job-picker')).toBeNull();
   });
-});
 
-describe('To chase', () => {
-  it('lists items to act on by job with tap-to-call trade numbers', async () => {
-    show(<ToChaseScreen />);
-    const pump = within(await screen.findByTestId('chase-row-it-sv-pump'));
-    const call = pump.getByTestId('call');
-    expect(call.getAttribute('href')).toBe('tel:0491570157');
-    expect(call.textContent).toContain('Northern Concrete Pumping');
-    expect(call.textContent).toContain('0491 570 157');
-    expect(pump.getByTestId('act-by').textContent).toBe('Fri 18 Sep');
-    expect(screen.getByTestId('chase-count').textContent).toContain('19');
-    expect(screen.getByTestId('chase-job-park-rd').getAttribute('data-count')).toBe('9');
-    expect(screen.getByTestId('chase-nothing').textContent).toContain('Lower Beach St and John St');
-    // Beatty St's amber shows in words in its group head.
-    expect(within(screen.getByTestId('chase-job-beatty')).getByText('Not confirmed for 9 days')).toBeTruthy();
-  });
-
-  it('narrows to one owner', async () => {
-    show(<ToChaseScreen />);
-    await screen.findByTestId('chase-row-it-sv-pump');
-    fireEvent.click(screen.getByRole('button', { name: /^Dominic/ }));
-    expect(screen.queryByTestId('chase-row-it-sv-pump')).toBeNull();
-    expect(screen.getByTestId('chase-row-it-pr-glazing-cert')).toBeTruthy();
-    expect(screen.getByTestId('chase-count').textContent).toContain('owned by Dominic');
+  it('Mine narrows to Dominic (was To chase\'s owner filter)', async () => {
+    show(<WaitingOnScreen />);
+    await screen.findByTestId('waiting-row-it-sv-pump');
+    fireEvent.click(screen.getByRole('button', { name: 'Mine' }));
+    expect(screen.queryByTestId('waiting-row-it-sv-pump')).toBeNull();
+    expect(screen.getByTestId('waiting-row-it-pr-glazing-cert')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Mine' }).getAttribute('aria-pressed')).toBe('true');
   });
 });
 
@@ -168,7 +137,7 @@ describe('Daily notes', () => {
 });
 
 describe('Change history', () => {
-  it('shows each change set with its source, fields before and after, and the forecast it moved', async () => {
+  it('shows each change set with its source, fields before and after, and the steps it moved', async () => {
     show(<HistoryScreen />);
     const tiler = within(await screen.findByTestId('history-cs-0915-tiler'));
     expect(tiler.getByTestId('status').textContent).toBe('Saved');
@@ -176,9 +145,9 @@ describe('Change history', () => {
     expect(tiler.getByTestId('fields').textContent).toContain('Mon 28 Sep → Mon 5 Oct');
     expect(tiler.getByTestId('source').textContent).toContain("Harbour Tiling can't get to Beatty till the 5th of October");
     expect(tiler.getByTestId('source').textContent).toContain('Voice note on Telegram');
-    expect(tiler.getByTestId('forecast').textContent).toContain('+7 days');
-    expect(tiler.getByTestId('forecast').textContent).toContain('Beatty St finish Fri 27 Nov → Fri 4 Dec');
-    expect(tiler.getByTestId('forecast').textContent).toContain('$2,000 of holding cost');
+    // Timing first: what it moved, never the finish or money.
+    expect(tiler.getByTestId('forecast').textContent).toMatch(/^Moved \d+ steps? at Beatty St$/);
+    expect(tiler.getByTestId('forecast').textContent).not.toMatch(/\$|finish/);
 
     const cancelled = within(screen.getByTestId('history-cs-0916-cancel'));
     expect(cancelled.getByTestId('status').textContent).toBe('Cancelled, nothing saved');

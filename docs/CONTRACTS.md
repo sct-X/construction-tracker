@@ -155,14 +155,14 @@ Daily (bot) operations, args (`?` optional):
 | set_shipment_status | shipment, job?, status | |
 | mark_step_started | step, job?, date? | sets actualStart |
 | mark_step_done | step, job?, date? | hold point: refused with `holdPointSignOffRefusal` ("Can't sign off Slab inspection before pour yet. No photos for: Plumbing under slab, Membrane and termite barrier.") until every required category has a photo; sets actualEnd (+actualStart) |
-| set_item_status | item, job?, status, date? | confirmed sets confirmedDate; done sets doneAt |
+| set_item_status | item, job?, status, date?, expectedDate? | confirmed sets confirmedDate; done sets doneAt. Stage 6b (v1 "Booked needs an expected date"): ordered_or_booked / confirmed with no expected date (the item's own, or its shipment's ETA) and no `expectedDate` -> question `field: 'expectedDate'`, no options: "Book concrete pump at Seaview St needs an expected date to be ordered or booked. When is it expected?"; `expectedDate` sets item.expectedDate (summary "..., expected Thu 24 Sep"); refused on a shipment item (change the ETA), and a shipment item whose shipment has no ETA is refused ("Give the shipment an ETA first.") |
 | set_item_expected_date | item, job?, date | refused for shipment items (change the ETA) |
 | override_lead_time | item, job?, weeks | item.leadTimeWeeks |
 | add_item | job, type, title, waitingOn?, owner? (default "Dominic"), trade?, step?, neededBy?, expectedDate?, leadTimeWeeks?, notes? | build job with no step and no date -> question (field step), except defect/reminder |
 | add_daily_note | job, text, date?, messageId? | |
 | attach_photo | job, category?, stage?, filePath, caption?, takenOn?, messageId? | never refuses on names: missing/unmatched/ambiguous job -> question with a button per live job (`askOptions`); stage or category -> question (that job's/stage's categories, incl. General) |
 | confirm_job | job, date? | lastConfirmed |
-| set_stage_status | job, stage, status | design jobs only |
+| set_stage_status | job, stage, status | design jobs only. Stage 6b: "With council" / "With certifier" read "Pending approval" in summaries, refusals and options (core `stageDisplayName`, readModelsTiming); `resolveStage` matches either name |
 
 Setup operations (web Setup area; `LocalDashboardApi.applySetup` refuses non-setup ops): copy_template
 (template, name, startDate, startsFromStage?, weeklyHoldingCost?, path?, side?), create_job (name, kind, path?, side?,
@@ -211,7 +211,7 @@ All pure `(ds, ..., today)`; lists skip templates; `SideFilter = { sideId? }`.
 | jobsList(ds, today, filter?) | `{builds, design}` rows: jobId, name, kind, currentStageName, forecastFinish, slipDays, amber, freshnessText |
 | jobOverview(ds, jobId, today) | job, forecast, stages, nextHoldPoint, waitingOn (top 5), notesThisWeek, latestPhotos (6), shipments |
 | programView / stepDetail | stages, steps in dependency order, links / step, waitsFor, holdsUp, requirements, items, holdPoint |
-| waitingOn(ds, today, {jobId?, type?, owner?, status?, includeDone?, sideId?}) | `{total, groups: [overdue, this_week, next_week, later]}` of WaitingRow |
+| waitingOn(ds, today, {jobId?, type?, owner?, status?, includeDone?, sideId?}) | `{total, groups: [overdue, this_week, later]}` of WaitingRow (Stage 6a: three groups by key date) |
 | toChase(ds, today, {owner?, withinDays=14}) | every live job with rows (to do or ordered/booked, act-by within 14 days or past; to-do first, then act-by) |
 | shipmentsList(ds, today) | ShipmentRow: eta, status(+Label), linkedCount, earliestNeededBy, isLate, lateDays, owners |
 | changeHistory(ds, {jobId?, sideId?, statuses?, limit?}, today?) | newest first: summary, status, message {rawText, transcript}, jobNames, changes [{rowLabel, field, before, after}], effects (with today) |
@@ -229,7 +229,26 @@ slip not explained by any change (finish with every change taken back minus the 
 `lines` has "N days earlier|later for reasons not in the change log". Rule 2 is applied as written: unstarted steps
 whose planned start has passed are not pushed to today (Orchestrator decision).
 
-`DashboardApi` (all async): getToday, listSides, getMonday, getWhyItMoved, listJobs, getJobOverview, getProgram, getStep,
+Stage 6a read models (timing first; files `readModelsOverview.ts`, `readModelsTiming.ts`, additions in `readModels.ts`):
+
+| function | returns |
+| --- | --- |
+| overview(ds, today, filter?) | `OverviewView {today, builds, design}` of `OverviewRow`: jobId, sideId, name, kind, path, stages [{stageId, name, status}], currentStageId/Name, stageLabel ("Pending approval" for With council / With certifier), stagePosition ("Stage 5 of 8"), nextSteps (builds: next 3 not-done steps, under way first then forecast start: stepId, name, stageName, status, start, end, underWay, isHoldPoint, lateDays; design: []), nextHoldPoint (HoldPointSummary), waitingOn (top 3: overdue first, longest overdue first, then key date), overdue (count of isOverdue), outstanding, oldestDays (design), lastConfirmed, daysUnconfirmed, unconfirmed (rule 7), freshnessWords. Builds in dataset (side) order; design by oldestDays desc. NO finish, slip or money fields. |
+| topWaiting(rows, n=3), overviewRow(ds, job, today) | as used by overview |
+| freshnessWords(freshness) | "Not confirmed for 9 days" (> 7 days), "Never confirmed", else the calculator's text ("Last confirmed 2 days ago") |
+| stageDisplayName(name), stagePositionWords(stages, currentId) | "Pending approval"; "Stage 5 of 8" / "All 8 stages done" / "No stages yet" |
+| waitingKeyDate(row) | act-by while to do (else expected, else needed-by); once ordered/booked/confirmed: expected, else needed-by |
+| tradesThisWeek(ds, forecast, today) | `TradeOnRow[]` {key, trade, stepId, stepName, start, end, underWay, when ("On site, until Fri 25 Sep" / "Mon 21 Sep, in 4 days")}: not-done steps meeting today..today+7, named by the trade items booked on the step (trade name, else waitingOn), else the step's trade type |
+| overdueFirst(rows), rowsForJob(ds, forecast, today, includeDone?) | now exported |
+
+- `WaitingRow.keyDate` (waitingKeyDate). `waitingOn()` groups are now THREE (Stage 6a, v1 Waiting on): `overdue` (exactly
+  isOverdue, overdueFirst order), `this_week` (key date before next Monday), `later` (the rest and anything without a key date);
+  `WaitingGroupKey = 'overdue' | 'this_week' | 'later'` (`next_week` is gone; the bot flattens the groups, so it is unaffected).
+  Seed today: 5 / 3 / 39, total 47.
+- `JobOverview` gained `stageLabel`, `stagePosition`, `overdue` (every open overdue row, overdueFirst), `tradesThisWeek`,
+  `freshnessWords` (the v1 job first page). Its forecast/finish fields stay for the bot; the web doesn't show them.
+
+`DashboardApi` (all async): getToday, listSides, getMonday, getOverview(filter?) (Stage 6a; on the server RPC whitelist), getWhyItMoved, listJobs, getJobOverview, getProgram, getStep,
 getDesignChecklist, getWaitingOn, getToChase, getShipments, getPhotos, getDailyNotes, getChangeHistory, listTrades,
 listTemplates, getProgramSetup(jobId) (Stage 5), previewSetup(op, args) -> {result, impact, templates}, applySetup(op, args) ->
 {ok, changeSet, result} | {ok:false, result, reason}, undo(changeSetId), and sync `photoUrl(photo: {id, caption, isPlaceholder}): string`.
@@ -322,7 +341,7 @@ logging "Sending reminders failed (attempt N; will retry in M min)".
 Reminders (`reminders.ts`):
 
 ```ts
-computeReminders(ds, today): Reminder[]   // pure. Reminder = {key, kind 'act_by'|'amber', jobId, jobName, itemId, dueOn, text}
+computeReminders(ds, today): Reminder[]   // pure. Reminder = {key, kind 'act_by'|'unconfirmed', jobId, jobName, itemId, dueOn, text}
 fireReminders(store: SqliteStore, clock, notifier): Promise<{ sent: Reminder[]; alreadySent: number; text: string | null }>
 interface Notifier { send(n: { text: string; reminders: Reminder[] }): Promise<void> }   // the bot's createTelegramNotifier fits it
 manualReminderText(ds, today): string | null   // "/reminders": all due today, ignoring reminder_sent (not recorded either)
@@ -331,15 +350,115 @@ logNotifier(log), memoryNotifier() (.sent), reminderText(reminders, today), sent
 
 - act_by: Monday `actByDue` rows (to do, act-by <= today + 7) on live builds; key `actby:<item>:<actBy>:soon|due`
   (`due` once act-by <= today). Text: "Seaview St: Book concrete pump. Act by Fri 18 Sep (tomorrow)."
-- amber: live jobs (build and design) with `freshness.amber`; key `amber:<job>:<lastConfirmed|never>`.
-  Text: "Beatty St is amber: last confirmed 9 days ago. Check it and confirm the job."
-- One message per run: "Reminders, Thu 17 Sep:" then "- <text>" lines (act-by first). Keys are claimed in
+- unconfirmed (Stage 6b; was `amber`): live jobs (build and design) more than 7 days unconfirmed (`freshnessFor(job).amber`);
+  key still `amber:<job>:<lastConfirmed|never>` so a reminder already sent isn't resent. Text, in words only (never "amber"):
+  "Beatty St: not confirmed for 9 days. Check it and confirm the job." (`unconfirmedText`, from core `freshnessWords`).
+- One digest message per run (Stage 6b): "Reminders, Thu 17 Sep:" then lines grouped by job, "<Job>:" (or "<Job>: not
+  confirmed for 9 days. Check it and confirm the job.") and "- <item>. Act by Fri 18 Sep (tomorrow)." under it; jobs with
+  something overdue first, overdue items first. At most `DIGEST_MAX_LINES` (15) body lines: picked overdue items first, then
+  unconfirmed jobs, then items coming up; the rest are NOT claimed (they lead a later digest) and counted in the last line
+  "+N more: /reminders for the full list" (`digestLines`, `reminderText`). A long-past act-by (`due`) and an unconfirmed job
+  (`repeatWeekly`) go again at most once every `REPEAT_EVERY_DAYS` (7) after the last send, key `<key>:again-<YYYY-MM-DD>`;
+  a `soon` act-by goes once. `manualReminderText` (/reminders) is the full list, uncut, same grouping; the bot splits it
+  (and the notifier splits any text) on line breaks at Telegram's 4096 characters (bot `MAX_TEXT` 4096). Keys are claimed in
   `reminder_sent` (migration 002, not a Dataset table) before sending and released if `send` throws.
 
 Core fix carried here: add_step asks "which step" for an ambiguous `after` entry with `field: 'afterChoice'`;
 re-run with `{ ...question.args, afterChoice: id }`.
 
 ## Web (`packages/web`)
+
+### Stage 6a: the v1 look (SPEC "Revision 2026-10-10"); this subsection overrides older Web bullets below
+
+- **One token set**, `src/styles/tokens.css`: v1's Apple foundation (iOS grouped surfaces `--ground/--plate/--raised/--fill`,
+  labels `--text/--text-secondary/--text-muted`, `--line`, one tint `--tint/--tint-fill/--tint-wash`, red `--late-ink/--late-bg`
+  for overdue ONLY, green `--ok-*`, no amber; `--note-*` = can't-do-yet on the neutral fill), the system face (`--font-ui`,
+  `--font-display`, no web font ships), iOS type ramp `--type-large-title ... --type-caption-2`, spacing `--space-1..16`, radii
+  `--radius-sm/md/row/segment/thumb/button/lg/sheet/pill`, motion, and the Liquid Glass material `--lg-*` (Regular 52% / blur 20 /
+  saturate 175%, Thick 78% / blur 30, edge, highlight, selected pill, glass-button fills). Dark values exist under
+  `:root[data-theme='dark']` (nothing sets it yet). The site-materials palette (concrete/steel/timber/hi-vis/amber, Barlow) is gone;
+  the `@fontsource` packages are uninstalled.
+- **Primitives**, `src/styles/base.css` (ported from v1 base.css): `.btn` (gray) `--primary` (the ONE filled tint button per screen)
+  `--tinted` `--fill` `--ghost` `--small` `--desktop` (36px on >= 768px), `.btn--glass` / `.btn--glass-prominent` (static glass
+  buttons, press glow from `shell/glassPress.ts`), `.seg` + `.seg__btn[aria-pressed]` (segmented control), `.input`,
+  `.form-field` + `.form-field__label` (renamed from v1's `.field`: lists.css owns `.field`), `.group` / `.group__header`
+  (`--large` = a Title 3 group head) / `.group__list` / `.cell` / `.cell--link` (inset grouped list with disclosure chevron),
+  `.chevron`, `.table`, `.plate`, `.count`, `.status` + `--late|--note|--ok|--muted|--plain` (`components/StatusText.tsx`, adds the
+  "!" for late and note), `.stagebar` (`components/StageBar.tsx`), `.filterbar` / `.filter` / `.filter__select`, `.glass` +
+  `.glass--regular|--thick` + `.glass--float` + `.glass--static` + `.glass--yields`, `.lg-press`, `.skip`, `.loading`,
+  `.load-error`, `.empty-line`. Fallbacks: solid surfaces without backdrop-filter, under `prefers-reduced-transparency`,
+  `prefers-contrast: more` (1px outline) and `forced-colors`; `prefers-reduced-motion` collapses motion; focus is `--focus-ring`.
+- **Shell**, `src/app/App.tsx` + `src/styles/shell.css` (ported from v1 shell.css): phone (< 768px, `shell/useNarrow.ts`
+  `usePhoneWidth`) = `.topbar` (edge-attached Regular glass: the mark, the side switcher, `phone: 'tool'` glyph links: Changes) and
+  `.tabbar` (floating Regular glass capsule, `phone: 'tab'` links: Overview, Waiting on; minimises on scroll down via
+  `shell/useTabBarMinimise.ts`, rule `nextMinimised` unit-tested); desktop = `.sidebar` macOS source list (mark + "Tracker", side
+  switcher, `nav[aria-label=Main]` with glyphs, `nav[aria-label=Setup]` group). Glyphs: `shell/icons.tsx` (`NavIcon name`,
+  `PhoneGlyph`, `LogoMark`: v1's arc-and-dot mark; the "Cruise" name is NOT adopted). `main.shell__content.page` holds every screen.
+  Dev bar (`components/DevBar.tsx`, `.devbar`, region "Demo controls": "Today is" + Reset) only in mock mode.
+- **Route table** (`app/routes.tsx`): RouteDef adds `group: 'main'|'setup'`, `icon`, `phone: 'tab'|'tool'`, `ownHeading` (a job
+  screen not yet restyled that renders its own h1: the job header then draws the job name in a div, not an h1), `redirect`.
+  Main: `#/` Overview, `#/waiting`, `#/shipments` (desktop sidebar), `#/history` (+ `/:jobId`); Setup group `#/setup` (New job),
+  `/setup/programs`, `/setup/templates`, `/setup/trades` (desktop only). Redirects: `#/jobs`, `#/monday` -> `#/`; `#/chase` ->
+  `#/waiting`. Job tabs, builds: Overview, Program, Waiting on, Shipments (`/jobs/:jobId/shipments`), Photos, Notes; design:
+  Checklist, Waiting on. Helpers (`app/jobNav.ts`): `mainLinks(group?)`, `phoneLinks('tab'|'tool')`, `isHere(link, current)`,
+  `jobTabs`, `jobHome`, `tabHref`, `switchJobHref`, `fillPath`, `activeTabPath`.
+- **Job header** (`shell/JobHeader.tsx`, `data-testid="job-bar"`): v1 PageHeader on every `/jobs/:jobId...` route: back link
+  (`back`: "Overview" on a job's home tab, "Job overview"/"Checklist" on another tab, the parent tab's name on a deeper page), the
+  job switcher (the job's name is a button in the h1, `job-switcher`; it opens a Thick glass listbox `role=listbox` "Switch job",
+  `job-switcher-menu`, options `job-switcher-<jobId>` with `aria-selected`, Builds / Design groups, "(4 overdue)" in late ink;
+  arrows, Home/End, type-ahead, Enter/Space, Escape/Tab close and refocus; morph 240ms, fade under reduced motion; while open
+  `:root[data-lg-menu]` makes `.glass--yields` static), a design meta line ("Design, DA, Pending approval"), then the tabs
+  (`job-tabs`, `nav[aria-label="<Job> pages"]`, `job-tab-<label>`; underlined strip on desktop, sticky glass capsule on the
+  phone, current tab scrolled into view). The App loads `getOverview()` (all sides) once for the header and the menu counts.
+  Deep link to the other side's job switches side; the side switcher leaves a job page for `#/`.
+- **Screens in the v1 look (Stage 6a)**:
+  - Overview `screens/Overview.tsx` + `styles/overview.css`: `overview-screen`, groups `overview-builds` / `overview-design`,
+    cards `overview-card-<jobId>` (`data-kind`, `data-overdue`; the name's link is stretched over the card) > `card-overdue`
+    ("!4 overdue" / "Nothing overdue"), `card-bar`, `card-stage`, `card-next` > `card-step-<stepId>` > `card-step-when`,
+    `card-waiting` > `card-wait-<itemId>` (`data-overdue`) > `card-wait-when`, `card-fresh` (`data-unconfirmed`); empty
+    `overview-empty` "No jobs on this side yet."; desktop "New job" button `overview-new-job`.
+  - Job first page `screens/JobOverview.tsx` + `styles/job.css`: `job-progress` (`job-stage`, `job-stage-of`, `job-stage-bar`,
+    `job-next-hold` > `job-hold-photos` "0 of 1 required photo set"), `job-overdue` (`job-overdue-count`,
+    `job-overdue-<itemId>`, `job-overdue-none`), `job-trades` (`job-trade-<stepId>`, `job-trades-none`), `job-fresh`.
+  - Waiting on `screens/WaitingOn.tsx` + `styles/waiting.css` (`#/waiting`, job tab `/jobs/:jobId/waiting`): `waiting-on`,
+    `waiting-sub` ("47 to act on, 5 overdue"), `waiting-filters` (Everyone | Mine = owner "Dominic", `waiting-owner-all|me`; the
+    job menu `job-picker` on `#/waiting` only, it opens the job's tab), groups `waiting-group-overdue|this_week|later`
+    (`data-count`; Later is a closed `<details>`), rows `waiting-row-<itemId>` (`data-overdue`) > `when` (one phrase,
+    `ui/when.ts whenWords`), `call` (`tel:` glass button "Call <trade>", the number in its accessible name).
+  - Shipments `screens/Shipments.tsx` + `styles/shipments.css` (`#/shipments` side-wide with `ship-job`; job tab
+    `/jobs/:jobId/shipments` that job only): `shipment-row-<id>` > `ship-status`, `eta`, `needed-by` ("Mon 2 Nov, in 6 weeks"),
+    `timing` (plain words), `linked-items`. Desktop table on a plate, phone cards.
+- **Timing first on every screen**: no forecast finish, slip, slip cost, holding cost or Why it moved on the web. Program's
+  subtitle is `programSubWords` ("Rough-in. 3 steps later than planned."); Changes shows "Moved N steps at <job>" per effect;
+  Setup's change bar shows the steps that move (no finish, no $); Setup New job keeps the PLANNED finish (v1 did) and the weekly
+  holding cost input (the bot's confirm card prices a slip with it). Words: `ui/when.ts` (`shortRelative` "Mon 21 Sep, in 4 days",
+  `whenWords`, `stepWhen`), core `freshnessWords`, `stageDisplayName`. `components/bits.tsx` `Freshness` renders words only
+  (`data-unconfirmed`), no amber.
+- **Not yet restyled** (pending the next agent; they render in the new tokens through `styles/legacy.css`, which holds the old
+  shared `.screen`/`.board`/`.cell-label`/`.num`/`.sub` bits, and their own `lists.css`, `screens4a.css`, `setup.css`, whose old
+  token names were mapped to the v1 roles): Program, Step detail, Design checklist, Photos, Notes, Changes, Setup. Their routes
+  carry `ownHeading: true` (job screens). Program's old segmented control is `.oseg` (renamed from `.seg`).
+
+#### How to build a screen in the v1 style (for the next agent)
+
+1. Read v1's screen (`/Users/imac/dev/construction-tracker/src/screens/<Name>.tsx` + `.css`, read-only) and its reference shot
+   (`e2e/screenshots/v1-ref-*.png`; take more with the prototype's `?dev=1&as=dominic&today=2026-09-17`). Drop anything for
+   editing, roles, upload or notifications; the web is read-only.
+2. Data: `useSideQuery` / `useJobQuery` over DashboardApi; if the screen needs words or groupings, add a pure read model in core
+   (`readModels*.ts`) with a test, not logic in the screen. Never show finish, slip or $.
+3. Markup: a top-level screen starts with `<PageHeader title meta actions>`; a job screen gets the job header from the shell, so
+   it starts with an h2 section title (see `.waiting__head` / `.ships__head`) and its route must NOT set `ownHeading`. Build from
+   the primitives: content in `.plate` cards or `.group` > `.group__list` > `.cell` rows, statuses with `<StatusText>` (red only
+   when `row.overdue`), dates through `ui/when.ts` so each carries its relative time, the one filled `.btn--primary` per screen,
+   secondary actions `.btn--glass`. Phone/desktop: same DOM where possible; switch with `usePhoneWidth()` (768px) or
+   `@media (min-width: 768px)` / `.shell--desktop` selectors. Glass only on the floating layer (sticky filter bars on the phone,
+   menus): `glass glass--regular glass--float`; never on content.
+4. CSS: one file per screen in `src/styles/`, BEM-ish prefix per screen (`overview__`, `job__`, `wrow`, `ships__`), every value a
+   token. When a screen moves over, delete its rules from `legacy.css` / `lists.css` / `screens4a.css`.
+5. Test ids stay stable (update the specs in the same change); add the screen to `e2e/screenshots.spec.ts` and compare its
+   `<project>-6a-*` shots with the `v1-ref-*` ones at 390 and 1280; specs fail on sideways scroll.
+
+### Earlier stages (kept for history; where they disagree with Stage 6a above, 6a wins)
 
 - Vite + React, hash routes. Route table `src/app/routes.tsx` (`{ path, title, nav?, render(params) }`, ":name" params via
   `matchPath`); nav links are the rows with `nav`, in order. Stage 1: `#/` Monday, `#/jobs` Jobs.
@@ -627,6 +746,14 @@ Behaviour:
   nothing saved: <summary>." Edit -> cancelled at once, card "Changing this one (not saved): ...", bot asks "What should
   it be instead? ..."; the reply is parsed with [original, "Proposed: <summary>.", the ask] history -> a NEW card.
 - Undo (button, reply or /undo) -> `store.undo`; "Undone: <summary>." + finish lines; the card loses its buttons.
+- Stage 6b wording (SPEC revision 2026-10-10): never "amber": a card that confirms an unconfirmed build says "Confirmed again:
+  it hadn't been confirmed for 9 days" (`impactLines(impact, today, before?)`). Waiting-on / to-chase answers: overdue (v1:
+  needed-by and expected both passed, or nothing expected, and not done) first, "- Tile choice (Dominic): needed Mon 14 Sep,
+  overdue by 3 days"; late but not overdue (expected after needed-by) in plain words, "- Book tiler (Harbour Tiling): expected
+  Mon 5 Oct, 7 days late (needed Mon 28 Sep)" (`itemTiming`, `waitingLine`); shipments ", N days late for when it's needed".
+  Stage names "With council" / "With certifier" read "Pending approval" (card rows, design-job finish answer "It's at the
+  Pending approval stage."). Booked with no expected date: core's question is sent with no buttons; the answer is parsed with
+  the thread like any no-options question, then the card.
 - Pending state and the card map are in memory (one chat). A restart loses pending questions, not cards' buttons.
 - Change history quotes the right text: a change set's message is the message that started its thread (a pick or a
   short answer is a detail of it), a fresh request's own message, or the correction for an Edit.

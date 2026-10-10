@@ -10,7 +10,6 @@ import { JobOverviewScreen } from './JobOverview';
 import { lookAheadGroups, ProgramScreen } from './Program';
 import { StepDetailScreen } from './StepDetail';
 import { DesignChecklistScreen } from './DesignChecklist';
-import { MondayScreen } from './Monday';
 
 function layer(): DataLayer {
   const { api, dev } = createMockDashboard();
@@ -25,26 +24,7 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-describe('job overview', () => {
-  it('Park Rd: finish, slip, holding cost, next hold point, top five waiting-on', async () => {
-    show(<JobOverviewScreen jobId="park-rd" />);
-    expect((await screen.findByTestId('ov-finish')).textContent).toBe('Fri 26 Feb 2027');
-    expect(screen.getByTestId('ov-slip').textContent).toBe('On track');
-    expect(screen.getByTestId('ov-slip-cost').textContent).toBe('Nothing this week');
-    expect(screen.getByTestId('overview-hero').textContent).toContain('$4,500 a week to hold');
-    expect(screen.getAllByTestId('ov-waiting-row')).toHaveLength(5);
-    expect(screen.getByTestId('ov-hold').textContent).toContain('Stormwater inspection');
-    expect(screen.getByTestId('ov-shipments').textContent).toContain('Park Rd windows');
-    expect(screen.getByTestId('ov-stages').textContent).toContain('Lock-up');
-  });
-
-  it('Beatty St: +5 days, $1,430, amber in words', async () => {
-    show(<JobOverviewScreen jobId="beatty" />);
-    expect((await screen.findByTestId('ov-slip')).textContent).toBe('+5 days');
-    expect(screen.getByTestId('ov-slip-cost').textContent).toBe('$1,430');
-    expect(screen.getByTestId('ov-freshness').textContent).toBe('Not confirmed for 9 days');
-  });
-
+describe('job overview (the v1 first page is tested in overview.test.tsx)', () => {
   it('a design job opens its checklist instead', async () => {
     window.location.hash = '#/jobs/west-st';
     show(<JobOverviewScreen jobId="west-st" />);
@@ -64,7 +44,7 @@ describe('program', () => {
     const day = '(Mon|Tue|Wed|Thu|Fri) \\d{1,2} [A-Z][a-z]{2}';
     expect(tiling.querySelector('.g-dates')!.textContent).toMatch(new RegExp(`^${day} to ${day}, planned ${day} to ${day}`));
     expect(screen.getByTestId('gantt-done').textContent).toContain('Demolition');
-    expect(screen.getByTestId('program-sub').textContent).toContain('Fri 4 Dec 2026');
+    expect(screen.getByTestId('program-sub').textContent).toBe('Rough-in. 3 steps later than planned.');
   });
 
   it('Late steps only, Next 3 weeks and Stages views', async () => {
@@ -150,7 +130,7 @@ describe('shell', () => {
     show(<App />);
     const bar = await screen.findByTestId('job-bar');
     const tabs = within(within(bar).getByRole('navigation', { name: 'Park Rd pages' })).getAllByRole('link');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Overview', 'Program', 'Waiting on', 'Photos', 'Notes']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Overview', 'Program', 'Waiting on', 'Shipments', 'Photos', 'Notes']);
     expect(tabs[1]!.getAttribute('aria-current')).toBe('page');
     expect(document.title).toContain('Park Rd');
   });
@@ -159,46 +139,43 @@ describe('shell', () => {
     window.location.hash = '#/jobs/park-rd/steps/pr-install-windows';
     const r = show(<App />);
     const bar = await screen.findByTestId('job-bar');
-    expect(within(bar).getByRole('link', { name: 'Program' }).getAttribute('aria-current')).toBe('page');
+    expect(within(within(bar).getByRole('navigation')).getByRole('link', { name: 'Program' }).getAttribute('aria-current')).toBe('page');
+    expect(within(bar).getByTestId('back').textContent).toBe('Program');
     r.unmount();
     window.location.hash = '#/jobs/west-st/checklist';
     show(<App />);
     const bar2 = await screen.findByTestId('job-bar');
-    expect(within(bar2).getAllByRole('link').map((t) => t.textContent)).toEqual(['Checklist', 'Waiting on']);
+    expect(within(within(bar2).getByRole('navigation')).getAllByRole('link').map((t) => t.textContent)).toEqual(['Checklist', 'Waiting on']);
+    // The back link names where it goes.
+    expect(within(bar2).getByTestId('back').textContent).toBe('Overview');
   });
 
   it('the job switcher keeps the tab', async () => {
     window.location.hash = '#/jobs/park-rd/program';
     show(<App />);
-    const sel = (await screen.findByTestId('job-switcher')) as HTMLSelectElement;
-    fireEvent.change(sel, { target: { value: 'beatty' } });
+    fireEvent.click(await screen.findByTestId('job-switcher'));
+    const menu = await screen.findByRole('listbox', { name: 'Switch job' });
+    // Builds then Design; the current job checked; overdue counts in words.
+    expect(within(menu).getByTestId('job-switcher-park-rd').getAttribute('aria-selected')).toBe('true');
+    expect(within(menu).getByTestId('job-switcher-park-rd').textContent).toContain('(4 overdue)');
+    expect(within(menu).getAllByRole('group').map((g) => g.dataset.group)).toEqual(['Builds', 'Design']);
+    fireEvent.click(within(menu).getByTestId('job-switcher-beatty'));
     expect(window.location.hash).toBe('#/jobs/beatty/program');
   });
-});
 
-describe('Monday leftovers', () => {
-  it('the act-by heading reads with a space before the date; design rows show only DA or CDC', async () => {
-    show(<MondayScreen />);
-    const sv = await screen.findByTestId('build-row-seaview');
-    expect(within(sv).getByRole('heading', { name: /^Act by this week for Seaview St to Thu 24 Sep$/ })).toBeTruthy();
-    const john = screen.getByTestId('design-row-john-st');
-    expect(john.textContent).toContain('DA');
-    expect(john.textContent).not.toContain('council');
+  it('the job switcher works from the keyboard: arrows, type-ahead and Enter', async () => {
+    window.location.hash = '#/jobs/park-rd';
+    show(<App />);
+    const btn = await screen.findByTestId('job-switcher');
+    fireEvent.keyDown(btn, { key: 'ArrowDown' });
+    const menu = await screen.findByRole('listbox', { name: 'Switch job' });
+    fireEvent.keyDown(menu, { key: 's' });
+    fireEvent.keyDown(menu, { key: 'Enter' });
+    expect(window.location.hash).toBe('#/jobs/seaview');
   });
 });
 
 describe('stage 4 review fixes', () => {
-  it('overview: an overdue row says so in words (the same words as Waiting on)', async () => {
-    show(<JobOverviewScreen jobId="park-rd" />);
-    await screen.findByTestId('ov-finish');
-    const rows = screen.getAllByTestId('ov-waiting-row');
-    for (const r of rows.filter((x) => x.dataset.urgency !== 'none')) {
-      expect(within(r).getByTestId('urgency').textContent).toMatch(/overdue|passed|after it's needed/);
-    }
-    const cladders = rows.find((r) => r.textContent?.includes('Book cladders'))!;
-    expect(within(cladders).getByTestId('urgency').textContent).toBe('1 day overdue');
-  });
-
   it("step detail: the call link names the trade", async () => {
     show(<StepDetailScreen jobId="park-rd" stepId="pr-install-windows" />);
     const row = await screen.findByTestId('need-it-pr-window-installer');

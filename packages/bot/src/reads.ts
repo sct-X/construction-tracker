@@ -3,7 +3,7 @@
  * DashboardApi (LocalDashboardApi over the store), so a question can never
  * create a change set.
  */
-import { formatDate, fuzzyMatch, rankWaiting, type DashboardApi, type ISODate, type JobListRow, type WaitingRow } from '@ct/core';
+import { calendarDaysBetween, formatDate, fuzzyMatch, rankWaiting, stageDisplayName, type DashboardApi, type ISODate, type JobListRow, type WaitingRow } from '@ct/core';
 import { finishSentence, slipText } from './format.js';
 
 export type ReadAnswer = { text: string };
@@ -28,17 +28,46 @@ function str(v: unknown): string | undefined {
   return typeof v === 'string' && v.trim() ? v.trim() : undefined;
 }
 
-/** "- Book tiler (Tiler): 7 days after needed" */
+/**
+ * v1 rule, in words (SPEC revision 2026-10-10): overdue = needed-by and expected both passed (or nothing
+ * expected) and not done; late = expected after it's needed, said plainly, never as a warning.
+ */
+export type ItemTiming = 'overdue' | 'late' | 'other';
+
+export function itemTiming(r: Pick<WaitingRow, 'status' | 'neededBy' | 'expected'>, today: ISODate): ItemTiming {
+  if (r.status === 'done') return 'other';
+  if (r.neededBy && r.neededBy < today && (!r.expected || r.expected < today)) return 'overdue';
+  if (r.neededBy && r.expected && r.expected > r.neededBy) return 'late';
+  return 'other';
+}
+
+/**
+ * "- Book tiler (Tiler): expected Mon 5 Oct, 7 days late (needed Mon 28 Sep)" (late, not overdue);
+ * "- Tile choice (Dominic): needed Mon 14 Sep, overdue by 3 days".
+ */
 export function waitingLine(r: WaitingRow, today: ISODate, withJob = false): string {
   const who = r.waitingOn ? ` (${r.waitingOn})` : '';
   const job = withJob ? `${r.jobName}: ` : '';
+  const timing = itemTiming(r, today);
   let detail: string;
-  if (r.isLate && r.lateText) detail = r.expected ? `expected ${formatDate(r.expected, today)}, ${r.lateText}` : r.lateText;
-  else if (r.status === 'to_do' && r.actBy) detail = `act by ${formatDate(r.actBy, today)}${r.actByPassed ? ' (passed)' : ''}`;
+  if (timing === 'overdue') {
+    const n = calendarDaysBetween(r.neededBy!, today);
+    const expected = r.expected ? `, expected ${formatDate(r.expected, today)}` : '';
+    detail = `needed ${formatDate(r.neededBy!, today)}${expected}, overdue by ${n} day${n === 1 ? '' : 's'}`;
+  } else if (timing === 'late') {
+    const n = calendarDaysBetween(r.neededBy!, r.expected!);
+    detail = `expected ${formatDate(r.expected!, today)}, ${n} day${n === 1 ? '' : 's'} late (needed ${formatDate(r.neededBy!, today)})`;
+  } else if (r.status === 'to_do' && r.actBy) detail = `act by ${formatDate(r.actBy, today)}${r.actByPassed ? ' (passed)' : ''}`;
   else if (r.expected) detail = `expected ${formatDate(r.expected, today)}`;
   else if (r.neededBy) detail = `needed ${formatDate(r.neededBy, today)}`;
   else detail = r.statusLabel.toLowerCase();
   return `- ${job}${r.title}${who}: ${detail}`;
+}
+
+/** Overdue first, then late, then the rest; otherwise the read model's order. */
+function overdueFirst(rows: WaitingRow[], today: ISODate): WaitingRow[] {
+  const rank = { overdue: 0, late: 1, other: 2 } as const;
+  return rows.map((r, i) => ({ r, i, k: rank[itemTiming(r, today)] })).sort((a, b) => a.k - b.k || a.i - b.i).map((x) => x.r);
 }
 
 function more(n: number): string[] {
@@ -54,7 +83,7 @@ export async function answerRead(api: DashboardApi, tool: string, args: Record<s
       const o = await api.getJobOverview(p.job.jobId);
       const f = o.forecast;
       if (f.kind === 'design' || !f.forecastFinish) {
-        return { text: `${p.job.name} is a design job, so it has no finish date. It's at ${f.currentStageName ?? 'the start'}.` };
+        return { text: `${p.job.name} is a design job, so it has no finish date. ${f.currentStageName ? `It's at the ${stageDisplayName(f.currentStageName)} stage.` : "It hasn't started a stage yet."}` };
       }
       const sentence = finishSentence(p.job.name, f.forecastFinish, f.slipDays, f.slipCost, today);
       const planned = f.plannedFinish && f.lateDays !== 0 ? ` Planned ${formatDate(f.plannedFinish, today)}.` : '';
@@ -85,7 +114,7 @@ export async function answerRead(api: DashboardApi, tool: string, args: Record<s
         label = p.job.name;
       }
       const view = await api.getWaitingOn({ ...(jobId ? { jobId } : {}), ...(owner ? { owner } : {}) });
-      const rows = rankWaiting(view.groups.flatMap((g) => g.rows), today);
+      const rows = overdueFirst(rankWaiting(view.groups.flatMap((g) => g.rows), today), today);
       const whose = owner ? ` for ${owner}` : '';
       if (!rows.length) return { text: `${label}: nothing outstanding${whose}.` };
       const lines = rows.slice(0, MAX_ROWS).map((r) => waitingLine(r, today, !jobId));
@@ -94,7 +123,7 @@ export async function answerRead(api: DashboardApi, tool: string, args: Record<s
     case 'get_to_chase': {
       const owner = str(args.owner);
       const view = await api.getToChase(owner ? { owner } : {});
-      const rows = view.jobs.flatMap((j) => j.rows);
+      const rows = overdueFirst(view.jobs.flatMap((j) => j.rows), today);
       if (!rows.length) return { text: 'Nothing to chase in the next two weeks.' };
       const lines = rows.slice(0, MAX_ROWS).map((r) => waitingLine(r, today, true));
       return { text: [`To chase (${rows.length}):`, ...lines, ...more(rows.length - MAX_ROWS)].join('\n') };
@@ -108,7 +137,7 @@ export async function answerRead(api: DashboardApi, tool: string, args: Record<s
       }
       if (!rows.length) return { text: 'No shipments.' };
       const lines = rows.map(
-        (r) => `- ${r.name}: ${r.eta ? formatDate(r.eta, today) : 'no ETA'}, ${r.statusLabel.toLowerCase()}${r.isLate ? `, ${r.lateDays} days after needed` : ''}`,
+        (r) => `- ${r.name}: ${r.eta ? formatDate(r.eta, today) : 'no ETA'}, ${r.statusLabel.toLowerCase()}${r.isLate ? `, ${r.lateDays} day${r.lateDays === 1 ? '' : 's'} late for when it's needed` : ''}`,
       );
       return { text: lines.join('\n') };
     }

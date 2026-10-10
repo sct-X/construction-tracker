@@ -3,7 +3,7 @@
  * before Save, and these pieces say what it would do in words.
  */
 import { useEffect, useState } from 'react';
-import { formatDate, formatLong, formatMoney, type JobImpact, type SetupPreview } from '@ct/core';
+import { formatDate, type JobImpact, type SetupPreview } from '@ct/core';
 import { useData } from '../data/DataContext';
 import { plural } from '../ui/itemWords';
 
@@ -58,48 +58,6 @@ export function previewProblem(p: PreviewState): string | null {
 
 export function canSave(p: PreviewState): boolean {
   return p.status === 'ready' && p.preview.result.kind === 'proposal';
-}
-
-function daysWords(n: number): string {
-  return `${Math.abs(n)} day${Math.abs(n) === 1 ? '' : 's'}`;
-}
-
-/** The finish line of a job impact: "Fri 26 Feb 2027 → Fri 5 Mar 2027, 7 days later". */
-export function FinishMove({ impact, weeklyHoldingCost }: { impact: JobImpact; weeklyHoldingCost: number | null }) {
-  const { finishBefore: before, finishAfter: after, finishDeltaDays: d } = impact;
-  if (!after) return <p className="su-finish">No forecast finish yet.</p>;
-  if (!before) {
-    return (
-      <p className="su-finish" data-testid="preview-finish">
-        Forecast finish <span className="su-date-big">{formatLong(after)}</span>
-      </p>
-    );
-  }
-  if (d === 0) {
-    return (
-      <p className="su-finish" data-testid="preview-finish">
-        Forecast finish stays <span className="su-date-big">{formatLong(after)}</span>
-      </p>
-    );
-  }
-  const cost = impact.costOfChange;
-  return (
-    <p className="su-finish" data-testid="preview-finish">
-      Forecast finish <span className="su-date-was">{formatLong(before)}</span>
-      <span aria-hidden="true"> → </span>
-      <span className="sr-only"> to </span>
-      <span className="su-date-big">{formatLong(after)}</span>{' '}
-      <span className={d > 0 ? 'su-delta su-delta-later' : 'su-delta'} data-testid="preview-delta">
-        {daysWords(d)} {d > 0 ? 'later' : 'earlier'}
-      </span>
-      {cost !== null && weeklyHoldingCost !== null && cost !== 0 && (
-        <span className="su-cost">
-          {' '}
-          {d > 0 ? `${formatMoney(Math.abs(cost))} more holding cost` : `${formatMoney(Math.abs(cost))} less holding cost`}
-        </span>
-      )}
-    </p>
-  );
 }
 
 /** "3 steps move: Tiling Mon 1 Feb to Mon 8 Feb, ...". */

@@ -1,29 +1,25 @@
 /**
- * Build job overview: how is this job going, on one screen. The forecast
- * finish and the slip lead; below them the stages on a small time chart, the
- * next hold point with its empty photo categories, the top five waiting-on
- * items, shipments, this week's daily notes and the latest photos.
- * A design job has no overview: it opens its checklist.
+ * A build's first page (v1, timing first): is this job on time?
+ *
+ *   1. Progress: the stage's name, "Stage 5 of 8", a large bar across every
+ *      stage, then the next hold point with its date and whether its photo
+ *      sets are in.
+ *   2. Overdue: every open item of this job past its date (core isOverdue, the
+ *      same test as the Overview's count), longest overdue first.
+ *   3. Trades on this week: who is on site or starting from today to a week out.
+ *   4. Freshness in words at the foot ("Not confirmed for 9 days").
+ * No forecast finish, slip or money. The job header (name, switcher, tabs) is
+ * the shell's. Next steps and the rest of the open items live in the Program
+ * and Waiting on tabs.
  */
-import { useEffect } from 'react';
-import {
-  formatDate,
-  formatLong,
-  formatStamp,
-  relativeDays,
-  type DashboardApi,
-  type ISODate,
-  type JobOverview,
-  type WaitingRow,
-} from '@ct/core';
-import { useData } from '../data/DataContext';
+import type { DashboardApi, JobOverview, WaitingRow } from '@ct/core';
 import { useJobQuery } from '../data/useJobQuery';
+import { LoadError, LoadingRows } from '../components/bits';
+import { StageBar } from '../components/StageBar';
+import { StatusText } from '../components/StatusText';
 import { href } from '../app/router';
-import { jobHome, tabHref } from '../app/jobNav';
-import { Freshness, LoadError, LoadingRows, Money } from '../components/bits';
-import { Bar, makeScale, TimeAxis, TimeGrid } from '../components/Timeline';
-import { lateWords, plural, rangeWords, slipWords, statusWords } from '../ui/format';
-import { photoCount, shipmentTimingWords, urgencyWords } from '../ui/itemWords';
+import { shortRelative, whenWords } from '../ui/when';
+import '../styles/job.css';
 
 export function loadOverview(api: DashboardApi, jobId: string): Promise<JobOverview> {
   return api.getJobOverview(jobId);
@@ -31,291 +27,130 @@ export function loadOverview(api: DashboardApi, jobId: string): Promise<JobOverv
 
 export function JobOverviewScreen({ jobId }: { jobId: string }) {
   const q = useJobQuery(loadOverview, jobId);
-  const isDesign = q.status === 'ready' && q.data.job.kind === 'design';
-  useEffect(() => {
-    if (isDesign) globalThis.location?.replace(jobHome({ jobId, kind: 'design' }));
-  }, [isDesign, jobId]);
+  if (q.status === 'loading') return <LoadingRows rows={3} label="Loading the job" />;
+  if (q.status === 'error') return <LoadError what="this job" error={q.error} retry={q.retry} />;
+  if (q.data.job.kind === 'design') {
+    // A design job's home is its checklist.
+    globalThis.location?.replace(href(`/jobs/${encodeURIComponent(jobId)}/checklist`));
+    return <LoadingRows rows={3} label="Opening the checklist" />;
+  }
+  return <JobTiming o={q.data} />;
+}
+
+/** "1 of 3 required photo sets", "No photo sets needed". */
+export function photoSetWords(filled: number, required: number): string {
+  if (required === 0) return 'No photo sets needed';
+  return `${filled} of ${required} required photo set${required === 1 ? '' : 's'}`;
+}
+
+export function JobTiming({ o }: { o: JobOverview }) {
+  const today = o.forecast.today;
+  const hp = o.nextHoldPoint;
+  const stepHref = (stepId: string) => href(`/jobs/${encodeURIComponent(o.job.id)}/steps/${encodeURIComponent(stepId)}`);
+  if (o.stages.length === 0) return <p className="empty-line">No program yet.</p>;
   return (
-    <div className="screen overview">
-      {q.status === 'loading' && (
-        <>
-          <h1 className="sr-only">Overview</h1>
-          <LoadingRows rows={4} label="Loading the job" />
-        </>
-      )}
-      {q.status === 'error' && (
-        <>
-          <h1>Overview</h1>
-          <LoadError what="this job" error={q.error} retry={q.retry} />
-        </>
-      )}
-      {q.status === 'ready' && !isDesign && <OverviewBody o={q.data} />}
+    <div className="job__timing">
+      <section className="job__progress" aria-labelledby="job-progress-title" data-testid="job-progress">
+        <div className="job__progress-head">
+          <h2 id="job-progress-title" className="job__stage-title" data-testid="job-stage">
+            {o.stageLabel ?? 'All stages done'}
+          </h2>
+          <span className="job__stage-of" data-testid="job-stage-of">
+            {o.stagePosition}
+          </span>
+        </div>
+        <StageBar stages={o.stages} currentStageId={o.forecast.currentStageId} size="large" label={`${o.stagePosition}${o.stageLabel ? `, ${o.stageLabel}` : ''}`} testId="job-stage-bar" />
+        <div className="job__hp" data-testid="job-next-hold">
+          {hp ? (
+            <a href={stepHref(hp.stepId)} className="cell cell--link job__hp-cell">
+              <span className="job__hp-body">
+                <span className="job__hp-label">Next hold point</span>
+                <span className="job__hp-name">{hp.stepName}</span>
+                {hp.forecastStart && <span className="job__hp-when">{shortRelative(hp.forecastStart, today)}</span>}
+                <StatusText tone={hp.ok ? 'ok' : 'note'} className="job__hp-photos" testId="job-hold-photos">
+                  {photoSetWords(hp.filledCount, hp.required.length)}
+                </StatusText>
+              </span>
+            </a>
+          ) : (
+            <p className="job__hp-none">No hold points left</p>
+          )}
+        </div>
+      </section>
+
+      <section className="group job__group" aria-labelledby="job-overdue-title" data-testid="job-overdue">
+        <h2 id="job-overdue-title" className="group__header group__header--large job__group-head">
+          Overdue
+          {o.overdue.length > 0 && (
+            <span className="job__group-count" data-testid="job-overdue-count">
+              {o.overdue.length}
+            </span>
+          )}
+        </h2>
+        <ul className="group__list">
+          {o.overdue.length === 0 ? (
+            <li className="cell job__none" data-testid="job-overdue-none">
+              Nothing overdue
+            </li>
+          ) : (
+            o.overdue.map((r) => <OverdueRow key={r.itemId} r={r} today={today} href={r.stepId ? stepHref(r.stepId) : null} />)
+          )}
+        </ul>
+      </section>
+
+      <section className="group job__group" aria-labelledby="job-trades-title" data-testid="job-trades">
+        <h2 id="job-trades-title" className="group__header group__header--large">
+          Trades on this week
+        </h2>
+        <ul className="group__list">
+          {o.tradesThisWeek.length === 0 ? (
+            <li className="cell job__none" data-testid="job-trades-none">
+              No trades on this week
+            </li>
+          ) : (
+            o.tradesThisWeek.map((t) => (
+              <li key={t.key} className="job__li">
+                <a href={stepHref(t.stepId)} className="cell cell--link job__row" data-testid={`job-trade-${t.stepId}`}>
+                  <span className="job__row-body">
+                    <span className="job__row-title">{t.trade}</span>
+                    <span className="job__row-detail">{t.stepName}</span>
+                    <span className="job__row-when">{t.when}</span>
+                  </span>
+                </a>
+              </li>
+            ))
+          )}
+        </ul>
+      </section>
+
+      <p className="job__fresh" data-testid="job-fresh">
+        {o.freshnessWords}
+      </p>
     </div>
   );
 }
 
-export function OverviewBody({ o }: { o: JobOverview }) {
-  const f = o.forecast;
-  const today = f.today;
-  const slip = slipWords(f.slipDays, f.snapshot?.date ?? null, today);
-  const ref = { jobId: o.job.id, kind: o.job.kind };
-  const waitingHref = tabHref(ref, 'Waiting on');
-  const photosHref = tabHref(ref, 'Photos');
-  const notesHref = tabHref(ref, 'Notes');
-  return (
-    <>
-      <h1 className="sr-only">{o.job.name} overview</h1>
-      <section className="ov-hero" aria-label="Forecast" data-testid="overview-hero">
-        <div className="ov-fig ov-finish">
-          <span className="ov-label">Forecast finish</span>
-          <span className="num" data-testid="ov-finish">
-            {f.forecastFinish ? formatLong(f.forecastFinish) : 'No finish date'}
-          </span>
-          {f.plannedFinish && (
-            <span className="sub">{f.lateDays ? `Planned ${formatDate(f.plannedFinish, today)}, ${lateWords(f.lateDays)}` : 'On the original plan'}</span>
-          )}
-        </div>
-        <div className="ov-fig">
-          <span className="ov-label">Against last Monday</span>
-          <span className={`num slip slip-${slip.direction}`} data-testid="ov-slip">
-            {slip.big}
-          </span>
-          <span className="sub">{slip.small}</span>
-        </div>
-        <div className="ov-fig">
-          <span className="ov-label">Slip cost</span>
-          {f.slipCost ? (
-            <Money amount={f.slipCost} className="num" testId="ov-slip-cost" />
-          ) : f.slipCost === 0 ? (
-            <span className="cost-none" data-testid="ov-slip-cost">
-              Nothing this week
-            </span>
-          ) : null}
-          {f.weeklyHoldingCost !== null && (
-            <span className="sub">
-              <Money amount={f.weeklyHoldingCost} /> a week to hold
-            </span>
-          )}
-        </div>
-        <div className="ov-fig ov-fresh ov-fig-nolabel">
-          <span className="ov-label sr-only">Last confirmed</span>
-          <Freshness amber={f.freshness.amber} daysUnconfirmed={f.freshness.daysUnconfirmed} freshnessText={f.freshness.text} testId="ov-freshness" />
-          {f.currentStageName && <span className="sub">Now in {f.currentStageName}</span>}
-        </div>
-      </section>
-
-      <StageChart o={o} />
-
-      <div className="ov-cols">
-        <div className="ov-col">
-          <section className="block" aria-labelledby="ov-wait-h" data-testid="ov-waiting">
-            <h2 id="ov-wait-h">Waiting on</h2>
-            {o.waitingOn.length ? (
-              <ul className="wl">
-                {o.waitingOn.map((r) => (
-                  <WaitingLine key={r.itemId} r={r} today={today} />
-                ))}
-              </ul>
-            ) : (
-              <p className="empty">Nothing open on this job.</p>
-            )}
-            {waitingHref && (
-              <p className="more-link">
-                <a href={waitingHref}>Everything this job is waiting on</a>
-              </p>
-            )}
-          </section>
-
-          {o.shipments.length > 0 && (
-            <section className="block" aria-labelledby="ov-ship-h" data-testid="ov-shipments">
-              <h2 id="ov-ship-h">Shipments</h2>
-              <ul className="wl">
-                {o.shipments.map((s) => (
-                  <li key={s.shipmentId} className={s.isLate ? 'wl-row is-late' : 'wl-row'}>
-                    <span className="wl-title">{s.name}</span>
-                    <span className="wl-when">
-                      {s.eta ? `Expected ${formatDate(s.eta, today)}` : 'No ETA yet'}, {s.statusLabel.toLowerCase()}
-                    </span>
-                    <span className={s.isLate ? 'wl-urgent late-words' : 'wl-who'}>
-                      {shipmentTimingWords(s)}
-                      {s.linkedCount ? `, ${plural(s.linkedCount, 'item')}` : ''}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </div>
-
-        <div className="ov-col">
-          <HoldPoint o={o} photosHref={photosHref} />
-
-          <section className="block" aria-labelledby="ov-notes-h" data-testid="ov-notes">
-            <h2 id="ov-notes-h">This week's notes</h2>
-            {o.notesThisWeek.length ? (
-              <ul className="notes">
-                {o.notesThisWeek.map((n) => (
-                  <li key={n.id}>
-                    <span className="note-date">{formatDate(n.date, today)}</span>
-                    <p>{n.text}</p>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="empty">No notes this week. Send one to the bot and it lands here.</p>
-            )}
-            {notesHref && (
-              <p className="more-link">
-                <a href={notesHref}>All daily notes</a>
-              </p>
-            )}
-          </section>
-
-          <Photos o={o} photosHref={photosHref} />
-        </div>
-      </div>
-    </>
+function OverdueRow({ r, today, href: to }: { r: WaitingRow; today: string; href: string | null }) {
+  const when = whenWords(r, today);
+  const who = r.waitingOn ?? r.owner;
+  const body = (
+    <span className="job__row-body">
+      <span className="job__row-title">{r.title}</span>
+      {who && <span className="job__row-detail">{who}</span>}
+      <StatusText tone="late" plain className="job__row-late">
+        {when.text}
+      </StatusText>
+    </span>
   );
-}
-
-function WaitingLine({ r, today }: { r: WaitingRow; today: ISODate }) {
-  const urgent = urgencyWords(r, today);
-  const when =
-    r.status === 'to_do' && r.actBy
-      ? `Act by ${formatDate(r.actBy, today)}`
-      : r.expected
-        ? `Expected ${formatDate(r.expected, today)}${r.neededBy ? `, needed ${formatDate(r.neededBy, today)}` : ''}`
-        : r.neededBy
-          ? `Needed ${formatDate(r.neededBy, today)}`
-          : 'No date';
   return (
-    <li className={urgent ? 'wl-row is-late' : 'wl-row'} data-testid="ov-waiting-row" data-urgency={urgent?.level ?? 'none'}>
-      <span className="wl-title">{r.title}</span>
-      {urgent && (
-        <span className="wl-urgent late-words" data-testid="urgency">
-          {urgent.text}
-        </span>
+    <li className="job__li" data-testid={`job-overdue-${r.itemId}`}>
+      {to ? (
+        <a href={to} className="cell cell--link job__row">
+          {body}
+        </a>
+      ) : (
+        <div className="cell job__row">{body}</div>
       )}
-      <span className="wl-when">{when}</span>
-      <span className="wl-who">
-        {[r.statusLabel, r.owner, r.waitingOn && r.waitingOn !== r.owner ? `waiting on ${r.waitingOn}` : null].filter(Boolean).join(', ')}
-      </span>
     </li>
-  );
-}
-
-function StageChart({ o }: { o: JobOverview }) {
-  const today = o.forecast.today;
-  const dated = o.stages.filter((s) => s.forecastStart && s.forecastEnd).sort((a, b) => a.forecastStart!.localeCompare(b.forecastStart!) || a.order - b.order);
-  if (!dated.length) return <p className="empty">No program yet. Steps are set up in the program editor on the desktop.</p>;
-  // Like the Gantt's default: start at the current work, with finished stages in one line.
-  const done = dated.filter((s) => s.status === 'done');
-  const stages = done.length < dated.length ? dated.filter((s) => s.status !== 'done') : dated;
-  const dates = stages.flatMap((s) => [s.forecastStart!, s.forecastEnd!, s.plannedStart, s.plannedEnd]).filter((d): d is ISODate => !!d).sort();
-  const scale = makeScale(dates[0]!, dates[dates.length - 1]!);
-  const programHref = tabHref({ jobId: o.job.id, kind: o.job.kind }, 'Program');
-  return (
-    <section className="block ov-stages" aria-labelledby="ov-stages-h" data-testid="ov-stages">
-      <div className="h-row">
-        <h2 id="ov-stages-h">Stages</h2>
-        {programHref && (
-          <a className="h-link" href={programHref}>
-            Full program
-          </a>
-        )}
-      </div>
-      {stages !== dated && done.length > 0 && (
-        <p className="gantt-done">
-          Done: {done.map((s) => s.name).join(', ')} ({rangeWords(done[0]!.forecastStart, done[done.length - 1]!.forecastEnd, today)}).
-        </p>
-      )}
-      <div className="gantt gantt-mini">
-        <div className="gantt-head">
-          <span className="gantt-corner" />
-          <TimeAxis scale={scale} short />
-        </div>
-        <div className="gantt-body">
-          <div className="gantt-layer">
-            <TimeGrid scale={scale} today={today} shutdowns={[]} />
-          </div>
-          {stages.map((s) => (
-            <div key={s.stageId} className={`g-row g-row-step${s.isLate ? ' is-late' : ''}${s.status === 'done' ? ' is-done' : ''}`}>
-              <div className="g-label">
-                <span className="g-step-name g-plain">{s.name}</span>
-                <span className="g-stage-status">{s.isLate ? lateWords(s.lateDays) : statusWords(s.status)}</span>
-                <span className="sr-only">, {rangeWords(s.forecastStart, s.forecastEnd, today)}</span>
-              </div>
-              <div className="g-track">
-                <Bar
-                  scale={scale}
-                  plannedStart={s.plannedStart}
-                  plannedEnd={s.plannedEnd}
-                  start={s.forecastStart!}
-                  end={s.forecastEnd!}
-                  tone={s.status === 'done' ? 'done' : s.isLate ? 'late' : 'open'}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function HoldPoint({ o, photosHref }: { o: JobOverview; photosHref: string | null }) {
-  const h = o.nextHoldPoint;
-  const today = o.forecast.today;
-  if (!h) return null;
-  return (
-    <section className="block hp-block" aria-labelledby="ov-hold-h" data-testid="ov-hold">
-      <h2 id="ov-hold-h">Next hold point</h2>
-      <p className="hold-what">
-        <a href={href(`/jobs/${encodeURIComponent(o.job.id)}/steps/${encodeURIComponent(h.stepId)}`)}>{h.stepName}</a>
-        {h.forecastStart && (
-          <span className="sub">
-            {formatDate(h.forecastStart, today)}, {relativeDays(h.forecastStart, today)}. {h.filledCount} of {h.required.length} required categories have photos.
-          </span>
-        )}
-      </p>
-      <ul className="cats">
-        {h.required.map((c) => (
-          <li key={c.categoryId} className={c.photoCount ? 'cat cat-ok' : 'cat cat-missing'}>
-            <span className="cat-name">{c.name}</span>
-            <span className="cat-count">{photoCount(c.photoCount)}</span>
-          </li>
-        ))}
-      </ul>
-      {photosHref && !h.ok && (
-        <p className="more-link">
-          <a href={photosHref}>Photos for this job</a>
-        </p>
-      )}
-    </section>
-  );
-}
-
-function Photos({ o, photosHref }: { o: JobOverview; photosHref: string | null }) {
-  const { api } = useData();
-  if (!o.latestPhotos.length) return null;
-  return (
-    <section className="block" aria-labelledby="ov-photos-h" data-testid="ov-photos">
-      <div className="h-row">
-        <h2 id="ov-photos-h">Latest photos</h2>
-        {photosHref && (
-          <a className="h-link" href={photosHref}>
-            All photos
-          </a>
-        )}
-      </div>
-      <ul className="ov-thumbs">
-        {o.latestPhotos.map((p) => (
-          <li key={p.id}>
-            <img src={api.photoUrl(p)} alt={p.caption ?? 'Site photo'} loading="lazy" width={160} height={120} />
-            <span className="thumb-when">{formatStamp(p.receivedAt)}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }

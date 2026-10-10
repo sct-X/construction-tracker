@@ -11,7 +11,6 @@
  */
 
 :root {
-  --bar-done: #b6bcc0;
   --label-w: 17rem;
 }
 
@@ -21,7 +20,7 @@
   margin: 2px 0 6px;
   padding: 0 0 0 8px;
   list-style: none;
-  border-left: 1px solid var(--rule);
+  border-left: 1px solid var(--line);
   margin-left: 8px;
 }
 .rail-job {
@@ -29,23 +28,23 @@
   align-items: center;
   min-height: 34px;
   padding: 0 8px;
-  border-radius: var(--r-sm);
-  color: var(--steel);
+  border-radius: var(--radius-sm);
+  color: var(--text);
   text-decoration: none;
-  font-size: var(--t-small);
+  font-size: var(--type-subhead);
   transition: background-color 120ms;
 }
 .rail-job:hover {
-  background: var(--formply);
+  background: var(--plate);
 }
 .rail-job[aria-current='true'] {
   font-weight: 600;
-  background: var(--formply);
+  background: var(--plate);
 }
 .rail-kind {
   margin-left: 6px;
-  color: var(--steel-2);
-  font-size: var(--t-label);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
 }
 
 /* ---------- Job bar ---------- */
@@ -53,7 +52,7 @@
 .jobbar {
   max-width: 1120px;
   margin: -8px 0 28px;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--line);
 }
 .jobbar-loading {
   height: 92px;
@@ -66,15 +65,15 @@
 }
 .jobbar-name {
   margin: 0;
-  font-size: var(--t-title);
+  font-size: var(--type-large-title);
   font-weight: 600;
   line-height: 1.15;
 }
 .jobbar-kind {
   margin-left: 6px;
-  font-size: var(--t-small);
+  font-size: var(--type-subhead);
   font-weight: 400;
-  color: var(--steel-2);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 .jobbar-switch {
@@ -86,10 +85,10 @@
   min-height: 44px;
   max-width: 11rem;
   padding: 0 8px;
-  border: 1px solid var(--rule);
-  border-radius: var(--r-sm);
-  background: var(--formply);
-  color: var(--steel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--plate);
+  color: var(--text);
 }
 .tabs {
   display: flex;
@@ -107,7 +106,7 @@
   flex: 0 0 auto;
   min-height: 44px;
   padding: 0 12px;
-  color: var(--steel);
+  color: var(--text);
   font-weight: 500;
   text-decoration: none;
   border-bottom: 3px solid transparent;
@@ -117,7 +116,7 @@
   padding-left: 0;
 }
 .tab:hover {
-  background: var(--concrete-2);
+  background: var(--fill);
 }
 .tab:first-child:hover {
   background: none;
@@ -125,7 +124,7 @@
 }
 .tab[aria-current='page'] {
   font-weight: 600;
-  border-bottom-color: var(--hivis);
+  border-bottom-color: var(--tint);
 }
 
 /* ---------- Shared bits ---------- */
@@ -146,9 +145,9 @@ a.job-name:hover {
   align-items: center;
   gap: 5px;
   padding: 0 6px;
-  border: 1px solid var(--steel);
+  border: 1px solid var(--text);
   border-radius: 2px;
-  font-size: var(--t-label);
+  font-size: var(--type-footnote);
   font-weight: 500;
   line-height: 1.5;
   white-space: nowrap;
@@ -158,7 +157,7 @@ a.job-name:hover {
   content: '';
   width: 7px;
   height: 7px;
-  background: var(--steel);
+  background: var(--text);
   transform: rotate(45deg);
 }
 
@@ -173,17 +172,17 @@ a.job-name:hover {
   height: 9px;
   margin-right: 6px;
   border-radius: 2px;
-  background: var(--hivis);
+  background: var(--tint);
   vertical-align: 0;
 }
 .sub.strong {
   font-weight: 600;
-  color: var(--steel);
+  color: var(--text);
 }
 
 .more-link {
   margin: 10px 0 0;
-  font-size: var(--t-small);
+  font-size: var(--type-subhead);
 }
 .h-row {
   display: flex;
@@ -193,25 +192,25 @@ a.job-name:hover {
 }
 .h-row h2 {
   margin: 0;
-  font-size: var(--t-h2);
+  font-size: var(--type-headline);
 }
 .h-link {
-  font-size: var(--t-small);
+  font-size: var(--type-subhead);
   font-weight: 500;
 }
 
 .crumb {
   margin: 0 0 6px;
-  font-size: var(--t-small);
-  color: var(--steel-2);
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
 }
 
 /* Segmented control: one choice pressed, steel fill with the label still in words. */
-.seg {
+.oseg {
   display: inline-flex;
   margin-bottom: 20px;
-  border: 1px solid var(--steel);
-  border-radius: var(--r-sm);
+  border: 1px solid var(--text);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .seg-btn {
@@ -220,9 +219,9 @@ a.job-name:hover {
   min-height: 40px;
   padding: 0 14px;
   border: 0;
-  border-left: 1px solid var(--steel);
-  background: var(--formply);
-  color: var(--steel);
+  border-left: 1px solid var(--text);
+  background: var(--plate);
+  color: var(--text);
   cursor: pointer;
   transition: background-color 120ms;
 }
@@ -230,11 +229,11 @@ a.job-name:hover {
   border-left: 0;
 }
 .seg-btn:hover {
-  background: var(--concrete-2);
+  background: var(--fill);
 }
 .seg-btn[aria-pressed='true'] {
-  background: var(--steel);
-  color: var(--formply);
+  background: var(--text);
+  color: var(--plate);
   font-weight: 600;
 }
 .seg-small {
@@ -243,7 +242,7 @@ a.job-name:hover {
 .seg-small .seg-btn {
   min-height: 36px;
   padding: 0 12px;
-  font-size: var(--t-small);
+  font-size: var(--type-subhead);
 }
 
 /* Photo categories for a hold point: a box ticked by shape, and the count in words. */
@@ -258,15 +257,15 @@ a.job-name:hover {
   align-items: baseline;
   gap: 12px;
   padding: 8px 0;
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid var(--line);
 }
 .cat-count {
-  color: var(--steel-2);
-  font-size: var(--t-small);
+  color: var(--text-secondary);
+  font-size: var(--type-subhead);
   white-space: nowrap;
 }
 .cat-missing .cat-count {
-  color: var(--steel);
+  color: var(--text);
   font-weight: 600;
 }
 .hold-rule {
@@ -289,7 +288,7 @@ a.job-name:hover {
   grid-template-columns: 1.35fr 1fr 1fr 1fr;
   gap: 16px 28px;
   padding-bottom: 24px;
-  border-bottom: 2px solid var(--steel);
+  border-bottom: 2px solid var(--text);
 }
 .ck-summary {
   max-width: 860px;
@@ -309,17 +308,17 @@ a.job-name:hover {
 .ov-label {
   display: block;
   margin-bottom: 4px;
-  font-size: var(--t-label);
-  color: var(--steel-2);
+  font-size: var(--type-footnote);
+  color: var(--text-secondary);
 }
 .ov-finish .num {
-  font-size: var(--t-hero);
+  font-size: var(--text-display);
 }
 .ov-stages {
   margin-top: 28px;
 }
 .ov-stages h2 {
-  font-size: var(--t-h2);
+  font-size: var(--type-headline);
 }
 .ov-cols {
   display: grid;
@@ -344,14 +343,14 @@ a.job-name:hover {
   grid-template-columns: minmax(0, 1fr);
   gap: 2px;
   padding: 10px 0;
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid var(--line);
 }
 .wl-title {
   font-weight: 600;
 }
 .wl-who {
-  color: var(--steel-2);
-  font-size: var(--t-small);
+  color: var(--text-secondary);
+  font-size: var(--type-subhead);
 }
 
 .notes {
@@ -364,7 +363,7 @@ a.job-name:hover {
   grid-template-columns: 6.5rem minmax(0, 1fr);
   gap: 12px;
   padding: 10px 0;
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid var(--line);
 }
 .notes p {
   margin: 0;
@@ -389,14 +388,14 @@ a.job-name:hover {
   height: auto;
   aspect-ratio: 4 / 3;
   object-fit: cover;
-  border-radius: var(--r-sm);
-  background: var(--concrete-2);
+  border-radius: var(--radius-sm);
+  background: var(--fill);
 }
 .thumb-when {
   display: block;
   margin-top: 4px;
-  font-size: var(--t-label);
-  color: var(--steel-2);
+  font-size: var(--type-footnote);
+  color: var(--text-secondary);
 }
 
 /* ---------- Gantt ---------- */
@@ -409,7 +408,7 @@ a.job-name:hover {
   gap: 12px 24px;
 }
 .gantt-bar h2 {
-  font-size: var(--t-h2);
+  font-size: var(--type-headline);
 }
 .tl-key {
   display: flex;
@@ -418,8 +417,8 @@ a.job-name:hover {
   margin: 14px 0 6px;
   padding: 0;
   list-style: none;
-  font-size: var(--t-small);
-  color: var(--steel-2);
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
 }
 .tl-key li {
   display: flex;
@@ -433,31 +432,31 @@ a.job-name:hover {
   border-radius: 2px;
 }
 .key-bar {
-  background: var(--steel);
+  background: var(--text);
 }
 .key-plan {
-  border: 1.5px dashed var(--steel-2);
+  border: 1.5px dashed var(--text-secondary);
 }
 .key-late {
-  background: var(--hivis);
-  box-shadow: inset 0 0 0 1px var(--steel);
+  background: var(--tint);
+  box-shadow: inset 0 0 0 1px var(--text);
 }
 .key-hold {
   width: 11px;
   height: 11px;
   margin: 0 5px;
   border-radius: 1px;
-  background: var(--steel);
+  background: var(--text);
   transform: rotate(45deg);
 }
 .key-shutdown {
   background: repeating-linear-gradient(135deg, rgba(83, 94, 103, 0.35) 0 2px, transparent 2px 6px);
-  box-shadow: inset 0 0 0 1px var(--rule);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 .gantt-done {
   margin: 4px 0 0;
-  font-size: var(--t-small);
-  color: var(--steel-2);
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
 }
 
 .gantt-scroll {
@@ -467,9 +466,9 @@ a.job-name:hover {
 .gantt {
   min-width: 760px;
   padding: 0 0 8px;
-  border: 1px solid var(--rule);
-  border-radius: var(--r-md);
-  background: var(--formply);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--plate);
 }
 .gantt-mini {
   min-width: 0;
@@ -477,13 +476,13 @@ a.job-name:hover {
 .gantt-head {
   display: grid;
   grid-template-columns: var(--label-w) minmax(0, 1fr);
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--line);
 }
 .gantt-corner {
   align-self: end;
   padding: 0 12px 6px 14px;
-  font-size: var(--t-label);
-  color: var(--steel-2);
+  font-size: var(--type-footnote);
+  color: var(--text-secondary);
 }
 .axis {
   position: relative;
@@ -505,15 +504,15 @@ a.job-name:hover {
 .axis-month {
   position: absolute;
   padding-left: 4px;
-  font-size: var(--t-small);
+  font-size: var(--type-subhead);
   font-weight: 600;
   white-space: nowrap;
 }
 .axis-week {
   position: absolute;
   padding-left: 3px;
-  font-size: var(--t-tiny);
-  color: var(--steel-2);
+  font-size: var(--type-caption);
+  color: var(--text-secondary);
 }
 .gantt-body {
   position: relative;
@@ -539,10 +538,10 @@ a.job-name:hover {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: var(--concrete-2);
+  background: var(--fill);
 }
 .grid-month {
-  background: var(--rule);
+  background: var(--line);
 }
 .grid-shutdown {
   position: absolute;
@@ -556,10 +555,10 @@ a.job-name:hover {
   left: 50%;
   transform: translateX(-50%);
   padding: 0 4px;
-  font-size: var(--t-tiny);
+  font-size: var(--type-caption);
   font-weight: 600;
-  color: var(--steel-2);
-  background: var(--formply);
+  color: var(--text-secondary);
+  background: var(--plate);
   white-space: nowrap;
 }
 .grid-today {
@@ -568,7 +567,7 @@ a.job-name:hover {
   bottom: 0;
   width: 2px;
   margin-left: -1px;
-  background: var(--steel);
+  background: var(--text);
 }
 .grid-today-label {
   position: absolute;
@@ -576,10 +575,10 @@ a.job-name:hover {
   left: 4px;
   padding: 0 5px;
   border-radius: 2px;
-  font-size: var(--t-tiny);
+  font-size: var(--type-caption);
   font-weight: 600;
-  background: var(--steel);
-  color: var(--formply);
+  background: var(--text);
+  color: var(--plate);
   white-space: nowrap;
 }
 
@@ -595,7 +594,7 @@ a.job-name:hover {
 }
 .g-stage + .g-stage .g-row-stage {
   margin-top: 6px;
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid var(--line);
 }
 .g-row-stage {
   min-height: 34px;
@@ -629,12 +628,12 @@ a.job-name:hover {
   min-width: 0;
 }
 .g-dates {
-  font-size: var(--t-label);
-  color: var(--steel-2);
+  font-size: var(--type-footnote);
+  color: var(--text-secondary);
   line-height: 1.3;
 }
 .is-late .g-dates {
-  color: var(--steel);
+  color: var(--text);
 }
 .gantt-mini .g-row-step .g-label {
   padding-left: 14px;
@@ -645,34 +644,34 @@ a.job-name:hover {
 .g-stage-status {
   flex: 0 0 auto;
   margin-left: auto;
-  font-size: var(--t-label);
-  color: var(--steel-2);
+  font-size: var(--type-footnote);
+  color: var(--text-secondary);
 }
 .is-late > .g-label .g-stage-status {
-  color: var(--steel);
+  color: var(--text);
   font-weight: 600;
 }
 .g-step-name {
   min-width: 0;
   line-height: 1.25;
-  color: var(--steel);
-  font-size: var(--t-small);
+  color: var(--text);
+  font-size: var(--type-subhead);
 }
 a.g-step-name {
   font-weight: 500;
   text-decoration: underline;
-  text-decoration-color: var(--rule);
+  text-decoration-color: var(--line);
 }
 a.g-step-name:hover {
-  text-decoration-color: var(--steel);
+  text-decoration-color: var(--text);
 }
 .is-done .g-step-name {
-  color: var(--steel-2);
+  color: var(--text-secondary);
 }
 .g-label .hp-tag {
   flex: 0 0 auto;
   margin-left: auto;
-  font-size: var(--t-tiny);
+  font-size: var(--type-caption);
   padding: 0 4px;
 }
 .g-track {
@@ -702,7 +701,7 @@ a.g-step-name:hover {
 .bar-plan {
   top: 4px;
   height: 20px;
-  border: 1.5px dashed var(--steel-2);
+  border: 1.5px dashed var(--text-secondary);
 }
 .bar-row-thin .bar {
   top: 5px;
@@ -713,11 +712,11 @@ a.g-step-name:hover {
   height: 12px;
 }
 .bar-open {
-  background: var(--steel);
+  background: var(--text);
 }
 .bar-late {
-  background: var(--hivis);
-  box-shadow: inset 0 0 0 1px var(--steel);
+  background: var(--tint);
+  box-shadow: inset 0 0 0 1px var(--text);
 }
 .bar-done {
   background: var(--bar-done);
@@ -733,15 +732,15 @@ a.g-step-name:hover {
   transform: rotate(45deg);
 }
 .bar-hold.bar-late {
-  box-shadow: inset 0 0 0 1.5px var(--steel);
+  box-shadow: inset 0 0 0 1.5px var(--text);
 }
 .bar-plan-hold {
-  border: 1.5px dashed var(--steel-2);
+  border: 1.5px dashed var(--text-secondary);
 }
 .bar-note {
   position: absolute;
   top: 5px;
-  font-size: var(--t-label);
+  font-size: var(--type-footnote);
   font-weight: 600;
   white-space: nowrap;
   line-height: 18px;
@@ -753,7 +752,7 @@ a.g-step-name:hover {
   margin-top: 28px;
 }
 .la-week h3 {
-  font-size: var(--t-h2);
+  font-size: var(--type-headline);
   margin-bottom: 8px;
 }
 .la-list {
@@ -763,9 +762,9 @@ a.g-step-name:hover {
 }
 .la-step {
   padding: 12px 14px;
-  border: 1px solid var(--rule);
-  border-radius: var(--r-md);
-  background: var(--formply);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--plate);
 }
 .la-step + .la-step {
   margin-top: 8px;
@@ -778,13 +777,13 @@ a.g-step-name:hover {
   gap: 2px 12px;
 }
 .la-name {
-  font-size: var(--t-h2);
+  font-size: var(--type-headline);
   font-weight: 600;
-  color: var(--steel);
+  color: var(--text);
 }
 .la-stage {
-  font-size: var(--t-small);
-  color: var(--steel-2);
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
 }
 .la-when {
   margin: 4px 0 0;
@@ -801,21 +800,21 @@ a.g-step-name:hover {
   margin: 8px 0 0;
   padding: 8px 0 0;
   list-style: none;
-  border-top: 1px solid var(--rule);
-  font-size: var(--t-small);
+  border-top: 1px solid var(--line);
+  font-size: var(--type-subhead);
 }
 .la-needs li + li {
   margin-top: 2px;
 }
 .la-needs-h {
-  color: var(--steel-2);
+  color: var(--text-secondary);
 }
 .la-need-title {
   font-weight: 500;
 }
 .la-none {
   margin: 0;
-  color: var(--steel-2);
+  color: var(--text-secondary);
 }
 
 .strip {
@@ -826,7 +825,7 @@ a.g-step-name:hover {
 }
 .strip-stage {
   padding: 14px 0;
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid var(--line);
 }
 .strip-top {
   display: flex;
@@ -835,15 +834,15 @@ a.g-step-name:hover {
   gap: 12px;
 }
 .strip-name {
-  font-size: var(--t-h2);
+  font-size: var(--type-headline);
   font-weight: 600;
 }
 .strip-status {
-  font-size: var(--t-small);
-  color: var(--steel-2);
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
 }
 .strip-in_progress .strip-status {
-  color: var(--steel);
+  color: var(--text);
   font-weight: 600;
 }
 .strip-dates {
@@ -860,18 +859,18 @@ a.g-step-name:hover {
   flex: 1 1 auto;
   height: 6px;
   border-radius: 3px;
-  background: var(--concrete-2);
+  background: var(--fill);
   overflow: hidden;
 }
 .meter-fill {
   position: absolute;
   inset: 0 auto 0 0;
-  background: var(--steel);
+  background: var(--text);
 }
 .strip-count {
   flex: 0 0 auto;
-  font-size: var(--t-small);
-  color: var(--steel-2);
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
 }
 .strip-late {
   margin: 8px 0 0;
@@ -883,36 +882,36 @@ a.g-step-name:hover {
 /* ---------- Step detail ---------- */
 
 .step-head h1 {
-  font-size: var(--t-title);
+  font-size: var(--type-large-title);
 }
 .step-dates {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, auto)) 1fr;
   gap: 16px 40px;
   padding: 18px 20px;
-  border: 1px solid var(--rule);
-  border-radius: var(--r-md);
-  background: var(--formply);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--plate);
 }
 .sd-label {
   display: block;
   margin-bottom: 2px;
-  font-size: var(--t-label);
-  color: var(--steel-2);
+  font-size: var(--type-footnote);
+  color: var(--text-secondary);
 }
 .sd-forecast.is-late {
   display: inline-block;
   padding: 0 0.2em;
   border-radius: 2px;
-  background: var(--hivis);
+  background: var(--tint);
 }
 .sd-planned {
-  color: var(--steel-2);
+  color: var(--text-secondary);
 }
 .sd-reason {
   grid-column: 1 / -1;
   margin: 0;
-  font-size: var(--t-h2);
+  font-size: var(--type-headline);
   max-width: 72ch;
 }
 .step .block {
@@ -933,7 +932,7 @@ a.g-step-name:hover {
 }
 .link-list li {
   padding: 8px 0;
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid var(--line);
 }
 .link-list a {
   font-weight: 500;
@@ -944,12 +943,12 @@ a.g-step-name:hover {
 }
 .req-line {
   margin: 12px 0 0;
-  font-size: var(--t-small);
-  color: var(--steel-2);
+  font-size: var(--type-subhead);
+  color: var(--text-secondary);
   max-width: 80ch;
 }
 .needs tbody tr {
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--line);
 }
 .needs tbody th,
 .needs tbody td {
@@ -978,7 +977,7 @@ a.g-step-name:hover {
   grid-template-columns: 40px minmax(0, 1fr);
   gap: 16px;
   padding: 16px 0;
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid var(--line);
 }
 .ck-mark {
   display: flex;
@@ -986,37 +985,37 @@ a.g-step-name:hover {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 2px solid var(--steel);
-  border-radius: var(--r-sm);
-  font-family: var(--font-num);
+  border: 2px solid var(--text);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
   font-weight: 600;
-  font-size: var(--t-h2);
+  font-size: var(--type-headline);
 }
 .ck-done .ck-mark {
-  background: var(--steel);
-  color: var(--formply);
+  background: var(--text);
+  color: var(--plate);
 }
 .ck-not_started:not(.is-current) .ck-mark {
-  border-color: var(--rule);
-  color: var(--steel-2);
+  border-color: var(--line);
+  color: var(--text-secondary);
 }
 .is-current .ck-mark {
   border-width: 3px;
-  background: var(--concrete-2);
+  background: var(--fill);
 }
 .ck-name {
   margin: 4px 0 0;
-  font-size: var(--t-h2);
+  font-size: var(--type-headline);
   font-weight: 600;
 }
 .ck-status {
   margin-left: 10px;
-  font-size: var(--t-small);
+  font-size: var(--type-subhead);
   font-weight: 400;
-  color: var(--steel-2);
+  color: var(--text-secondary);
 }
 .is-current .ck-status {
-  color: var(--steel);
+  color: var(--text);
   font-weight: 600;
 }
 .ck-items {
@@ -1032,20 +1031,20 @@ a.g-step-name:hover {
   grid-template-columns: 5rem minmax(0, 1fr);
   gap: 12px;
   padding: 12px 14px;
-  border: 1px solid var(--rule);
-  border-radius: var(--r-md);
-  background: var(--formply);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--plate);
 }
 .ck-item + .ck-item {
   margin-top: 8px;
 }
 .ck-age {
-  color: var(--steel-2);
-  font-size: var(--t-small);
+  color: var(--text-secondary);
+  font-size: var(--type-subhead);
 }
 .ck-age .num-md {
   display: inline;
-  color: var(--steel);
+  color: var(--text);
 }
 .ck-item-title {
   display: block;
@@ -1070,7 +1069,7 @@ a.g-step-name:hover {
 }
 .ck-done li {
   padding: 8px 0;
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid var(--line);
 }
 
 /* ---------- Phone ---------- */
@@ -1087,9 +1086,9 @@ a.g-step-name:hover {
     margin: 0;
     padding: 6px 0;
     list-style: none;
-    border: 1px solid var(--rule);
-    border-radius: var(--r-md);
-    background: var(--formply);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--plate);
     box-shadow: 0 6px 18px rgba(30, 40, 48, 0.14);
   }
   .more-link-item {
@@ -1103,7 +1102,7 @@ a.g-step-name:hover {
   .more-link-item[aria-current='page'] {
     font-weight: 600;
     text-decoration: underline;
-    text-decoration-color: var(--hivis);
+    text-decoration-color: var(--tint);
     text-decoration-thickness: 3px;
     text-underline-offset: 6px;
   }
@@ -1112,7 +1111,7 @@ a.g-step-name:hover {
     margin: -4px 0 20px;
   }
   .jobbar-name {
-    font-size: var(--t-h1);
+    font-size: var(--type-title-2);
   }
   .jobbar-kind {
     display: block;
@@ -1128,14 +1127,14 @@ a.g-step-name:hover {
     padding: 0 16px;
     /* If the tabs ever outgrow the width, a shadow at the cut edge says there is more to scroll to. */
     background:
-      linear-gradient(to right, var(--concrete) 30%, transparent) left / 24px 100% no-repeat local,
-      linear-gradient(to left, var(--concrete) 30%, transparent) right / 24px 100% no-repeat local,
+      linear-gradient(to right, var(--ground) 30%, transparent) left / 24px 100% no-repeat local,
+      linear-gradient(to left, var(--ground) 30%, transparent) right / 24px 100% no-repeat local,
       radial-gradient(farthest-side at 0 50%, rgba(30, 40, 48, 0.22), transparent) left / 10px 100% no-repeat scroll,
       radial-gradient(farthest-side at 100% 50%, rgba(30, 40, 48, 0.22), transparent) right / 10px 100% no-repeat scroll;
   }
   .tab {
     padding: 0 9px;
-    font-size: var(--t-small);
+    font-size: var(--type-subhead);
   }
   .tab:last-child {
     padding-right: 0;
@@ -1160,8 +1159,8 @@ a.g-step-name:hover {
     padding-left: 12px;
   }
   .gantt-mini .g-step-name {
-    font-size: var(--t-small);
-    background: var(--formply);
+    font-size: var(--type-subhead);
+    background: var(--plate);
     padding-right: 4px;
   }
   .gantt-mini .bar-row {
@@ -1201,7 +1200,7 @@ a.g-step-name:hover {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .seg {
+  .oseg {
     display: flex;
     width: 100%;
   }
@@ -1218,7 +1217,7 @@ a.g-step-name:hover {
   }
 
   .step-head h1 {
-    font-size: var(--t-h1);
+    font-size: var(--type-title-2);
   }
   .step-dates {
     grid-template-columns: 1fr;
@@ -1231,9 +1230,9 @@ a.g-step-name:hover {
   .needs tbody tr {
     margin-bottom: 10px;
     padding: 14px 16px;
-    border: 1px solid var(--rule);
-    border-radius: var(--r-md);
-    background: var(--formply);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--plate);
   }
   .needs tbody {
     border: 0;

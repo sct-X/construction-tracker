@@ -1,0 +1,896 @@
+/*
+  Ported from the v1 prototype (src/styles/base.css at 2f6d8a7).
+  Reset, browser surfaces, and the shared primitives every screen builds
+  from, drawn to iOS patterns: .btn (filled, gray, tinted, plain), .seg (the
+  segmented control), .input and .field, .group and .cell (inset grouped
+  lists), .table, .plate. Every colour is a token from tokens.css, so both
+  themes come for free. No web font: the system face is the type.
+  Screen CSS may extend these; it should not redraw them.
+*/
+
+/* ---- reset ---- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background: var(--ground);
+}
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--type-body);
+  line-height: var(--leading-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+ol,
+figure {
+  margin: 0;
+}
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+a {
+  color: var(--text);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--line-strong);
+}
+a:hover {
+  text-decoration-color: currentColor;
+}
+:focus {
+  outline: none;
+}
+:focus-visible {
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+hr {
+  border: 0;
+  border-top: var(--hairline);
+  margin: 0;
+}
+
+/* ---- browser surfaces: the parts we did not draw still carry the world ---- */
+::selection {
+  background: var(--tint-wash);
+  color: var(--text);
+}
+:root {
+  accent-color: var(--tint-fill);
+  caret-color: var(--tint);
+  scrollbar-color: var(--line-strong) transparent;
+  scrollbar-width: thin;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border: 3px solid var(--ground);
+  border-radius: var(--radius-pill);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+input[type='date']::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+:root[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+}
+
+/* ---- native controls: a safe default for every screen that has not had its pass ---- */
+:where(select, input:not([type='checkbox'], [type='radio'], [type='range'], [type='file']), textarea) {
+  min-height: var(--control);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--field-bg);
+  color: var(--text);
+  transition: border-color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
+}
+:where(textarea) {
+  padding: var(--space-2) var(--space-3);
+  line-height: var(--leading-body);
+}
+:where(select, input, textarea):hover {
+  border-color: var(--line-strong);
+}
+:where(select, input:not([type='checkbox'], [type='radio']), textarea):focus-visible {
+  border-color: var(--focus);
+  border-radius: var(--radius-md);
+}
+:where(select, input, textarea):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* A select is a pop-up button: the SF chevron.up.chevron.down on the right. */
+:where(select) {
+  padding-right: var(--space-8);
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: var(--select-chevron);
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+}
+:where(input[type='checkbox'], input[type='radio']) {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+
+/* ---- numbers ---- */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+/* Hero figures on partner screens: the largest thing on the screen. */
+.display {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-display);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- buttons: iOS button styles ----
+   .btn            gray   (fill + label text): the everyday secondary action
+   .btn--primary   filled (tint + white): one per screen
+   .btn--tinted    tinted (tint wash + tint text): a quieter call to action
+   .btn--fill      the chosen half of a pair: a dark neutral fill + white
+   .btn--ghost     plain  (tint text, no fill): a link that needs a tap target */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap);
+  padding: 0 var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-button);
+  background: var(--fill);
+  color: var(--text);
+  font-size: var(--type-body);
+  font-weight: var(--weight-medium);
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background-color var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease), opacity var(--motion-fast) var(--ease);
+}
+.btn:hover {
+  background: var(--fill-strong);
+}
+.btn:active {
+  background: var(--fill-strong);
+  opacity: 0.8;
+}
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn--primary {
+  background: var(--tint-fill);
+  color: var(--on-tint);
+  font-weight: var(--weight-semibold);
+}
+.btn--primary:hover {
+  background: var(--tint-fill-pressed);
+  color: var(--on-tint);
+}
+.btn--primary:active {
+  background: var(--tint-fill-pressed);
+}
+/* A primary that can't go yet is gray, not dim orange; the words beside it say why. */
+.btn--primary:disabled,
+.btn--primary[aria-disabled='true'] {
+  opacity: 1;
+  background: var(--fill);
+  color: var(--text-muted);
+}
+.btn--tinted {
+  background: var(--tint-wash);
+  color: var(--tint);
+  font-weight: var(--weight-semibold);
+}
+.btn--tinted:hover {
+  background: var(--tint-wash);
+  opacity: 0.85;
+}
+.btn--fill {
+  background: var(--chosen-fill);
+  color: var(--text-on-dark);
+}
+.btn--fill:hover {
+  background: var(--chosen-fill-hover);
+}
+.btn--ghost {
+  background: transparent;
+  color: var(--tint);
+}
+.btn--ghost:hover {
+  background: transparent;
+  opacity: 0.7;
+}
+.btn--small {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--type-subhead);
+}
+@media (min-width: 768px) {
+  .btn--desktop {
+    min-height: var(--control);
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: var(--type-subhead);
+  }
+}
+
+/* ---- glass buttons: the web's .buttonStyle(.glass) and .glassProminent ----
+   .btn--glass            a secondary action: the static glass material (a
+                          translucent neutral fill, sheen, specular line, rim)
+   .btn--glass-prominent  the one primary action in a group: the tint with the
+                          same rim and key light
+   Static on purpose: these sit on solid plates, rows and panes, where a blur
+   shows nothing and would cost a filtered layer per row (DESIGN.md
+   "Material"). They still read as buttons with the glass off: a filled
+   shape, a label, a 44px target. Press scales to 0.97 and lights from the
+   touch point (--press-x/--press-y, written by one delegated pointerdown
+   listener, src/shell/glassPress.ts). Compose with .btn and its sizes. */
+.btn--glass,
+.btn--glass-prominent {
+  --lg-press-r: 0%;
+  --btn-glow: radial-gradient(circle at var(--press-x, 50%) var(--press-y, 50%), var(--lg-btn-press-glow), transparent var(--lg-press-r));
+  border: 0;
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease),
+    opacity var(--motion-fast) var(--ease),
+    transform var(--motion-fast) var(--ease),
+    --lg-press-r var(--motion-sheet) var(--ease-out);
+}
+.btn--glass {
+  background: var(--btn-glow), var(--lg-btn-sheen), var(--lg-btn-fill);
+  background-repeat: no-repeat;
+  box-shadow: var(--lg-btn-edge);
+  color: var(--lg-btn-ink);
+}
+.btn--glass:hover {
+  background: var(--btn-glow), var(--lg-btn-sheen), var(--lg-btn-fill-hover);
+  background-repeat: no-repeat;
+}
+.btn--glass-prominent {
+  background: var(--btn-glow), var(--lg-btn-prominent-sheen), var(--lg-btn-prominent-fill);
+  background-repeat: no-repeat;
+  box-shadow: var(--lg-btn-prominent-edge);
+  color: var(--on-tint);
+  font-weight: var(--weight-semibold);
+}
+.btn--glass-prominent:hover {
+  background: var(--btn-glow), var(--lg-btn-prominent-sheen), var(--lg-btn-prominent-fill-hover);
+  background-repeat: no-repeat;
+  color: var(--on-tint);
+}
+.btn--glass:active,
+.btn--glass-prominent:active {
+  --lg-press-r: 90%;
+  opacity: 1;
+  transform: scale(var(--lg-btn-press-scale));
+  transition-duration: var(--motion-fast);
+}
+.btn--glass:focus-visible,
+.btn--glass-prominent:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+.btn--glass:disabled,
+.btn--glass[aria-disabled='true'] {
+  opacity: 0.45;
+  transform: none;
+}
+/* A prominent action that can't go yet is gray glass, not dim orange. */
+.btn--glass-prominent:disabled,
+.btn--glass-prominent[aria-disabled='true'] {
+  background: var(--lg-btn-sheen), var(--lg-btn-fill);
+  box-shadow: var(--lg-btn-edge);
+  color: var(--text-muted);
+  transform: none;
+}
+@media (prefers-contrast: more) {
+  .btn--glass {
+    background: var(--fill);
+    box-shadow: inset 0 0 0 1px var(--text);
+  }
+  .btn--glass-prominent {
+    background: var(--tint-fill);
+    box-shadow: inset 0 0 0 1px var(--text);
+  }
+}
+@media (forced-colors: active) {
+  .btn--glass,
+  .btn--glass-prominent {
+    background: ButtonFace;
+    color: ButtonText;
+    border: 1px solid ButtonText;
+    box-shadow: none;
+  }
+}
+
+/* ---- segmented control (iOS UISegmentedControl) ----
+   A gray trough with a raised thumb under the chosen segment. Buttons carry
+   aria-pressed; a segment can be a link (List | Call). */
+.seg {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: var(--radius-segment);
+  background: var(--fill);
+}
+.seg__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  text-decoration: none;
+  border: 0;
+  border-radius: var(--radius-thumb);
+  background: transparent;
+  color: var(--text);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  transition: background-color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
+}
+.seg__btn:hover {
+  background: color-mix(in srgb, var(--segment-on) 45%, transparent);
+}
+.seg__btn[aria-pressed='true'] {
+  background: var(--segment-on);
+  color: var(--text);
+  font-weight: var(--weight-semibold);
+  box-shadow: var(--segment-shadow);
+}
+.shell--phone .seg-touch {
+  border-radius: var(--radius-button);
+}
+.shell--phone .seg-touch .seg__btn {
+  min-height: var(--tap); /* every segmented control on Alec's screens meets the tap rule */
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--type-subhead);
+}
+
+/* ---- inputs ---- */
+.input {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background-color: var(--field-bg); /* not the shorthand: a <select> keeps its chevron */
+  color: var(--text);
+}
+.input:focus-visible {
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-field__label {
+  padding-left: var(--space-1);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+}
+@media (min-width: 768px) {
+  .input--desktop {
+    min-height: var(--control);
+  }
+}
+
+/* ---- inset grouped lists (iOS insetGrouped) ----
+   <section class="group"><h2 class="group__header">Builds</h2>
+     <ul class="group__list"><li class="cell cell--link">…</li></ul>
+     <p class="group__footer">…</p></section>
+   Separators are inset to the text, never full width; the last cell has none. */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.group__header {
+  padding: 0 var(--space-4);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+}
+.group__header--large {
+  padding: 0 var(--space-1);
+  font-size: var(--type-title-3);
+  font-weight: var(--weight-bold);
+  color: var(--text);
+}
+.group__list {
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--plate);
+}
+.group__footer {
+  padding: 0 var(--space-4);
+  font-size: var(--type-footnote);
+  color: var(--text-muted);
+}
+.cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+  padding: 11px var(--space-4);
+  color: var(--text);
+  text-decoration: none;
+  background: var(--plate);
+  transition: background-color var(--motion-fast) var(--ease);
+}
+.cell + .cell::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--space-4);
+  right: 0;
+  border-top: 0.5px solid var(--line);
+}
+.cell--link {
+  padding-right: calc(var(--space-4) + 16px);
+  cursor: pointer;
+}
+.cell--link::after {
+  content: '';
+  position: absolute;
+  right: var(--space-4);
+  top: 50%;
+  width: 8px;
+  height: 14px;
+  margin-top: -7px;
+  background: var(--disclosure-chevron) no-repeat center / contain;
+}
+.cell--link:hover {
+  background: color-mix(in srgb, var(--raised) 55%, var(--plate));
+}
+.cell--link:active {
+  background: var(--raised);
+}
+.cell__title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cell__detail {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+/* The SF chevron as an element: <span class="chevron" aria-hidden="true"></span> */
+.chevron {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 14px;
+  background: var(--disclosure-chevron) no-repeat center / contain;
+}
+
+/* ---- tables (desktop) ---- */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--type-subhead);
+}
+.table th,
+.table td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--space-4) var(--space-3);
+  border-bottom: 0.5px solid var(--line);
+}
+.table th:first-child,
+.table td:first-child {
+  padding-left: var(--space-4);
+}
+.table th:last-child,
+.table td:last-child {
+  padding-right: var(--space-4);
+}
+.table thead th {
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.table tbody th {
+  font-weight: var(--weight-semibold);
+}
+.table tbody tr {
+  transition: background-color var(--motion-fast) var(--ease);
+}
+.table tbody tr:hover {
+  background: var(--plate);
+}
+.table--rows tbody tr {
+  cursor: pointer;
+}
+
+/* ---- plates (phone cards, and any bounded region): a white card on the grouped ground ---- */
+.plate {
+  background: var(--plate);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+.plate--raised {
+  background: var(--raised);
+}
+.plate--well {
+  background: var(--well);
+}
+
+/* ---- small shared pieces ---- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.muted {
+  color: var(--text-muted);
+}
+.count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--raised);
+  color: var(--text);
+  font-size: var(--type-caption);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Liquid Glass: the material for the floating layer only ----
+   One class per surface plus a tier: .glass.glass--regular (the phone bars,
+   the job tabs, the Waiting on filter), .glass.glass--thick (the buzz, the
+   editor footer). Fallback first: the solid surface, rim, key light and
+   shadow render everywhere; blur is added only where backdrop-filter
+   exists. .glass--static keeps the look without the blur (for surfaces over
+   the page ground, or past the layer budget).
+   The edge is all box-shadow and background layers (no pseudo-elements),
+   so it holds still on a scrolling strip and never becomes a backdrop root.
+   Never on content: cards, sections, rows and forms stay solid plates. */
+.glass {
+  --glass-fill: var(--lg-regular-fill);
+  --glass-solid: var(--lg-regular-solid);
+  --glass-filter: blur(var(--lg-regular-blur)) saturate(var(--lg-regular-saturation));
+  --glass-shadow: var(--lg-shadow);
+  background: var(--glass-solid);
+  color: var(--text);
+}
+.glass--thick {
+  --glass-fill: var(--lg-thick-fill);
+  --glass-solid: var(--lg-thick-solid);
+  --glass-filter: blur(var(--lg-thick-blur)) saturate(var(--lg-thick-saturation));
+  --glass-shadow: var(--lg-shadow-thick);
+}
+/* A floating pane (not edge-attached): the specular line along the top
+   curve, the caustic along the foot, the hairline rim, the soft shadow. */
+.glass--float {
+  box-shadow:
+    inset 0 1px 0 var(--lg-highlight),
+    inset 0 -1px 0 var(--lg-highlight-low),
+    inset 0 0 0 0.5px var(--lg-edge),
+    var(--glass-shadow);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .glass:not(.glass--static) {
+    background: var(--lg-sheen), var(--glass-fill);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
+  }
+}
+/* The layer budget (phone: 3 blurred layers). While a glass menu is open
+   (the job switcher sets :root[data-lg-menu]), a strip marked
+   .glass--yields keeps its look but drops its blur, so the menu is the
+   third layer, not the fourth. */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  :root[data-lg-menu] .glass--yields:not(.glass--static) {
+    background: var(--glass-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+/* Interactive illumination (skill 17.3): the pressed item lights from the
+   touch point (--press-x/--press-y, written by one pointerdown listener)
+   and the glow spreads while it is held. Plain gradient, no blend mode. */
+@property --lg-press-r {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+.glass .lg-press {
+  --lg-press-r: 0%;
+  background-image: radial-gradient(circle at var(--press-x, 50%) var(--press-y, 50%), var(--lg-press-glow), transparent var(--lg-press-r));
+  background-repeat: no-repeat;
+  transition:
+    color var(--motion-fast) var(--ease),
+    background-color var(--motion-fast) var(--ease),
+    transform var(--motion-fast) var(--ease),
+    --lg-press-r var(--motion-sheet) var(--ease-out);
+}
+.glass .lg-press:active {
+  --lg-press-r: 90%;
+  transition-duration: var(--motion-fast);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass:not(.glass--static) {
+    background: var(--glass-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (prefers-contrast: more) {
+  .glass,
+  .glass:not(.glass--static) {
+    background: var(--glass-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    outline: 1px solid var(--text);
+    outline-offset: -1px;
+  }
+}
+@media (forced-colors: active) {
+  .glass,
+  .glass:not(.glass--static) {
+    background: Canvas;
+    color: CanvasText;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+    box-shadow: none;
+  }
+}
+
+/* ---- continuous corners where the browser can draw them ---- */
+@supports (corner-shape: superellipse(1.5)) {
+  .btn,
+  .plate,
+  .input,
+  .seg,
+  .seg__btn,
+  .group__list,
+  .status {
+    corner-shape: superellipse(1.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- added for the rebuild (not in v1's base.css) ---- */
+
+/* Status words with a wash behind them (v1 StatusText). The words carry the
+   meaning; the colour only agrees. Late is overdue and only overdue, led by "!". */
+.status {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-medium);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.status--late {
+  color: var(--late-ink);
+  background: var(--late-bg);
+}
+.status--note {
+  color: var(--note-ink);
+  background: var(--note-bg);
+}
+.status--ok {
+  color: var(--ok-ink);
+  background: var(--ok-bg);
+}
+.status--muted {
+  color: var(--text-muted);
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+  font-weight: var(--weight-regular);
+}
+.status--plain {
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+.status--plain.status--late {
+  font-weight: var(--weight-semibold);
+}
+.status__mark {
+  font-weight: var(--weight-bold);
+}
+
+/* The stage bar (v1 StageBar): equal segments, done grey, the current one the
+   label colour, the rest a pale trough. Slim on cards, large on the job page. */
+.stagebar {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+}
+.stagebar__seg {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--bar-ahead);
+}
+.stagebar__seg--done {
+  background: var(--bar-done);
+}
+.stagebar__seg--current {
+  background: var(--bar-current);
+}
+.stagebar--large {
+  gap: 4px;
+}
+.stagebar--large .stagebar__seg {
+  height: 10px;
+}
+@media (forced-colors: active) {
+  .stagebar__seg {
+    border: 1px solid CanvasText;
+  }
+  .stagebar__seg--done,
+  .stagebar__seg--current {
+    background: CanvasText;
+  }
+}
+
+/* Skip link, loading and error states, one-line empties. */
+.skip {
+  position: absolute;
+  z-index: 20;
+  left: var(--space-2);
+  top: -60px;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--plate);
+  color: var(--text);
+  font-weight: var(--weight-semibold);
+  box-shadow: var(--shadow-float);
+}
+.skip:focus {
+  top: var(--space-2);
+}
+.loading {
+  display: grid;
+  gap: var(--space-3);
+}
+.loading-row {
+  height: 72px;
+  border-radius: var(--radius-lg);
+  background: var(--plate);
+}
+.load-error {
+  max-width: 60ch;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--plate);
+}
+.load-error p {
+  margin: 0 0 var(--space-3);
+}
+.empty-line {
+  padding: var(--space-6) var(--space-1);
+  color: var(--text-secondary);
+}
+
+/* Filters (v1 FilterSelect): dropdowns in a row, each no wider than its longest option. */
+.filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-6);
+}
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--type-subhead);
+}
+.filter__label {
+  color: var(--text-muted);
+}
+.filter .filter__select {
+  width: auto;
+  max-width: 100%;
+  min-height: var(--tap-min);
+  padding-left: var(--space-3);
+  padding-right: 2.5rem;
+  font-size: var(--type-subhead);
+}
+@media (min-width: 768px) {
+  .shell--desktop .filter .filter__select {
+    min-height: var(--control);
+  }
+}

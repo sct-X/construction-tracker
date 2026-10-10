@@ -1,7 +1,7 @@
 /**
  * Stage 5: the desktop Setup area. Runs in the mock project and in its own
  * api-setup project, which runs after api and api-change on the same server,
- * so nothing here can move the Monday numbers other specs assert. Every test
+ * so nothing here can move the seeded Overview other specs assert. Every test
  * makes its own job (unique names) so retries and parallel tests don't collide.
  */
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
@@ -28,23 +28,22 @@ async function createJob(page: Page, name: string, opts: { cost?: string } = {})
   return { jobId, finish: finishText };
 }
 
-test('new job from the duplex template: preview, create, then it is in Jobs with a program', async ({ page }, info) => {
+test('new job from the duplex template: preview, create, then it is on the Overview with a program', async ({ page }, info) => {
   const name = unique(info, 'Smith St');
-  const { jobId, finish } = await createJob(page, name, { cost: '3200' });
-  // The new job's overview, with the finish the preview promised.
+  const { jobId } = await createJob(page, name, { cost: '3200' });
+  // The new job's first page: timing first, its first stage.
   await expect(page.getByTestId('job-bar')).toContainText(name);
-  await expect(page.getByTestId('ov-finish')).toHaveText(finish);
+  await expect(page.getByTestId('job-stage-of')).toHaveText('Stage 1 of 8');
 
-  await page.goto('./#/jobs');
-  const row = page.getByTestId(`job-row-${jobId}`);
-  await expect(row).toBeVisible();
-  await expect(row.getByTestId('finish')).toHaveText(finish);
-  await expect(page.getByTestId('jobs-group-builds').getByTestId(`job-row-${jobId}`)).toBeVisible();
+  await page.goto('./#/');
+  const card = page.getByTestId(`overview-card-${jobId}`);
+  await expect(page.getByTestId('overview-builds').getByTestId(`overview-card-${jobId}`)).toBeVisible();
+  await expect(card.getByTestId('card-next').getByRole('listitem')).toHaveCount(3);
 
   await page.goto(`./#/jobs/${jobId}/program`);
   await page.getByRole('button', { name: 'Whole program' }).click();
   await expect(page.getByTestId('gantt').locator('[data-testid^="g-step-"]')).toHaveCount(29);
-  await expect(page.getByTestId('program-sub')).toContainText(`${finish}, as planned.`);
+  await expect(page.getByTestId('program-sub')).toContainText('Every step on plan.');
 });
 
 test('a design job gets its checklist', async ({ page }, info) => {
@@ -69,9 +68,9 @@ test('the form says what is wrong in plain words', async ({ page }) => {
   await expect(page.getByText('Weekly holding cost is dollars a week, like 4500.', { exact: false })).toBeVisible();
 });
 
-test('program editor: a longer step shows the finish moving before Save, then Monday and Program show it', async ({ page }, info) => {
+test('program editor: a longer step shows what moves before Save, then Program shows it late against the plan', async ({ page }, info) => {
   const name = unique(info, 'Duration St');
-  const { jobId, finish } = await createJob(page, name, { cost: '7000' });
+  const { jobId } = await createJob(page, name, { cost: '7000' });
 
   await page.goto(`./#/setup/programs/${jobId}`);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Program: ${name}`);
@@ -85,28 +84,21 @@ test('program editor: a longer step shows the finish moving before Save, then Mo
 
   await tiling.getByTestId('ed-days').fill('15');
   const bar = page.getByTestId('change-bar');
-  await expect(bar.getByTestId('preview-delta')).toHaveText(/^\d+ days later$/);
-  await expect(bar.getByTestId('preview-finish')).toContainText(finish);
   await expect(bar.getByTestId('preview-moved')).toContainText('steps move');
+  // Timing first: no finish and no money on the web.
+  await expect(bar).not.toContainText('Forecast finish');
+  await expect(bar).not.toContainText('$');
   await expect(bar.getByTestId('bar-note')).toContainText("Planned dates don't change");
   // Nothing saved yet: one change at a time, everything else is locked.
   await expect(page.locator('[data-step-name="Painting"]').getByTestId('ed-days')).toBeDisabled();
-  const text = (await bar.getByTestId('preview-finish').innerText()).replace(/\s+/g, ' ');
-  const after = text.match(/(Mon|Tue|Wed|Thu|Fri) \d{1,2} \w{3} \d{4}/g)!.pop()!;
-  expect(after).not.toBe(finish);
 
   await bar.getByTestId('bar-save').click();
   await expect(page.getByTestId('ed-saved')).toContainText(`Saved: Edited step Tiling at ${name}`);
   await expect(page.getByTestId('change-bar')).toHaveCount(0);
   await expect(tiling.getByTestId('ed-days')).toHaveValue('15');
 
-  await page.goto('./#/');
-  const monday = page.getByTestId(`build-row-${jobId}`);
-  await expect(monday.getByTestId('finish')).toHaveText(after);
-
   await page.goto(`./#/jobs/${jobId}/program`);
-  await expect(page.getByTestId('program-sub')).toContainText(after);
-  await expect(page.getByTestId('program-sub')).toContainText('late against the planned');
+  await expect(page.getByTestId('program-sub')).toContainText('later than planned');
 
   // Change history records it as a Setup change.
   await page.goto(`./#/history/${jobId}`);
@@ -126,7 +118,7 @@ test('program editor: add a step and a need, discard a change, and a template ha
   await form.getByLabel('Working days').fill('2');
   const bar = page.getByTestId('change-bar');
   await expect(bar).toContainText('New step at');
-  await expect(bar.getByTestId('preview-finish')).toContainText('Forecast finish');
+  await expect(bar).not.toContainText('Forecast finish');
   await bar.getByTestId('bar-save').click();
   await expect(page.locator('[data-step-name="Frame check"]')).toBeVisible();
 
@@ -165,11 +157,11 @@ test('templates: list, and make one from a job', async ({ page }, info) => {
   await page.getByTestId('fromjob-create').click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Template: ${name}`);
   await expect(page.locator('.su-step-dates')).toHaveCount(0);
-  await page.getByRole('link', { name: 'Templates', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Setup pages' }).getByRole('link', { name: 'Templates', exact: true }).click();
   await expect(page.getByRole('row', { name: new RegExp(name) })).toBeVisible();
 });
 
-test('trades: add one with a checked AU number; a changed number rings from To chase', async ({ page }, info) => {
+test('trades: add one with a checked AU number; a changed number rings from Waiting on', async ({ page }, info) => {
   await page.goto('./#/setup/trades');
   const name = unique(info, 'Kerbside Concrete');
   const add = page.getByTestId('add-trade');
@@ -186,14 +178,15 @@ test('trades: add one with a checked AU number; a changed number rings from To c
   await expect(row.getByTestId('trade-phone')).toHaveAttribute('href', 'tel:0491579212');
   await expect(row.getByTestId('trade-phone')).toHaveText('0491 579 212');
 
-  // Change Northern Concrete Pumping's number; To chase rings the new one.
+  // Change Northern Concrete Pumping's number; Waiting on (To chase merged in) rings the new one.
   await page.getByTestId('trade-tr-northern-pump').getByRole('button', { name: /Change/ }).click();
   const edit = page.getByTestId('trade-edit-tr-northern-pump');
   await edit.getByLabel('Phone').fill('0491 570 737');
   await edit.getByTestId('trade-edit-save').click();
   await expect(page.getByTestId('trade-tr-northern-pump').getByTestId('trade-phone')).toHaveText('0491 570 737');
   await page.goto('./#/chase');
-  const call = page.getByTestId('chase-row-it-sv-pump').getByTestId('call');
+  await expect(page).toHaveURL(/#\/waiting$/);
+  const call = page.getByTestId('waiting-row-it-sv-pump').getByTestId('call');
   await expect(call).toHaveAttribute('href', 'tel:0491570737');
   await expect(call).toContainText('Northern Concrete Pumping');
 });
@@ -202,24 +195,24 @@ test('mock: the dev bar Reset puts Setup changes back', async ({ page }, info) =
   test.skip(!isMock(info), 'The dev bar is the demo only');
   const name = unique(info, 'Reset St');
   const { jobId } = await createJob(page, name);
-  await page.goto('./#/jobs');
-  await expect(page.getByTestId(`job-row-${jobId}`)).toBeVisible();
+  await page.goto('./#/');
+  await expect(page.getByTestId(`overview-card-${jobId}`)).toBeVisible();
   await page.getByRole('button', { name: 'Reset' }).click();
-  await expect(page.getByTestId(`job-row-${jobId}`)).toHaveCount(0);
+  await expect(page.getByTestId(`overview-card-${jobId}`)).toHaveCount(0);
   await page.reload();
-  await expect(page.getByTestId('job-row-park-rd')).toBeVisible();
-  await expect(page.getByTestId(`job-row-${jobId}`)).toHaveCount(0);
+  await expect(page.getByTestId('overview-card-park-rd')).toBeVisible();
+  await expect(page.getByTestId(`overview-card-${jobId}`)).toHaveCount(0);
 });
 
 test('Setup is hidden on a 390px phone, and each Setup page says to use a computer', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('./#/');
-  await page.getByTestId('build-row-park-rd').waitFor();
+  await page.getByTestId('overview-card-park-rd').waitFor();
+  // The phone tab bar is Overview and Waiting on; Changes is a glyph in the nav bar; Setup is nowhere.
   const nav = page.getByRole('navigation', { name: 'Main' });
-  await expect(nav.getByRole('link', { name: 'Setup' })).toBeHidden();
-  await nav.getByRole('button', { name: 'More' }).click();
-  await expect(nav.getByRole('link', { name: 'Changes' })).toBeVisible();
-  await expect(nav.getByRole('link', { name: 'Setup' })).toBeHidden();
+  await expect(nav.getByRole('link')).toHaveText(['Overview', 'Waiting on']);
+  await expect(page.getByRole('link', { name: 'Changes' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /New job|Setup/ })).toHaveCount(0);
   for (const path of ['/setup', '/setup/programs', '/setup/programs/park-rd', '/setup/templates', '/setup/templates/tpl-duplex', '/setup/trades']) {
     await page.goto(`./#${path}`);
     await expect(page.getByTestId('setup-phone')).toHaveText(/Setup works on a computer\. Open this page on a desktop\./);
@@ -250,7 +243,7 @@ test('screenshots: every Setup screen at 1280x800, and the phone message at 390'
   const tiling = page.getByTestId('ed-step-pr-tiling');
   await tiling.scrollIntoViewIfNeeded();
   await tiling.getByTestId('ed-days').fill('15');
-  await expect(page.getByTestId('preview-delta')).toBeVisible();
+  await expect(page.getByTestId('preview-moved')).toBeVisible();
   await shot('editor-change-1280');
   await tiling.getByTestId('ed-more').click();
   await page.getByTestId('bar-discard').click();

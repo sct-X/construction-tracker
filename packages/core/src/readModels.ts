@@ -32,6 +32,7 @@ import {
   type Trade,
 } from './types.js';
 import type { Change } from './changes.js';
+import { freshnessWords, stageDisplayName, stagePositionWords, tradesThisWeek, waitingKeyDate, type TradeOnRow } from './readModelsTiming.js';
 
 export interface SideFilter {
   sideId?: string;
@@ -74,6 +75,8 @@ export interface WaitingRow {
   actByPassed: boolean;
   /** Past its date today (see isOverdue). */
   overdue: boolean;
+  /** The date it is grouped and sorted by: act-by while to do, else expected (or needed-by). See waitingKeyDate. */
+  keyDate: ISODate | null;
   daysSitting: number;
   notes: string | null;
 }
@@ -123,12 +126,13 @@ function waitingRow(ds: Dataset, forecast: JobForecast, item: Item, today: ISODa
     lateText: f.lateText,
     actByPassed: f.actByPassed,
     overdue: isOverdue(f, today),
+    keyDate: waitingKeyDate(f),
     daysSitting: f.daysSitting,
     notes: item.notes,
   };
 }
 
-function rowsForJob(ds: Dataset, forecast: JobForecast, today: ISODate, includeDone = false): WaitingRow[] {
+export function rowsForJob(ds: Dataset, forecast: JobForecast, today: ISODate, includeDone = false): WaitingRow[] {
   return ds.items
     .filter((i) => i.jobId === forecast.jobId && (includeDone || i.status !== 'done'))
     .map((i) => waitingRow(ds, forecast, i, today));
@@ -450,6 +454,16 @@ export interface JobOverview {
   notesThisWeek: DailyNote[];
   latestPhotos: Photo[];
   shipments: ShipmentRow[];
+  /** v1 job page (timing first): "Pending approval" for With council / With certifier, else the stage name. */
+  stageLabel: string | null;
+  /** "Stage 5 of 8". */
+  stagePosition: string;
+  /** Every open item past its date, most overdue first. */
+  overdue: WaitingRow[];
+  /** Trades on site or starting from today to a week out. */
+  tradesThisWeek: TradeOnRow[];
+  /** "Not confirmed for 9 days" or "Last confirmed 2 days ago" (never an amber state). */
+  freshnessWords: string;
 }
 
 export function jobOverview(ds: Dataset, jobId: string, today: ISODate): JobOverview {
@@ -466,7 +480,19 @@ export function jobOverview(ds: Dataset, jobId: string, today: ISODate): JobOver
     notesThisWeek: ds.dailyNotes.filter((n) => n.jobId === jobId && n.date >= monday && n.date <= today).sort((a, b) => b.date.localeCompare(a.date)),
     latestPhotos: ds.photos.filter((p) => p.jobId === jobId).sort((a, b) => b.receivedAt.localeCompare(a.receivedAt)).slice(0, 6),
     shipments: shipmentsList(ds, today).filter((s) => s.jobId === jobId),
+    stageLabel: stageDisplayName(f.currentStageName),
+    stagePosition: stagePositionWords(f.stages, f.currentStageId),
+    overdue: overdueFirst(rowsForJob(ds, f, today).filter((r) => r.overdue)),
+    tradesThisWeek: tradesThisWeek(ds, f, today),
+    freshnessWords: freshnessWords(f.freshness),
   };
+}
+
+/** Overdue rows, the longest overdue first, then by title. */
+export function overdueFirst(rows: WaitingRow[]): WaitingRow[] {
+  // The date it went overdue on: its needed-by, or its act-by while still to do, whichever came first.
+  const since = (r: WaitingRow) => [r.neededBy, r.status === 'to_do' ? r.actBy : null].filter((d): d is ISODate => !!d).sort()[0] ?? '9999-12-31';
+  return [...rows].sort((a, b) => since(a).localeCompare(since(b)) || a.title.localeCompare(b.title));
 }
 
 // ---------------------------------------------------------------------------
@@ -561,10 +587,11 @@ export interface WaitingFilter extends SideFilter {
   includeDone?: boolean;
 }
 
-export type WaitingGroupKey = 'overdue' | 'this_week' | 'next_week' | 'later';
+export type WaitingGroupKey = 'overdue' | 'this_week' | 'later';
 
 export interface WaitingOnView {
   total: number;
+  /** Overdue (exactly isOverdue), This week (key date before next Monday), Later (and anything without a date). */
   groups: { key: WaitingGroupKey; label: string; rows: WaitingRow[] }[];
 }
 
@@ -579,22 +606,24 @@ function allRows(ds: Dataset, today: ISODate, f: WaitingFilter): WaitingRow[] {
   );
 }
 
+/**
+ * One list, three groups (v1, Dom's "just simplify"): Overdue is exactly
+ * isOverdue, longest overdue first; the rest go by their key date
+ * (waitingKeyDate): before next Monday is This week, the rest and anything
+ * without a date is Later. Within This week and Later, soonest key date first.
+ */
 export function waitingOn(ds: Dataset, today: ISODate, filter: WaitingFilter = {}): WaitingOnView {
   const rows = allRows(ds, today, filter).sort(
-    (a, b) => (a.actBy ?? '9999-12-31').localeCompare(b.actBy ?? '9999-12-31') || a.title.localeCompare(b.title),
+    (a, b) => (a.keyDate ?? '9999-12-31').localeCompare(b.keyDate ?? '9999-12-31') || a.title.localeCompare(b.title),
   );
-  const endThisWeek = addCalendarDays(lastMonday(today), 6);
-  const endNextWeek = addCalendarDays(endThisWeek, 7);
+  const nextMonday = addCalendarDays(lastMonday(today), 7);
+  const overdue = overdueFirst(rows.filter((r) => r.overdue));
+  const rest = rows.filter((r) => !r.overdue);
   const groups: WaitingOnView['groups'] = [
-    { key: 'overdue', label: 'Overdue', rows: [] },
-    { key: 'this_week', label: 'Act this week', rows: [] },
-    { key: 'next_week', label: 'Act next week', rows: [] },
-    { key: 'later', label: 'Later', rows: [] },
+    { key: 'overdue', label: 'Overdue', rows: overdue },
+    { key: 'this_week', label: 'This week', rows: rest.filter((r) => r.keyDate && r.keyDate < nextMonday) },
+    { key: 'later', label: 'Later', rows: rest.filter((r) => !r.keyDate || r.keyDate >= nextMonday) },
   ];
-  for (const r of rows) {
-    const g = r.overdue ? 0 : r.actBy && r.actBy <= endThisWeek ? 1 : r.actBy && r.actBy <= endNextWeek ? 2 : 3;
-    groups[g]!.rows.push(r);
-  }
   return { total: rows.length, groups };
 }
 

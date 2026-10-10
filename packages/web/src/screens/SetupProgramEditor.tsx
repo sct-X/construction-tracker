@@ -9,7 +9,6 @@
 import { useState, type ReactNode } from 'react';
 import {
   formatDate,
-  formatLong,
   type DashboardApi,
   type ISODate,
   type ProgramSetupView,
@@ -22,7 +21,7 @@ import { useJobQuery } from '../data/useJobQuery';
 import { href } from '../app/router';
 import { LoadError, LoadingRows } from '../components/bits';
 import { SetupFrame } from '../setup/SetupFrame';
-import { canSave, FinishMove, MovedSteps, previewProblem, usePreview, type PreviewState } from '../setup/preview';
+import { canSave, MovedSteps, previewProblem, usePreview, type PreviewState } from '../setup/preview';
 import { checkDays, checkName, checkWeeks, wholeNumber, weeksValue } from '../setup/validate';
 import { plural } from '../ui/itemWords';
 
@@ -75,8 +74,7 @@ function EditorSub({ data }: { data: EditorData | null }) {
   if (view.job.kind === 'design') return <>A design job has a stage checklist, not a program.</>;
   return (
     <>
-      Forecast finish {view.forecastFinish ? formatLong(view.forecastFinish) : 'not set'}
-      {view.job.plannedFinish ? `, planned ${formatLong(view.job.plannedFinish)}` : ''}. Changes save one at a time and are listed in{' '}
+      Changes save one at a time and are listed in{' '}
       <a href={href(`/history/${encodeURIComponent(view.job.id)}`)}>Changes</a>. <a href={href(`/jobs/${encodeURIComponent(view.job.id)}/program`)}>See the Gantt</a>.
     </>
   );
@@ -797,7 +795,6 @@ function ChangeBar(props: {
         )}
         {!problem && proposal && !view.job.isTemplate && impact && (
           <>
-            <FinishMove impact={impact} weeklyHoldingCost={view.job.weeklyHoldingCost} />
             <MovedSteps impact={impact} today={today} max={3} />
             <p className="su-bar-note" data-testid="bar-note">
               {edit.op === 'edit_step' && edit.args && 'durationDays' in edit.args

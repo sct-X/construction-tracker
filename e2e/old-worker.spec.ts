@@ -5,7 +5,7 @@
  * every cache, unregisters itself and reloads the tab. Mock (Pages) build only.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { isMock, openMonday } from './helpers';
+import { isMock, openOverview } from './helpers';
 
 async function workerState(page: Page): Promise<{ registrations: number; caches: number } | null> {
   try {
@@ -20,7 +20,7 @@ async function workerState(page: Page): Promise<{ registrations: number; caches:
 
 test('the app registers no service worker, and the old one at sw.js removes itself and its caches', async ({ page }, info) => {
   test.skip(!isMock(info), 'The old worker only ever lived on the Pages site.');
-  await openMonday(page);
+  await openOverview(page);
   expect(await workerState(page)).toEqual({ registrations: 0, caches: 0 });
 
   // What the prototype left behind in a returning browser: its worker and its cache.
@@ -33,5 +33,5 @@ test('the app registers no service worker, and the old one at sw.js removes itse
 
   await expect.poll(() => workerState(page), { timeout: 15_000 }).toEqual({ registrations: 0, caches: 0 });
   // The tab came back to the current app.
-  await page.getByTestId('build-row-park-rd').waitFor();
+  await page.getByTestId('overview-card-park-rd').waitFor();
 });

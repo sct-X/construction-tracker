@@ -27,6 +27,7 @@ export const RPC_METHODS = [
   'getToday',
   'listSides',
   'getMonday',
+  'getOverview',
   'getWhyItMoved',
   'listJobs',
   'getJobOverview',

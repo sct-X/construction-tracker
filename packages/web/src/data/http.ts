@@ -58,6 +58,7 @@ export class HttpDashboardApi implements DashboardApi {
   getToday: DashboardApi['getToday'] = () => this.call('getToday');
   listSides: DashboardApi['listSides'] = () => this.call('listSides');
   getMonday: DashboardApi['getMonday'] = (filter) => this.call('getMonday', filter);
+  getOverview: DashboardApi['getOverview'] = (filter) => this.call('getOverview', filter);
   getWhyItMoved: DashboardApi['getWhyItMoved'] = (jobId) => this.call('getWhyItMoved', jobId);
   listJobs: DashboardApi['listJobs'] = (filter) => this.call('listJobs', filter);
   getJobOverview: DashboardApi['getJobOverview'] = (jobId) => this.call('getJobOverview', jobId);

@@ -110,19 +110,36 @@ export const CASES: EvalCase[] = [
   {
     id: 'item-booked-seaview-pump',
     text: 'booked the pump for seaview',
-    why: 'Short, past tense; "the pump" is the Book concrete pump item; booked = ordered_or_booked.',
-    expect: { kind: 'ops', ops: [{ op: 'set_item_status', args: { item: 'it-sv-pump', status: 'ordered_or_booked' } }] },
+    why: 'Booked with no date and the pump has none: core asks "When is it expected?" (v1: booked needs an expected date).',
+    expect: { kind: 'question' },
     modelCalls: [{ name: 'set_item_status', args: { item: 'pump', job: 'Seaview', status: 'ordered_or_booked' } }],
   },
   {
-    id: 'item-confirmed-park-plasterer',
-    text: 'smooth wall locked in for the park rd plaster, confirmed',
-    why: 'Trade named by company, "locked in ... confirmed" = confirmed (sets the confirmed date to today).',
+    id: 'item-booked-seaview-pump-dated',
+    text: "pump's booked at seaview, coming next thursday",
+    why: 'Booked with the date it comes: expectedDate next Thursday (Thu 24 Sep), not the booking date.',
     expect: {
       kind: 'ops',
-      ops: [{ op: 'set_item_status', args: { item: 'it-pr-plasterer', status: 'confirmed', date: TODAY } }],
+      ops: [{ op: 'set_item_status', args: { item: 'it-sv-pump', status: 'ordered_or_booked', expectedDate: '2026-09-24' } }],
     },
-    modelCalls: [{ name: 'set_item_status', args: { item: 'plasterer', job: 'Park Rd', status: 'confirmed' } }],
+    modelCalls: [{ name: 'set_item_status', args: { item: 'pump', job: 'Seaview', status: 'ordered_or_booked', expectedDate: 'next thursday' } }],
+  },
+  {
+    id: 'item-confirmed-beatty-defect',
+    text: 'solid frame confirmed theyre fixing the leaking flashing at beatty',
+    why: 'Confirmed, and the defect already has an expected date (Thu 24 Sep), so no question.',
+    expect: { kind: 'ops', ops: [{ op: 'set_item_status', args: { item: 'it-bt-defect', status: 'confirmed', date: TODAY } }] },
+    modelCalls: [{ name: 'set_item_status', args: { item: 'leaking flashing', job: 'Beatty', status: 'confirmed' } }],
+  },
+  {
+    id: 'item-confirmed-park-plasterer',
+    text: 'smooth wall locked in for the park rd plaster, confirmed for the 12th',
+    why: 'Trade named by company, "locked in ... confirmed" = confirmed (confirmed date today); "for the 12th" is when it comes (Mon 12 Oct).',
+    expect: {
+      kind: 'ops',
+      ops: [{ op: 'set_item_status', args: { item: 'it-pr-plasterer', status: 'confirmed', date: TODAY, expectedDate: '2026-10-12' } }],
+    },
+    modelCalls: [{ name: 'set_item_status', args: { item: 'plasterer', job: 'Park Rd', status: 'confirmed', expectedDate: 'the 12th' } }],
   },
 
   // --- set_item_expected_date ---------------------------------------------------------------------
@@ -260,7 +277,7 @@ export const CASES: EvalCase[] = [
   {
     id: 'confirm-beatty',
     text: 'went thru beatty with the builder, numbers all good',
-    why: 'Confirming without the word "confirm"; clears Beatty\'s amber.',
+    why: 'Confirming without the word "confirm"; clears Beatty\'s "not confirmed for 9 days".',
     expect: { kind: 'ops', ops: [{ op: 'confirm_job', args: { job: 'beatty', date: TODAY } }] },
     modelCalls: [{ name: 'confirm_job', args: { job: 'Beatty' } }],
   },
@@ -284,17 +301,17 @@ export const CASES: EvalCase[] = [
   // --- several ops ---------------------------------------------------------------------------------
   {
     id: 'combo-seaview-pump-steel',
-    text: 'pumps booked for seaview and the slab steel got delivered today',
-    why: 'Two item changes in one breath: pump booked, slab steel done.',
+    text: 'pumps booked for seaview for fri 2 oct and the slab steel got delivered today',
+    why: 'Two item changes in one breath: pump booked (expected Fri 2 Oct), slab steel done.',
     expect: {
       kind: 'ops',
       ops: [
-        { op: 'set_item_status', args: { item: 'it-sv-pump', status: 'ordered_or_booked' } },
+        { op: 'set_item_status', args: { item: 'it-sv-pump', status: 'ordered_or_booked', expectedDate: '2026-10-02' } },
         { op: 'set_item_status', args: { item: 'it-sv-slab-steel', status: 'done' } },
       ],
     },
     modelCalls: [
-      { name: 'set_item_status', args: { item: 'pump', job: 'Seaview', status: 'ordered_or_booked' } },
+      { name: 'set_item_status', args: { item: 'pump', job: 'Seaview', status: 'ordered_or_booked', expectedDate: 'fri 2 oct' } },
       { name: 'set_item_status', args: { item: 'slab steel', job: 'Seaview', status: 'done' } },
     ],
   },

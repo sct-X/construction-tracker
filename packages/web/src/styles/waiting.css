@@ -1,0 +1,298 @@
+/*
+  Ported from v1 src/screens/waitingOn.css (minus the inline date and status
+  buttons: the web is read-only). Waiting on: one inset grouped list, the same on the phone and the desktop.
+
+  Groups are the job page's large group headers (Overdue, This week, Later,
+  each with a tertiary count) over white lists on the grouped ground. A row
+  is a cell: the title as a headline, the job and who it is waiting on as a
+  secondary line, then the one date phrase (red only when overdue, with the
+  word). Its controls sit in a strip under the words on the phone and trail
+  on the right once the list is wide (a container query): Call as a tinted
+  capsule, Set date as a plain button, the status step as a gray one. The
+  whole row opens the item sheet; the controls sit above that link.
+*/
+.waiting {
+  max-width: var(--content-max);
+}
+.waiting__owner {
+  flex: none;
+}
+/* The phone's filter row is iOS-sized: 44pt targets, not the 56pt primary height. */
+.shell--phone .waiting__owner {
+  border-radius: var(--radius-segment);
+}
+.shell--phone .waiting__owner .seg__btn {
+  min-height: 40px;
+  border-radius: var(--radius-thumb);
+}
+.shell--phone .waiting .filter .filter__select {
+  min-height: var(--tap-min);
+}
+.waiting__empty {
+  padding: var(--space-8) var(--space-1);
+  color: var(--text-secondary);
+}
+
+.waiting__groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+.waiting__group-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.waiting__count {
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.waiting__list {
+  container: wrows / inline-size;
+}
+
+/* ---- the row ---- */
+.wrow {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) calc(var(--space-4) + 20px) var(--space-3) var(--space-4);
+  background: var(--plate);
+  transition: background-color var(--motion-fast) var(--ease);
+}
+.wrow + .wrow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--space-4);
+  right: 0;
+  border-top: 0.5px solid var(--line);
+}
+.wrow--link:has(.wrow__open:hover) {
+  background: color-mix(in srgb, var(--raised) 55%, var(--plate));
+}
+.wrow--link:has(.wrow__open:active) {
+  background: var(--raised);
+}
+.wrow__open {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  color: var(--text);
+  text-decoration: none;
+}
+/* The whole cell opens the item; the controls are raised above this. */
+a.wrow__open::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.wrow__open:focus-visible {
+  outline: none;
+}
+.wrow:has(.wrow__open:focus-visible) {
+  box-shadow: inset 0 0 0 2px var(--focus);
+}
+.wrow__title {
+  font-size: var(--type-body);
+  font-weight: var(--weight-semibold);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.wrow__detail {
+  font-size: var(--type-subhead);
+  line-height: 1.35;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.wrow__when.status {
+  margin-top: 2px;
+  font-size: var(--type-subhead);
+  color: var(--text);
+  white-space: normal;
+}
+.wrow__when.status--muted {
+  color: var(--text-muted);
+}
+.wrow__when.status--late {
+  font-weight: var(--weight-semibold);
+  color: var(--late-ink);
+}
+.wrow__chevron {
+  position: absolute;
+  top: calc(var(--space-3) + 5px);
+  right: var(--space-4);
+}
+
+/* ---- controls (scoped under .wrow so they outrank the shared .btn) ---- */
+.wrow__actions {
+  position: relative;
+  z-index: 1;
+  margin-right: -20px; /* the chevron sits by the title; the strip takes the full width */
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.wrow__trail {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+.wrow .wrow__btn {
+  min-height: var(--tap-min);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  font-size: var(--type-subhead);
+}
+.wrow .wrow__btn.btn--ghost {
+  padding: 0 var(--space-3);
+}
+.wrow .wrow__btn--strong {
+  font-weight: var(--weight-semibold);
+}
+.wrow .wrow__call {
+  flex: 0 1 auto;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  padding-left: var(--space-3);
+}
+.wrow__call-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Call and the next status step are glass buttons (.btn--glass, static:
+   they sit on the row's plate). Call keeps the tint on its label and glyph,
+   in the deeper glass ink that holds 5.5:1 on the glass fill. */
+.wrow .wrow__call {
+  color: var(--lg-btn-tint-ink);
+}
+.wrow__glyph {
+  flex: none;
+}
+.wrow__quiet {
+  padding: 0 var(--space-2);
+  font-size: var(--type-footnote);
+  color: var(--text-muted);
+}
+
+/* ---- wide list: the controls trail on the row's own line ---- */
+@container wrows (min-width: 640px) {
+  .wrow {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-4);
+    min-height: 72px;
+  }
+  .wrow__open {
+    flex: 1 1 auto;
+  }
+  .wrow .wrow__call {
+    max-width: 16rem;
+  }
+  .wrow__actions {
+    flex: none;
+    margin-right: 0;
+    justify-content: flex-end;
+  }
+  /* Wide rows carry controls on the right; the hover wash says it opens. */
+  .wrow {
+    padding-right: var(--space-4);
+  }
+  .wrow .wrow__chevron {
+    display: none;
+  }
+  .wrow .wrow__btn {
+    min-height: var(--control);
+  }
+}
+
+/* Phone: the filter sticks under the nav bar as a floating Regular glass
+   bar (DESIGN.md "Material"), 6px inside so the segmented control and the
+   job menu sit concentric in it. Its controls stay solid fills. */
+.shell--phone .waiting__filters {
+  position: sticky;
+  top: calc(52px + var(--space-2));
+  z-index: 4;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px;
+  margin-left: -6px;
+  margin-right: -6px;
+  border-radius: calc(var(--radius-segment) + 6px);
+}
+.shell--phone .waiting__filters .filter {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.shell--phone .waiting__filters .filter__label {
+  color: var(--lg-ink-muted);
+  font-weight: var(--weight-semibold);
+}
+
+/* ==== added for the rebuild ==== */
+.waiting__head {
+  margin-bottom: var(--space-4);
+}
+.waiting__title {
+  font-family: var(--font-display);
+  font-size: var(--type-title-2);
+  font-weight: var(--weight-bold);
+  line-height: 1.2;
+}
+.wrow:not(.wrow--link) {
+  padding-right: var(--space-4);
+}
+/* Later, folded: the summary is the group header with an SF chevron that turns. */
+.waiting__fold > summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  cursor: pointer;
+  list-style: none;
+}
+.waiting__fold > summary::-webkit-details-marker {
+  display: none;
+}
+.waiting__fold > summary::after {
+  content: '';
+  align-self: center;
+  width: 8px;
+  height: 14px;
+  margin-left: var(--space-1);
+  background: var(--disclosure-chevron) no-repeat center / contain;
+  transform: rotate(90deg);
+  transition: transform var(--motion-fast) var(--ease);
+}
+.waiting__fold:not([open]) > summary::after {
+  transform: none;
+}
+.waiting__fold > summary:focus-visible {
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-md);
+}
+.wrow:not(.wrow--link) .wrow__actions {
+  margin-right: 0;
+}
+.wrow .wrow__call {
+  color: var(--lg-btn-tint-ink);
+}
+.shell--phone .waiting__filters .filter {
+  flex: 1 1 40%;
+  min-width: 0;
+}
+.shell--phone .waiting__filters .filter .filter__select {
+  width: 100%;
+  min-width: 0;
+}

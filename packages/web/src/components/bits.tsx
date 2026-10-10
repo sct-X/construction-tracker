@@ -1,23 +1,14 @@
 import type { ReactNode } from 'react';
-import { formatMoney } from '@ct/core';
 import { freshnessWords } from '../ui/format';
 
-/** Money draws nothing, label included, when the value is missing. */
-export function Money({ amount, className, testId }: { amount: number | null | undefined; className?: string; testId?: string }) {
-  if (amount === null || amount === undefined) return null;
-  return (
-    <span className={className} data-testid={testId}>
-      {formatMoney(amount)}
-    </span>
-  );
-}
-
-/** Last confirmed. Amber always comes with the words "Not confirmed for N days". */
+/**
+ * Last confirmed, in words only (SPEC revision: no amber in the web). Rule 7's
+ * "more than 7 days" reads "Not confirmed for 9 days"; data-unconfirmed says so for tests.
+ */
 export function Freshness(props: { amber: boolean; daysUnconfirmed?: number | null; freshnessText: string; testId?: string }) {
-  const words = freshnessWords(props);
   return (
-    <span className={props.amber ? 'fresh fresh-amber' : 'fresh'} data-testid={props.testId} data-amber={props.amber ? 'true' : 'false'}>
-      {words}
+    <span className="fresh" data-testid={props.testId} data-unconfirmed={props.amber ? 'true' : 'false'}>
+      {freshnessWords(props)}
     </span>
   );
 }

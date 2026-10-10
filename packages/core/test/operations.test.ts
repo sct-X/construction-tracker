@@ -105,9 +105,9 @@ describe('operations', () => {
 
   it('set_item_status, override_lead_time, confirm_job, add_daily_note', () => {
     const ds = buildSeed();
-    const s = runOperation(ds, 'set_item_status', { item: 'concrete pump', job: 'Seaview', status: 'ordered_or_booked' }, ctx) as Proposal;
+    const s = runOperation(ds, 'set_item_status', { item: 'concrete pump', job: 'Seaview', status: 'ordered_or_booked', expectedDate: '2026-10-02' }, ctx) as Proposal;
     expect(s.kind).toBe('proposal');
-    expect(s.summary).toBe('Book concrete pump at Seaview St: To do to Ordered or booked');
+    expect(s.summary).toBe('Book concrete pump at Seaview St: To do to Ordered or booked, expected Fri 2 Oct');
     const lt = runOperation(ds, 'override_lead_time', { item: 'order tiles', job: 'Park Rd', weeks: 10 }, ctx) as Proposal;
     const f = forecastJob(dryRun(ds, lt, today).after, PARK_RD, today);
     expect(f.items['it-pr-tiles']!.leadTimeWeeks).toBe(10);
@@ -192,5 +192,51 @@ describe('catalogue', () => {
     expect(Object.keys(eta.parameters.properties as object)).toEqual(['shipment', 'job', 'eta']);
     expect(operationCatalogue('daily').every((c) => c.group === 'daily')).toBe(true);
     expect(JSON.parse(JSON.stringify(cat))).toEqual(cat);
+  });
+});
+
+describe('"Booked needs an expected date" (v1 rule, SPEC revision 2026-10-10)', () => {
+  const ds = buildSeed();
+
+  it('booked or confirmed with no expected date anywhere -> "When is it expected?", nothing proposed', () => {
+    for (const status of ['ordered_or_booked', 'confirmed'] as const) {
+      const q = runOperation(ds, 'set_item_status', { item: 'concrete pump', job: 'Seaview', status }, ctx);
+      expect(q).toMatchObject({ kind: 'question', field: 'expectedDate', options: null, args: { item: 'concrete pump', job: 'Seaview', status } });
+      if (q.kind === 'question') expect(q.question).toContain('When is it expected?');
+    }
+    expect((runOperation(ds, 'set_item_status', { item: 'concrete pump', job: 'Seaview', status: 'ordered_or_booked' }, ctx) as { question: string }).question).toBe(
+      'Book concrete pump at Seaview St needs an expected date to be ordered or booked. When is it expected?',
+    );
+  });
+
+  it('the answer resumes it: re-run with expectedDate -> status and expected date in one proposal', () => {
+    const q = runOperation(ds, 'set_item_status', { item: 'concrete pump', job: 'Seaview', status: 'ordered_or_booked' }, ctx);
+    if (q.kind !== 'question') throw new Error('expected a question');
+    const p = runOperation(ds, 'set_item_status', { ...q.args, [q.field!]: 'next Thursday' }, ctx) as Proposal;
+    expect(p.kind).toBe('proposal');
+    expect(p.changes.map((c) => (c.kind === 'update' ? [c.field, c.after] : null))).toEqual([
+      ['status', 'ordered_or_booked'],
+      ['expectedDate', '2026-09-24'],
+    ]);
+  });
+
+  it('an item that already has an expected date, or a shipment ETA, needs no question', () => {
+    const plasterer = { ...ds, items: ds.items.map((i) => (i.id === 'it-pr-plasterer' ? { ...i, expectedDate: '2026-10-12' } : i)) };
+    expect(runOperation(plasterer, 'set_item_status', { item: 'plasterer', job: 'Park Rd', status: 'confirmed' }, ctx).kind).toBe('proposal');
+    // Seaview windows take their date from the shipment's ETA (Mon 14 Dec).
+    const w = runOperation(ds, 'set_item_status', { item: 'it-sv-windows', status: 'ordered_or_booked' }, ctx);
+    expect(w.kind).toBe('proposal');
+    // Done and back to to-do never need one.
+    expect(runOperation(ds, 'set_item_status', { item: 'concrete pump', job: 'Seaview', status: 'done' }, ctx).kind).toBe('proposal');
+  });
+
+  it('a shipment item: expectedDate is refused (change the ETA), and no ETA at all is refused, not asked', () => {
+    const r = runOperation(ds, 'set_item_status', { item: 'it-sv-windows', status: 'ordered_or_booked', expectedDate: '2026-12-01' }, ctx);
+    expect(r).toMatchObject({ kind: 'refusal' });
+    if (r.kind === 'refusal') expect(r.reason).toContain('Change the shipment ETA instead');
+    const noEta = { ...ds, shipments: ds.shipments.map((s) => (s.id === SEAVIEW_WINDOWS ? { ...s, eta: null } : s)) };
+    const r2 = runOperation(noEta, 'set_item_status', { item: 'it-sv-windows', status: 'ordered_or_booked' }, ctx);
+    expect(r2).toMatchObject({ kind: 'refusal' });
+    if (r2.kind === 'refusal') expect(r2.reason).toContain('Give the shipment an ETA first');
   });
 });

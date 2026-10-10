@@ -87,7 +87,7 @@ describe('New job', () => {
 });
 
 describe('Program editor', () => {
-  it('a longer step: the bar shows the finish moving and what moves, and Save records it', async () => {
+  it('a longer step: the bar shows the steps that move (no finish or money on the web), and Save records it', async () => {
     const mock = show(<SetupProgramEditorScreen jobId="park-rd" />);
     const row = within(await screen.findByTestId('ed-step-pr-tiling'));
     fireEvent.change(row.getByTestId('ed-days'), { target: { value: 'ten' } });
@@ -96,12 +96,9 @@ describe('Program editor', () => {
 
     fireEvent.change(row.getByTestId('ed-days'), { target: { value: '15' } });
     const bar = within(screen.getByTestId('change-bar'));
-    expect((await bar.findByTestId('preview-delta')).textContent).toBe('7 days later');
-    const finish = bar.getByTestId('preview-finish').textContent!;
-    expect(finish).toContain('Fri 26 Feb 2027');
-    expect(finish).toContain('Fri 5 Mar 2027');
-    expect(finish).toContain('$4,500 more holding cost');
-    expect(bar.getByTestId('preview-moved').textContent).toContain('5 steps move');
+    expect((await bar.findByTestId('preview-moved')).textContent).toContain('5 steps move');
+    expect(bar.queryByTestId('preview-finish')).toBeNull();
+    expect(screen.getByTestId('change-bar').textContent).not.toMatch(/\$|Forecast finish/);
     expect(bar.getByTestId('bar-note').textContent).toContain("Planned dates don't change");
     // One change at a time: other inputs are locked until Save or Discard.
     expect((within(screen.getByTestId('ed-step-pr-painting')).getByTestId('ed-days') as HTMLInputElement).disabled).toBe(true);

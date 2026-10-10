@@ -29,6 +29,7 @@ Site jargon you will see:
 - "DA" / "CDC": the council or certifier approval path for design jobs; "CC": construction certificate.
 - Trades: "the sparky" = electrician, "chippy" = carpenter, "plumbo" = plumber, "brickie" = bricklayer, "tiler", "plasterer", "renderer".
 - "landing" / "on the water" for shipments: arriving / shipped. "booked in" = ordered_or_booked. "locked in" or "confirmed" = confirmed.
+- "booked for Friday", "coming Tuesday", "starts the 5th": when the item is expected (set_item_status expectedDate), not when it was booked.
 
 Jobs:
 ${list(ctx.jobs)}

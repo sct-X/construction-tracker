@@ -9,7 +9,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   addCalendarDays,
   formatDate,
-  formatLong,
   formatShort,
   lastMonday,
   type DashboardApi,
@@ -47,10 +46,19 @@ function useView(): [View, (v: View) => void] {
   useEffect(() => {
     const mq = globalThis.matchMedia?.(PHONE);
     if (!mq) return;
-    const on = () => setView((v) => (mq.matches && v === 'gantt' ? 'lookahead' : v));
-    on();
+    const apply = () => setView((v) => (mq.matches && v === 'gantt' ? 'lookahead' : v));
+    apply();
+    // Settle before switching: a full-page screenshot briefly overrides the viewport and fires a change.
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const on = () => {
+      clearTimeout(t);
+      t = setTimeout(apply, 200);
+    };
     mq.addEventListener?.('change', on);
-    return () => mq.removeEventListener?.('change', on);
+    return () => {
+      clearTimeout(t);
+      mq.removeEventListener?.('change', on);
+    };
   }, []);
   return [view, setView];
 }
@@ -78,18 +86,18 @@ export function ProgramScreen({ jobId }: { jobId: string }) {
   );
 }
 
-function ProgramSub({ p }: { p: ProgramView }) {
+/** Timing first (SPEC revision): no forecast finish; where the job is and how many steps run later than planned. */
+export function programSubWords(p: Pick<ProgramView, 'forecast' | 'steps'>): string {
   const f = p.forecast;
-  const today = f.today;
-  if (!f.forecastFinish) return null;
+  const late = p.steps.filter((s) => s.isLate && s.status !== 'done').length;
+  const where = f.currentStageName ?? 'All stages done';
+  return `${where}. ${late ? `${plural(late, 'step')} later than planned.` : 'Every step on plan.'}`;
+}
+
+function ProgramSub({ p }: { p: ProgramView }) {
   return (
     <p className="screen-sub" data-testid="program-sub">
-      Forecast finish <strong>{formatLong(f.forecastFinish)}</strong>
-      {f.plannedFinish
-        ? f.lateDays
-          ? `, ${lateWords(f.lateDays)} against the planned ${formatDate(f.plannedFinish, today)}.`
-          : ', as planned.'
-        : '.'}
+      {programSubWords(p)}
     </p>
   );
 }
@@ -105,7 +113,7 @@ export function ProgramBody({ p, view, setView }: { p: ProgramView; view: View; 
   ];
   return (
     <>
-      <div className="seg" role="group" aria-label="Show the program as">
+      <div className="oseg" role="group" aria-label="Show the program as">
         {views.map(({ v, label }) => (
           <button key={v} type="button" className={`seg-btn seg-${v}`} aria-pressed={view === v} onClick={() => setView(v)}>
             {label}
@@ -163,7 +171,7 @@ function Gantt({ p }: { p: ProgramView }) {
     <section className="gantt-wrap" aria-labelledby="gantt-h">
       <div className="gantt-bar">
         <h2 id="gantt-h">Gantt</h2>
-        <div className="seg seg-small" role="group" aria-label="Steps to show">
+        <div className="oseg seg-small" role="group" aria-label="Steps to show">
           {filters.map(({ f, label }) => (
             <button key={f} type="button" className="seg-btn" aria-pressed={filter === f} onClick={() => setFilter(f)}>
               {label}

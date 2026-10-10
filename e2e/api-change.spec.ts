@@ -48,10 +48,10 @@ test('windows ETA moved to 16 Nov through the bot: Park Rd Install windows shows
     await page.goto('./#/jobs/park-rd/steps/pr-install-windows');
     await expect(page.getByTestId('step-forecast')).toHaveText('Mon 2 Nov to Fri 13 Nov');
     const card = botFlowA();
-    // The confirm card keeps the dry-run impact.
-    expect(card).toContain('Install windows starts Mon 16 Nov (was Mon 2 Nov)');
-    expect(card).toContain('Finish Fri 12 Mar 2027 (was Fri 26 Feb 2027)');
-    expect(card).toContain('Slip +14 days, $9,000');
+    // The confirm card keeps the dry-run impact (as Dominic reads it; sent as Telegram HTML).
+    expect(card).toContain('Install windows: Mon 2 Nov → Mon 16 Nov');
+    expect(card).toContain('Finish Fri 26 Feb 2027 → Fri 12 Mar 2027');
+    expect(card).toContain('+14 days · $9,000 holding cost');
     await page.reload();
   }
 

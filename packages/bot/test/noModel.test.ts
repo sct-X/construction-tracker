@@ -54,11 +54,11 @@ describe('the bot with no model key', () => {
   });
 
   it('/reminders and /undo still work', async () => {
-    expect(h.sent(await h.text('/reminders'))[0]).toMatch(/^Reminders due now, Thu 17 Sep/);
-    expect(h.sent(await h.text('fire reminders'))[0]).toMatch(/^Reminders due now, Thu 17 Sep/);
+    expect(h.sent(await h.text('/reminders'))[0]).toMatch(/^Reminders due now · Thu 17 Sep\n/);
+    expect(h.sent(await h.text('fire reminders'))[0]).toMatch(/^Reminders due now · Thu 17 Sep\n/);
     // /undo takes back the newest seeded change set that came in on Telegram.
     const undoneBefore = store.load().changeSets.filter((c) => c.status === 'undone').length;
-    expect(h.sent(await h.text('/undo')).join('\n')).toMatch(/^Undone: /);
+    expect(h.sent(await h.text('/undo')).join('\n')).toMatch(/^Undone\n/);
     expect(store.load().changeSets.filter((c) => c.status === 'undone')).toHaveLength(undoneBefore + 1);
   });
 
@@ -69,7 +69,7 @@ describe('the bot with no model key', () => {
     const card = h.lastWithButton('Confirm');
     expect(card.text).toContain('Photo filed: Seaview St, Slab, Plumbing under slab.');
     await h.press(card.messageId, 'Confirm');
-    expect(h.messages.get(card.messageId)!.text).toMatch(/^Saved\./);
+    expect(h.messages.get(card.messageId)!.text).toMatch(/^Saved ✓\n/);
     expect(newChangeSets().map((c) => c.status)).toEqual(['confirmed']);
   });
 });
@@ -86,7 +86,7 @@ describe('startApp with a bot token but no model key', () => {
   });
 
   it('starts the bot anyway, logs that typed messages need a key, and sends the reminders', async () => {
-    const sent: { chat_id: unknown; text: string }[] = [];
+    const sent: { chat_id: unknown; text: string; parse_mode: unknown }[] = [];
     telegram = createServer((req, res) => {
       let body = '';
       req.on('data', (c) => (body += c));
@@ -97,7 +97,7 @@ describe('startApp with a bot token but no model key', () => {
         if (method === 'getMe') return reply({ id: 1, is_bot: true, first_name: 'Tracker', username: 'ct_fake_bot' });
         if (method === 'getUpdates') return void setTimeout(() => reply([]), 20);
         if (method === 'sendMessage') {
-          sent.push({ chat_id: payload.chat_id, text: String(payload.text) });
+          sent.push({ chat_id: payload.chat_id, text: String(payload.text), parse_mode: payload.parse_mode });
           return reply({ message_id: sent.length, date: 0, chat: { id: payload.chat_id, type: 'private' }, text: payload.text });
         }
         return reply(true);
@@ -120,6 +120,6 @@ describe('startApp with a bot token but no model key', () => {
     expect(log.lines).toContain('info Telegram bot starting (long polling); allowed user 42.');
     const tick = await app.firstTick!;
     expect(tick.reminders!.sent.length).toBeGreaterThanOrEqual(2);
-    expect(sent.filter((m) => m.text.startsWith('Reminders, Thu 17 Sep:')).map((m) => m.chat_id)).toEqual(['42']);
+    expect(sent.filter((m) => m.text.startsWith('<b>Reminders · Thu 17 Sep</b>')).map((m) => [m.chat_id, m.parse_mode])).toEqual([['42', 'HTML']]);
   });
 });

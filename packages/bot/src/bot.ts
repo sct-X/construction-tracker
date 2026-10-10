@@ -4,6 +4,9 @@
  * proposed change set shown as a confirm card (before → after and the dry-run
  * forecast impact) and are saved only on Confirm. Questions (from the parser
  * or from a core operation) are asked back and save nothing.
+ *
+ * Every message is Telegram HTML (parse_mode HTML): `send` and `edit` take HTML, so any user, model or
+ * database text is escaped with `esc` (html.ts) before it gets there.
  */
 import { Bot, GrammyError, InlineKeyboard, type Context, type Transformer } from 'grammy';
 import type { Message, Update, UserFromGetMe } from 'grammy/types';
@@ -32,7 +35,8 @@ import {
   RuleRefusalError,
 } from '@ct/core';
 import { BOT_SET_ARGS, type ChatMsg, type ParseResult, type Parser } from '@ct/llm';
-import { cardText, finishSentence } from './format.js';
+import { cardText, finishSentence, outcomeText } from './format.js';
+import { b, blocks, bullet, clipHtml, esc, heardLine, SAVED_MARK } from './html.js';
 import { detectImageType, extensionFor, telegramDownloader, type FileDownloader, type MediaStore } from './media.js';
 import { splitText } from './notifier.js';
 import { answerRead } from './reads.js';
@@ -183,6 +187,19 @@ const TOO_BIG = "That file is over Telegram's 20 MB limit for bots, so I can't f
 /** The reply to free text when no language model is configured. */
 export const NO_MODEL_REPLY = "I can't read messages yet: add a model key to .env.";
 const NOT_A_PHOTO = "That file isn't a photo I can keep: I take JPEG, PNG, WebP or HEIC. Nothing saved.";
+/** /start and /help (HTML). */
+const HELP_TEXT = [
+  b('How this works'),
+  bullet(esc('Tell me a change in plain words or a voice note, e.g. "Park Rd windows now arriving 16 Nov". I\'ll show a card to confirm.')),
+  bullet(esc('Send site photos with a caption like "Seaview plumbing under slab". Sent as a file keeps full resolution.')),
+  bullet(esc('Ask things like "what\'s Park Rd\'s finish?" or "what are we waiting on at Beatty?"')),
+  bullet('/reminders shows what\'s due. /undo reverses the last saved change.'),
+].join('\n');
+
+/** A question once answered (HTML): the question, then "→ <b>the pick</b>". */
+function answeredText(question: string, label: string): string {
+  return `${esc(question)}\n→ ${b(label)}`;
+}
 
 /** A file Telegram won't let a bot download (over 20 MB). Retrying can't help, so it gets its own reply. */
 export class TooBigError extends Error {
@@ -204,8 +221,8 @@ function consoleBotLog(): BotLog {
   };
 }
 
-function clipText(s: string): string {
-  return s.length > MAX_TEXT ? `${s.slice(0, MAX_TEXT - 1)}…` : s;
+function clipText(html: string): string {
+  return clipHtml(html, MAX_TEXT);
 }
 
 const cardKeyboard = (csId: string) =>
@@ -296,23 +313,47 @@ export function createBot(opts: CreateBotOptions): BotHandle {
   // Sending
   // -------------------------------------------------------------------------
 
-  async function send(chatId: number, text: string, keyboard?: InlineKeyboard, replyTo?: number): Promise<Message.TextMessage> {
-    return bot.api.sendMessage(chatId, clipText(text), {
+  /** Sends Telegram HTML (escape any user or data text with `esc` first). */
+  async function send(chatId: number, html: string, keyboard?: InlineKeyboard, replyTo?: number): Promise<Message.TextMessage> {
+    return bot.api.sendMessage(chatId, clipText(html), {
+      parse_mode: 'HTML',
       ...(keyboard ? { reply_markup: keyboard } : {}),
       ...(replyTo ? { reply_parameters: { message_id: replyTo, allow_sending_without_reply: true } } : {}),
     });
   }
 
-  /** "Heard: "..."" ahead of a voice note's first reply (cards always carry it). */
+  /** "Heard: <i>...</i>" and a blank line ahead of a voice note's first reply (cards always carry it). */
   function heard(rc: { transcript: string | null; history: ChatMsg[] }): string {
     if (!rc.transcript || rc.history.length > 1) return '';
-    const t = rc.transcript.length > 300 ? `${rc.transcript.slice(0, 299)}…` : rc.transcript;
-    return `Heard: "${t}"\n\n`;
+    return `${heardLine(rc.transcript)}\n\n`;
   }
 
-  async function edit(chatId: number, messageId: number, text: string, keyboard?: InlineKeyboard): Promise<void> {
+  /**
+   * A refusal: "<b>Nothing saved</b>" and core's reason. A hold point refused for missing photos gets its
+   * own title and the missing categories as a list, from the data the check ran on.
+   */
+  function refusalText(reason: string, rc: { transcript: string | null; history: ChatMsg[] }, ds: Dataset, op: string): string {
+    const said = heard(rc).trim();
+    const sentence = `${reason}${/[.!?]$/.test(reason) ? '' : '.'}`;
+    const hold = op === 'mark_step_done' ? /^Can't sign off (.+) yet\. No photos for: /.exec(reason) : null;
+    const step = hold ? ds.steps.find((s) => s.isHoldPoint && s.status !== 'done' && s.name === hold[1]) : undefined;
+    const check = step ? holdPointCheck(step, ds.photoCategories, ds.photos) : null;
+    if (step && check && check.missingCategories.length) {
+      const job = ds.jobs.find((j) => j.id === step.jobId)?.name;
+      return blocks(
+        b(job ? `${job} · ${step.name}` : step.name),
+        said,
+        [esc(`Can't sign it off yet. No photos for:`), ...check.missingCategories.map((c) => bullet(esc(c)))].join('\n'),
+        'Nothing saved.',
+      );
+    }
+    return said ? blocks(b('Nothing saved'), said, esc(sentence)) : `${b('Nothing saved')}\n${esc(sentence)}`;
+  }
+
+  /** Edits a sent message to new Telegram HTML. */
+  async function edit(chatId: number, messageId: number, html: string, keyboard?: InlineKeyboard): Promise<void> {
     try {
-      await bot.api.editMessageText(chatId, messageId, clipText(text), keyboard ? { reply_markup: keyboard } : {});
+      await bot.api.editMessageText(chatId, messageId, clipText(html), { parse_mode: 'HTML', ...(keyboard ? { reply_markup: keyboard } : {}) });
     } catch (e) {
       // "message is not modified" and edits of old messages are not worth failing over.
       log.warn(`Couldn't edit message ${messageId}: ${e instanceof Error ? e.message : String(e)}`);
@@ -357,34 +398,34 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       const call = calls[i]!;
       const def = getOperation(call.op);
       if (!def) {
-        await send(rc.chatId, `I don't know how to do "${call.op}". Nothing saved.`);
+        await send(rc.chatId, esc(`I don't know how to do "${call.op}". Nothing saved.`));
         return;
       }
       if (def.group !== 'daily') {
-        await send(rc.chatId, 'That one is a Setup change: do it in the Setup area on the computer. Nothing saved.');
+        await send(rc.chatId, esc('That one is a Setup change: do it in the Setup area on the computer. Nothing saved.'));
         return;
       }
       const shape = (def.schema as unknown as { shape: Record<string, unknown> }).shape;
       if ('filePath' in shape && !rc.botArgs.filePath) {
         // attach_photo only ever runs on a photo the bot received and stored itself.
-        await send(rc.chatId, "Send the photo itself (as a photo or a file) and I'll file it. Nothing saved.");
+        await send(rc.chatId, esc("Send the photo itself (as a photo or a file) and I'll file it. Nothing saved."));
         return;
       }
       const args = withBotArgs(call.op, call.args, rc);
       const r: OpResult = runOperation(working, call.op, args, opCtx());
       if (r.kind === 'refusal') {
-        await send(rc.chatId, `${heard(rc)}${r.reason}${/[.!?]$/.test(r.reason) ? '' : '.'} Nothing saved.`, undefined, rc.botArgs.photoMessageId);
+        await send(rc.chatId, refusalText(r.reason, rc, working, call.op), undefined, rc.botArgs.photoMessageId);
         return;
       }
       if (r.kind === 'question') {
         const q = r;
         if (q.field && BOT_SET_ARGS.includes(q.field)) {
-          await send(rc.chatId, "I can't take that from a message. Nothing saved.");
+          await send(rc.chatId, esc("I can't take that from a message. Nothing saved."));
           return;
         }
         const keyboard = q.options?.length ? new InlineKeyboard() : undefined;
         q.options?.forEach((o, n) => keyboard!.text(o.label, `a:${n}`).row());
-        const msg = await send(rc.chatId, `${heard(rc)}${q.question}`, keyboard, rc.botArgs.photoMessageId);
+        const msg = await send(rc.chatId, `${heard(rc)}${esc(q.question)}`, keyboard, rc.botArgs.photoMessageId);
         pending.set(rc.chatId, {
           kind: 'op-question',
           messageId: rc.messageId,
@@ -415,8 +456,9 @@ export function createBot(opts: CreateBotOptions): BotHandle {
   }
 
   /**
-   * Hold-point progress for photos filed into required categories, from the data with the change applied:
-   * "Slab inspection before pour photos: 2 of 3. Still needed: Membrane and termite barrier."
+   * Hold-point progress for photos filed into required categories, from the data with the change applied
+   * (plain lines, escape before sending): "Slab inspection before pour photos: 2 of 3. Still needed: Membrane
+   * and termite barrier."
    */
   function holdPointLines(after: Dataset, changes: Change[]): string[] {
     const lines: string[] = [];
@@ -491,10 +533,10 @@ export function createBot(opts: CreateBotOptions): BotHandle {
   async function handleParse(result: ParseResult, rc: RunContext): Promise<void> {
     switch (result.kind) {
       case 'reply':
-        await send(rc.chatId, heard(rc) + (result.text.length > MAX_MODEL_REPLY ? `${result.text.slice(0, MAX_MODEL_REPLY - 1).trimEnd()}…` : result.text));
+        await send(rc.chatId, heard(rc) + esc(result.text.length > MAX_MODEL_REPLY ? `${result.text.slice(0, MAX_MODEL_REPLY - 1).trimEnd()}…` : result.text));
         return;
       case 'question': {
-        await send(rc.chatId, heard(rc) + result.text);
+        await send(rc.chatId, heard(rc) + esc(result.text));
         pending.set(rc.chatId, {
           kind: 'parser-question',
           messageId: rc.messageId,
@@ -545,14 +587,14 @@ export function createBot(opts: CreateBotOptions): BotHandle {
 
   async function parse(chatId: number, text: string, history: ChatMsg[]): Promise<ParseResult | null> {
     if (!parser) {
-      await send(chatId, NO_MODEL_REPLY);
+      await send(chatId, esc(NO_MODEL_REPLY));
       return null;
     }
     try {
       return await parser.parse(text, parseContext(history));
     } catch (e) {
       log.error('Parser failed', e);
-      await send(chatId, "I couldn't read that just now (the language model didn't answer). Try again in a minute. Nothing saved.");
+      await send(chatId, esc("I couldn't read that just now (the language model didn't answer). Try again in a minute. Nothing saved."));
       return null;
     }
   }
@@ -580,7 +622,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     if (p.kind === 'op-question' && p.options?.length) {
       const opt = matchOption(text, p.options);
       if (opt) {
-        if (p.questionMessageId) await edit(chatId, p.questionMessageId, `${p.question}\n→ ${opt.label}`);
+        if (p.questionMessageId) await edit(chatId, p.questionMessageId, answeredText(p.question, opt.label));
         await resumeQuestion(p, chatId, opt);
         return;
       }
@@ -631,7 +673,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     return cards.get(csId)?.jobIds ?? jobIdsOfChanges(ds, changesOf(ds, csId));
   }
 
-  /** "Park Rd finishes Fri 12 Mar 2027, +14 days, $9,000 since last Monday." per touched build job. */
+  /** "Park Rd finishes <b>Fri 12 Mar 2027</b>: +14 days · $9,000 holding cost since last Monday" per touched build job (HTML). */
   function finishLines(ds: Dataset, jobIds: string[]): string[] {
     const today = clock.today();
     const out: string[] = [];
@@ -663,8 +705,8 @@ export function createBot(opts: CreateBotOptions): BotHandle {
         // Decision: a card that would now break a rule (e.g. a hold-point photo undone since) is cancelled, not kept.
         store.cancelChangeSet(csId);
         for (const path of photoPathsOf(store.load(), csId)) unsettled.add(path);
-        if (msgId) await edit(chatId, msgId, `Not saved: ${cs.summary}.`);
-        await send(chatId, `${e.reason}${/[.!?]$/.test(e.reason) ? '' : '.'} Nothing saved.`);
+        if (msgId) await edit(chatId, msgId, outcomeText('Not saved', null, cs.summary));
+        await send(chatId, `${b('Nothing saved')}\n${esc(`${e.reason}${/[.!?]$/.test(e.reason) ? '' : '.'}`)}`);
         log.info(`Refused at Confirm ${csId}: ${e.reason}`);
         return 'Not saved';
       }
@@ -673,8 +715,8 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       return 'Out of date';
     }
     const after = store.load();
-    const lines = [`Saved. ${cs.summary}.`, ...finishLines(after, jobIdsFor(after, csId)), ...holdPointLines(after, changesOf(after, csId))];
-    if (msgId) await edit(chatId, msgId, lines.join('\n'), undoKeyboard(csId));
+    const more = [...finishLines(after, jobIdsFor(after, csId)), ...holdPointLines(after, changesOf(after, csId)).map(esc)];
+    if (msgId) await edit(chatId, msgId, outcomeText(`Saved ${SAVED_MARK}`, null, cs.summary, more), undoKeyboard(csId));
     log.info(`Confirmed ${csId}: ${cs.summary}`);
     return 'Saved';
   }
@@ -683,14 +725,14 @@ export function createBot(opts: CreateBotOptions): BotHandle {
   async function stale(chatId: number, csId: string, msgId: number | undefined): Promise<void> {
     const { cs } = findChangeSet(csId);
     if (cs?.status === 'proposed') store.cancelChangeSet(csId);
-    if (msgId) await edit(chatId, msgId, `Out of date, nothing saved: ${cs?.summary ?? 'that change'}.`);
+    if (msgId) await edit(chatId, msgId, outcomeText('Out of date', 'nothing saved', cs?.summary ?? 'That change'));
     const card = cards.get(csId);
     const calls: Call[] | null = card?.calls ?? (cs?.opName && getOperation(cs.opName) && cs.opArgs && typeof cs.opArgs === 'object' && !Array.isArray(cs.opArgs) ? [{ op: cs.opName, args: cs.opArgs as Record<string, unknown> }] : null);
     if (!calls) {
-      await send(chatId, 'That card was out of date: something changed since I made it. Nothing saved. Send the change again.');
+      await send(chatId, esc('That card was out of date: something changed since I made it. Nothing saved. Send the change again.'));
       return;
     }
-    await send(chatId, "That card was out of date: something changed since I made it, so nothing was saved. Here's a fresh one.");
+    await send(chatId, esc("That card was out of date: something changed since I made it, so nothing was saved. Here's a fresh one."));
     await runCalls(calls, { chatId, messageId: card?.messageId ?? cs?.messageId ?? null, transcript: card?.transcript ?? null, history: card?.history ?? [], botArgs: card?.botArgs ?? botArgsOf(csId) });
   }
 
@@ -703,7 +745,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     store.cancelChangeSet(csId);
     // Its photo file goes too (after this update, once nothing else refers to it).
     for (const path of photoPathsOf(store.load(), csId)) unsettled.add(path);
-    if (msgId) await edit(chatId, msgId, `Cancelled, nothing saved: ${cs.summary}.`);
+    if (msgId) await edit(chatId, msgId, outcomeText('Cancelled', 'nothing saved', cs.summary));
     return 'Cancelled';
   }
 
@@ -723,8 +765,8 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     const ask = 'What should it be instead? Send the correction and I\'ll make a new card.';
     setAsidePending(chatId);
     pending.set(chatId, { kind: 'edit', history: [...history, { role: 'assistant', content: ask }], transcript: card?.transcript ?? null, botArgs: card?.botArgs ?? botArgsOf(csId), askedAt: nowMs() });
-    if (msgId) await edit(chatId, msgId, `Changing this one (not saved): ${cs.summary}.`);
-    await send(chatId, ask);
+    if (msgId) await edit(chatId, msgId, outcomeText('Changing this one', 'not saved', cs.summary));
+    await send(chatId, esc(ask));
     return 'Send the correction';
   }
 
@@ -820,7 +862,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
         const p = next.pending;
         const keyboard = p.options?.length ? new InlineKeyboard() : undefined;
         p.options?.forEach((o, n) => keyboard!.text(o.label, `a:${n}`).row());
-        const msg = await send(chatId, `Back to this photo: ${p.question}`, keyboard, p.botArgs.photoMessageId);
+        const msg = await send(chatId, `Back to this photo: ${esc(p.question)}`, keyboard, p.botArgs.photoMessageId);
         pending.set(chatId, { ...p, questionMessageId: msg.message_id, askedAt: nowMs() });
       }
     }
@@ -859,7 +901,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     if (!v) return;
     if (!opts.transcriber || !media) {
       log.warn(`Voice note not read: ${!opts.transcriber ? 'no transcriber set up (TRANSCRIBER)' : 'no data folder for audio'}.`);
-      await send(chatId, "Voice notes aren't switched on here yet, so I couldn't listen to that. Type it instead. Nothing saved.");
+      await send(chatId, esc("Voice notes aren't switched on here yet, so I couldn't listen to that. Type it instead. Nothing saved."));
       return;
     }
     await bot.api.sendChatAction(chatId, 'typing').catch(() => undefined);
@@ -869,7 +911,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       saved = await media.saveAudio(data, { date: clock.today(), ext: extensionFor(telegramPath, v.mime_type, 'ogg') });
     } catch (e) {
       log.error('Voice note download failed', e);
-      await send(chatId, e instanceof TooBigError ? TOO_BIG : "I couldn't download that voice note from Telegram. Send it again in a minute. Nothing saved.");
+      await send(chatId, esc(e instanceof TooBigError ? TOO_BIG : "I couldn't download that voice note from Telegram. Send it again in a minute. Nothing saved."));
       return;
     }
     let transcript = '';
@@ -878,12 +920,12 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     } catch (e) {
       log.error(`Transcription failed (${opts.transcriber.name ?? 'transcriber'})`, e);
       await media.removeAudio(saved.storedPath).catch(() => undefined);
-      await send(chatId, "Sorry, I couldn't make out that voice note: the transcriber didn't work. Nothing saved. Try again, or type it.");
+      await send(chatId, esc("Sorry, I couldn't make out that voice note: the transcriber didn't work. Nothing saved. Try again, or type it."));
       return;
     }
     if (!transcript) {
       await media.removeAudio(saved.storedPath).catch(() => undefined);
-      await send(chatId, "I couldn't hear any words in that voice note. Nothing saved. Try again, or type it.");
+      await send(chatId, esc("I couldn't hear any words in that voice note. Nothing saved. Try again, or type it."));
       return;
     }
     const inbound = store.recordInbound({
@@ -913,7 +955,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     const chatId = ctx.chat!.id;
     if (!media) {
       log.warn('Photo not kept: no data folder for photos.');
-      await send(chatId, "Photos aren't switched on here yet (no data folder), so I couldn't keep that one. Nothing saved.");
+      await send(chatId, esc("Photos aren't switched on here yet (no data folder), so I couldn't keep that one. Nothing saved."));
       return;
     }
     let filePath: string;
@@ -922,7 +964,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       data = (await download(file.fileId, file.size)).data;
     } catch (e) {
       log.error('Photo download failed', e);
-      await send(chatId, e instanceof TooBigError ? TOO_BIG : "I couldn't download that photo from Telegram. Send it again in a minute. Nothing saved.", undefined, m.message_id);
+      await send(chatId, esc(e instanceof TooBigError ? TOO_BIG : "I couldn't download that photo from Telegram. Send it again in a minute. Nothing saved."), undefined, m.message_id);
       return;
     }
     // The stored extension comes from the bytes, never the sender's file name or mime type: only real
@@ -930,7 +972,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     const ext = detectImageType(data);
     if (!ext) {
       log.warn(`Refused a file sent as a photo (${file.mime ?? 'no mime type'}${file.name ? `, "${file.name}"` : ''}): not JPEG, PNG, WebP or HEIC.`);
-      await send(chatId, NOT_A_PHOTO, undefined, m.message_id);
+      await send(chatId, esc(NOT_A_PHOTO), undefined, m.message_id);
       return;
     }
     filePath = (await media.savePhoto(data, { date: clock.today(), ext })).filePath;
@@ -948,14 +990,14 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     log.info(`Photo ${inbound.id} saved as ${filePath}${file.compressed ? ' (compressed by Telegram)' : ' (sent as a file, full resolution)'}${caption ? `, caption "${caption}"` : ''}.`);
     if (file.compressed && !media.flag(PHOTO_TIP_FLAG)) {
       media.setFlag(PHOTO_TIP_FLAG);
-      await send(chatId, PHOTO_TIP);
+      await send(chatId, esc(PHOTO_TIP));
     }
     const photo: IncomingPhoto = { inboundId: inbound.id, filePath, caption, telegramMessageId: m.message_id, mediaGroupId: groupId };
     if (isPhotoQuestion(livePending(chatId))) {
       // One question at a time: this photo waits until the open one is answered.
       queueOf(chatId).push({ kind: 'photo', photo });
       log.info(`Photo ${filePath} waits behind the open photo question.`);
-      if (!groupId) await send(chatId, "Got it. I'll ask about this one when the photo before it is sorted.", undefined, m.message_id);
+      if (!groupId) await send(chatId, esc("Got it. I'll ask about this one when the photo before it is sorted."), undefined, m.message_id);
       return;
     }
     if (pending.has(chatId)) {
@@ -1011,12 +1053,12 @@ export function createBot(opts: CreateBotOptions): BotHandle {
 
   async function remindersOnRequest(chatId: number): Promise<void> {
     if (!opts.remindersNow) {
-      await send(chatId, "Reminders aren't connected in this run.");
+      await send(chatId, esc("Reminders aren't connected in this run."));
       return;
     }
-    const text = await opts.remindersNow();
+    const text = await opts.remindersNow(); // Telegram HTML from the server's reminders
     // The full list: split only at Telegram's 4096-character limit, on line breaks.
-    for (const part of splitText(text ?? `Nothing due right now, ${formatDate(clock.today(), clock.today())}.`)) await send(chatId, part);
+    for (const part of splitText(text ?? esc(`Nothing due right now, ${formatDate(clock.today(), clock.today())}.`))) await send(chatId, part);
     log.info(`Reminders sent on request${text ? '' : ' (none due)'}.`);
   }
 
@@ -1027,20 +1069,19 @@ export function createBot(opts: CreateBotOptions): BotHandle {
   async function undo(chatId: number, csId: string, cardMsgId?: number): Promise<void> {
     const { cs } = findChangeSet(csId);
     if (!cs) {
-      await send(chatId, "I can't find that change.");
+      await send(chatId, esc("I can't find that change."));
       return;
     }
     const r = store.undo(csId);
     if (!r.ok) {
-      await send(chatId, r.reason);
+      await send(chatId, `${b('Not undone')}\n${esc(r.reason)}`);
       return;
     }
     const after = store.load();
-    const lines = [`Undone: ${cs.summary}.`, ...finishLines(after, jobIdsFor(after, csId))];
-    await send(chatId, lines.join('\n'));
+    await send(chatId, outcomeText('Undone', null, cs.summary, finishLines(after, jobIdsFor(after, csId))));
     const card = cards.get(csId);
     const msgId = cardMsgId ?? card?.telegramMessageId;
-    if (msgId) await edit(chatId, msgId, `Undone: ${cs.summary}.`);
+    if (msgId) await edit(chatId, msgId, outcomeText('Undone', null, cs.summary));
     log.info(`Undone ${csId}: ${cs.summary}`);
   }
 
@@ -1052,7 +1093,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       .filter((c) => c.status === 'confirmed' && c.messageId && telegramMsgs.has(c.messageId))
       .sort((a, b) => (b.confirmedAt ?? '').localeCompare(a.confirmedAt ?? ''))[0];
     if (!latest) {
-      await send(chatId, 'Nothing to undo.');
+      await send(chatId, esc('Nothing to undo.'));
       return;
     }
     await undo(chatId, latest.id);
@@ -1062,12 +1103,12 @@ export function createBot(opts: CreateBotOptions): BotHandle {
   async function undoReplied(chatId: number, replyTo: Message): Promise<void> {
     const csId = cardByTelegramId.get(`${chatId}:${replyTo.message_id}`) ?? changeSetIdFromMarkup(replyTo);
     if (!csId) {
-      await send(chatId, "I can't tell which change that message is. Reply \"undo\" to a saved card, or send /undo for the latest one.");
+      await send(chatId, esc("I can't tell which change that message is. Reply \"undo\" to a saved card, or send /undo for the latest one."));
       return;
     }
     const { cs } = findChangeSet(csId);
     if (cs?.status === 'proposed') {
-      await send(chatId, 'That one was never saved. Tap Cancel on it instead.');
+      await send(chatId, esc('That one was never saved. Tap Cancel on it instead.'));
       return;
     }
     await undo(chatId, csId, replyTo.message_id);
@@ -1101,7 +1142,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
     } catch (e) {
       log.error(`Error handling update ${ctx.update.update_id}`, e);
       if (ctx.callbackQuery) await ctx.answerCallbackQuery({ text: 'Something went wrong' }).catch(() => undefined);
-      if (ctx.chat) await send(ctx.chat.id, SOMETHING_WRONG).catch(() => undefined);
+      if (ctx.chat) await send(ctx.chat.id, esc(SOMETHING_WRONG)).catch(() => undefined);
     }
     // Then: the next waiting photo (if no question is open) and tidying unfiled photo files.
     if (ctx.chat) {
@@ -1109,7 +1150,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
         await afterTurn(ctx.chat.id);
       } catch (e) {
         log.error('Follow-up after an update failed', e);
-        await send(ctx.chat.id, SOMETHING_WRONG).catch(() => undefined);
+        await send(ctx.chat.id, esc(SOMETHING_WRONG)).catch(() => undefined);
       }
     }
   });
@@ -1132,19 +1173,14 @@ export function createBot(opts: CreateBotOptions): BotHandle {
       return;
     }
     if (cmd === 'start' || cmd === 'help') {
-      await send(
-        chatId,
-        'Tell me a change in plain words or a voice note, e.g. "Park Rd windows now arriving 16 Nov", and I\'ll show a card to confirm. ' +
-          'Send site photos with a caption like "Seaview plumbing under slab" (as a file keeps full resolution). ' +
-          'Ask things like "what\'s Park Rd\'s finish?". /reminders shows what\'s due. /undo reverses the last saved change.',
-      );
+      await send(chatId, HELP_TEXT);
       return;
     }
     if (cmd === 'cancel') {
       pending.delete(chatId);
       const waiting = photoQueue.get(chatId)?.length ?? 0;
       photoQueue.delete(chatId);
-      await send(chatId, waiting ? `OK, dropped it and the ${waiting} photo${waiting === 1 ? '' : 's'} waiting behind it. Nothing saved.` : 'OK, dropped it. Nothing saved.');
+      await send(chatId, esc(waiting ? `OK, dropped it and the ${waiting} photo${waiting === 1 ? '' : 's'} waiting behind it. Nothing saved.` : 'OK, dropped it. Nothing saved.'));
       return;
     }
     await handleInbound(chatId, inbound, text, { replyTo: ctx.message.reply_to_message });
@@ -1175,7 +1211,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
         note = 'That question has expired. Send the message again.';
       } else {
         const opt = p.options[n]!;
-        if (qMsg) await edit(chatId, qMsg, `${p.question}\n→ ${opt.label}`);
+        if (qMsg) await edit(chatId, qMsg, answeredText(p.question, opt.label));
         await resumeQuestion(p, chatId, opt);
       }
     } else note = 'That button no longer works.';
@@ -1199,7 +1235,7 @@ export function createBot(opts: CreateBotOptions): BotHandle {
   });
 
   bot.on('message', async (ctx) => {
-    await send(ctx.chat.id, 'I can read text, voice notes and photos. Send one of those and I\'ll take it from there.');
+    await send(ctx.chat.id, esc("I can read text, voice notes and photos. Send one of those and I'll take it from there."));
   });
 
   bot.catch((err) => {

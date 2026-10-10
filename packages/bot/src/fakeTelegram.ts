@@ -6,10 +6,14 @@
  * returns fake results; updates are fed with bot.handleUpdate. Sent messages
  * are kept by id (with edits applied) so a test can reply to one or press
  * one of its buttons.
+ *
+ * Like Telegram, it insists on well-formed HTML: a sendMessage or editMessageText without parse_mode HTML,
+ * or with markup Telegram would refuse (an unknown or unclosed tag, a bare "<" or "&"), gets a 400 "can't
+ * parse entities" error. `text` is what Dominic reads (markup stripped); `html` is what was sent.
  */
 import type { Transformer } from 'grammy';
 import type { InlineKeyboardMarkup, Message, Update, UserFromGetMe } from 'grammy/types';
-import { fixedClock, type Clock, type Store } from '@ct/core';
+import { fixedClock, htmlToPlain, type Clock, type Store } from '@ct/core';
 import type { Parser } from '@ct/llm';
 import { createBot, type BotHandle, type BotLog } from './bot.js';
 import type { FileDownloader, MediaStore } from './media.js';
@@ -39,12 +43,43 @@ export interface ApiCall {
 export interface SentMessage {
   messageId: number;
   chatId: number;
+  /** As Telegram shows it: markup stripped, entities decoded. */
   text: string;
+  /** As sent (Telegram HTML). */
+  html: string;
   /** Button callback data, flattened in order. */
   buttons: { text: string; data: string }[];
   markup: InlineKeyboardMarkup | undefined;
-  /** Every text this message had, oldest first (edits append). */
+  /** Every text this message had, oldest first (edits append), as shown (markup stripped). */
   history: string[];
+}
+
+const TELEGRAM_TAGS = new Set(['b', 'strong', 'i', 'em', 'u', 'ins', 's', 'strike', 'del', 'code', 'pre', 'a', 'tg-spoiler', 'span', 'blockquote', 'tg-emoji']);
+
+/**
+ * Why Telegram would refuse this HTML (parse_mode HTML), or null when it's fine: tags must be ones Telegram
+ * knows, properly nested and closed, and every "<", ">" and "&" not part of a tag or entity must be escaped.
+ */
+export function telegramHtmlError(html: string): string | null {
+  const stack: string[] = [];
+  const token = /<\/?([a-z-]+)(\s[^<>]*)?>|&(#\d+|#x[0-9a-f]+|lt|gt|amp|quot);|[<>&]/gi;
+  for (const m of html.matchAll(token)) {
+    const t = m[0];
+    if (t.startsWith('&') && t.length > 1) continue;
+    if (t === '<' || t === '>' || t === '&') return `unescaped "${t}" at ${m.index}`;
+    const name = m[1]!.toLowerCase();
+    if (!TELEGRAM_TAGS.has(name)) return `unsupported tag <${name}>`;
+    if (t.startsWith('</')) {
+      if (stack.pop() !== name) return `unexpected end tag </${name}>`;
+    } else stack.push(name);
+  }
+  return stack.length ? `unclosed <${stack.at(-1)}>` : null;
+}
+
+function refuseHtml(payload: Record<string, unknown>): { ok: false; error_code: 400; description: string } | null {
+  if (payload.parse_mode !== 'HTML') return { ok: false, error_code: 400, description: 'Bad Request: fake Telegram expects parse_mode HTML on every message' };
+  const err = telegramHtmlError(String(payload.text));
+  return err ? { ok: false, error_code: 400, description: `Bad Request: can't parse entities: ${err}` } : null;
 }
 
 export function memoryBotLog(): BotLog & { lines: string[] } {
@@ -112,8 +147,10 @@ export interface Harness {
   document(data: Uint8Array, o?: { caption?: string; mime?: string; fileName?: string; from?: number; fileSize?: number | null; tooBig?: boolean }): Promise<ApiCall[]>;
   /** The id of the user message most recently fed (photos: what questions and cards reply to). */
   lastUserMessageId(): number;
-  /** Texts the bot sent (sendMessage) in a slice of calls, or overall. */
+  /** Texts the bot sent (sendMessage) in a slice of calls, or overall, as shown (markup stripped). */
   sent(calls?: ApiCall[]): string[];
+  /** The same, as sent (Telegram HTML). */
+  sentHtml(calls?: ApiCall[]): string[];
   /** The newest bot message carrying a button with this text. */
   lastWithButton(buttonText: string): SentMessage;
   /** The newest message the bot sent. */
@@ -130,12 +167,17 @@ export function createHarness(o: HarnessOptions): Harness {
 
   const transport = (async (_prev: unknown, method: string, payload: Record<string, unknown>) => {
     calls.push({ method, payload });
+    if (method === 'sendMessage' || method === 'editMessageText') {
+      const refused = refuseHtml(payload);
+      if (refused) return refused;
+    }
     if (method === 'sendMessage') {
       const id = ++nextBotMsg;
       const markup = payload.reply_markup as InlineKeyboardMarkup | undefined;
-      const text = String(payload.text);
+      const html = String(payload.text);
+      const text = htmlToPlain(html);
       const chatId = Number(payload.chat_id);
-      messages.set(id, { messageId: id, chatId, text, markup, buttons: buttonsOf(markup), history: [text] });
+      messages.set(id, { messageId: id, chatId, text, html, markup, buttons: buttonsOf(markup), history: [text] });
       return {
         ok: true,
         result: { message_id: id, date, chat: { id: chatId, type: 'private', first_name: 'Dominic' }, from: BOT_INFO, text, ...(markup ? { reply_markup: markup } : {}) },
@@ -144,7 +186,8 @@ export function createHarness(o: HarnessOptions): Harness {
     if (method === 'editMessageText') {
       const m = messages.get(Number(payload.message_id));
       if (m) {
-        m.text = String(payload.text);
+        m.html = String(payload.text);
+        m.text = htmlToPlain(m.html);
         m.history.push(m.text);
         m.markup = payload.reply_markup as InlineKeyboardMarkup | undefined;
         m.buttons = buttonsOf(m.markup);
@@ -284,6 +327,9 @@ export function createHarness(o: HarnessOptions): Harness {
     },
     update: feed,
     sent(slice) {
+      return (slice ?? calls).filter((c) => c.method === 'sendMessage').map((c) => htmlToPlain(String(c.payload.text)));
+    },
+    sentHtml(slice) {
       return (slice ?? calls).filter((c) => c.method === 'sendMessage').map((c) => String(c.payload.text));
     },
     lastWithButton(buttonText) {

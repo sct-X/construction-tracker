@@ -4,8 +4,10 @@
  * server (the server depends on the bot, not the other way round).
  */
 import type { Api } from 'grammy';
+import { clipLine } from './html.js';
 
 export interface ReminderNotification {
+  /** Telegram HTML (the server's reminder digest escapes job and item names). */
   text: string;
   reminders?: unknown[];
 }
@@ -25,12 +27,17 @@ export function createTelegramNotifier(api: Api, chatId: number | string): Teleg
       const [first, ...rest] = splitText(n.text, MAX);
       // Only the first part decides success: if a later part fails, throwing would make the scheduler
       // resend the whole message (part 1 twice). A later part is tried twice, then given up.
-      await api.sendMessage(chatId, first!);
-      for (const part of rest) await api.sendMessage(chatId, part).catch(() => api.sendMessage(chatId, part).catch(() => undefined));
+      const html = { parse_mode: 'HTML' } as const;
+      await api.sendMessage(chatId, first!, html);
+      for (const part of rest) await api.sendMessage(chatId, part, html).catch(() => api.sendMessage(chatId, part, html).catch(() => undefined));
     },
   };
 }
 
+/**
+ * Splits a long message on line breaks into parts of at most `max` characters. Safe for Telegram HTML: no
+ * tag spans a line, and a single line too long on its own is clipped as text (its markup dropped).
+ */
 export function splitText(text: string, max = MAX): string[] {
   if (text.length <= max) return [text];
   const out: string[] = [];
@@ -42,8 +49,9 @@ export function splitText(text: string, max = MAX): string[] {
       continue;
     }
     if (cur) out.push(cur);
-    cur = line.length > max ? line.slice(0, max - 1) + '…' : line;
+    cur = clipLine(line, max);
   }
   if (cur) out.push(cur);
-  return out;
+  // A part never starts or ends on a blank line (the blank lines between blocks stay inside parts).
+  return out.map((p) => p.replace(/^\n+|\n+$/g, '')).filter(Boolean);
 }

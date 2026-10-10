@@ -17,3 +17,4 @@ export * from './store.js';
 export * from './api.js';
 export * from './seed/index.js';
 export * from './readModelsProgram.js';
+export * from './telegramHtml.js';

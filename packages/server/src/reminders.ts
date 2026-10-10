@@ -7,8 +7,12 @@
  * reminder_sent (migration 002) so each goes out once. The scheduler calls it
  * every minute after the reminder time; the bot calls it for "fire reminders".
  * With the bot running, the Notifier is the bot's Telegram notifier (Dominic's chat); otherwise the log.
+ *
+ * The digest is Telegram HTML (parse_mode HTML): bold job names, "•" items, overdue first and marked
+ * "⚠️ Overdue by ..." in words; job and item names go through core's escapeHtml. Reminder.text and
+ * Reminder.line stay plain (reminder_sent, logs, tests).
  */
-import { addCalendarDays, calendarDaysBetween, formatDate, freshnessFor, freshnessWords, mondayRows, relativeDays, sydneyDate, type Clock, type Dataset, type ISODate, type Job } from '@ct/core';
+import { addCalendarDays, calendarDaysBetween, escapeHtml, formatDate, freshnessFor, freshnessWords, htmlToPlain, mondayRows, relativeDays, sydneyDate, type Clock, type Dataset, type ISODate, type Job } from '@ct/core';
 import type { Log } from './config.js';
 import type { SqliteStore } from './sqliteStore.js';
 
@@ -29,8 +33,14 @@ export interface Reminder {
   dueOn: ISODate | null;
   /** One short plain-English line, dates like "Fri 18 Sep". */
   text: string;
-  /** The same without the job name, for the digest under the job: "Book concrete pump. Act by Fri 18 Sep (tomorrow)." */
+  /** The same without the job name: "Book concrete pump. Act by Fri 18 Sep (tomorrow)." */
   line: string;
+  /**
+   * The digest's words for it, Telegram HTML: an item "Book concrete pump: act by Fri 18 Sep (tomorrow)" or
+   * "⚠️ Overdue by 3 days: Tile choice, act by Mon 14 Sep"; a job "not confirmed for 9 days. Check it and
+   * confirm the job." (after its bold name).
+   */
+  html: string;
   /** An act-by already passed (shown first). */
   overdue: boolean;
   /**
@@ -40,7 +50,10 @@ export interface Reminder {
   repeatWeekly: boolean;
 }
 
-/** The daily digest's longest body (job lines, item lines and the "+N more" line). */
+/** The one mark for overdue (the bot's cards and answers use the same). */
+export const OVERDUE_MARK = '⚠️';
+
+/** The daily digest's longest body (job lines, item lines and the "+N more" line; blank lines don't count). */
 export const DIGEST_MAX_LINES = 15;
 /** Days between repeats of a long-past or unconfirmed reminder. */
 export const REPEAT_EVERY_DAYS = 7;
@@ -48,7 +61,7 @@ export const REPEAT_EVERY_DAYS = 7;
 export const TELEGRAM_MAX_CHARS = 4096;
 
 export interface Notification {
-  /** The whole message as Dominic reads it. */
+  /** The whole message, Telegram HTML (parse_mode HTML). */
   text: string;
   reminders: Reminder[];
 }
@@ -61,7 +74,7 @@ export interface Notifier {
 export function logNotifier(log: Log): Notifier {
   return {
     async send(n) {
-      log.info(`Reminder:\n${n.text}`);
+      log.info(`Reminder:\n${htmlToPlain(n.text)}`);
     },
   };
 }
@@ -92,6 +105,10 @@ export function computeReminders(ds: Dataset, today: ISODate): Reminder[] {
       const stage = r.actBy <= today ? 'due' : 'soon';
       const when = relativeDays(r.actBy, today, { deadline: true });
       const line = `${r.title}. Act by ${formatDate(r.actBy, today)} (${when}).`;
+      const overdue = r.actBy < today;
+      const html = overdue
+        ? `${OVERDUE_MARK} ${escapeHtml(when.charAt(0).toUpperCase() + when.slice(1))}: ${escapeHtml(r.title)}, act by ${formatDate(r.actBy, today)}`
+        : `${escapeHtml(r.title)}: act by ${formatDate(r.actBy, today)} (${when})`;
       out.push({
         key: `actby:${r.itemId}:${r.actBy}:${stage}`,
         kind: 'act_by',
@@ -101,7 +118,8 @@ export function computeReminders(ds: Dataset, today: ISODate): Reminder[] {
         dueOn: r.actBy,
         text: `${row.name}: ${line}`,
         line,
-        overdue: r.actBy < today,
+        html,
+        overdue,
         repeatWeekly: stage === 'due',
       });
     }
@@ -121,6 +139,7 @@ export function computeReminders(ds: Dataset, today: ISODate): Reminder[] {
       dueOn: job.lastConfirmed ? addCalendarDays(job.lastConfirmed, 8) : null,
       text: unconfirmedText(job, today),
       line: unconfirmedText(job, today).slice(job.name.length + 2),
+      html: escapeHtml(unconfirmedText(job, today).slice(job.name.length + 2)),
       overdue: false,
       repeatWeekly: true,
     });
@@ -135,11 +154,11 @@ export function unconfirmedText(job: Job, today: ISODate): string {
 }
 
 /**
- * The reminders as lines grouped by job: "<Job>:" (or "<Job>: not confirmed for 9 days. ...") then "- <item>"
- * lines. Overdue first: jobs with something overdue lead, overdue items lead within a job (earliest act-by
- * first), otherwise the input (Monday) order. With `maxLines`, what fits is picked overdue items first, then
- * unconfirmed jobs, then items coming up, and the last line is "+N more: /reminders for the full list";
- * `shown` is what made it in.
+ * The reminders as Telegram HTML lines grouped by job: "<b>Job</b>" (or "<b>Job</b> · not confirmed for 9
+ * days. ...") then "• <item>" lines, a blank line between jobs. Overdue first: jobs with something overdue
+ * lead, overdue items lead within a job (earliest act-by first), otherwise the input (Monday) order. With
+ * `maxLines` (blank lines not counted), what fits is picked overdue items first, then unconfirmed jobs, then
+ * items coming up, and the last line is "+N more. Send /reminders for the full list."; `shown` is what made it in.
  */
 export function digestLines(reminders: Reminder[], opts: { maxLines?: number; extraMore?: number } = {}): { lines: string[]; shown: Reminder[] } {
   const firstIndex = new Map<string, number>();
@@ -177,22 +196,23 @@ export function digestLines(reminders: Reminder[], opts: { maxLines?: number; ex
   const lines: string[] = [];
   const shown: Reminder[] = [];
   for (const g of groups) {
-    lines.push(g.unconfirmed ? `${g.name}: ${g.unconfirmed.line}` : `${g.name}:`);
+    if (lines.length) lines.push('');
+    lines.push(`<b>${escapeHtml(g.name)}</b>${g.unconfirmed ? ` · ${g.unconfirmed.html}` : ''}`);
     if (g.unconfirmed) shown.push(g.unconfirmed);
     for (const r of g.items) {
-      lines.push(`- ${r.line}`);
+      lines.push(`• ${r.html}`);
       shown.push(r);
     }
   }
   const more = reminders.length - shown.length + extra;
-  if (more > 0) lines.push(`+${more} more: /reminders for the full list`);
+  if (more > 0) lines.push('', `+${more} more. Send /reminders for the full list.`);
   return { lines, shown };
 }
 
-/** The daily digest: a dated heading and at most DIGEST_MAX_LINES lines (see digestLines). */
+/** The daily digest (Telegram HTML): "<b>Reminders · Thu 17 Sep</b>" and at most DIGEST_MAX_LINES lines (see digestLines). */
 export function reminderText(reminders: Reminder[], today: ISODate, opts: { maxLines?: number; extraMore?: number } = {}): string {
   const { lines } = digestLines(reminders, { maxLines: opts.maxLines ?? DIGEST_MAX_LINES, ...(opts.extraMore ? { extraMore: opts.extraMore } : {}) });
-  return [`Reminders, ${formatDate(today, today)}:`, ...lines].join('\n');
+  return [`<b>Reminders · ${formatDate(today, today)}</b>`, '', ...lines].join('\n');
 }
 
 /**
@@ -204,7 +224,7 @@ export function manualReminderText(ds: Dataset, today: ISODate): string | null {
   const all = computeReminders(ds, today);
   if (!all.length) return null;
   const { lines } = digestLines(all);
-  return [`Reminders due now, ${formatDate(today, today)} (you asked, so this includes any already sent today):`, ...lines].join('\n');
+  return [`<b>Reminders due now · ${formatDate(today, today)}</b>`, 'You asked, so this includes any already sent today.', '', ...lines].join('\n');
 }
 
 export interface FireResult {

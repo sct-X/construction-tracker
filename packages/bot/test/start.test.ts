@@ -98,7 +98,7 @@ describe('startApp with the bot on: reminders go to Dominic on Telegram', () => 
 
   it('the scheduler\'s first pass sends the day\'s reminders through the bot to his chat (= his user id)', async () => {
     // A fake Telegram Bot API (TELEGRAM_API_ROOT): getMe, long polling that returns nothing, sendMessage.
-    const sent: { chat_id: unknown; text: string }[] = [];
+    const sent: { chat_id: unknown; text: string; parse_mode: unknown }[] = [];
     telegram = createServer((req, res) => {
       let body = '';
       req.on('data', (c) => (body += c));
@@ -109,7 +109,7 @@ describe('startApp with the bot on: reminders go to Dominic on Telegram', () => 
         if (method === 'getMe') return reply({ id: 1, is_bot: true, first_name: 'Tracker', username: 'ct_fake_bot' });
         if (method === 'getUpdates') return void setTimeout(() => reply([]), 20);
         if (method === 'sendMessage') {
-          sent.push({ chat_id: payload.chat_id, text: String(payload.text) });
+          sent.push({ chat_id: payload.chat_id, text: String(payload.text), parse_mode: payload.parse_mode });
           return reply({ message_id: sent.length, date: 0, chat: { id: payload.chat_id, type: 'private' }, text: payload.text });
         }
         return reply(true);
@@ -139,11 +139,12 @@ describe('startApp with the bot on: reminders go to Dominic on Telegram', () => 
     expect(app.notifier).toBe(app.bot!.notifier);
     const tick = await app.firstTick!;
     expect(tick.reminders!.sent.length).toBeGreaterThanOrEqual(2);
-    const daily = sent.filter((m) => m.text.startsWith('Reminders, Thu 17 Sep:'));
+    const daily = sent.filter((m) => m.text.startsWith('<b>Reminders · Thu 17 Sep</b>'));
     expect(daily).toHaveLength(1);
     expect(daily[0]!.chat_id).toBe('42');
-    expect(daily[0]!.text).toContain('Seaview St:\n- Book concrete pump. Act by Fri 18 Sep (tomorrow).');
-    expect(daily[0]!.text).toContain('Beatty St: not confirmed for 9 days.');
+    expect(daily[0]!.parse_mode).toBe('HTML');
+    expect(daily[0]!.text).toContain('<b>Seaview St</b>\n• Book concrete pump: act by Fri 18 Sep (tomorrow)');
+    expect(daily[0]!.text).toContain('<b>Beatty St</b> · not confirmed for 9 days.');
     expect(log.lines).toContain('info Reminders go to Dominic on Telegram from 07:00 Sydney.');
     expect(log.lines.some((l) => l.startsWith('info Voice notes off:'))).toBe(true);
     expect(existsSync(join(dir, 'photos', 'telegram', '2026-09-16-0123456789ab.jpg'))).toBe(false);

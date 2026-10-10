@@ -7,7 +7,8 @@
  *
  *   DATA_DIR=<dir> CT_TODAY=2026-09-17 tsx --tsconfig packages/server/tsconfig.json packages/server/scripts/bot-change.ts
  *
- * Prints the card and the saved text as JSON. Exit code 1 if no card came or Confirm didn't save.
+ * Prints the card and the saved text as JSON (as Dominic reads them, markup stripped; `cardHtml` is the
+ * Telegram HTML sent). Exit code 1 if no card came or Confirm didn't save.
  */
 import { clockFromOverride, fixedClock, isISODate } from '@ct/core';
 import { createParser, FakeLlm, toolCall } from '@ct/llm';
@@ -31,10 +32,11 @@ try {
   await h.text(FLOW_A_TEXT);
   const card = h.lastWithButton('Confirm');
   const cardText = card.text;
+  const cardHtml = card.html;
   await h.press(card.messageId, 'Confirm');
   const saved = h.messages.get(card.messageId)!.text;
-  const ok = saved.startsWith('Saved.');
-  console.log(JSON.stringify({ ok, card: cardText, saved }, null, 2));
+  const ok = saved.startsWith('Saved ✓');
+  console.log(JSON.stringify({ ok, card: cardText, cardHtml, saved }, null, 2));
   if (!ok) {
     console.error(h.log.lines.join('\n'));
     process.exitCode = 1;

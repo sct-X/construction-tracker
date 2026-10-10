@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { DEFAULT_TODAY, fixedClock, SEAVIEW, type Clock, type ProgramView } from '@ct/core';
+import { DEFAULT_TODAY, fixedClock, htmlToPlain, SEAVIEW, type Clock, type ProgramView } from '@ct/core';
 import { createParser, FakeLlm, toolCall, type LlmResponse } from '@ct/llm';
 import { buildServer, createScheduler, dataPaths, ensureDataDirs, manualReminderText, seedDatabase, SqliteStore, type DataPaths } from '@ct/server';
 import { createTelegramNotifier, diskMediaStore, FakeTranscriber, type FakeTranscript } from '../src/index.js';
@@ -22,7 +22,9 @@ const MEMBRANE = fixture('membrane.jpg');
 const STEEL = fixture('steel.jpg');
 
 const SLAB_SAID = 'slab inspection at Seaview is done';
-const REFUSAL = "Can't sign off Slab inspection before pour yet. No photos for: Plumbing under slab, Membrane and termite barrier.";
+/** Flow b's refusal as Dominic reads it: the hold point, what was heard, the 2 empty photo categories. */
+const REFUSAL = 'Seaview St · Slab inspection before pour';
+const REFUSAL_BODY = "Can't sign it off yet. No photos for:\n• Plumbing under slab\n• Membrane and termite barrier\n\nNothing saved.";
 
 let clock: Clock & { advance(ms: number): void };
 let dir: string;
@@ -96,11 +98,11 @@ async function filePhoto(data: Uint8Array, caption: string): Promise<string> {
   const calls = await h.photo(data, { caption });
   const photoMsg = h.lastUserMessageId();
   const card = h.lastWithButton('Confirm');
-  const cardSend = sendsIn(calls).find((c) => String(c.payload.text) === card.history[0]);
+  const cardSend = sendsIn(calls).find((c) => htmlToPlain(String(c.payload.text)) === card.history[0]);
   expect(cardSend && replyTo(cardSend), 'the card replies to the photo').toBe(photoMsg);
   const text = card.text;
   await h.press(card.messageId, 'Confirm');
-  expect(h.messages.get(card.messageId)!.text).toMatch(/^Saved\. Photo filed: Seaview St, Slab, /);
+  expect(h.messages.get(card.messageId)!.text).toMatch(/^Saved ✓\nPhoto filed: Seaview St, Slab, /);
   return text;
 }
 
@@ -114,7 +116,10 @@ describe('flow b: voice note on a hold point with empty photo categories', () =>
     const calls = await h.voice(OGG);
 
     const [reply] = h.sent(calls);
-    expect(reply).toBe(`Heard: "${SLAB_SAID}"\n\n${REFUSAL} Nothing saved.`);
+    expect(reply).toBe(`${REFUSAL}\n\nHeard: ${SLAB_SAID}\n\n${REFUSAL_BODY}`);
+    expect(h.sentHtml(calls)[0]).toBe(
+      `<b>${REFUSAL}</b>\n\nHeard: <i>${SLAB_SAID}</i>\n\nCan't sign it off yet. No photos for:\n• Plumbing under slab\n• Membrane and termite barrier\n\nNothing saved.`,
+    );
 
     // The transcriber got the stored file and a prompt primed with jobs, trades and site terms.
     expect(transcriber.calls).toHaveLength(1);
@@ -150,11 +155,11 @@ describe('flow c: three captioned photos, then flow b again', () => {
       [SLAB_SAID, SLAB_SAID],
     );
     await h.voice(OGG);
-    expect(h.last().text).toContain(REFUSAL);
+    expect(h.last().text).toContain(REFUSAL_BODY);
 
     const plumbingCard = await filePhoto(PLUMBING, 'Seaview plumbing under slab');
     expect(plumbingCard).toContain('Photo filed: Seaview St, Slab, Plumbing under slab.');
-    expect(plumbingCard).toContain('New photo: Plumbing under slab (Seaview St)');
+    expect(plumbingCard).toMatch(/^Seaview St · New photo\n\n/);
     expect(plumbingCard).toContain('Slab inspection before pour photos: 2 of 3. Still needed: Membrane and termite barrier.');
     // The caption went to the parser marked as a photo caption.
     expect(llm.requests[1]!.messages.at(-1)!.content).toBe('Photo caption: Seaview plumbing under slab');
@@ -185,11 +190,13 @@ describe('flow c: three captioned photos, then flow b again', () => {
     const calls = await h.voice(OGG);
     const card = h.lastWithButton('Confirm');
     expect(h.sent(calls)).toEqual([card.history[0]]);
-    expect(card.text).toMatch(new RegExp(`^Heard: "${SLAB_SAID}"`));
-    expect(card.text).toContain('Slab inspection before pour at Seaview St done Thu 17 Sep.');
+    expect(card.text).toMatch(new RegExp(`^Seaview St · Slab inspection before pour\n\nHeard: ${SLAB_SAID}\n\n`));
+    expect(card.html).toContain(`Heard: <i>${SLAB_SAID}</i>`);
+    expect(card.text).toContain('Status: Not started → Done');
+    expect(card.text).toContain('Finished: none → Thu 17 Sep');
     expect(slabInspection().status).not.toBe('done');
     await h.press(card.messageId, 'Confirm');
-    expect(h.messages.get(card.messageId)!.text).toMatch(/^Saved\. Slab inspection before pour at Seaview St done Thu 17 Sep\./);
+    expect(h.messages.get(card.messageId)!.text).toMatch(/^Saved ✓\nSlab inspection before pour at Seaview St done Thu 17 Sep\./);
     expect(slabInspection()).toMatchObject({ status: 'done', actualEnd: DEFAULT_TODAY });
     const program = await rpc<ProgramView>('getProgram', SEAVIEW);
     expect(JSON.stringify(program)).toContain('"sv-slab-insp"');
@@ -323,7 +330,7 @@ describe('photos', () => {
     clock.advance(61_000);
     await h.text('Beatty confirmed');
     expect(telegramPhotos()).toHaveLength(0);
-    expect(h.lastWithButton('Confirm').text).toContain('Beatty St confirmed');
+    expect(h.lastWithButton('Confirm').text).toMatch(/^Beatty St · Last confirmed\n\nTue 8 Sep → Thu 17 Sep/);
   });
 
   it('/cancel during a photo question deletes the file', async () => {
@@ -340,7 +347,7 @@ describe('photos', () => {
     const photoMsg = h.lastUserMessageId();
     await h.text('Beatty confirmed');
     const card = h.lastWithButton('Confirm');
-    expect(card.text).toContain('Beatty St confirmed');
+    expect(card.text).toMatch(/^Beatty St · Last confirmed\n/);
     const again = h.last();
     expect(again.text).toBe('Back to this photo: Which job is this photo for?');
     const send = h.calls.filter((c) => c.method === 'sendMessage').at(-1)!;
@@ -389,7 +396,8 @@ describe('photos', () => {
     await filePhoto(PLUMBING, 'Seaview plumbing under slab');
     await h.photo(MEMBRANE, { caption: 'Seaview membrane, slab inspection done' });
     const card = h.lastWithButton('Confirm');
-    expect(card.text).toContain('Photo filed: Seaview St, Slab, Membrane and termite barrier; Slab inspection before pour at Seaview St done Thu 17 Sep.');
+    // Several rows: one bullet each, the photo first, then the sign-off.
+    expect(card.text).toMatch(/^Seaview St · \d+ changes\n\n• New photo: Membrane and termite barrier \(Seaview St\)\n• Slab inspection before pour, status: Not started → Done\n/);
   });
 
   it('when the model is down, a captioned photo still gets asked about with buttons', async () => {
@@ -420,7 +428,7 @@ describe('voice notes: failures', () => {
   it('a spoken question is answered read-only, after what was heard', async () => {
     setup([toolCall('get_job_finish', { job: 'Park Rd' })], ["what's Park Rd's finish"]);
     const calls = await h.voice(OGG);
-    expect(h.sent(calls)[0]).toMatch(/^Heard: "what's Park Rd's finish"\n\nPark Rd finishes Fri 26 Feb 2027/);
+    expect(h.sent(calls)[0]).toMatch(/^Heard: what's Park Rd's finish\n\nPark Rd · Finish\nFri 26 Feb 2027, on track/);
     expect(newChangeSets()).toHaveLength(0);
   });
 
@@ -464,7 +472,7 @@ describe('voice notes: failures', () => {
         audio: { file_id: 'aud-1', file_unique_id: 'u-aud-1', duration: 4, mime_type: 'audio/mp4', file_size: 3 },
       },
     } as never);
-    expect(h.lastWithButton('Confirm').text).toMatch(/^Heard: "Beatty all confirmed"/);
+    expect(h.lastWithButton('Confirm').text).toMatch(/^Beatty St · Last confirmed\n\nHeard: Beatty all confirmed\n/);
     expect(newInbound()[0]!.audioPath).toMatch(/\.m4a$/);
   });
 });
@@ -479,9 +487,10 @@ describe('flow f: reminders to Telegram', () => {
     const calls = await h.text('fire reminders');
     const [text] = h.sent(calls);
     expect(sendsIn(calls)[0]!.payload.chat_id).toBe(DOMINIC_ID);
-    expect(text).toMatch(/^Reminders due now, Thu 17 Sep \(you asked, so this includes any already sent today\):/);
-    expect(text).toContain('Seaview St:\n- Book concrete pump. Act by Fri 18 Sep (tomorrow).');
-    expect(text).toContain('\nBeatty St: not confirmed for 9 days. Check it and confirm the job.');
+    expect(text).toMatch(/^Reminders due now · Thu 17 Sep\nYou asked, so this includes any already sent today\.\n\n/);
+    // Grouped under bold job names: Seaview St's pump act-by Fri 18 Sep; Beatty St not confirmed for 9 days.
+    expect(h.sentHtml(calls)[0]).toContain('\n\n<b>Seaview St</b>\n• Book concrete pump: act by Fri 18 Sep (tomorrow)');
+    expect(h.sentHtml(calls)[0]).toContain('\n\n<b>Beatty St</b> · not confirmed for 9 days. Check it and confirm the job.');
     expect(text).not.toMatch(/amber/i);
     expect(llm.requests).toHaveLength(0);
     expect(newChangeSets()).toHaveLength(0);
@@ -499,9 +508,10 @@ describe('flow f: reminders to Telegram', () => {
     const daily = sendsIn(h.calls.slice(before));
     expect(daily).toHaveLength(1);
     expect(daily[0]!.payload.chat_id).toBe(DOMINIC_ID);
-    expect(String(daily[0]!.payload.text)).toMatch(/^Reminders, Thu 17 Sep:/);
-    expect(String(daily[0]!.payload.text)).toContain('Seaview St:\n- Book concrete pump. Act by Fri 18 Sep (tomorrow).');
-    expect(String(daily[0]!.payload.text)).toContain('Beatty St: not confirmed for 9 days.');
+    expect(daily[0]!.payload.parse_mode).toBe('HTML');
+    expect(String(daily[0]!.payload.text)).toMatch(/^<b>Reminders · Thu 17 Sep<\/b>\n\n/);
+    expect(String(daily[0]!.payload.text)).toContain('<b>Seaview St</b>\n• Book concrete pump: act by Fri 18 Sep (tomorrow)');
+    expect(String(daily[0]!.payload.text)).toContain('<b>Beatty St</b> · not confirmed for 9 days.');
     expect(String(daily[0]!.payload.text)).not.toMatch(/amber/i);
 
     // Dedup: the next tick sends nothing.
@@ -511,7 +521,7 @@ describe('flow f: reminders to Telegram', () => {
 
     // On request, regardless of the dedup, labelled as such.
     const asked = await h.text('/reminders');
-    expect(h.sent(asked)[0]).toContain('(you asked, so this includes any already sent today)');
+    expect(h.sent(asked)[0]).toContain('You asked, so this includes any already sent today.');
     expect(h.sent(asked)[0]).toContain('Book concrete pump');
   });
 
@@ -560,14 +570,14 @@ describe('review 1: rules are re-checked at Confirm', () => {
     await filePhoto(MEMBRANE, 'Seaview membrane');
     await h.text('slab inspection done');
     const card = h.lastWithButton('Confirm');
-    expect(card.text).toContain('Slab inspection before pour at Seaview St done Thu 17 Sep.');
+    expect(card.text).toMatch(/^Seaview St · Slab inspection before pour\n\nStatus: Not started → Done\n/);
 
     const undo = await h.text('/undo');
-    expect(h.sent(undo)[0]).toMatch(/^Undone: Photo filed: Seaview St, Slab, Membrane and termite barrier\./);
+    expect(h.sent(undo)[0]).toMatch(/^Undone\nPhoto filed: Seaview St, Slab, Membrane and termite barrier\./);
 
     const pressed = await h.press(card.messageId, 'Confirm');
-    expect(h.sent(pressed)).toEqual(["Can't sign off Slab inspection before pour yet. No photos for: Membrane and termite barrier. Nothing saved."]);
-    expect(h.messages.get(card.messageId)!.text).toBe('Not saved: Slab inspection before pour at Seaview St done Thu 17 Sep.');
+    expect(h.sent(pressed)).toEqual(["Nothing saved\nCan't sign off Slab inspection before pour yet. No photos for: Membrane and termite barrier."]);
+    expect(h.messages.get(card.messageId)!.text).toBe('Not saved\nSlab inspection before pour at Seaview St done Thu 17 Sep.');
     expect(h.messages.get(card.messageId)!.buttons).toEqual([]);
     expect(slabInspection().status).not.toBe('done');
     expect(newChangeSets().at(-1)!.status).toBe('cancelled');
@@ -664,7 +674,7 @@ describe('review 8: a spoken "fire reminders" skips the LLM too', () => {
   it('sends the reminders due now', async () => {
     setup([], ['Fire reminders.']);
     const calls = await h.voice(OGG);
-    expect(h.sent(calls)[0]).toMatch(/^Reminders due now, Thu 17 Sep/);
+    expect(h.sent(calls)[0]).toMatch(/^Reminders due now · Thu 17 Sep\n/);
     expect(llm.requests).toHaveLength(0);
   });
 });

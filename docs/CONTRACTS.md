@@ -355,6 +355,12 @@ logNotifier(log), memoryNotifier() (.sent), reminderText(reminders, today), sent
 - unconfirmed (Stage 6b; was `amber`): live jobs (build and design) more than 7 days unconfirmed (`freshnessFor(job).amber`);
   key still `amber:<job>:<lastConfirmed|never>` so a reminder already sent isn't resent. Text, in words only (never "amber"):
   "Beatty St: not confirmed for 9 days. Check it and confirm the job." (`unconfirmedText`, from core `freshnessWords`).
+- Formatting (2026-10-10): the digest and /reminders are Telegram HTML: "<b>Reminders · Thu 17 Sep</b>", a blank line,
+  then per job "<b>Seaview St</b>" (or "<b>Beatty St</b> · not confirmed for 9 days. Check it and confirm the job.") and
+  "• Book concrete pump: act by Fri 18 Sep (tomorrow)" / "• ⚠️ Overdue by 3 days: Tile choice, act by Mon 14 Sep" (`Reminder.html`;
+  `text`/`line` stay plain), blank lines between jobs (not counted in the 15), last "+N more. Send /reminders for the full
+  list."; /reminders heads "<b>Reminders due now · Thu 17 Sep</b>" + "You asked, so this includes any already sent today.".
+  `logNotifier` logs `htmlToPlain(text)`. The older wording below is kept for history.
 - One digest message per run (Stage 6b): "Reminders, Thu 17 Sep:" then lines grouped by job, "<Job>:" (or "<Job>: not
   confirmed for 9 days. Check it and confirm the job.") and "- <item>. Act by Fri 18 Sep (tomorrow)." under it; jobs with
   something overdue first, overdue items first. At most `DIGEST_MAX_LINES` (15) body lines: picked overdue items first, then
@@ -843,6 +849,20 @@ Behaviour:
   Stage names "With council" / "With certifier" read "Pending approval" (card rows, design-job finish answer "It's at the
   Pending approval stage."). Booked with no expected date: core's question is sent with no buttons; the answer is parsed with
   the thread like any no-options question, then the card.
+- Formatting (2026-10-10, overrides the wording above; samples in docs/telegram-samples-after.md, before in
+  docs/telegram-samples-before.md, regenerate with `packages/bot/test/telegramSamples.ts`): every message and edit is sent
+  with `parse_mode: 'HTML'`; all user, model and database text goes through core `escapeHtml` (bot `esc`/`b`/`i` in
+  `html.ts`; `htmlToPlain` for logs and tests); no tag spans a line, so `splitText`/`clipHtml` cut on lines safely. Cards:
+  bold title "<Job> · <what>" (`cardTitle`: "Park Rd · Windows ETA"), "Heard: <i>...</i>", each field "Mon 26 Oct →
+  <b>Mon 16 Nov</b>" on its own line (one row, several fields: "Status: ..."; several rows: "• Row, field: ..."; a single
+  new row: core's summary), the impact block ("• Install windows: Mon 2 Nov → <b>Mon 16 Nov</b>", "Finish Fri 26 Feb 2027
+  → <b>Fri 12 Mar 2027</b>", "+14 days · $9,000 holding cost since last Monday"), notes, "Save this?". Outcomes
+  (`outcomeText`) edit the card to "<b>Saved ✓</b>" / "<b>Cancelled</b> · nothing saved" / "<b>Undone</b>" / "<b>Not
+  saved</b>" / "<b>Out of date</b> · nothing saved" / "<b>Changing this one</b> · not saved" + core's summary (+ finish
+  lines). Refusals "<b>Nothing saved</b>" + reason; a hold point lists the missing categories as bullets. Read answers
+  "<b><Job> · Finish|Waiting on|Why it moved|Next hold point|Shipments</b>" + a short list; across jobs, grouped under bold
+  job names. Two marks only: "⚠️ Overdue by N days: ..." and "Saved ✓". The fake Telegram (`telegramHtmlError`) refuses
+  missing parse mode or malformed HTML like Telegram; `SentMessage.text` is the stripped text, `.html` the raw, `sentHtml()`.
 - Pending state and the card map are in memory (one chat). A restart loses pending questions, not cards' buttons.
 - Change history quotes the right text: a change set's message is the message that started its thread (a pick or a
   short answer is a detail of it), a fresh request's own message, or the correction for an Edit.

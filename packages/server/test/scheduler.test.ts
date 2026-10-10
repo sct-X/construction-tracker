@@ -2,12 +2,13 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { BEATTY, buildSeed, DEFAULT_TODAY, fixedClock, mondayRows, PARK_RD, SEAVIEW } from '@ct/core';
+import { BEATTY, buildSeed, DEFAULT_TODAY, fixedClock, htmlToPlain, mondayRows, PARK_RD, SEAVIEW } from '@ct/core';
 import {
   computeReminders,
   createScheduler,
   ensureMondaySnapshots,
   fireReminders,
+  logNotifier,
   manualReminderText,
   memoryLog,
   memoryNotifier,
@@ -82,9 +83,11 @@ describe('reminders (flow f: "fire reminders", today Thu 17 Sep)', () => {
     const first = await fireReminders(store, clock, notifier);
     expect(notifier.sent).toHaveLength(1);
     const text = notifier.sent[0]!.text;
-    expect(text.split('\n')[0]).toBe('Reminders, Thu 17 Sep:');
-    expect(text).toContain('Book concrete pump. Act by Fri 18 Sep');
-    expect(text).toContain('Beatty St: not confirmed for 9 days.');
+    // Telegram HTML: a bold heading, bold job names, "•" items; overdue first, marked in words.
+    expect(text.split('\n')[0]).toBe('<b>Reminders · Thu 17 Sep</b>');
+    expect(text).toContain('<b>Seaview St</b>\n• Book concrete pump: act by Fri 18 Sep (tomorrow)');
+    expect(text).toContain('<b>Beatty St</b> · not confirmed for 9 days.');
+    expect(text).toContain('<b>Park Rd</b>\n• ⚠️ Overdue by 5 weeks: Glazing energy compliance certificate, act by Mon 10 Aug\n• ⚠️ Overdue by 3 days: Tile choice');
     expect(text).not.toMatch(/amber/i);
     expect(first.sent.length).toBeGreaterThanOrEqual(2);
 
@@ -150,9 +153,9 @@ describe('manualReminderText ("/reminders" in the bot)', () => {
     await fireReminders(store, clock, memoryNotifier());
     const sentBefore = sentReminderKeys(store).size;
     const text = manualReminderText(store.load(), DEFAULT_TODAY)!;
-    expect(text.split('\n')[0]).toBe('Reminders due now, Thu 17 Sep (you asked, so this includes any already sent today):');
-    expect(text).toContain('Seaview St:\n- Book concrete pump. Act by Fri 18 Sep (tomorrow).');
-    expect(text).toContain('\nBeatty St: not confirmed for 9 days. Check it and confirm the job.');
+    expect(text.split('\n').slice(0, 2)).toEqual(['<b>Reminders due now · Thu 17 Sep</b>', 'You asked, so this includes any already sent today.']);
+    expect(text).toContain('\n\n<b>Seaview St</b>\n• Book concrete pump: act by Fri 18 Sep (tomorrow)');
+    expect(text).toContain('\n\n<b>Beatty St</b> · not confirmed for 9 days. Check it and confirm the job.');
     expect(sentReminderKeys(store).size).toBe(sentBefore);
     const quiet = buildSeed();
     quiet.items = [];
@@ -164,7 +167,8 @@ describe('manualReminderText ("/reminders" in the bot)', () => {
 
 describe('daily digest (Stage 6b): one message, grouped by job, overdue first, capped; weekly repeats', () => {
   const at = (date: string) => fixedClock(date, '07:05');
-  const body = (text: string) => text.split('\n').slice(1);
+  /** The digest's lines after the heading, blank lines left out (they don't count towards the 15). */
+  const body = (text: string) => text.split('\n').slice(1).filter((l) => l !== '');
 
   it('on Sat 10 Oct (20 reminders) the daily send is ONE message of at most 15 lines ending "+N more"', async () => {
     const store = new SqliteStore(file);
@@ -173,15 +177,17 @@ describe('daily digest (Stage 6b): one message, grouped by job, overdue first, c
     const r = await fireReminders(store, at('2026-10-10'), notifier);
     expect(notifier.sent).toHaveLength(1);
     const lines = body(notifier.sent[0]!.text);
-    expect(notifier.sent[0]!.text.split('\n')[0]).toBe('Reminders, Sat 10 Oct:');
+    expect(notifier.sent[0]!.text.split('\n')[0]).toBe('<b>Reminders · Sat 10 Oct</b>');
     expect(lines.length).toBeLessThanOrEqual(15);
-    expect(lines.at(-1)).toBe(`+${20 - r.sent.length} more: /reminders for the full list`);
-    // Grouped: each job's line once, its items under it; overdue items before ones coming up.
-    const jobLines = lines.filter((l) => !l.startsWith('- ') && !l.startsWith('+'));
-    expect(new Set(jobLines.map((l) => l.split(':')[0])).size).toBe(jobLines.length);
-    expect(lines).toContain('Beatty St: not confirmed for 32 days. Check it and confirm the job.');
-    const items = lines.filter((l) => l.startsWith('- '));
-    expect(items.every((l) => l.includes('(overdue by'))).toBe(true); // 10 Oct: the overdue ones fill the digest
+    expect(lines.at(-1)).toBe(`+${20 - r.sent.length} more. Send /reminders for the full list.`);
+    // Grouped under bold job names, a blank line between jobs; overdue items before ones coming up.
+    const jobLines = lines.filter((l) => l.startsWith('<b>'));
+    expect(new Set(jobLines.map((l) => l.split('</b>')[0])).size).toBe(jobLines.length);
+    expect(notifier.sent[0]!.text).toMatch(/\n\n<b>Park Rd<\/b>/);
+    expect(lines).toContain('<b>Beatty St</b> · not confirmed for 32 days. Check it and confirm the job.');
+    const items = lines.filter((l) => l.startsWith('• '));
+    expect(items.every((l) => l.startsWith('• ⚠️ Overdue by '))).toBe(true); // 10 Oct: the overdue ones fill the digest
+    expect(lines.every((l) => l.startsWith('<b>') || l.startsWith('• ') || l.startsWith('+'))).toBe(true);
     expect(r.sent).toHaveLength(items.length + jobLines.filter((l) => l.includes('not confirmed')).length);
 
     // The ones left out lead the next day's digest; nothing shown yesterday comes back.
@@ -196,7 +202,7 @@ describe('daily digest (Stage 6b): one message, grouped by job, overdue first, c
     const store = new SqliteStore(file);
     const notifier = memoryNotifier();
     const glazing = (text: string | null) => (text ?? '').includes('Glazing energy compliance certificate');
-    const beatty = (text: string | null) => (text ?? '').includes('Beatty St: not confirmed');
+    const beatty = (text: string | null) => (text ?? '').includes('<b>Beatty St</b> · not confirmed');
     const first = await fireReminders(store, at(DEFAULT_TODAY), notifier); // Thu 17 Sep: act-by Mon 10 Aug, long past
     expect(glazing(first.text) && beatty(first.text)).toBe(true);
     for (const day of ['2026-09-18', '2026-09-21', '2026-09-23']) {
@@ -206,7 +212,7 @@ describe('daily digest (Stage 6b): one message, grouped by job, overdue first, c
     }
     const week = await fireReminders(store, at('2026-09-24'), notifier);
     expect(glazing(week.text)).toBe(true);
-    expect(week.text).toContain('Beatty St: not confirmed for 16 days.');
+    expect(week.text).toContain('<b>Beatty St</b> · not confirmed for 16 days.');
     expect(week.sent.map((x) => x.key)).toContain('amber:beatty:2026-09-08:again-2026-09-24');
     expect(glazing((await fireReminders(store, at('2026-09-25'), notifier)).text)).toBe(false);
     store.close();
@@ -214,8 +220,23 @@ describe('daily digest (Stage 6b): one message, grouped by job, overdue first, c
 
   it('"/reminders" text is the full list, uncut, grouped the same way', () => {
     const text = manualReminderText(buildSeed(), '2026-10-10')!;
-    expect(text).not.toContain('more: /reminders');
-    expect(body(text).filter((l) => l.startsWith('- '))).toHaveLength(13);
-    expect(text).toContain('Lower Beach St: not confirmed for 26 days. Check it and confirm the job.');
+    expect(text).not.toContain('Send /reminders for the full list');
+    expect(body(text).filter((l) => l.startsWith('• '))).toHaveLength(13);
+    expect(text).toContain('<b>Lower Beach St</b> · not confirmed for 26 days. Check it and confirm the job.');
+  });
+
+  it('job and item names are escaped for Telegram HTML; the log gets the plain words', async () => {
+    const ds = buildSeed();
+    const seaview = ds.jobs.find((j) => j.id === SEAVIEW)!;
+    seaview.name = 'Smith & Sons <Annex>';
+    const pump = ds.items.find((i) => i.jobId === SEAVIEW && i.title === 'Book concrete pump')!;
+    pump.title = 'Pump <25m> & boom';
+    const text = manualReminderText(ds, DEFAULT_TODAY)!;
+    expect(text).toContain('<b>Smith &amp; Sons &lt;Annex&gt;</b>\n• Pump &lt;25m&gt; &amp; boom: act by Fri 18 Sep (tomorrow)');
+    expect(text).not.toMatch(/<(?!\/?b>)/); // no tag but <b>
+    expect(htmlToPlain(text)).toContain('Smith & Sons <Annex>\n• Pump <25m> & boom: act by Fri 18 Sep (tomorrow)');
+    const log = memoryLog();
+    await logNotifier(log).send({ text, reminders: [] });
+    expect(log.lines[0]).toContain('Smith & Sons <Annex>\n• Pump <25m> & boom');
   });
 });

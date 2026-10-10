@@ -86,7 +86,7 @@ describe('bot-owned args are never taken from the model', () => {
     const inbound = store.recordInbound({ channel: 'telegram', sender: String(DOMINIC_ID), rawText: 'plumbing under slab', photoPath: 'seaview/2026-09-17-a.jpg' });
     await h.handle.handleInbound(CHAT_ID, inbound, 'plumbing under slab', { botArgs: { filePath: 'seaview/2026-09-17-a.jpg' } });
     const card = h.lastWithButton('Confirm');
-    expect(card.text).toContain('New photo: Plumbing under slab (Seaview St)');
+    expect(card.text).toMatch(/^Seaview St · New photo\n\nPhoto filed: Seaview St, Slab, Plumbing under slab\./);
     const change = store.load().changes.find((c) => c.changeSetId === newChangeSets()[0]!.id)!;
     expect(change.after).toMatchObject({ filePath: 'seaview/2026-09-17-a.jpg', messageId: inbound.id });
   });
@@ -178,6 +178,6 @@ describe('chats, errors and replies', () => {
   it('"next Tuesday" resolves against the clock (Thu 17 Sep -> Tue 22 Sep)', async () => {
     setup([etaCall('next Tuesday')]);
     await h.text('Park Rd windows next Tuesday');
-    expect(h.lastWithButton('Confirm').text).toContain('Park Rd windows, ETA: Mon 26 Oct → Tue 22 Sep');
+    expect(h.lastWithButton('Confirm').text).toMatch(/^Park Rd · Windows ETA\n\nMon 26 Oct → Tue 22 Sep\n/);
   });
 });

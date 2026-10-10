@@ -131,3 +131,44 @@ for (const { w, h } of SIZES) {
     });
   });
 }
+
+// CI runs on Linux with no Apple system face; its fallback is wider. Force a wide face here so a Mac catches it too.
+test.describe('at 390px with a wide fallback face (as on Linux CI)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(() => {
+      const add = () => {
+        const s = document.createElement('style');
+        s.textContent = '* { font-family: "DejaVu Sans", Verdana, sans-serif !important; }';
+        document.documentElement.appendChild(s);
+      };
+      if (document.documentElement) add();
+      else document.addEventListener('DOMContentLoaded', add);
+    });
+  });
+  for (const [hash, ready] of [
+    ['#/jobs/park-rd/program', 'lookahead'],
+    ['#/jobs/beatty/program', 'lookahead'],
+    ['#/jobs/seaview/program', 'lookahead'],
+    ['#/jobs/park-rd/steps/pr-install-windows', 'step-forecast'],
+    ['#/jobs/seaview/steps/sv-slab-insp', 'hold-point'],
+    ['#/jobs/west-st/checklist', 'ck-outstanding'],
+    ['#/', 'overview-card-park-rd'],
+    ['#/waiting', 'waiting-on'],
+    ['#/jobs/park-rd', 'job-progress'],
+    ['#/jobs/park-rd/shipments', 'shipment-row-sh-pr-windows'],
+  ] as const) {
+    test(`no sideways scroll: ${hash}`, async ({ page }) => {
+      await page.goto(`./${hash}`);
+      await page.getByTestId(ready).first().waitFor();
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `${hash} scrolls sideways at 390px with a wide face`).toBeLessThanOrEqual(0);
+      if (hash.endsWith('/program')) {
+        await page.getByRole('button', { name: 'Full program' }).click();
+        await page.getByTestId('gantt').waitFor();
+        const o2 = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        expect(o2, `${hash} Full program scrolls sideways`).toBeLessThanOrEqual(0);
+      }
+    });
+  }
+});

@@ -17,6 +17,9 @@
   gap: var(--space-3) var(--space-4);
   margin-bottom: var(--space-5);
 }
+.program__lead {
+  min-width: 0;
+}
 .program__title {
   font-family: var(--font-display);
   font-size: var(--type-title-2);
@@ -425,6 +428,7 @@
 }
 .lookahead__week {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-3);
@@ -465,9 +469,18 @@
 }
 .lookahead__top {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: 0 var(--space-3);
+}
+/* Long names and stage words wrap instead of pushing the plate past the screen (wider fallback faces off Apple). */
+.lookahead__name,
+.lookahead__stage,
+.stages__name,
+.stages__status {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .lookahead__name {
   font-weight: var(--weight-medium);
@@ -486,7 +499,7 @@
   color: var(--text);
 }
 .lookahead__stage {
-  flex-shrink: 0;
+  margin-left: auto;
   font-size: var(--type-subhead);
   color: var(--text-muted);
 }
@@ -602,9 +615,10 @@
 }
 .stages__top {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: 0 var(--space-3);
 }
 .stages__name {
   font-family: var(--font-display);
@@ -614,7 +628,8 @@
   letter-spacing: var(--tracking-display);
 }
 .stages__status {
-  flex-shrink: 0;
+  margin-left: auto;
+  text-align: right;
   font-size: var(--type-subhead);
   color: var(--text-secondary);
 }

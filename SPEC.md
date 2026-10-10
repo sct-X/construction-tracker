@@ -206,3 +206,46 @@ The five-person prototype lives read-only at `/Users/imac/dev/construction-track
 the Park Rd / Seaview / Beatty numbers; port freely (`git -C
 /Users/imac/dev/construction-tracker show 2f6d8a7:<path>`). Its PROGRESS.md
 "Decisions" section explains the seed tuning. Never write to that folder.
+
+## Revision 2026-10-10 (Scott's decisions; these override the sections above)
+
+Scott chose the v1 prototype's UI over this spec's original Design and Screens
+sections. The full list of v1 iterations is docs/v1-ui-iterations.md. The v1
+source is read-only at /Users/imac/dev/construction-tracker (commit 2f6d8a7,
+also branch/tag v1-prototype): its DESIGN.md, PRODUCT.md, docs/COPY_RULES.md,
+src/ screens and styles, and .claude/skills/liquid-glass-claude-skill.
+
+1. Look: port v1's final look: the Apple design foundation (system type, iOS
+   surfaces and tint, iOS/macOS chrome) and the three Liquid Glass passes
+   (glass only on the floating layer: phone bars, tab bar minimise, glass
+   buttons, job switcher morph). v1's DESIGN.md replaces the "Design" section's
+   palette rules. Still required: colour never carries meaning alone, works at
+   390px and 1280px, no stock imagery.
+2. Numbers: timing first, like v1. The web shows NO forecast finish, slip,
+   slip cost, holding cost or "Why it moved". Home is v1's Overview (one card
+   per job: stage, the next three not-done steps with dates, the top three
+   waiting-on items, freshness; builds in the side's order, design jobs by
+   oldest outstanding). The calculator, snapshots and change log stay
+   underneath, because act-by dates, hold points and next steps come from
+   them. The bot's confirm card KEEPS the dry-run impact (finish, slip, $).
+   Bot read-only answers may still state the finish when asked.
+3. Warnings, Dom's way: a red overdue cue (needed-by and expected both passed,
+   not ticked off = overdue), and no amber anywhere in the web. Rule 7 still
+   computes "unconfirmed over 7 days"; it is shown and sent in words only
+   (e.g. "Not confirmed for 9 days"), never as an amber state. Reminders to
+   Telegram use those words.
+4. Lists, Dom's way: To chase is merged into Waiting on: one simple list
+   grouped Overdue / This week / Later (Later folded by default), with a Call
+   button on each row that has a trade phone.
+5. Also port, as in v1: job switcher at the top of every job page; Shipments
+   inside each job; relative time next to every date; "Booked" needs an
+   expected date (the bot asks for one); late-but-not-overdue in plain words;
+   "Pending approval" for With council / With certifier; v1's copy rules.
+6. Still out: sign-in, people, roles, per-role nav, upload screens and queue,
+   notifications, web editing of day-to-day data. Setup (desktop) stays, in the
+   v1 look.
+7. Tests: the Playwright checks move from "Monday numbers" to the Overview:
+   seeded jobs show their stage, next steps with dates and waiting-on items in
+   mock and local-API mode; after flow a, Park Rd's Install windows shows Mon
+   16 Nov in local-API mode. Bot flow tests a–f keep their assertions, except
+   flow f says "Beatty St: not confirmed for 9 days" instead of "amber".

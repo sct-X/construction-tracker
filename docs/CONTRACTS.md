@@ -573,6 +573,10 @@ Voice: `TRANSCRIBER=local|cloud` (unset: local when `WHISPER_MODEL_PATH` is set,
 local: `WHISPER_MODEL_PATH` (required), `WHISPER_CPP_BIN` (whisper-cli), `FFMPEG_BIN` (ffmpeg), `WHISPER_THREADS`; cloud:
 `TRANSCRIBE_API_KEY` or `OPENAI_API_KEY`, `TRANSCRIBE_MODEL` (gpt-4o-mini-transcribe), `TRANSCRIBE_BASE_URL`. Optional
 `TELEGRAM_API_ROOT` (a local Bot API server; tests use a fake one).
+Network: main.ts calls `net.setDefaultAutoSelectFamilyAttemptTimeout(connectAttemptMsFromEnv())` right after loading
+.env (`NET_CONNECT_ATTEMPT_MS`, default `DEFAULT_NET_CONNECT_ATTEMPT_MS` 2500; grammY's node-fetch and native fetch
+both read it). startBot installs `pollingNetworkLog(log)`: a getUpdates HttpError logs warn "Can't reach Telegram,
+retrying: <code>" once per outage (`networkErrorCode`), then info "Reached Telegram again.".
 `startApp(config, { env?, bot? })`: `env` default `process.env`; `bot: false` never starts it.
 
 Behaviour:

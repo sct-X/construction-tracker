@@ -35,6 +35,22 @@ export interface ServerConfig {
 
 export type SeedKind = 'demo' | 'empty';
 
+/**
+ * How long one IPv6 or IPv4 connection attempt may take before Node tries the
+ * next address (Node's own default is 250 ms, too short on some networks: a
+ * dead IPv6 route plus a slow IPv4 handshake times out every connection).
+ */
+export const DEFAULT_NET_CONNECT_ATTEMPT_MS = 2500;
+
+/** NET_CONNECT_ATTEMPT_MS (whole milliseconds, at least 10; blank = 2500). Throws on anything else. */
+export function connectAttemptMsFromEnv(env: Env = process.env): number {
+  const raw = (env.NET_CONNECT_ATTEMPT_MS ?? '').trim();
+  if (!raw) return DEFAULT_NET_CONNECT_ATTEMPT_MS;
+  const ms = Number(raw);
+  if (!/^\d+$/.test(raw) || ms < 10) throw new Error(`NET_CONNECT_ATTEMPT_MS must be a whole number of milliseconds (10 or more), got "${env.NET_CONNECT_ATTEMPT_MS}"`);
+  return ms;
+}
+
 /** SEED=demo|empty (blank = demo). Throws on anything else. */
 export function seedKindFromEnv(env: Env = process.env): SeedKind {
   const raw = (env.SEED ?? '').trim().toLowerCase();

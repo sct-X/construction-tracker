@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { fixedClock } from '@ct/core';
-import { allowedHostsFromEnv, DEFAULT_WEB_DIST, loadConfig, memoryLog, memoryNotifier, startApp, type RunningApp } from '../src/index.js';
+import { allowedHostsFromEnv, connectAttemptMsFromEnv, DEFAULT_NET_CONNECT_ATTEMPT_MS, DEFAULT_WEB_DIST, loadConfig, memoryLog, memoryNotifier, startApp, type RunningApp } from '../src/index.js';
 
 let dir: string | null = null;
 let app: RunningApp | null = null;
@@ -17,6 +17,16 @@ afterEach(async () => {
 });
 
 describe('config', () => {
+  it('NET_CONNECT_ATTEMPT_MS: blank = 2500 ms, whole milliseconds from 10, refuses anything else', () => {
+    expect(DEFAULT_NET_CONNECT_ATTEMPT_MS).toBe(2500);
+    expect(connectAttemptMsFromEnv({})).toBe(2500);
+    expect(connectAttemptMsFromEnv({ NET_CONNECT_ATTEMPT_MS: '  ' })).toBe(2500);
+    expect(connectAttemptMsFromEnv({ NET_CONNECT_ATTEMPT_MS: ' 1000 ' })).toBe(1000);
+    for (const bad of ['5', '-1', '1.5', '2s', 'abc']) {
+      expect(() => connectAttemptMsFromEnv({ NET_CONNECT_ATTEMPT_MS: bad })).toThrow(/NET_CONNECT_ATTEMPT_MS/);
+    }
+  });
+
   it('defaults: 127.0.0.1, port 8787, ./data, 07:00 reminders, packages/web/dist, real clock', () => {
     const c = loadConfig({}, '/srv/ct');
     expect(c).toMatchObject({ host: '127.0.0.1', port: 8787, todayOverride: null, reminderTime: '07:00', webDist: DEFAULT_WEB_DIST });

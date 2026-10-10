@@ -181,6 +181,7 @@ When it is right, the log says `Telegram bot @dominic_tracker_bot is listening.`
 | `TRANSCRIBE_API_KEY` | A separate key for cloud voice only. Blank = `OPENAI_API_KEY`. | No. |
 | `TRANSCRIBE_BASE_URL` | Another OpenAI-compatible voice service. | No. |
 | `TELEGRAM_API_ROOT` | A self-hosted Telegram Bot API server. Blank = Telegram's. | No. |
+| `NET_CONNECT_ATTEMPT_MS` | How long each connection try (IPv6, then IPv4) may take before the next, in milliseconds. Default `2500` (Node's own 250 is too short on some networks). | No. |
 | `DATA_DIR` | The data folder (database, photos, voice notes). Default `./data`. | No. |
 | `PORT` | The web app's port. Default `8787`. | No. |
 | `HOST` | The address it listens on. Default `127.0.0.1` (this machine only). Keep it. | No. |
@@ -285,6 +286,16 @@ until each required photo category has a photo; the bot says which ones are miss
 The web app at http://127.0.0.1:8787 shows the results: Monday screen, jobs, programs, waiting-on, to-chase,
 photos, notes and every change with the message that caused it. Setup (desktop only) adds jobs from templates,
 edits programs and templates, and keeps the trades list.
+
+## Troubleshooting
+
+**Bot doesn't answer: network.** If the terminal shows `Can't reach Telegram, retrying: ETIMEDOUT` (or grammY's
+`Network request for 'sendMessage' failed!`), this machine can't open a connection to api.telegram.org in time.
+On some home networks the IPv6 route is dead and IPv4 is slow, so each try runs out of time. The app already
+waits 2.5 seconds per try; raise `NET_CONNECT_ATTEMPT_MS` in `.env` (e.g. `5000`) and restart. To check by hand:
+`node --network-family-autoselection-attempt-timeout=2500 -e "fetch('https://api.telegram.org/').then(r => console.log(r.status))"`
+should print `302` (or `200`). If it still times out, the network or a firewall is blocking Telegram. When it gets
+through again the log says `Reached Telegram again.`
 
 ## Run the tests and the eval
 

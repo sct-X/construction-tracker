@@ -5,6 +5,7 @@
  * still starts: reminders, /undo, /reminders and buttons work, and typed
  * messages get "add a model key to .env".
  */
+import { HttpError, type Transformer } from 'grammy';
 import type { Clock, Store } from '@ct/core';
 import { createParser, createProviderFromEnv, type Parser } from '@ct/llm';
 import { createBot, type BotHandle, type BotLog } from './bot.js';
@@ -93,6 +94,7 @@ export async function startBot(opts: StartBotOptions): Promise<RunningBot | null
     ...(opts.remindersNow ? { remindersNow: opts.remindersNow } : {}),
     ...(opts.env.TELEGRAM_API_ROOT?.trim() ? { apiRoot: opts.env.TELEGRAM_API_ROOT.trim() } : {}),
   });
+  handle.bot.api.config.use(pollingNetworkLog(log));
   log.info(`Telegram bot starting (long polling); allowed user ${config.allowedUserId}.`);
   await handle.sweepOrphanPhotos().catch((e: unknown) => log.error('Start-up photo tidy failed', e));
   let stopping = false;
@@ -112,5 +114,38 @@ export async function startBot(opts: StartBotOptions): Promise<RunningBot | null
       await handle.bot.stop().catch(() => undefined);
       await polling;
     },
+  };
+}
+
+/** The system error code inside a grammY HttpError (ETIMEDOUT, ENOTFOUND, ...), else its message. */
+export function networkErrorCode(err: HttpError): string {
+  const inner = err.error as { code?: unknown; cause?: { code?: unknown }; errors?: { code?: unknown }[] } | undefined;
+  const code = inner?.code ?? inner?.cause?.code ?? inner?.errors?.[0]?.code;
+  return typeof code === 'string' && code ? code : err.message;
+}
+
+/**
+ * grammY retries a failed getUpdates every few seconds without a word (only
+ * its debug log). This says it once per outage ("Can't reach Telegram,
+ * retrying: ETIMEDOUT"), again only if the reason changes, and once when it
+ * gets through. Cancelled polls (stopping) are not logged.
+ */
+export function pollingNetworkLog(log: BotLog): Transformer {
+  let down: string | null = null;
+  return async (prev, method, payload, signal) => {
+    if (method !== 'getUpdates') return prev(method, payload, signal);
+    try {
+      const res = await prev(method, payload, signal);
+      if (down !== null) log.info('Reached Telegram again.');
+      down = null;
+      return res;
+    } catch (e) {
+      if (e instanceof HttpError && !signal?.aborted) {
+        const code = networkErrorCode(e);
+        if (code !== down) log.warn(`Can't reach Telegram, retrying: ${code}`);
+        down = code;
+      }
+      throw e;
+    }
   };
 }

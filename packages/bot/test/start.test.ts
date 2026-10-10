@@ -9,7 +9,8 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_TODAY, fixedClock, InMemoryStore, buildSeed } from '@ct/core';
 import { loadConfig, memoryLog, memoryNotifier, startApp, type RunningApp } from '@ct/server';
-import { botConfigFromEnv, startBot } from '../src/index.js';
+import { HttpError } from 'grammy';
+import { botConfigFromEnv, networkErrorCode, pollingNetworkLog, startBot } from '../src/index.js';
 import { memoryBotLog } from './harness.js';
 
 const clock = fixedClock(DEFAULT_TODAY, '10:00');
@@ -31,6 +32,38 @@ describe('botConfigFromEnv / startBot', () => {
       'info Telegram bot off: TELEGRAM_BOT_TOKEN is not set.',
       'info Telegram bot off: DOMINIC_TELEGRAM_USER_ID is not set, so nobody would be allowed to use it.',
     ]);
+  });
+});
+
+describe('pollingNetworkLog', () => {
+  const timedOut = () => new HttpError("Network request for 'getUpdates' failed!", Object.assign(new Error('connect ETIMEDOUT'), { code: 'ETIMEDOUT' }));
+
+  it('says once per outage that Telegram is unreachable, and when it is back', async () => {
+    const log = memoryBotLog();
+    const t = pollingNetworkLog(log);
+    let fail: HttpError | null = timedOut();
+    const prev = (async () => {
+      if (fail) throw fail;
+      return { ok: true, result: [] };
+    }) as unknown as Parameters<typeof t>[0];
+    for (let i = 0; i < 3; i++) await expect(t(prev, 'getUpdates', { offset: 0 })).rejects.toBe(fail);
+    fail = null;
+    await t(prev, 'getUpdates', { offset: 0 });
+    expect(log.lines).toEqual(["warn Can't reach Telegram, retrying: ETIMEDOUT", 'info Reached Telegram again.']);
+  });
+
+  it('ignores other methods and cancelled polls', async () => {
+    const log = memoryBotLog();
+    const t = pollingNetworkLog(log);
+    const prev = (async () => {
+      throw timedOut();
+    }) as unknown as Parameters<typeof t>[0];
+    const ac = new AbortController();
+    ac.abort();
+    await expect(t(prev, 'getUpdates', { offset: 0 }, ac.signal as unknown as Parameters<typeof t>[3])).rejects.toBeInstanceOf(HttpError);
+    await expect(t(prev, 'sendMessage', { chat_id: 1, text: 'x' })).rejects.toBeInstanceOf(HttpError);
+    expect(log.lines).toEqual([]);
+    expect(networkErrorCode(new HttpError('Network request failed!', new Error('boom')))).toBe('Network request failed!');
   });
 });
 

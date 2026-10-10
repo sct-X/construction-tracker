@@ -202,3 +202,60 @@ yes. V9 yes (tab bar minimise, glass buttons, the switcher morph). V10 yes.
 
 Wording: W1 partly (#2 hint, #8). W2 yes in the screens, but `urgencyWords` keeps the old phrasing (#6) and
 Shipments says "7 days to spare" (#3). W3 yes. W4 yes. W5 yes. W6 yes (in the bot). W7 yes.
+
+## Re-check (2026-10-10, commit `1d1633e`)
+
+**SIGN-OFF.** All five MUST-FIX items are fixed. Retaking the screenshots showed no regressions.
+
+Commands, from a fresh `git clone` of `1d1633e` with no `.env` and no keys:
+
+| command | result |
+| --- | --- |
+| `npm ci` | exit 0 |
+| `npm test` | exit 0, 37 files, **414 passed** |
+| `npm run typecheck` | exit 0 |
+| `npm run build` | exit 0 |
+| `npx playwright test` (all projects) | exit 0, **131 passed, 2 skipped** (the same two mock-only skips) |
+| `npm run eval -- --dry` | exit 0, pass **33/33** |
+
+I retook every pair against v1 (port 5197, `?dev=1&as=dominic&today=2026-09-17`) and the clone's Pages build.
+They are in `e2e/screenshots/review6b-{v1,new}-*.png`. I added
+`review6b-new-setup-editor-picked-1280.png` (a bar picked) and `review6b-new-dark-{job-park-rd,waiting}-{390,1280}.png`.
+I stopped the v1 server afterwards.
+
+1. **The Overview card is fixed (#1).** It now shows only the name, the stage bar, the stage, and "! N overdue" /
+   "Nothing overdue". The phone page is 1235 px against v1's 1246, and the desktop grid matches v1
+   (`review6b-*-overview-*`). SPEC revision 2 now says this, so the earlier contradiction is gone.
+2. **The holding cost is off the web (#2).** New job has no holding-cost field and no "Not set" path
+   (`review6b-new-setup-newjob-1280.png`). The cost is set through the bot's `set_holding_cost`, and its confirm
+   card shows the $, which is allowed. My crawl of 29 routes at both widths found no `$`, slip, holding, cost,
+   amber or "Why it moved" anywhere. The only "finish" hits are the Finishes stage name and the note text.
+3. **Shipments is v1's (#3).** The ETA is the big figure ("26 Oct 2026", "in 5 weeks"), with "ETA 1 week before
+   needed" under it. It also shows the needed-by date with its relative time and "3 items". The side-wide list has
+   a Job column on a hairline table (`review6b-*-shipments{,-park-rd}-*`). One small difference: the
+   before-needed words are in the ok green (v1 rendered them plain black). This is acceptable: green is
+   v1's ok tone, it comes with the words, and it is not a warning colour.
+4. **The program editor is v1's (#4).** It has numbered stage chips, "Add stage", the Gantt, the "Nothing picked"
+   panel and the Thick glass footer (`review6b-*-setup-editor-park-rd-1280.png`). Picking a bar opens the step
+   form, and it shows no finish or $ (`review6b-new-setup-editor-picked-1280.png`).
+5. **The README is fixed (#5).** It describes the web as timing first, with the Overview cards, the job first page,
+   one Waiting on with Call, and Shipments in each job. It says finish, slip and $ appear only on the bot's card.
+   The eval count reads 33.
+
+The fixes also cleared most NICE-TO-HAVE items:
+
+- **Dead code (#6).** `listBits.tsx`, `lists.css`, `screens4a.css`, `legacy.css` and the unused helpers are gone.
+  The classes those files once styled that the TSX still uses (`jobbar-loading`, `loading-row`, `load-error`,
+  `empty-line`, `num`) have rules in shell.css or base.css. `jobhead` and the rest have no visual dependency:
+  the job pages, Notes, Photos, Step, Checklist, Changes and Waiting on match the first round's shots.
+- **Dark mode (#15).** It now works: a Look menu at the foot of the sidebar, plus `?theme=` and match device.
+  The red overdue text stays legible on the dark plates.
+- **#7, #8, #9, #10, #13, #14, #17, #18 and #19** are fixed.
+
+Still open, NICE-TO-HAVE only:
+
+- #11, the Step detail spacing nits.
+- #12, the overdue need pills in the look-ahead.
+- #16, the "Tracker" vs "Cruise" name, which is Scott's call.
+
+No MUST-FIX remains.

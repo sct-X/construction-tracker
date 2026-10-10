@@ -90,7 +90,7 @@ export function WaitingBody({ data }: { data: WaitingData }) {
         </span>
         {!jobId && (
           <label className="filter">
-            <span className="filter__label">Job</span>
+            <span className="sr-only">Job</span>
             <select
               className="filter__select"
               value=""

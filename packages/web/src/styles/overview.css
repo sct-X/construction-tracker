@@ -1,11 +1,10 @@
 /*
-  Overview (v1 overview.css, with the timing-first content of SPEC's revision):
-  one white card per job on the grouped ground. The name as a headline with
-  the disclosure chevron and the overdue cue on its right, the slim stage
-  bar, the stage, then "Next" and "Waiting on" as quiet lists, then the
-  freshness line. Red appears only for overdue words. A column of cards on
-  the phone, a grid of the same cards on the desktop. The whole card opens the
-  job (the name's link is stretched over it).
+  Overview (ported from v1 src/screens/overview.css, the final card): one card
+  per job, the whole card a link. The name as a headline with the disclosure
+  chevron, the slim stage bar, then the current stage on the left and the
+  overdue count on the right. Red appears only for "! 4 overdue"; "Nothing
+  overdue" is tertiary label. A column of cards on the phone, a grid of the
+  same cards on the desktop.
 */
 .overview {
   max-width: var(--content-max);
@@ -28,22 +27,17 @@
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
-.overview__cards > li {
-  display: flex;
-  min-width: 0;
-}
-
 .overview__card {
   position: relative;
-  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  min-width: 0;
-  padding: var(--space-4);
+  min-height: 108px;
+  padding: var(--space-4) calc(var(--space-4) + 20px) var(--space-4) var(--space-4);
   border-radius: var(--radius-lg);
   background: var(--plate);
   color: var(--text);
+  text-decoration: none;
   transition: background-color var(--motion-fast) var(--ease);
 }
 .overview__card:hover {
@@ -52,132 +46,41 @@
 .overview__card:active {
   background: var(--raised);
 }
-.overview__card:has(.overview__link:focus-visible) {
+.overview__card:focus-visible {
   box-shadow: var(--focus-ring);
+  border-radius: var(--radius-lg);
 }
-
-.overview__head {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-1) var(--space-3);
-  padding-right: 20px;
+.overview__chevron {
+  position: absolute;
+  top: 50%;
+  right: var(--space-4);
+  margin-top: -7px;
 }
 .overview__name {
-  flex: 1 1 auto;
-  min-width: 0;
   font-size: var(--type-headline);
   font-weight: var(--weight-semibold);
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
-.overview__link {
-  color: inherit;
-  text-decoration: none;
+.overview__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--type-subhead);
+  line-height: 1.35;
 }
-/* The card is the target: the name's link covers it. */
-.overview__link::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-}
-.overview__link:focus-visible {
-  box-shadow: none;
-}
-.overview__chevron {
-  position: absolute;
-  top: calc(var(--space-4) + 4px);
-  right: var(--space-4);
+.overview__stage {
+  color: var(--text-secondary);
 }
 .overview__overdue.status {
-  flex: none;
+  padding: 0;
   font-size: var(--type-subhead);
   font-weight: var(--weight-semibold);
   color: var(--late-ink);
 }
 .overview__clear {
-  flex: none;
-  font-size: var(--type-subhead);
-  color: var(--text-muted);
-}
-
-.overview__stage {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-1) var(--space-3);
-  margin-top: calc(-1 * var(--space-1));
-  font-size: var(--type-subhead);
-  line-height: 1.35;
-}
-.overview__stage-name {
-  color: var(--text);
-  font-weight: var(--weight-medium);
-}
-.overview__stage-of {
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.overview__part {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding-top: var(--space-3);
-  border-top: 0.5px solid var(--line);
-}
-.overview__part-title {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-1) var(--space-3);
-  font-size: var(--type-footnote);
-  font-weight: var(--weight-regular);
-  color: var(--text-muted);
-}
-.overview__part-note {
-  color: var(--text-secondary);
-}
-.overview__lines {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-.overview__line {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-  font-size: var(--type-subhead);
-  line-height: 1.35;
-}
-.overview__line-title {
-  font-weight: var(--weight-medium);
-  overflow-wrap: anywhere;
-}
-.overview__line-when,
-.overview__line-when.status {
-  padding: 0;
-  font-size: var(--type-subhead);
-  color: var(--text-secondary);
-  white-space: normal;
-}
-.overview__line-when.status--late {
-  color: var(--late-ink);
-  font-weight: var(--weight-semibold);
-}
-.overview__line-when.status--muted {
-  color: var(--text-muted);
-}
-.overview__quiet {
-  font-size: var(--type-subhead);
-  color: var(--text-muted);
-}
-.overview__fresh {
-  margin-top: auto;
-  font-size: var(--type-footnote);
   color: var(--text-muted);
 }
 

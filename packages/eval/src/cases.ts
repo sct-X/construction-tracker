@@ -273,6 +273,15 @@ export const CASES: EvalCase[] = [
     modelCalls: [{ name: 'attach_photo', args: { job: 'Park Rd', category: 'cladding' } }],
   },
 
+  // --- set_holding_cost ---------------------------------------------------------------------------
+  {
+    id: 'holding-cost-seaview',
+    text: 'seaview holding cost is 4500 a week now, finance went up',
+    why: 'The weekly holding cost moved off the web (Stage 6 review): the bot sets it, dollars as a number.',
+    expect: { kind: 'ops', ops: [{ op: 'set_holding_cost', args: { job: 'seaview', dollars: 4500 } }] },
+    modelCalls: [{ name: 'set_holding_cost', args: { job: 'Seaview', dollars: 4500 } }],
+  },
+
   // --- confirm_job --------------------------------------------------------------------------------
   {
     id: 'confirm-beatty',
@@ -402,4 +411,5 @@ export const REQUIRED_OPS = [
   'add_daily_note',
   'attach_photo',
   'confirm_job',
+  'set_holding_cost',
 ] as const;

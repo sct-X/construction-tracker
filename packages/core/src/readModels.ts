@@ -1033,16 +1033,29 @@ export function dailyNotes(ds: Dataset, jobId: string, opts: { from?: ISODate; t
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
 }
 
-/** Each trade with its open item count and (Stage 6d, v1 "On jobs") the live jobs those open items are on, by name. */
-export function tradesList(ds: Dataset, filter: SideFilter = {}): (Trade & { openItems: number; jobNames: string[] })[] {
+/**
+ * Each trade with its open item count and (Stage 6d, v1 "On jobs") the live jobs it is on, by name: jobs where it
+ * has open items and, with `today`, jobs where it is on site or starting within a week (as the job page's
+ * "Trades on this week" names it).
+ */
+export function tradesList(ds: Dataset, filter: SideFilter = {}, today?: ISODate): (Trade & { openItems: number; jobNames: string[] })[] {
+  const onSite = new Map<string, Set<string>>();
+  if (today) {
+    for (const job of ds.jobs) {
+      if (job.isTemplate || job.kind !== 'build' || (filter.sideId && job.sideId !== filter.sideId)) continue;
+      for (const t of tradesThisWeek(ds, forecastJob(ds, job.id, today), today)) {
+        const trade = ds.trades.find((x) => x.sideId === job.sideId && x.name === t.trade);
+        if (trade) (onSite.get(trade.id) ?? onSite.set(trade.id, new Set()).get(trade.id)!).add(job.name);
+      }
+    }
+  }
   return ds.trades
     .filter((t) => !filter.sideId || t.sideId === filter.sideId)
     .map((t) => {
       const open = ds.items.filter((i) => i.tradeId === t.id && i.status !== 'done');
-      const jobNames = [...new Set(open.map((i) => ds.jobs.find((j) => j.id === i.jobId)).filter((j) => !!j && !j.isTemplate).map((j) => j!.name))].sort((a, b) =>
-        a.localeCompare(b),
-      );
-      return { ...t, openItems: open.length, jobNames };
+      const names = new Set(open.map((i) => ds.jobs.find((j) => j.id === i.jobId)).filter((j) => !!j && !j.isTemplate).map((j) => j!.name));
+      for (const n of onSite.get(t.id) ?? []) names.add(n);
+      return { ...t, openItems: open.length, jobNames: [...names].sort((a, b) => a.localeCompare(b)) };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 }

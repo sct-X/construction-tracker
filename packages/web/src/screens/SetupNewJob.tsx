@@ -27,7 +27,7 @@ import { href } from '../app/router';
 import { LoadError, LoadingRows } from '../components/bits';
 import { SetupFrame } from '../setup/SetupFrame';
 import { canSave, previewProblem, usePreview, type PreviewState, type SetupCall } from '../setup/preview';
-import { checkDate, checkMoney, checkName, moneyValue } from '../setup/validate';
+import { checkDate, checkName } from '../setup/validate';
 import { plural } from '../ui/itemWords';
 
 interface NewJobData {
@@ -66,8 +66,7 @@ export function SetupNewJobScreen() {
 
 type Kind = 'build' | 'design';
 
-const PATHS: { value: '' | 'DA' | 'CDC'; label: string }[] = [
-  { value: '', label: 'Not set' },
+const PATHS: { value: 'DA' | 'CDC'; label: string }[] = [
   { value: 'DA', label: 'DA' },
   { value: 'CDC', label: 'CDC' },
 ];
@@ -83,7 +82,6 @@ export function NewJobForm({ data }: { data: NewJobData }) {
   const [path, setPath] = useState<'' | 'DA' | 'CDC'>('');
   const [startDate, setStartDate] = useState<string>(addCalendarDays(lastMonday(today), 7));
   const [fromStage, setFromStage] = useState('');
-  const [cost, setCost] = useState('');
   const [touched, setTouched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -94,22 +92,22 @@ export function NewJobForm({ data }: { data: NewJobData }) {
   const errors = {
     name: checkName(name, 'job'),
     startDate: kind === 'build' ? checkDate(startDate, 'start date') : null,
-    cost: checkMoney(cost),
     template: kind === 'build' && !templateId ? 'Pick a template.' : null,
   };
-  const valid = !errors.name && !errors.startDate && !errors.cost && !errors.template;
+  const valid = !errors.name && !errors.startDate && !errors.template;
 
   const call = useMemo<SetupCall | null>(() => {
     if (!valid) return null;
-    const weeklyHoldingCost = moneyValue(cost) ?? undefined;
+    // No money on the web (SPEC revision 2): a new job takes its template's weekly holding cost, or none;
+    // the bot sets it (set_holding_cost).
     if (kind === 'design') {
-      return { op: 'create_job', args: { name: name.trim(), kind: 'design', path: path || 'DA', side, weeklyHoldingCost } };
+      return { op: 'create_job', args: { name: name.trim(), kind: 'design', path: path || 'DA', side } };
     }
     return {
       op: 'copy_template',
-      args: { template: templateId, name: name.trim(), startDate, startsFromStage: fromStage || undefined, weeklyHoldingCost, path: path || undefined, side },
+      args: { template: templateId, name: name.trim(), startDate, startsFromStage: fromStage || undefined, path: path || undefined, side },
     };
-  }, [valid, kind, name, path, side, cost, templateId, startDate, fromStage]);
+  }, [valid, kind, name, path, side, templateId, startDate, fromStage]);
   const preview = usePreview(call);
   const lines = preview.status === 'ready' ? stageLines(preview.preview) : null;
 
@@ -139,7 +137,9 @@ export function NewJobForm({ data }: { data: NewJobData }) {
     setKind(k);
     if (k === 'design' && !path) setPath('DA');
   };
-  const paths = kind === 'build' ? PATHS : PATHS.slice(1);
+  // The path shown pressed: the one picked, else the template's (v1 had no "Not set").
+  const tplPath = templates.find((t) => t.jobId === templateId)?.path ?? null;
+  const shownPath = path || (kind === 'build' ? tplPath : 'DA') || '';
   const fromIndex = Math.max(0, tplStages.findIndex((s) => s.id === fromStage));
 
   return (
@@ -180,8 +180,8 @@ export function NewJobForm({ data }: { data: NewJobData }) {
       )}
 
       <Choice label="Approval path" id="nj-path">
-        {paths.map((p) => (
-          <button key={p.label} type="button" className="seg__btn" aria-pressed={path === p.value} data-testid={`nj-path-${p.value || 'none'}`} onClick={() => setPath(p.value)}>
+        {PATHS.map((p) => (
+          <button key={p.label} type="button" className="seg__btn" aria-pressed={shownPath === p.value} data-testid={`nj-path-${p.value}`} onClick={() => setPath(p.value)}>
             {p.label}
           </button>
         ))}
@@ -207,18 +207,6 @@ export function NewJobForm({ data }: { data: NewJobData }) {
           ))}
         </Choice>
       )}
-
-      <Field id="nj-cost" label="Weekly holding cost" hint="Used by the bot's confirm card." error={show(errors.cost)}>
-        <span className="su-money">
-          <span className="su-money__sign" aria-hidden="true">
-            $
-          </span>
-          <input id="nj-cost" className="input input--desktop" type="text" inputMode="decimal" value={cost} placeholder="4500" onChange={(e) => setCost(e.target.value)} />
-          <span className="su-money__unit" aria-hidden="true">
-            a week
-          </span>
-        </span>
-      </Field>
 
       {kind === 'build' && (
         <Field id="nj-start" label="Start on site" error={show(errors.startDate)}>

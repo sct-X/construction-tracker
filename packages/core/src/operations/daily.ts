@@ -28,6 +28,7 @@ import {
   type OpRunContext,
 } from './framework.js';
 import { resolveDate } from '../relativeDates.js';
+import { formatMoney } from '../money.js';
 import { stageDisplayName } from '../readModelsTiming.js';
 
 /** v1 copy rule (SPEC revision 2026-10-10): "With council" / "With certifier" read "Pending approval". */
@@ -449,6 +450,34 @@ export const setStageStatus = defineOp({
   },
 });
 
+/** "$4,500 a week". */
+function weeklyWords(n: number): string {
+  return `${formatMoney(n)} a week`;
+}
+
+export const setHoldingCost = defineOp({
+  name: 'set_holding_cost',
+  group: 'daily',
+  description:
+    "Set a build job's weekly holding cost in dollars (what a week of delay costs: finance, rent, site costs), e.g. \"Park Rd holding cost is 4500 a week\". The confirm card prices a slip with it. 0 means none.",
+  schema: z.object({
+    job: jobRef,
+    dollars: z.number().min(0).max(1_000_000).describe('Dollars per week, a plain number (4500, not "$4.5k").'),
+  }),
+  ask: { job: 'Which job?', dollars: 'How much a week?' },
+  run(ds, a, ctx) {
+    const job = resolveJob(ds, ctx, a.job);
+    if (job.isTemplate) refuse(ctx, `${job.name} is a template: a job made from it gets its own holding cost.`);
+    if (job.kind !== 'build') refuse(ctx, `${job.name} is a design job: it has no program, so no holding cost.`);
+    const dollars = Math.round(a.dollars);
+    const next = dollars === 0 ? null : dollars;
+    if (job.weeklyHoldingCost === next) refuse(ctx, next === null ? `${job.name} already has no holding cost.` : `${job.name}'s holding cost is already ${weeklyWords(next)}.`);
+    const was = job.weeklyHoldingCost === null ? 'none before' : `was ${formatMoney(job.weeklyHoldingCost)}`;
+    const summary = next === null ? `${job.name} holding cost removed (${was})` : `${job.name} holding cost ${weeklyWords(next)} (${was})`;
+    return proposal(ctx, ds, update('job', job, 'weeklyHoldingCost', next), summary);
+  },
+});
+
 export const DAILY_OPS = [
   setShipmentEta,
   setShipmentStatus,
@@ -462,4 +491,5 @@ export const DAILY_OPS = [
   attachPhoto,
   confirmJob,
   setStageStatus,
+  setHoldingCost,
 ];

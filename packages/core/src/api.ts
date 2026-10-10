@@ -59,6 +59,11 @@ export interface SetupPreview {
    * working days before and after. Empty when no template is touched (or result is not a proposal).
    */
   templates: TemplateImpact[];
+  /**
+   * Stage 6d: the program as it would be after the change, for the live build job the change is about (the
+   * Setup editor redraws its Gantt from it, as v1's editor did from its draft). Null otherwise.
+   */
+  program: ProgramView | null;
 }
 
 export interface TemplateImpact {
@@ -219,7 +224,7 @@ export class LocalDashboardApi implements DashboardApi {
     return changeHistory(this.ds, filter, this.today);
   }
   async listTrades(filter?: SideFilter) {
-    return tradesList(this.ds, filter);
+    return tradesList(this.ds, filter, this.today);
   }
   async listTemplates(filter?: SideFilter) {
     return templatesList(this.ds, filter);
@@ -237,7 +242,7 @@ export class LocalDashboardApi implements DashboardApi {
   async previewSetup(op: string, args: unknown): Promise<SetupPreview> {
     const ds = this.ds;
     const result = this.runSetup(ds, op, args);
-    if (result.kind !== 'proposal') return { result, impact: null, templates: [] };
+    if (result.kind !== 'proposal') return { result, impact: null, templates: [], program: null };
     const run = dryRun(ds, result, this.today);
     const templates: TemplateImpact[] = [];
     for (const id of jobIdsOfChanges(run.after, result.changes)) {
@@ -246,7 +251,9 @@ export class LocalDashboardApi implements DashboardApi {
       const before = ds.jobs.some((j) => j.id === id) ? programWorkingDays(ds, id) : 0;
       templates.push({ jobId: id, name: job.name, workingDaysBefore: before, workingDaysAfter: programWorkingDays(run.after, id) });
     }
-    return { result, impact: run.impacts, templates };
+    const first = run.impacts.find((i) => i.kind === 'build');
+    const live = first ? run.after.jobs.find((j) => j.id === first.jobId && !j.isTemplate && j.kind === 'build') : undefined;
+    return { result, impact: run.impacts, templates, program: live ? programView(run.after, live.id, this.today) : null };
   }
 
   /**

@@ -106,6 +106,9 @@ export function resolvedArgs(p: Proposal, ds: Dataset): Record<string, JsonValue
       case 'confirm_job':
         if (field === 'lastConfirmed') set('date', after);
         break;
+      case 'set_holding_cost':
+        if (field === 'weeklyHoldingCost') set('dollars', after ?? 0);
+        break;
       default:
         set(field, after); // set_shipment_eta (eta), set_shipment_status / set_stage_status (status)
     }

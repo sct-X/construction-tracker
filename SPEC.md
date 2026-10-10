@@ -222,10 +222,10 @@ src/ screens and styles, and .claude/skills/liquid-glass-claude-skill.
    palette rules. Still required: colour never carries meaning alone, works at
    390px and 1280px, no stock imagery.
 2. Numbers: timing first, like v1. The web shows NO forecast finish, slip,
-   slip cost, holding cost or "Why it moved". Home is v1's Overview (one card
-   per job: stage, the next three not-done steps with dates, the top three
-   waiting-on items, freshness; builds in the side's order, design jobs by
-   oldest outstanding). The calculator, snapshots and change log stay
+   slip cost, holding cost or "Why it moved". Home is v1's Overview with v1's FINAL card (Dom's D8/D9, round 2): one card per job showing only its
+   name, the stage bar, the current stage and the overdue count ("! 4 overdue" / "Nothing overdue"); the
+   whole card opens the job. Next steps, waiting-on items and freshness live on the job's first page, not
+   the card. Builds in the side's order, design jobs by oldest outstanding. The calculator, snapshots and change log stay
    underneath, because act-by dates, hold points and next steps come from
    them. The bot's confirm card KEEPS the dry-run impact (finish, slip, $).
    Bot read-only answers may still state the finish when asked.

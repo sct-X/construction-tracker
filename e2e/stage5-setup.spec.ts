@@ -13,11 +13,16 @@ function unique(info: TestInfo, base: string): string {
   return `${base} ${info.project.name === 'mock' ? 'M' : 'A'}${Date.now().toString(36).slice(-5)}${info.retry}`;
 }
 
+/** Picks a step on the editor's Gantt by name (the bar is named "<step>. <dates>..." or "<step>, hold point. ..."). */
+async function pickBar(page: Page, step: string): Promise<void> {
+  const esc = step.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  await page.getByTestId('gantt').getByRole('link', { name: new RegExp(`^${esc}(, hold point)?\\. `) }).click();
+}
+
 /** Creates a build from the Duplex template through the New job form; returns its id and planned finish text. */
-async function createJob(page: Page, name: string, opts: { cost?: string } = {}): Promise<{ jobId: string; finish: string }> {
+async function createJob(page: Page, name: string): Promise<{ jobId: string; finish: string }> {
   await page.goto('./#/setup');
   await page.getByLabel('Job name').fill(name);
-  if (opts.cost) await page.getByLabel('Weekly holding cost').fill(opts.cost);
   const finish = page.getByTestId('nj-finish');
   await expect(finish).toHaveText(/^(Mon|Tue|Wed|Thu|Fri) \d{1,2} \w{3} \d{4}$/);
   await expect(page.getByTestId('nj-stages').getByRole('listitem')).toHaveCount(8);
@@ -30,7 +35,7 @@ async function createJob(page: Page, name: string, opts: { cost?: string } = {})
 
 test('new job from the duplex template: preview, create, then it is on the Overview with a program', async ({ page }, info) => {
   const name = unique(info, 'Smith St');
-  const { jobId } = await createJob(page, name, { cost: '3200' });
+  const { jobId } = await createJob(page, name);
   // The new job's first page: timing first, its first stage.
   await expect(page.getByTestId('job-bar')).toContainText(name);
   await expect(page.getByTestId('job-stage-of')).toHaveText('Stage 1 of 8');
@@ -38,7 +43,7 @@ test('new job from the duplex template: preview, create, then it is on the Overv
   await page.goto('./#/');
   const card = page.getByTestId(`overview-card-${jobId}`);
   await expect(page.getByTestId('overview-builds').getByTestId(`overview-card-${jobId}`)).toBeVisible();
-  await expect(card.getByTestId('card-next').getByRole('listitem')).toHaveCount(3);
+  await expect(card.getByTestId('card-overdue')).toHaveText('Nothing overdue');
 
   await page.goto(`./#/jobs/${jobId}/program`);
   // The Gantt opens on All (Stage 6c, v1); a phone shows the look-ahead.
@@ -67,17 +72,21 @@ test('the form says what is wrong in plain words', async ({ page }) => {
   await expect(page.getByText('Give the job a name.')).toBeVisible();
   await page.getByLabel('Job name').fill('Park Rd');
   await expect(page.getByTestId('nj-problem')).toHaveText('There is already a job called Park Rd.');
-  await page.getByLabel('Weekly holding cost').fill('lots');
-  await expect(page.getByText('Weekly holding cost is dollars a week, like 4500.', { exact: false })).toBeVisible();
+  // No money on the web (SPEC revision 2): New job has no holding cost; the bot sets it (set_holding_cost).
+  await expect(page.getByLabel(/holding cost/i)).toHaveCount(0);
+  await expect(page.locator('main')).not.toContainText('$');
 });
 
 test('program editor: a longer step shows what moves before Save, then Program shows it late against the plan', async ({ page }, info) => {
   const name = unique(info, 'Duration St');
-  const { jobId } = await createJob(page, name, { cost: '7000' });
+  const { jobId } = await createJob(page, name);
 
   await page.goto(`./#/setup/programs/${jobId}`);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(name);
   await expect(page.getByTestId('editor-foot')).toContainText('Edit a step to see what moves.');
+  // v1: the Gantt is the picture; a bar picks its step into the panel.
+  await expect(page.getByTestId('editor-panel')).toContainText('Nothing picked');
+  await pickBar(page, 'Tiling');
   const tiling = page.locator('[data-step-name="Tiling"]');
   await expect(tiling.getByTestId('ed-days')).toHaveValue('10');
 
@@ -94,9 +103,11 @@ test('program editor: a longer step shows what moves before Save, then Program s
   await expect(bar).not.toContainText('$');
   await expect(bar.getByTestId('bar-note')).toContainText("Planned dates don't change");
   // Nothing saved yet: one change at a time, everything else is locked.
+  await pickBar(page, 'Painting');
   await expect(page.locator('[data-step-name="Painting"]').getByTestId('ed-days')).toBeDisabled();
 
   await bar.getByTestId('bar-save').click();
+  await pickBar(page, 'Tiling');
   await expect(page.getByTestId('ed-saved')).toContainText(`Saved: Edited step Tiling at ${name}`);
   await expect(page.getByTestId('change-bar')).toHaveCount(0);
   await expect(page.getByTestId('editor-foot')).toContainText('No unsaved changes');
@@ -116,6 +127,8 @@ test('program editor: add a step and a need, discard a change, and a template ha
   const name = unique(info, 'Add St');
   const { jobId } = await createJob(page, name);
   await page.goto(`./#/setup/programs/${jobId}`);
+  // A stage chip picks the stage into the panel.
+  await page.getByTestId('ed-stages').getByRole('button', { name: 'Frame', exact: true }).click();
   const frameStage = page.locator('[data-testid^="ed-stage-"]').filter({ has: page.locator('[data-step-name="Frame inspection"]') });
   await frameStage.getByRole('button', { name: 'Add a step to Frame' }).click();
   const form = frameStage.locator('[data-testid^="ed-newstep-"]');
@@ -129,7 +142,6 @@ test('program editor: add a step and a need, discard a change, and a template ha
 
   // A need with its lead time.
   const check = page.locator('[data-step-name="Frame check"]');
-  await check.getByTestId('ed-more').click();
   await page.getByLabel('What it needs').fill('Bracing straps');
   await page.getByLabel('Lead time in weeks').last().fill('3');
   await expect(bar).toContainText('Frame check needs Bracing straps (3 weeks)');
@@ -146,6 +158,8 @@ test('program editor: add a step and a need, discard a change, and a template ha
   await page.goto('./#/setup/templates/tpl-duplex');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Duplex');
   await expect(page.locator('.page-header__meta')).toContainText('Template editor');
+  await expect(page.getByTestId('gantt')).toHaveCount(0);
+  await page.getByTestId('ed-tree').getByRole('button', { name: /^Frame, / }).click();
   await expect(page.locator('.su-step-dates')).toHaveCount(0);
   await page.locator('[data-step-name="Frame"]').getByTestId('ed-days').fill('20');
   await expect(page.getByTestId('template-impact')).toContainText('working days. Templates have no dates.');
@@ -238,7 +252,6 @@ test('screenshots: every Setup screen at 1280x800, and the phone message at 390'
   };
   await page.goto('./#/setup');
   await page.getByLabel('Job name').fill('Smith St');
-  await page.getByLabel('Weekly holding cost').fill('3200');
   await expect(page.getByTestId('nj-finish')).toBeVisible();
   await shot('newjob-1280');
 
@@ -248,13 +261,14 @@ test('screenshots: every Setup screen at 1280x800, and the phone message at 390'
 
   await page.goto('./#/setup/programs/park-rd');
   await page.getByTestId('editor').waitFor();
-  await shot('editor-1280');
+  await page.getByTestId('gantt').waitFor();
+  // Full page, as v1-ref-editor-park-rd-1280.png was taken.
+  await page.screenshot({ path: `e2e/screenshots/${info.project.name}-setup-editor-1280.png`, fullPage: true });
+  await page.getByTestId('gantt-bar-pr-tiling').click();
   const tiling = page.getByTestId('ed-step-pr-tiling');
-  await tiling.scrollIntoViewIfNeeded();
   await tiling.getByTestId('ed-days').fill('15');
   await expect(page.getByTestId('preview-moved')).toBeVisible();
   await shot('editor-change-1280');
-  await tiling.getByTestId('ed-more').click();
   await page.getByTestId('bar-discard').click();
   await page.getByTestId('ed-detail-pr-tiling').scrollIntoViewIfNeeded();
   await shot('editor-detail-1280');
@@ -265,6 +279,7 @@ test('screenshots: every Setup screen at 1280x800, and the phone message at 390'
 
   await page.goto('./#/setup/templates/tpl-duplex');
   await page.getByTestId('editor').waitFor();
+  await page.getByTestId('ed-pick-tpl-frame').click();
   await page.locator('[data-step-name="Frame"]').getByTestId('ed-days').fill('20');
   await expect(page.getByTestId('template-impact')).toBeVisible();
   await shot('template-editor-1280');

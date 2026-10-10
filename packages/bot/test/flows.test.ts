@@ -431,4 +431,25 @@ describe('wording: late but not overdue, Pending approval, no amber', () => {
     expect(card.text).toContain("- Confirmed again: it hadn't been confirmed for 9 days");
     expect(card.text).not.toMatch(/amber/i);
   });
+
+  it('holding cost through the bot (off the web): a card with before and after; with none, the card has no $ line', async () => {
+    await setup([toolCall('set_holding_cost', { job: 'Park Rd', dollars: 0 }), etaCall('16 Nov'), toolCall('set_holding_cost', { job: 'Seaview', dollars: 4500 })]);
+    await h.text('park rd has no holding cost any more');
+    const off = h.lastWithButton('Confirm');
+    expect(off.text).toContain('Park Rd holding cost removed (was $4,500).');
+    await h.press(off.messageId, 'Confirm');
+    expect(store.load().jobs.find((j) => j.id === PARK_RD)!.weeklyHoldingCost).toBeNull();
+
+    await h.text('Park Rd windows now arriving 16 Nov');
+    const eta = h.lastWithButton('Confirm');
+    expect(eta.text).toContain('Finish Fri 12 Mar 2027 (was Fri 26 Feb 2027)');
+    expect(eta.text).toContain('Slip +14 days since last Monday');
+    expect(eta.text).not.toContain('$');
+    await h.press(eta.messageId, 'Cancel');
+
+    await h.text('seaview holding cost is 4500 a week now');
+    const sea = h.lastWithButton('Confirm');
+    expect(sea.text).toContain('Seaview St holding cost $4,500 a week (was $3,800).');
+    expect(sea.text).toContain('Seaview St, weekly holding cost: $3,800/wk → $4,500/wk');
+  });
 });

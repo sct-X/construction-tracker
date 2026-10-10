@@ -14,7 +14,7 @@
  * here (SPEC). The job header (shell) carries the job's name and tabs.
  */
 import { useEffect, useRef, useState } from 'react';
-import { formatDate, formatTime, sydneyDate, type DashboardApi, type JobListRow, type Photo, type PhotoGallery, type SideFilter, type StepForecast } from '@ct/core';
+import { formatDate, formatTime, relativeDays, sydneyDate, type DashboardApi, type JobListRow, type Photo, type PhotoGallery, type SideFilter, type StepForecast } from '@ct/core';
 import { useData, useSideQuery } from '../data/DataContext';
 import { usePhoneWidth } from '../shell/useNarrow';
 import { LoadError, LoadingRows } from '../components/bits';
@@ -241,9 +241,11 @@ function CategoryBlock({
   );
 }
 
-/** "From the bot, Wed 16 Sep, 5:10pm" / "Filed Wed 16 Sep, 5:10pm". */
+/** "From the bot, Wed 16 Sep, yesterday, 5:10pm" / "Filed Wed 16 Sep, yesterday, 5:10pm". */
 export function receivedWords(p: Pick<Photo, 'receivedAt' | 'messageId'>, today: string): string {
-  const when = `${formatDate(sydneyDate(p.receivedAt), today)}, ${formatTime(p.receivedAt)}`;
+  const day = sydneyDate(p.receivedAt);
+  // Every date carries its relative time (v1 D13): "Tue 15 Sep, 2 days ago, 3:10pm".
+  const when = `${formatDate(day, today)}, ${relativeDays(day, today)}, ${formatTime(p.receivedAt)}`;
   return p.messageId ? `From the bot, ${when}` : `Filed ${when}`;
 }
 
@@ -288,7 +290,7 @@ function PhotoView({ photo, category, stageName, src, today, onClose }: { photo:
         <h2 id="photos-view-title" className="photos__view-title">
           {title}
         </h2>
-        <button ref={closeRef} type="button" className="btn btn--desktop photos__close" onClick={onClose}>
+        <button ref={closeRef} type="button" className="btn photos__close" onClick={onClose}>
           Close
         </button>
       </div>

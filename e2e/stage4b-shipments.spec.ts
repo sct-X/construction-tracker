@@ -7,19 +7,19 @@ test('Shipments shows both windows shipments with their jobs, status, ETA and li
   const park = page.getByTestId('shipment-row-sh-pr-windows');
   await expect(park.getByTestId('ship-job')).toHaveText('Park Rd');
   await expect(park.getByTestId('ship-status')).toHaveText('In production');
-  await expect(park.getByTestId('eta')).toHaveText('Mon 26 Oct');
-  await expect(park.getByTestId('timing')).toHaveText('7 days to spare');
-  await expect(park.getByTestId('linked-items').getByRole('listitem')).toHaveCount(3);
+  await expect(park.getByTestId('eta')).toHaveText('26 Oct 2026');
+  await expect(park.getByTestId('timing')).toHaveText('ETA 1 week before needed');
+  await expect(park.getByTestId('linked-items')).toHaveText('3 items');
   const sea = page.getByTestId('shipment-row-sh-sv-windows');
   await expect(sea.getByTestId('ship-job')).toHaveText('Seaview St');
-  await expect(sea.getByTestId('eta')).toHaveText('Mon 14 Dec');
+  await expect(sea.getByTestId('eta')).toHaveText('14 Dec 2026');
   await expect(sea.getByTestId('ship-status')).toHaveText('Design');
 });
 
 test('Shipments inside the job shows only that job (Dom: change 2)', async ({ page }) => {
   await page.goto('./#/jobs/park-rd/shipments');
   await expect(page.getByTestId('job-tabs').getByRole('link', { name: 'Shipments' })).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByTestId('shipment-row-sh-pr-windows').getByTestId('eta')).toHaveText('Mon 26 Oct');
+  await expect(page.getByTestId('shipment-row-sh-pr-windows').getByTestId('eta')).toHaveText('26 Oct 2026');
   await expect(page.getByTestId('shipment-row-sh-sv-windows')).toHaveCount(0);
 });
 

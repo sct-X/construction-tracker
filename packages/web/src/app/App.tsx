@@ -23,6 +23,7 @@ import { LogoMark, NavIcon } from '../shell/icons';
 import { installGlassPress } from '../shell/glassPress';
 import { usePhoneWidth } from '../shell/useNarrow';
 import { useTabBarMinimise } from '../shell/useTabBarMinimise';
+import { applyTheme, readTheme, saveTheme, type ThemeChoice } from '../shell/theme';
 import { href, matchPath, useHashPath } from './router';
 import { ROUTES, type RouteDef } from './routes';
 import { isHere, isJobRoute, mainLinks, phoneLinks } from './jobNav';
@@ -60,7 +61,32 @@ function Sidebar({ current }: { current: RouteDef | undefined }) {
         <h2 className="sidebar__group">Setup</h2>
         {mainLinks('setup').map(link)}
       </nav>
+      <LookMenu />
     </aside>
+  );
+}
+
+/** Light (default), Dark or Match device: the v1 "Look" choice, per viewer. */
+function LookMenu() {
+  const [look, setLook] = useState<ThemeChoice>(readTheme);
+  useEffect(() => applyTheme(look), [look]);
+  return (
+    <label className="sidebar__look">
+      <span className="sidebar__look-label">Look</span>
+      <select
+        value={look}
+        data-testid="look"
+        onChange={(e) => {
+          const v = e.target.value as ThemeChoice;
+          saveTheme(v);
+          setLook(v);
+        }}
+      >
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+        <option value="system">Match device</option>
+      </select>
+    </label>
   );
 }
 
@@ -171,7 +197,7 @@ export function App() {
           {found ? (
             <Suspense fallback={<LoadingRows rows={4} label={`Loading ${found.r.title}`} />}>{found.r.render(found.params!)}</Suspense>
           ) : (
-            <div className="screen">
+            <div>
               <h1 className="page-header__title">Nothing here</h1>
               <p className="empty-line">
                 There is no page at #{path}. <a href={href('/')}>Go to the Overview</a>.

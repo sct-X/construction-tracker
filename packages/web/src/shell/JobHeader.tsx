@@ -65,7 +65,7 @@ export function JobHeader(props: { jobId: string; job: JobRow | null; sideJobs: 
         </a>
         <div className="page-header__row">
           <div className="page-header__lead">
-            <JobSwitcher job={job} jobs={sideJobs} current={current} heading={!current?.ownHeading} />
+            <JobSwitcher job={job} jobs={sideJobs} current={current} />
             {meta && <p className="page-header__meta">{meta}</p>}
           </div>
         </div>
@@ -119,7 +119,7 @@ const TYPEAHEAD_MS = 600;
 /** What the open menu leaves clear at the foot of the viewport (the phone tab bar and a margin). */
 const FOOT_CLEARANCE = 96;
 
-export function JobSwitcher({ job, jobs, current, heading }: { job: JobRow; jobs: JobRow[]; current: RouteDef | undefined; heading: boolean }) {
+export function JobSwitcher({ job, jobs, current }: { job: JobRow; jobs: JobRow[]; current: RouteDef | undefined }) {
   const { groups, rows } = useMemo(() => {
     const builds = jobs.filter((j) => j.kind === 'build');
     const design = jobs.filter((j) => j.kind === 'design');
@@ -281,11 +281,10 @@ export function JobSwitcher({ job, jobs, current, heading }: { job: JobRow; jobs
     }
   };
 
-  const Title = heading ? 'h1' : 'div';
   let index = -1;
   return (
     <div className="job-switch" data-testid="job-switch" data-open={open || undefined} ref={rootRef}>
-      <Title className="page-header__title job-switch__title">
+      <h1 className="page-header__title job-switch__title">
         <button
           ref={buttonRef}
           type="button"
@@ -302,7 +301,7 @@ export function JobSwitcher({ job, jobs, current, heading }: { job: JobRow; jobs
           <span className="job-switch__text">{job.name}</span>
           <ChevronIcon />
         </button>
-      </Title>
+      </h1>
       <span id={hintId} hidden>
         Switch job
       </span>

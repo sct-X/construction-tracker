@@ -71,7 +71,7 @@ describe('Photos (v1 gallery)', () => {
     expect(stageCountWords({ stageId: 's', stageName: 'S', categories: [cat(0, true)] })).toBe('No photos yet, 0 of 1 required set');
     expect(stageCountWords({ stageId: 's', stageName: 'S', categories: [cat(2, false)] })).toBe('2 photos');
     expect(neededBeforeWords('Stormwater inspection')).toBe('Needed before the stormwater inspection');
-    expect(receivedWords({ receivedAt: '2026-09-16T07:10:00.000Z', messageId: 'm1' }, '2026-09-17')).toBe('From the bot, Wed 16 Sep, 5:10pm');
+    expect(receivedWords({ receivedAt: '2026-09-16T07:10:00.000Z', messageId: 'm1' }, '2026-09-17')).toBe('From the bot, Wed 16 Sep, yesterday, 5:10pm');
   });
 });
 
@@ -125,7 +125,7 @@ describe('Changes (v1 activity, plus source and before -> after)', () => {
     expect(cancelled.getByTestId('status').textContent).toBe('Cancelled');
     expect(cancelled.getByText('Would have changed (not saved):')).toBeTruthy();
     expect(cancelled.queryByTestId('forecast')).toBeNull();
-    expect(within(screen.getByTestId('history-cs-0812-eta')).getByTestId('forecast').textContent).toBe('Moved no forecast.');
+    expect(within(screen.getByTestId('history-cs-0812-eta')).getByTestId('forecast').textContent).toBe('Moved no steps.');
     expect(within(screen.getByTestId('history-cs-0915-park')).queryByTestId('forecast')).toBeNull();
     // Days, newest first.
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([

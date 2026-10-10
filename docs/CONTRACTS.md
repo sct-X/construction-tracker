@@ -162,6 +162,7 @@ Daily (bot) operations, args (`?` optional):
 | add_daily_note | job, text, date?, messageId? | |
 | attach_photo | job, category?, stage?, filePath, caption?, takenOn?, messageId? | never refuses on names: missing/unmatched/ambiguous job -> question with a button per live job (`askOptions`); stage or category -> question (that job's/stage's categories, incl. General) |
 | confirm_job | job, date? | lastConfirmed |
+| set_holding_cost | job, dollars (0 = none) | weeklyHoldingCost (null for 0); builds only, not templates; summary "Park Rd holding cost $4,500 a week (was $3,800)" / "... removed (was $4,500)" (review 6 #2: the cost left the web). A job with no cost: the confirm card has no $ (slipText leaves it out) |
 | set_stage_status | job, stage, status | design jobs only. Stage 6b: "With council" / "With certifier" read "Pending approval" in summaries, refusals and options (core `stageDisplayName`, readModelsTiming); `resolveStage` matches either name |
 
 Setup operations (web Setup area; `LocalDashboardApi.applySetup` refuses non-setup ops): copy_template
@@ -179,7 +180,7 @@ are saved written the usual way ("0491 579 212"); anything else is refused with 
 another trade's name on the same side.
 
 copy_template: stages before `startsFromStage` are done (steps dated the working day before start); the rest run
-forward from startDate through links; job.plannedFinish = latest planned end; lastConfirmed = today.
+forward from startDate through links; job.plannedFinish = latest planned end; lastConfirmed = today; weeklyHoldingCost = the arg, else the template's, else null (Setup no longer sends one).
 
 ## Dry run (`dryRun.ts`)
 
@@ -382,7 +383,7 @@ re-run with `{ ...question.args, afterChoice: id }`.
 - **Primitives**, `src/styles/base.css` (ported from v1 base.css): `.btn` (gray) `--primary` (the ONE filled tint button per screen)
   `--tinted` `--fill` `--ghost` `--small` `--desktop` (36px on >= 768px), `.btn--glass` / `.btn--glass-prominent` (static glass
   buttons, press glow from `shell/glassPress.ts`), `.seg` + `.seg__btn[aria-pressed]` (segmented control), `.input`,
-  `.form-field` + `.form-field__label` (renamed from v1's `.field`: lists.css owns `.field`), `.group` / `.group__header`
+  `.form-field` + `.form-field__label` (renamed from v1's `.field`), `.group` / `.group__header`
   (`--large` = a Title 3 group head) / `.group__list` / `.cell` / `.cell--link` (inset grouped list with disclosure chevron),
   `.chevron`, `.table`, `.plate`, `.count`, `.status` + `--late|--note|--ok|--muted|--plain` (`components/StatusText.tsx`, adds the
   "!" for late and note), `.stagebar` (`components/StageBar.tsx`), `.filterbar` / `.filter` / `.filter__select`, `.glass` +
@@ -396,8 +397,8 @@ re-run with `{ ...question.args, afterChoice: id }`.
   switcher, `nav[aria-label=Main]` with glyphs, `nav[aria-label=Setup]` group). Glyphs: `shell/icons.tsx` (`NavIcon name`,
   `PhoneGlyph`, `LogoMark`: v1's arc-and-dot mark; the "Cruise" name is NOT adopted). `main.shell__content.page` holds every screen.
   Dev bar (`components/DevBar.tsx`, `.devbar`, region "Demo controls": "Today is" + Reset) only in mock mode.
-- **Route table** (`app/routes.tsx`): RouteDef adds `group: 'main'|'setup'`, `icon`, `phone: 'tab'|'tool'`, `ownHeading` (a job
-  screen not yet restyled that renders its own h1: the job header then draws the job name in a div, not an h1), `redirect`.
+- **Route table** (`app/routes.tsx`): RouteDef adds `group: 'main'|'setup'`, `icon`, `phone: 'tab'|'tool'`, `redirect`. The job
+  header's job switcher is every job page's h1, so a job screen starts at h2.
   Main: `#/` Overview, `#/waiting`, `#/shipments` (desktop sidebar), `#/history` (+ `/:jobId`); Setup group `#/setup` (New job),
   `/setup/programs`, `/setup/templates`, `/setup/trades` (desktop only). Redirects: `#/jobs`, `#/monday` -> `#/`; `#/chase` ->
   `#/waiting`. Job tabs, builds: Overview, Program, Waiting on, Shipments (`/jobs/:jobId/shipments`), Photos, Notes; design:
@@ -414,9 +415,10 @@ re-run with `{ ...question.args, afterChoice: id }`.
   Deep link to the other side's job switches side; the side switcher leaves a job page for `#/`.
 - **Screens in the v1 look (Stage 6a)**:
   - Overview `screens/Overview.tsx` + `styles/overview.css`: `overview-screen`, groups `overview-builds` / `overview-design`,
-    cards `overview-card-<jobId>` (`data-kind`, `data-overdue`; the name's link is stretched over the card) > `card-overdue`
-    ("!4 overdue" / "Nothing overdue"), `card-bar`, `card-stage`, `card-next` > `card-step-<stepId>` > `card-step-when`,
-    `card-waiting` > `card-wait-<itemId>` (`data-overdue`) > `card-wait-when`, `card-fresh` (`data-unconfirmed`); empty
+    cards `overview-card-<jobId>` (an `<a>` to the job's home; `data-kind`, `data-overdue`): v1's FINAL card only (Dom's D8/D9,
+    orchestrator 2026-10-10): the name, `card-bar` (stage bar, aria-label "Stage 5 of 8, Lock-up"), `card-stage`, `card-overdue`
+    ("!4 overdue" / "Nothing overdue"). No next steps, waiting-on or freshness on the card: the job first page holds them
+    (core `OverviewRow` still carries them, unused by the card); empty
     `overview-empty` "No jobs on this side yet."; desktop "New job" button `overview-new-job`.
   - Job first page `screens/JobOverview.tsx` + `styles/job.css`: `job-progress` (`job-stage`, `job-stage-of`, `job-stage-bar`,
     `job-next-hold` > `job-hold-photos` "0 of 1 required photo set"), `job-overdue` (`job-overdue-count`,
@@ -427,8 +429,11 @@ re-run with `{ ...question.args, afterChoice: id }`.
     (`data-count`; Later is a closed `<details>`), rows `waiting-row-<itemId>` (`data-overdue`) > `when` (one phrase,
     `ui/when.ts whenWords`), `call` (`tel:` glass button "Call <trade>", the number in its accessible name).
   - Shipments `screens/Shipments.tsx` + `styles/shipments.css` (`#/shipments` side-wide with `ship-job`; job tab
-    `/jobs/:jobId/shipments` that job only): `shipment-row-<id>` > `ship-status`, `eta`, `needed-by` ("Mon 2 Nov, in 6 weeks"),
-    `timing` (plain words), `linked-items`. Desktop table on a plate, phone cards.
+    `/jobs/:jobId/shipments` that job only), ported from v1: `shipment-row-<id>` > `ship-status`, `eta` (the row's figure
+    "26 Oct 2026", Title 1 / Large Title) with its relative time, `timing` (`ui/itemWords.ts shipmentTiming`: "ETA 1 week before
+    needed" ok tone, "ETA 2 weeks after needed" plain, never red), `needed-by` ("Mon 2 Nov, in 6 weeks"), `linked-items` (the
+    count, "3 items"; titles in its title attribute). Desktop: a hairline `.table` on the ground with a Job column side-wide;
+    phone: a `.plate` per shipment ("3 items for Park Rd" side-wide). Red only for an ETA gone and not delivered.
   - Program `screens/Program.tsx` + `styles/program.css` + `components/gantt/{Gantt,LookAhead,StagesStrip,timeScale}` (Stage 6c,
     v1 port, read-only): section head (h2 "Program", `program-sub`, view switch). Desktop: v1 Gantt (`gantt`, views All /
     Look-ahead / Late only `program-view-all|lookahead|late`, "Edit program" glass link `program-edit` to the Setup editor);
@@ -453,11 +458,9 @@ re-run with `{ ...question.args, afterChoice: id }`.
     nothing to come), `ck-empty`; `ck-done` (Done (N), folded). ItemRow: `components/ItemRow.tsx` + `styles/itemrow.css`.
 - **Timing first on every screen**: no forecast finish, slip, slip cost, holding cost or Why it moved on the web. Program's
   subtitle is `programSubWords` ("Rough-in. 3 steps later than planned."); Changes shows "Moved N steps at <job>" per effect;
-  Setup's change bar shows the steps that move (no finish, no $); Setup New job keeps the PLANNED finish (v1 did) and the weekly
-  holding cost input (the bot's confirm card prices a slip with it). Words: `ui/when.ts` (`shortRelative` "Mon 21 Sep, in 4 days",
-  `whenWords`, `stepWhen`), core `freshnessWords`, `stageDisplayName`. `components/bits.tsx` `Freshness` renders words only
-  (`data-unconfirmed`), no amber.
-- **Stage 6d screens (v1 look; legacy.css, lists.css and the old setup.css rules for them are gone)**. Shared:
+  Setup's change bar shows the steps that move (no finish, no $); Setup New job keeps the PLANNED finish (v1 did). Words: `ui/when.ts` (`shortRelative` "Mon 21 Sep, in 4 days",
+  `whenWords`, `stepWhen`), core `freshnessWords`, `stageDisplayName`. Freshness is words only, no amber.
+- **Stage 6d screens (v1 look)**. Shared:
   `components/FilterSelect.tsx` (v1 FilterSelect: one `<select class="input filter__select">` in `.filter`, sr-only label unless
   `labelShown`, options may carry `group` for `<optgroup>`).
   - Photos `screens/Photos.tsx` + `styles/photos.css` (job tab, no `ownHeading`): h2 "Photos" + `photos-sub` ("17 photos");
@@ -485,8 +488,9 @@ re-run with `{ ...question.args, afterChoice: id }`.
   - Setup (desktop only; `setup/SetupFrame.tsx` = PageHeader (title, meta, back, actions) or, below 768px (`usePhoneWidth`),
     `setup-phone` "Setup works on a computer. Open this page on a desktop."; the old "Setup pages" tab strip is gone, the
     sidebar's Setup group navigates). New job `su-nj`: one 560px column (v1 newJob): Job name, Side (`nj-side-<id>`), Kind
-    (`nj-kind`: Build / Design), Approval path (`nj-path`: Not set (builds) / DA / CDC), Template (`nj-template-<id>`, a
-    segmented pick with "8 stages, 29 steps, 25 needs, 13 photo sets"), Weekly holding cost ($ ... a week), Start on site,
+    (`nj-kind`: Build / Design), Approval path (`nj-path-DA|CDC`; the template's path shows picked until one is), Template
+    (`nj-template-<id>`, a segmented pick with "8 stages, 29 steps, 25 needs, 13 photo sets"), Start on site (no holding cost:
+    review 6 #2; a new job takes its template's weekly holding cost, or none, and the bot sets it with `set_holding_cost`),
     Starts from = the stage ladder `nj-stages` > `nj-from-<stageId>` (number, name, "done" or the stage's planned dates from the
     preview); `nj-preview` (aria-live): "Planned finish" + `nj-finish` (the one finish on the web, as v1), "29 steps, about 35
     weeks, from Mon 21 Sep 2026, in 4 days.", `nj-done`; design: "Pending approval" names and "no program and no finish date";
@@ -498,17 +502,31 @@ re-run with `{ ...question.args, afterChoice: id }`.
     Dom", header `add-trade-open` "Add trade" opens the `add-trade` plate (Name, What they do, Phone, `add-trade-save` "Save
     trade"); table Trade / Type / Phone (`trade-phone`, Title 3 bold `tel:` link) / On jobs (`trade-jobs`) / Edit
     (`trade-edit-<id>` inline plate, `trade-edit-save`). Program editor `su-ed` (`/setup/programs/:id`, `/setup/templates/:id`):
-    PageHeader back "Programs" / "Templates", h1 the job's name, meta "Program editor, 8 stages, 29 steps" / "Template editor,
-    8 stages, 29 steps, 160 working days", "See the program" link; numbered stage chips `ed-stages` (scroll to the stage); the
-    stages-and-steps table on one plate (grey stage bands, ids as before: `editor`, `ed-stage-*`, `ed-step-*`, `ed-detail-*`,
-    ...); v1's footer, always there: Thick Liquid Glass, sticky (`editor-foot` at rest: "Edit a step to see what moves.", "No
+    v1's editor (review 6 #4): PageHeader back "Program" (the job's Program tab) / "Templates", h1 the job's name, meta "Program
+    editor" / "Template editor, 160 working days"; numbered stage chips `ed-stages` > `ed-chip-<stageId>` (`aria-pressed`) and
+    `ed-chip-add` "Add stage"; the chart: the Program screen's `components/gantt/Gantt` with the editor-only props `onPickStep`
+    (a bar picks its step instead of opening the step page) and `pickedStepId` (`gantt__bar--picked` ring, `aria-current`),
+    redrawn from `SetupPreview.program` while a change is pending; a template has no chart but `ed-tree` (v1 StepTree:
+    `ed-pick-<stepId>` buttons "Frame, 15 working days"); the panel `editor-panel` (`data-kind`; under the chart below 1400px,
+    beside it from 1400px): "Nothing picked / Pick a bar on the chart, or a stage above.", a step `ed-step-<id>`
+    (`data-step-name`: `ed-name`, `ed-days`, `ed-trade`, `ed-dates` forecast with relative time (live jobs), `ed-hold`,
+    `ed-up`/`ed-down`, `ed-detail-<id>` waits for / needs / remove), a stage `ed-stage-<id>` (name, Move earlier/later, its
+    steps, `ed-addstep-<id>` > `ed-newstep-<id>`, Delete when empty) or the new-stage form; after a save the panel stays on what
+    was made or changed. `editor` wraps it all. v1's footer, always there: Thick Liquid Glass, sticky (`editor-foot` at rest: "Edit a step to see what moves.", "No
     unsaved changes", Discard and Save disabled; `change-bar` while one edit is pending: the summary, `preview-moved`,
     `bar-note` / `template-impact`, `bar-problem`, "1 unsaved change", `bar-discard` glass, `bar-save` "Save 1 change"
     prominent glass). Still one change at a time, each a setup op previewed first.
-  - Read models for them (additive): `tradesList` rows gain `jobNames` (live jobs with open items for the trade, by name);
-    `TemplateRow` gains `path`, `needs`, `photoSets`, `stageNames`.
-- **All screens are now in the v1 look** (6a, 6c, 6d). `styles/legacy.css` keeps only shared old bits other screens may still
-  use; `lists.css` keeps the Waiting on / Shipments leftovers and `.tag`.
+  - Read models for them (additive): `tradesList(ds, filter, today?)` rows gain `jobNames` (live jobs with open items for the
+    trade, plus, with today, jobs where it is on this week as `tradesThisWeek` names it); `TemplateRow` gains `path`, `needs`,
+    `photoSets`, `stageNames`; `SetupPreview.program` (ProgramView after the change for the live build it is about, else null).
+- **All screens are now in the v1 look** (6a, 6c, 6d). The old stylesheets (`legacy.css`, `lists.css`, `screens4a.css`) and
+  `components/listBits.tsx` are deleted (review 6, item 6); every screen has its own file in `src/styles/` on the v1 tokens.
+- **Look** (v1 V3): light by default; dark and "Match device" from the Look menu at the foot of the desktop sidebar
+  (`shell/theme.ts`: `readTheme`/`applyTheme`/`saveTheme`, localStorage `ct-theme` in try/catch, `?theme=light|dark|system` in
+  the hash too; sets `<html data-theme>`, applied before the first paint in main.tsx). The phone has no menu (the hash param or
+  a desktop choice carries over).
+- An unknown id (stale link) reads v1's "Not found / Nothing at this address." with an Overview button (`bits.tsx LoadError`,
+  `not-found`), not the raw "Unknown step ...".
 
 #### How to build a screen in the v1 style (for the next agent)
 
@@ -518,14 +536,14 @@ re-run with `{ ...question.args, afterChoice: id }`.
 2. Data: `useSideQuery` / `useJobQuery` over DashboardApi; if the screen needs words or groupings, add a pure read model in core
    (`readModels*.ts`) with a test, not logic in the screen. Never show finish, slip or $.
 3. Markup: a top-level screen starts with `<PageHeader title meta actions>`; a job screen gets the job header from the shell, so
-   it starts with an h2 section title (see `.waiting__head` / `.ships__head`) and its route must NOT set `ownHeading`. Build from
+   it starts with an h2 section title (see `.waiting__head` / `.ships__head`) (the switcher is the h1). Build from
    the primitives: content in `.plate` cards or `.group` > `.group__list` > `.cell` rows, statuses with `<StatusText>` (red only
    when `row.overdue`), dates through `ui/when.ts` so each carries its relative time, the one filled `.btn--primary` per screen,
    secondary actions `.btn--glass`. Phone/desktop: same DOM where possible; switch with `usePhoneWidth()` (768px) or
    `@media (min-width: 768px)` / `.shell--desktop` selectors. Glass only on the floating layer (sticky filter bars on the phone,
    menus): `glass glass--regular glass--float`; never on content.
 4. CSS: one file per screen in `src/styles/`, BEM-ish prefix per screen (`overview__`, `job__`, `wrow`, `ships__`), every value a
-   token. When a screen moves over, delete its rules from `legacy.css` / `lists.css` / `screens4a.css`.
+   token. Delete rules nothing uses (grep the class, then build).
 5. Test ids stay stable (update the specs in the same change); add the screen to `e2e/screenshots.spec.ts` and compare its
    `<project>-6a-*` shots with the `v1-ref-*` ones at 390 and 1280; specs fail on sideways scroll.
 

@@ -95,7 +95,23 @@ export function stepSentence(s: ProgramStep, names: Map<string, string>, today: 
   return [`${span}, ${stepWhenWords(s, today)}.`, late, waits].filter(Boolean).join(' ');
 }
 
-export function Gantt({ p, view = 'all', dense }: { p: ProgramView; view?: GanttView; dense?: boolean }) {
+/**
+ * `onPickStep` (the Setup program editor, Stage 6d): a bar picks its step instead of opening the step page,
+ * and `pickedStepId` rings the picked bar. The Program screen passes neither, so it is unchanged.
+ */
+export function Gantt({
+  p,
+  view = 'all',
+  dense,
+  onPickStep,
+  pickedStepId,
+}: {
+  p: ProgramView;
+  view?: GanttView;
+  dense?: boolean;
+  onPickStep?: (stepId: string) => void;
+  pickedStepId?: string | null;
+}) {
   const today = p.forecast.today;
   const horizon = useMemo(() => addCalendarDays(today, 21), [today]);
   const scale: TimeScale = useMemo(() => {
@@ -231,6 +247,8 @@ export function Gantt({ p, view = 'all', dense }: { p: ProgramView; view?: Gantt
                   names={names}
                   active={active === row.step.stepId || (activeStep?.waitsFor.includes(row.step.stepId) ?? false)}
                   onActive={setActive}
+                  onPick={onPickStep}
+                  picked={!!pickedStepId && pickedStepId === row.step.stepId}
                 />
               ),
             )}
@@ -316,6 +334,8 @@ function StepBarRow({
   names,
   active,
   onActive,
+  onPick,
+  picked,
 }: {
   row: StepRow;
   scale: TimeScale;
@@ -325,6 +345,8 @@ function StepBarRow({
   names: Map<string, string>;
   active: boolean;
   onActive: (id: string | null) => void;
+  onPick?: (stepId: string) => void;
+  picked?: boolean;
 }) {
   const { step } = row;
   const hold = step.isHoldPoint;
@@ -336,8 +358,10 @@ function StepBarRow({
   const late = step.lateDays > 0 && step.status !== 'done';
   const overdue = isStepOverdue(step, today);
   const sentence = stepSentence(step, names, today);
-  const cls = ['gantt__bar', `gantt__bar--${step.status}`, hold ? 'gantt__bar--hold' : '', active ? 'gantt__bar--active' : ''].filter(Boolean).join(' ');
-  const rowCls = ['gantt__row', 'gantt__row--step', row.isStageBar ? 'gantt__row--stagebar' : '', active ? 'gantt__row--active' : ''].filter(Boolean).join(' ');
+  const cls = ['gantt__bar', `gantt__bar--${step.status}`, hold ? 'gantt__bar--hold' : '', active ? 'gantt__bar--active' : '', picked ? 'gantt__bar--picked' : ''].filter(Boolean).join(' ');
+  const rowCls = ['gantt__row', 'gantt__row--step', row.isStageBar ? 'gantt__row--stagebar' : '', active ? 'gantt__row--active' : '', picked ? 'gantt__row--picked' : '']
+    .filter(Boolean)
+    .join(' ');
   const barStyle = hold ? { left: fx + scale.pxPerDay / 2 } : { left: fx, width: fw };
 
   return (
@@ -369,6 +393,15 @@ function StepBarRow({
           onMouseLeave={() => onActive(null)}
           onFocus={() => onActive(step.stepId)}
           onBlur={() => onActive(null)}
+          aria-current={picked ? 'true' : undefined}
+          onClick={
+            onPick
+              ? (e) => {
+                  e.preventDefault();
+                  onPick(step.stepId);
+                }
+              : undefined
+          }
         >
           <span className="sr-only">
             {step.name}

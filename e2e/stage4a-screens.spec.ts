@@ -70,7 +70,7 @@ for (const { w, h } of SIZES) {
   });
 }
 
-test('side switcher away from a job goes back to the jobs list, and the new side sticks', async ({ page }) => {
+test('side switcher away from a job goes back to the Overview, and the new side sticks', async ({ page }) => {
   await page.goto('./#/jobs/park-rd');
   // The job bar is drawn once the jobs list has arrived: only then is the race (job arriving after the switch) over.
   await expect(page.getByTestId('job-bar')).toContainText('Park Rd');

@@ -5,9 +5,9 @@ import { fakeProviderFor, planProviders, runCase, runDry, runProvider } from '..
 import { summaryTable } from '../src/report.js';
 
 describe('eval cases', () => {
-  it('has 32 cases with unique ids and a one-line why', () => {
-    expect(CASES).toHaveLength(32);
-    expect(new Set(CASES.map((c) => c.id)).size).toBe(32);
+  it('has 33 cases with unique ids and a one-line why', () => {
+    expect(CASES).toHaveLength(33);
+    expect(new Set(CASES.map((c) => c.id)).size).toBe(33);
     for (const c of CASES) expect(c.why.trim().length, c.id).toBeGreaterThan(10);
   });
 
@@ -21,12 +21,12 @@ describe('eval cases', () => {
 });
 
 describe('dry run (FakeLlm returns each case\'s expected calls)', () => {
-  it('passes 32/32', async () => {
+  it('passes 33/33', async () => {
     const run = await runDry();
     const failed = run.results.filter((r) => !r.grade.pass).map((r) => `${r.id}: ${r.grade.reason}`);
     expect(failed).toEqual([]);
-    expect(run.passed).toBe(32);
-    expect(run.total).toBe(32);
+    expect(run.passed).toBe(33);
+    expect(run.total).toBe(33);
   });
 
   it('fails a case when the model answers with another case\'s calls', async () => {

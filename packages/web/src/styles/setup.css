@@ -124,34 +124,6 @@
   font-weight: var(--weight-regular);
   color: var(--text-muted);
 }
-.su-money {
-  display: flex;
-  align-items: stretch;
-  max-width: 18em;
-}
-.su-money__sign,
-.su-money__unit {
-  display: inline-flex;
-  align-items: center;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--line);
-  background: var(--fill);
-  color: var(--text-secondary);
-  font-size: var(--type-subhead);
-}
-.su-money__sign {
-  border-right: 0;
-  border-radius: var(--radius-md) 0 0 var(--radius-md);
-}
-.su-money__unit {
-  border-left: 0;
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  white-space: nowrap;
-}
-.su-money .input {
-  border-radius: 0;
-  text-align: right;
-}
 /* the stage ladder: a numbered column, so "starts from" reads as a place in the sequence */
 .su-nj__stages {
   display: flex;
@@ -402,71 +374,247 @@
   font-size: var(--type-footnote);
   font-weight: var(--weight-bold);
 }
-/* the table on one plate */
-.su-ed__plate {
-  padding: 0 var(--space-4) var(--space-3);
+.su-ed__chip[aria-pressed='true'] {
+  background: var(--chosen-fill);
+  color: var(--text-on-dark);
+}
+.su-ed__chip[aria-pressed='true'] .su-ed__chip-n {
+  background: color-mix(in srgb, var(--text-on-dark) 22%, transparent);
+  color: var(--text-on-dark);
+}
+.su-ed__chip--add {
+  padding-left: var(--space-3);
+  background: transparent;
+  color: var(--tint);
+}
+.su-ed__chip--add:hover {
+  background: var(--tint-wash);
+  color: var(--tint);
+}
+
+/* ---- chart and panel: under 1400px the panel sits under the chart (v1) ---- */
+.su-ed__cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+.su-ed__chart {
+  min-width: 0;
+}
+.su-ed__chart .gantt__scroll {
+  max-height: 420px;
+}
+.su-ed .gantt__bar--picked {
+  box-shadow: 0 0 0 2px var(--plate), 0 0 0 4px var(--tint);
+  border-radius: 2px;
+}
+.su-ed .gantt__row--picked .gantt__label {
+  color: var(--text);
+  font-weight: var(--weight-semibold);
+}
+.su-ed__panel {
+  max-width: 680px;
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--plate);
+  scroll-margin-top: var(--space-4);
+}
+@media (min-width: 1400px) {
+  .su-ed__cols {
+    grid-template-columns: minmax(0, 1fr) 352px;
+  }
+  .su-ed__panel {
+    position: sticky;
+    top: var(--space-4);
+    max-width: none;
+  }
+}
+
+/* ---- the panel's forms (v1 editor.css) ---- */
+.su-ed__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.su-ed__title {
+  font-family: var(--font-display);
+  font-size: var(--type-title-2);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+  overflow-wrap: anywhere;
+}
+.su-ed__sub {
+  margin-top: var(--space-1);
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+}
+.su-ed__help {
+  color: var(--text-secondary);
+}
+.su-ed__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.su-ed__row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+}
+.su-ed__row > .su-ed__field {
+  flex: 1 1 8rem;
+}
+.su-ed__row > .su-ed__field--short {
+  flex: 0 1 7.5rem;
+}
+.su-ed__derived {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--ground);
+  color: var(--text-secondary);
+  font-size: var(--type-subhead);
+}
+.su-ed__derived strong {
+  color: var(--text);
+  font-weight: var(--weight-medium);
+}
+.su-ed__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.su-ed__details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.su-ed__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-5);
+  border-top: 0.5px solid var(--line);
+}
+.su-ed__section > .btn {
+  align-self: flex-start;
+}
+.su-ed__section-title {
+  font-size: var(--type-subhead);
+  font-weight: var(--weight-semibold);
+  color: var(--text-secondary);
+}
+.su-ed__list {
+  display: flex;
+  flex-direction: column;
+}
+.su-ed__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 2px 0;
+  border-top: 0.5px solid var(--line);
+}
+.su-ed__item:first-child {
+  border-top: 0;
+}
+.su-ed__link {
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-weight: var(--weight-medium);
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+.su-ed__link:hover {
+  text-decoration-color: currentColor;
+}
+.su-ed__link--quiet {
+  min-height: 0;
+  color: inherit;
+  font-weight: inherit;
+}
+
+/* ---- a template's steps: a list under each stage (v1 StepTree) ---- */
+.su-ed__tree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-md);
   background: var(--plate);
 }
-.su-ed__table {
-  width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
+.su-ed__tree-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
   font-size: var(--type-subhead);
+  font-weight: var(--weight-semibold);
+  color: var(--text-secondary);
 }
-/* At 1280 the trade column fits the longest seeded trade ("Formwork and
-   concrete"); step names wrap (.su-grow) instead of being cut off. */
-.su-ed__table .c-step {
-  width: 24%;
-}
-.su-ed__table .c-days {
-  width: 7%;
-}
-.su-ed__table .c-waits {
-  width: 14%;
-}
-.su-ed__table .c-hold {
-  width: 7%;
-}
-.su-ed__table .c-needs {
-  width: 14%;
-}
-.su-ed__table .c-trade {
-  width: 19%;
-}
-.su-ed__table .c-tools {
-  width: 15%;
-}
-.su-ed__table thead th {
-  padding: var(--space-3) var(--space-2) var(--space-2) 0;
-  text-align: left;
-  vertical-align: bottom;
-  font-size: var(--type-footnote);
-  font-weight: var(--weight-regular);
+.su-ed__tree-n {
   color: var(--text-muted);
-  border-bottom: 0.5px solid var(--line);
 }
-.su-ed__table > tbody > tr > th,
-.su-ed__table > tbody > tr > td {
-  padding: var(--space-2) var(--space-2) var(--space-2) 0;
+.su-ed__tree-step {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--control);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-top: 0.5px solid var(--line);
+  border-radius: 0;
+  background: none;
+  color: var(--text);
   text-align: left;
-  vertical-align: top;
-  font-weight: var(--weight-regular);
 }
-.su-ed__table .su-step > th,
-.su-ed__table .su-step > td {
-  border-bottom: 0.5px solid var(--line);
+.su-ed__tree-list li:first-child .su-ed__tree-step {
+  border-top: 0;
 }
+.su-ed__tree-step:hover {
+  background: var(--ground);
+}
+.su-ed__tree-step[aria-pressed='true'] {
+  border-radius: var(--radius-sm);
+  background: var(--chosen-fill);
+  color: var(--text-on-dark);
+}
+.su-ed__tree-step[aria-pressed='true'] .su-ed__tree-days,
+.su-ed__tree-step[aria-pressed='true'] .su-ed__tree-hold {
+  color: var(--text-on-dark);
+}
+.su-ed__tree-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.su-ed__tree-hold,
+.su-ed__tree-days {
+  font-size: var(--type-subhead);
+  color: var(--text-muted);
+}
+
+/* ---- inputs in the panel ---- */
 .su-input {
   width: 100%;
-  min-height: 34px;
-  padding: 0 var(--space-2);
+  min-height: var(--control);
+  padding: 0 var(--space-3);
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background-color: var(--field-bg);
   color: var(--text);
   font: inherit;
-  font-size: var(--type-subhead);
+  font-size: var(--type-body);
 }
 .su-input:focus-visible {
   outline: none;
@@ -477,159 +625,50 @@
   color: var(--text-muted);
   background-color: var(--ground);
 }
-.su-step-cell {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  column-gap: 6px;
-}
-.su-step-cell .su-grow,
-.su-step-cell .su-step-dates {
-  grid-column: 2;
-}
 /* Auto-growing textarea: a hidden copy of the value sizes the cell, so the text wraps. */
 .su-grow {
   display: grid;
   min-width: 0;
 }
-.su-ed__table .su-grow > textarea,
-.su-ed__table .su-grow::after {
+.su-grow > textarea,
+.su-grow::after {
   grid-area: 1 / 1;
-  min-height: 34px;
-  padding: 7px var(--space-2);
+  min-height: var(--control);
+  padding: 7px var(--space-3);
   font: inherit;
-  font-size: var(--type-subhead);
+  font-size: var(--type-body);
   line-height: 1.35;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.su-ed__table .su-grow > textarea {
+.su-grow > textarea {
   resize: none;
   overflow: hidden;
 }
-.su-ed__table .su-grow::after {
+.su-grow::after {
   content: attr(data-value) ' ';
   border: 1px solid transparent;
   visibility: hidden;
 }
-.su-order {
-  grid-row: 1 / span 2;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.su-icon {
-  width: 26px;
-  height: 16px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: var(--fill);
-  color: var(--text-secondary);
-  font-size: var(--type-caption-2);
-  line-height: 1;
-}
-.su-icon:hover:not(:disabled) {
-  background: var(--fill-strong);
-  color: var(--text);
-}
-.su-icon:disabled {
-  opacity: 0.4;
-}
-.su-stage-head .su-icon {
-  width: 30px;
-  height: 30px;
-  font-size: var(--type-subhead);
-}
-.su-step-dates {
-  display: block;
-  margin-top: 3px;
-  color: var(--text-muted);
-  font-size: var(--type-footnote);
-}
-.su-flag {
-  margin-left: var(--space-2);
-  color: var(--text-secondary);
-}
 .su-num-input {
-  max-width: 5rem;
+  max-width: 7.5rem;
   text-align: right;
-}
-.su-c-waits,
-.su-c-needs {
-  line-height: 1.35;
-  padding-top: 15px !important;
-  color: var(--text-secondary);
 }
 .su-check {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 34px;
+  gap: var(--space-2);
+  min-height: var(--control);
+  font-weight: var(--weight-medium);
 }
 .su-check input {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   margin: 0;
   accent-color: var(--tint);
 }
-.su-c-tools {
-  text-align: right !important;
-}
-.su-c-tools .btn {
-  white-space: nowrap;
-}
-.su-step.is-pending > th,
-.su-step.is-pending > td {
-  background: var(--tint-wash);
-}
-/* stage rows: the v1 Gantt's grey stage band */
-.su-stage-row > th {
-  padding: var(--space-2) var(--space-3) !important;
-  background: var(--fill);
-}
-.su-stage:not(:first-of-type) .su-stage-row > th {
-  border-top: var(--space-3) solid var(--plate);
-}
-.su-stage-head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-.su-stage-num {
-  min-width: 1.4rem;
-  font-family: var(--font-display);
-  font-size: var(--type-title-3);
-  font-weight: var(--weight-bold);
-  line-height: 1;
-  color: var(--text-muted);
-}
-.su-stage-name.su-input {
-  width: 16rem;
-  font-size: var(--type-headline);
-  font-weight: var(--weight-semibold);
-  border-color: transparent;
-  background: transparent;
-}
-.su-stage-name.su-input:hover:not(:disabled),
-.su-stage-name.su-input:focus {
-  border-color: var(--line-strong);
-  background: var(--field-bg);
-}
-.su-stage-count {
-  color: var(--text-muted);
-  font-size: var(--type-subhead);
-}
-.su-stage-tools {
-  display: inline-flex;
-  gap: var(--space-2);
-  margin-left: auto;
-}
-.su-addstep > td,
-.su-addstage > td {
-  padding: var(--space-2) 0 var(--space-3) !important;
-}
 .su-add {
+  align-self: flex-start;
   min-height: 32px;
   padding: 0 var(--space-3);
   border: 0;
@@ -666,12 +705,6 @@
 .su-addstep-form > .su-mini {
   flex: 1 1 10rem;
 }
-.su-addstep-form > .su-mini:first-of-type {
-  flex: 2 1 14rem;
-}
-.su-addstep-form > .su-mini-days {
-  flex: 0 0 6.5rem;
-}
 .su-mini {
   display: flex;
   flex-direction: column;
@@ -686,7 +719,7 @@
 }
 .su-mini-label {
   display: block;
-  margin: var(--space-3) 0 var(--space-1);
+  margin: var(--space-2) 0 var(--space-1);
   font-size: var(--type-footnote);
   color: var(--text-secondary);
 }
@@ -695,37 +728,11 @@
 }
 .su-addstage-form {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-top: var(--space-3);
+  flex-direction: column;
+  gap: var(--space-2);
 }
 .su-addstage-form .su-mini-label {
   margin: 0;
-  white-space: nowrap;
-}
-.su-addstage-form .su-input {
-  max-width: 18rem;
-}
-/* a step's links and needs, opened under its row */
-.su-detail > td {
-  padding: 0 0 var(--space-4) !important;
-}
-.su-detail-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 0.7fr);
-  gap: var(--space-6);
-  padding: var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--ground);
-}
-.su-detail-h {
-  margin-bottom: var(--space-2);
-  font-size: var(--type-subhead);
-  font-weight: var(--weight-semibold);
-}
-.su-detail-sec .su-hint {
-  display: block;
-  margin-bottom: var(--space-2);
 }
 .su-link,
 .su-req {
@@ -751,7 +758,7 @@
   font-size: var(--type-subhead);
 }
 .su-req-weeks .su-num-input {
-  width: 4rem;
+  width: 4.5rem;
 }
 .su-addreq {
   display: flex;

@@ -894,3 +894,8 @@ input[type='date']::-webkit-calendar-picker-indicator {
     min-height: var(--control);
   }
 }
+.load-error__title {
+  font-family: var(--font-display);
+  font-size: var(--type-title-3);
+  font-weight: var(--weight-semibold);
+}

@@ -4,11 +4,13 @@ import { createRoot } from 'react-dom/client';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/shell.css';
-import './styles/legacy.css';
-import './styles/screens4a.css';
 import { App } from './app/App';
 import { DataProvider } from './data/DataContext';
 import { loadDataLayer } from './data/layer';
+import { applyTheme, readTheme } from './shell/theme';
+
+// Before the first paint: light by default, or the viewer's choice.
+applyTheme(readTheme());
 
 const root = createRoot(document.getElementById('root')!);
 

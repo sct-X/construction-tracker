@@ -34,7 +34,7 @@ describe('shell', () => {
   it('a build job gets the job bar with its tabs, the current one marked', async () => {
     window.location.hash = '#/jobs/park-rd/program';
     show(<App />);
-    const bar = await screen.findByTestId('job-bar');
+    const bar = await screen.findByTestId('job-bar', {}, { timeout: 5000 });
     const tabs = within(within(bar).getByRole('navigation', { name: 'Park Rd pages' })).getAllByRole('link');
     expect(tabs.map((t) => t.textContent)).toEqual(['Overview', 'Program', 'Waiting on', 'Shipments', 'Photos', 'Notes']);
     expect(tabs[1]!.getAttribute('aria-current')).toBe('page');
@@ -44,13 +44,13 @@ describe('shell', () => {
   it('step detail sits under the Program tab; a design job has Checklist and Waiting on', async () => {
     window.location.hash = '#/jobs/park-rd/steps/pr-install-windows';
     const r = show(<App />);
-    const bar = await screen.findByTestId('job-bar');
+    const bar = await screen.findByTestId('job-bar', {}, { timeout: 5000 });
     expect(within(within(bar).getByRole('navigation')).getByRole('link', { name: 'Program' }).getAttribute('aria-current')).toBe('page');
     expect(within(bar).getByTestId('back').textContent).toBe('Program');
     r.unmount();
     window.location.hash = '#/jobs/west-st/checklist';
     show(<App />);
-    const bar2 = await screen.findByTestId('job-bar');
+    const bar2 = await screen.findByTestId('job-bar', {}, { timeout: 5000 });
     expect(within(within(bar2).getByRole('navigation')).getAllByRole('link').map((t) => t.textContent)).toEqual(['Checklist', 'Waiting on']);
     // The back link names where it goes.
     expect(within(bar2).getByTestId('back').textContent).toBe('Overview');

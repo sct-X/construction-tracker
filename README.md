@@ -2,8 +2,9 @@
 
 ## What it is
 
-Construction Tracker is Dominic's one-person dashboard for his building jobs. It shows when each job will
-finish, how far that moved since last Monday, what it costs, and what he is waiting on. Changes come in only
+Construction Tracker is Dominic's one-person dashboard for his building jobs. It is timing first: for each job it
+shows where it is, what is overdue, what comes next and what he is waiting on, with every date in plain words
+("Mon 21 Sep, in 4 days"). Red means overdue and nothing else. Changes come in only
 through a Telegram bot: Dominic texts, sends a voice note or a photo, and the bot shows a confirm card. Nothing
 is saved until he taps Confirm. The web app is read-only, plus a Setup area on a desktop computer for new jobs,
 programs, templates and trades. There is a live demo with made-up data at
@@ -256,7 +257,8 @@ never picks the cloud by itself.
 ## Using it day to day
 
 Dominic talks to the bot like he would to a site manager. Each change comes back as a card with what changes,
-the new finish date, the slip and its cost. He taps **Confirm**, **Edit** or **Cancel**. Examples:
+the new finish date, the slip and its cost (the bot's confirm card is the one place the finish impact shows; the
+web never shows a finish, slip or money). He taps **Confirm**, **Edit** or **Cancel**. Examples:
 
 - `Park Rd windows now arriving 16 Nov`
 - `tiler cant start beatty till the 12th`
@@ -283,9 +285,12 @@ until each required photo category has a photo; the bot says which ones are miss
   `REMINDER_TIME`.
 - `/cancel` drops an open question. `/help` explains the bot.
 
-The web app at http://127.0.0.1:8787 shows the results: Monday screen, jobs, programs, waiting-on, to-chase,
-photos, notes and every change with the message that caused it. Setup (desktop only) adds jobs from templates,
-edits programs and templates, and keeps the trades list.
+The web app at http://127.0.0.1:8787 shows the results, timing first. The Overview (home) has one card per job:
+its stage bar, its stage and how many items are overdue. Each job's first page shows its progress, the next hold
+point, everything overdue and the trades on site this week; its tabs hold the program, Waiting on, Shipments,
+photos and notes. Waiting on is one list for every job, grouped Overdue, This week and Later, with a Call button
+for each trade. Changes lists every change with the message that caused it. Setup (desktop only) adds jobs from
+templates, edits programs and templates, and keeps the trades list.
 
 ## Troubleshooting
 
@@ -325,7 +330,7 @@ npx playwright test
 
 ### The eval
 
-The eval sends 32 realistic messages from Dominic through each model you have a key for, and checks that the
+The eval sends 33 realistic messages from Dominic through each model you have a key for, and checks that the
 right change (or the right question) comes out. Nothing is written anywhere. It is not part of `npm test`, and
 it costs a few cents per model.
 
@@ -335,7 +340,7 @@ npm run eval
 
 Keys come from `.env` (or the shell). A model with no key shows `skipped (no key)`. The run still exits 0.
 
-A free run with a fake model that always gives the right answer (it should say 32/32):
+A free run with a fake model that always gives the right answer (it should say 33/33):
 
 ```bash
 npm run eval -- --dry

@@ -26,35 +26,32 @@ afterEach(cleanup);
 
 const MONEY_OR_FINISH = /\$|Forecast finish|slip|Fri 26 Feb 2027|Why it moved/i;
 
-describe('Overview (timing first)', () => {
-  it('Park Rd: stage, next three steps with dates, top three waiting-on with the overdue first, freshness', async () => {
+describe("Overview: v1's final card (Dom's D8/D9)", () => {
+  it('each card has only the name, the stage bar, the stage and the overdue cue; the card opens the job', async () => {
     show(<OverviewScreen />);
-    const park = within(await screen.findByTestId('overview-card-park-rd'));
+    const parkEl = await screen.findByTestId('overview-card-park-rd');
+    const park = within(parkEl);
+    expect(parkEl.tagName).toBe('A');
+    expect(parkEl.getAttribute('href')).toBe('#/jobs/park-rd');
+    expect(park.getByText('Park Rd')).toBeTruthy();
     expect(park.getByTestId('card-stage').textContent).toBe('Lock-up');
     expect(park.getByTestId('card-overdue').textContent).toBe('!4 overdue');
-    const steps = park.getAllByTestId(/^card-step-pr-/);
-    expect(steps.map((s) => s.querySelector('.overview__line-title')!.textContent)).toEqual(['Roof plumbing', 'External cladding', 'Stormwater drainage']);
-    expect(park.getByTestId('card-step-pr-stormwater').textContent).toContain('Mon 21 Sep, in 4 days');
-    expect(park.getByTestId('card-step-pr-roof-plumbing').textContent).toContain('Under way, until Thu 17 Sep');
-    const waits = park.getAllByTestId(/^card-wait-it-/);
-    expect(waits).toHaveLength(3);
-    expect(waits[0]!.textContent).toContain('Glazing energy compliance certificate');
-    expect(waits[0]!.textContent).toContain('Act by Mon 10 Aug, overdue by 5 weeks');
-    expect(waits[0]!.getAttribute('data-overdue')).toBe('true');
-    expect(park.getByTestId('card-fresh').textContent).toBe('Last confirmed 2 days ago');
+    expect(park.getByTestId('card-bar').getAttribute('aria-label')).toBe('Stage 5 of 8, Lock-up');
+    expect(park.getByTestId('card-bar').querySelectorAll('[data-state="current"]')).toHaveLength(1);
+    // No next steps, waiting-on items or freshness on the card: the job page holds the detail.
+    expect(parkEl.textContent).toBe('Park Rd' + 'Lock-up' + '!4 overdue');
     expect(screen.getByTestId('overview-builds').textContent).not.toMatch(MONEY_OR_FINISH);
   });
 
-  it('Beatty St reads "Not confirmed for 9 days" in words, never as a colour; nothing overdue', async () => {
+  it('red only for overdue: Seaview "!1 overdue", Beatty "Nothing overdue" in plain words', async () => {
     show(<OverviewScreen />);
-    const beatty = within(await screen.findByTestId('overview-card-beatty'));
-    expect(beatty.getByTestId('card-fresh').textContent).toBe('Not confirmed for 9 days');
+    const sea = within(await screen.findByTestId('overview-card-seaview'));
+    expect(sea.getByTestId('card-overdue').textContent).toBe('!1 overdue');
+    expect(sea.getByTestId('card-overdue').className).toContain('status--late');
+    const beatty = within(screen.getByTestId('overview-card-beatty'));
     expect(beatty.getByTestId('card-overdue').textContent).toBe('Nothing overdue');
+    expect(beatty.getByTestId('card-overdue').className).not.toContain('status--late');
     expect(beatty.getByTestId('card-stage').textContent).toBe('Rough-in');
-    // The expected-after-needed clash is plain words, not red.
-    const tiler = beatty.getByTestId('card-wait-it-bt-tiler');
-    expect(tiler.textContent).toContain('Expected Mon 5 Oct, in 2 weeks, 7 days after needed');
-    expect(tiler.querySelector('.status--late')).toBeNull();
   });
 
   it('builds in the side order, design jobs by oldest outstanding, With council reads Pending approval', async () => {
@@ -63,9 +60,7 @@ describe('Overview (timing first)', () => {
     const ids = (group: string) => within(screen.getByTestId(group)).getAllByTestId(/^overview-card-/).map((c) => c.getAttribute('data-testid'));
     expect(ids('overview-builds')).toEqual(['overview-card-park-rd', 'overview-card-seaview', 'overview-card-beatty']);
     expect(ids('overview-design')).toEqual(['overview-card-west-st', 'overview-card-tollbar', 'overview-card-john-st', 'overview-card-lower-beach']);
-    const west = within(screen.getByTestId('overview-card-west-st'));
-    expect(west.getByTestId('card-stage').textContent).toBe('Pending approval');
-    expect(west.getByText('2 outstanding, oldest 23 days')).toBeTruthy();
+    expect(within(screen.getByTestId('overview-card-west-st')).getByTestId('card-stage').textContent).toBe('Pending approval');
   });
 });
 
@@ -129,14 +124,15 @@ describe('Waiting on: one list with Call buttons (To chase merged in)', () => {
 });
 
 describe('Shipments inside the job', () => {
-  it('Park Rd shows only its windows: in production, ETA Mon 26 Oct, 7 days to spare, 3 items', async () => {
+  it('Park Rd shows only its windows: in production, 26 Oct 2026, ETA 1 week before needed, 3 items; no Job column', async () => {
     show(<ShipmentsScreen jobId="park-rd" />);
     const row = within(await screen.findByTestId('shipment-row-sh-pr-windows'));
     expect(screen.queryByTestId('shipment-row-sh-sv-windows')).toBeNull();
     expect(row.getByTestId('ship-status').textContent).toBe('In production');
-    expect(row.getByTestId('eta').textContent).toBe('Mon 26 Oct');
-    expect(row.getByTestId('timing').textContent).toBe('7 days to spare');
-    expect(row.getByTestId('linked-items').querySelectorAll('li')).toHaveLength(3);
+    expect(row.getByTestId('eta').textContent).toBe('26 Oct 2026');
+    expect(row.getByTestId('timing').textContent).toBe('ETA 1 week before needed');
+    expect(row.getByTestId('linked-items').textContent).toBe('3 items');
+    expect(row.queryByTestId('ship-job')).toBeNull();
   });
 });
 

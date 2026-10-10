@@ -255,7 +255,7 @@ function ForecastLine({ entry }: { entry: HistoryEntry }) {
   if (!entry.effects.length) {
     return (
       <p className="changes__effect changes__effect--none" data-testid="forecast">
-        Moved no forecast.
+        Moved no steps.
       </p>
     );
   }

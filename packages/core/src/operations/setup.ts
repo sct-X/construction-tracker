@@ -729,7 +729,8 @@ export const copyTemplate = defineOp({
       name: a.name,
       kind: tpl.kind,
       path: a.path ?? tpl.path,
-      weeklyHoldingCost: a.weeklyHoldingCost ?? null,
+      // The template's weekly holding cost, or none; set or change it later through the bot (set_holding_cost).
+      weeklyHoldingCost: a.weeklyHoldingCost ?? tpl.weeklyHoldingCost ?? null,
       lastConfirmed: ctx.today,
       isTemplate: false,
       plannedFinish: maxDate(...steps.map((s) => s.plannedEnd)),

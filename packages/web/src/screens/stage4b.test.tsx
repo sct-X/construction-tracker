@@ -7,7 +7,8 @@ import { DataProvider } from '../data/DataContext';
 import type { DataLayer } from '../data/layer';
 import { WaitingOnScreen } from './WaitingOn';
 import { ShipmentsScreen } from './Shipments';
-import { shipmentTimingWords, telHref, urgencyWords } from '../ui/itemWords';
+import { gapWords, shipmentTiming, telHref } from '../ui/itemWords';
+import { whenWords } from '../ui/when';
 
 function show(ui: ReactElement) {
   const { api, dev } = createMockDashboard();
@@ -25,42 +26,39 @@ describe('Stage 4b wording', () => {
     expect(telHref('none')).toBeNull();
   });
 
-  it('says why an item needs attention in words', () => {
-    const base = { status: 'to_do' as const, isLate: false, lateDays: 0, overdue: true };
-    expect(urgencyWords({ ...base, neededBy: '2026-09-14', actBy: '2026-08-31', expected: '2026-09-16' }, '2026-09-17')?.text).toBe('3 days overdue');
-    expect(urgencyWords({ ...base, neededBy: '2026-11-02', actBy: '2026-08-10', expected: '2026-10-26' }, '2026-09-17')?.text).toBe('Act-by passed 38 days ago');
-    expect(
-      urgencyWords({ ...base, overdue: false, isLate: true, lateDays: 14, neededBy: '2026-11-02', actBy: '2026-08-10', expected: '2026-11-16', status: 'confirmed' }, '2026-09-17')?.text,
-    ).toBe("Expected 14 days after it's needed");
-    expect(urgencyWords({ ...base, overdue: false, neededBy: '2026-11-02', actBy: '2026-10-01', expected: null }, '2026-09-17')).toBeNull();
+  it('says why an item needs attention in words (the v1 phrases, ui/when.ts)', () => {
+    const base = { status: 'to_do' as const, isLate: false, lateText: null, overdue: true };
+    expect(whenWords({ ...base, neededBy: '2026-11-02', actBy: '2026-08-10', expected: '2026-10-26' }, '2026-09-17').text).toBe('Act by Mon 10 Aug, overdue by 5 weeks');
+    expect(whenWords({ ...base, status: 'confirmed', neededBy: '2026-09-14', actBy: '2026-08-31', expected: '2026-09-16' }, '2026-09-17').text).toBe('Needed Mon 14 Sep, overdue by 3 days');
+    expect(whenWords({ ...base, overdue: false, neededBy: '2026-11-02', actBy: '2026-10-01', expected: null }, '2026-09-17')).toEqual({ text: 'Act by Thu 1 Oct, in 2 weeks', tone: 'plain' });
   });
 
-  it('compares a shipment ETA with the first needed-by', () => {
-    const r = { eta: '2026-10-26', earliestNeededBy: '2026-11-02', isLate: false, lateDays: 0, status: 'in_production' as const };
-    expect(shipmentTimingWords(r)).toBe('7 days to spare');
-    expect(shipmentTimingWords({ ...r, eta: '2026-11-16', isLate: true, lateDays: 14 })).toBe('14 days late');
+  it("compares a shipment ETA with the first needed-by in v1's words", () => {
+    const r = { eta: '2026-10-26', earliestNeededBy: '2026-11-02', status: 'in_production' as const };
+    expect(shipmentTiming(r)).toEqual({ text: 'ETA 1 week before needed', tone: 'ok' });
+    expect(shipmentTiming({ ...r, eta: '2026-11-16' })).toEqual({ text: 'ETA 2 weeks after needed', tone: 'plain' });
+    expect(shipmentTiming({ ...r, eta: '2026-11-02' }).text).toBe('ETA on the day it is needed');
+    expect(gapWords(10)).toBe('10 days');
   });
 });
 
 describe('Shipments (mock layer, today Thu 17 Sep 2026)', () => {
-  it('lists both windows shipments side-wide, each with its job, status, ETA and linked items', async () => {
+  it('lists both windows shipments side-wide: job, status, the ETA figure with its gap in words, needed-by, item count', async () => {
     show(<ShipmentsScreen />);
     const park = within(await screen.findByTestId('shipment-row-sh-pr-windows'));
     expect(park.getByTestId('ship-job').textContent).toBe('Park Rd');
     expect(park.getByText('Park Rd windows')).toBeTruthy();
     expect(park.getByTestId('ship-status').textContent).toBe('In production');
-    expect(park.getByTestId('eta').textContent).toBe('Mon 26 Oct');
+    expect(park.getByTestId('eta').textContent).toBe('26 Oct 2026');
+    expect(park.getByText('in 5 weeks')).toBeTruthy();
+    expect(park.getByTestId('timing').textContent).toBe('ETA 1 week before needed');
     expect(park.getByTestId('needed-by').textContent).toBe('Mon 2 Nov, in 6 weeks');
-    expect(park.getByTestId('timing').textContent).toBe('7 days to spare');
-    const linked = within(park.getByTestId('linked-items'));
-    expect(linked.getAllByRole('listitem')).toHaveLength(3);
-    expect(linked.getByText('Windows')).toBeTruthy();
-    expect(linked.getAllByText('Raff, needed Mon 2 Nov')).toHaveLength(2);
+    expect(park.getByTestId('linked-items').textContent).toBe('3 items');
 
     const sea = within(screen.getByTestId('shipment-row-sh-sv-windows'));
     expect(sea.getByTestId('ship-job').textContent).toBe('Seaview St');
     expect(sea.getByTestId('ship-status').textContent).toBe('Design');
-    expect(sea.getByTestId('eta').textContent).toBe('Mon 14 Dec');
+    expect(sea.getByTestId('eta').textContent).toBe('14 Dec 2026');
     // Soonest ETA first.
     const ids = screen.getAllByTestId(/^shipment-row-/).map((e) => e.getAttribute('data-testid'));
     expect(ids).toEqual(['shipment-row-sh-pr-windows', 'shipment-row-sh-sv-windows']);

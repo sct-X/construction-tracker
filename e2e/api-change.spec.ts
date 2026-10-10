@@ -61,11 +61,11 @@ test('windows ETA moved to 16 Nov through the bot: Park Rd Install windows shows
   await page.goto('./#/jobs/park-rd/program');
   await expect(page.getByTestId('g-step-pr-install-windows')).toContainText('Mon 16 Nov');
 
-  // The job's Shipments tab: the new ETA, now after it's needed (plain words, two future dates).
+  // The job's Shipments tab: the new ETA, now after it's needed (v1's plain words, two future dates).
   await page.goto('./#/jobs/park-rd/shipments');
   const ship = page.getByTestId('shipment-row-sh-pr-windows');
-  await expect(ship.getByTestId('eta')).toHaveText('Mon 16 Nov');
-  await expect(ship.getByTestId('timing')).toHaveText('14 days late');
+  await expect(ship.getByTestId('eta')).toHaveText('16 Nov 2026');
+  await expect(ship.getByTestId('timing')).toHaveText('ETA 2 weeks after needed');
 
   // Waiting on: the windows are expected Mon 16 Nov.
   await page.goto('./#/jobs/park-rd/waiting');

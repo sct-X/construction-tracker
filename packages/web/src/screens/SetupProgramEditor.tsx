@@ -1,17 +1,21 @@
 /**
- * Setup: the program editor, for a build job or a template. A table of
- * stages and steps (name, working days, waits for, hold point, needs, trade).
- * One change at a time: each edit is dry-run with previewSetup and the bar at
- * the bottom says what it does (steps that move, the new forecast finish; for a
- * template, the length in working days) before Save. Templates have no dates.
- * Day-to-day things (ETAs, item status, a step done) stay on the bot.
+ * Setup: the program editor (v1 ProgramEditor look), for a build job or a template. Desktop only.
+ *
+ * The Gantt is the picture (the Program screen's chart, read-only): a bar picks its step into the panel
+ * beside or under it; the numbered stage chips above pick a stage (rename, move, add a step). A template
+ * has no dates, so its steps are a list under their stages instead. The footer is v1's: Thick Liquid
+ * Glass, sticky, always there. One change at a time: an edit in the panel is dry-run with previewSetup,
+ * the chart redraws from the dry run and the footer says what moves (steps only: never the finish or
+ * money on the web); Save sends that one setup op. Day-to-day things stay on the bot.
  */
 import { useState, type ReactNode } from 'react';
 import {
   formatDate,
+  stepWhenWords,
   type DashboardApi,
   type ISODate,
   type ProgramSetupView,
+  type ProgramView,
   type Requirement,
   type SetupStage,
   type SetupStep,
@@ -20,19 +24,25 @@ import { useData } from '../data/DataContext';
 import { useJobQuery } from '../data/useJobQuery';
 import { href } from '../app/router';
 import { LoadError, LoadingRows } from '../components/bits';
+import { Gantt, HoldDiamond } from '../components/gantt/Gantt';
 import { SetupFrame } from '../setup/SetupFrame';
 import { canSave, MovedSteps, previewProblem, usePreview, type PreviewState } from '../setup/preview';
 import { checkDays, checkName, checkWeeks, wholeNumber, weeksValue } from '../setup/validate';
 import { plural } from '../ui/itemWords';
+import '../styles/program.css';
 
 export interface EditorData {
   today: ISODate;
   view: ProgramSetupView;
+  /** The Gantt's data: live builds only (templates and design jobs have no forecast). */
+  program: ProgramView | null;
 }
 
 export async function loadEditor(api: DashboardApi, jobId: string): Promise<EditorData> {
   const [today, view] = await Promise.all([api.getToday(), api.getProgramSetup(jobId)]);
-  return { today, view };
+  const live = view.job.kind === 'build' && !view.job.isTemplate;
+  const program = live ? await api.getProgram(jobId).catch(() => null) : null;
+  return { today, view, program };
 }
 
 /** The one change waiting for Save. `args` is null while the inputs don't make sense yet (then `error` says why). */
@@ -46,6 +56,8 @@ export interface PendingEdit {
   draft?: string | boolean;
 }
 
+type Pick = { kind: 'step'; id: string } | { kind: 'stage'; id: string } | { kind: 'new-stage' } | null;
+
 export function SetupProgramEditorScreen({ jobId }: { jobId: string }) {
   const q = useJobQuery(loadEditor, jobId);
   const view = q.status === 'ready' ? q.data.view : null;
@@ -54,13 +66,10 @@ export function SetupProgramEditorScreen({ jobId }: { jobId: string }) {
     <SetupFrame
       title={view ? view.job.name : 'Program editor'}
       meta={view ? <EditorMeta view={view} /> : undefined}
-      back={template ? { href: href('/setup/templates'), label: 'Templates' } : { href: href('/setup/programs'), label: 'Programs' }}
-      actions={
-        view && !template && view.job.kind === 'build' ? (
-          <a className="btn btn--desktop" href={href(`/jobs/${encodeURIComponent(view.job.id)}/program`)}>
-            See the program
-          </a>
-        ) : undefined
+      back={
+        template || !view
+          ? { href: href('/setup/templates'), label: 'Templates' }
+          : { href: href(`/jobs/${encodeURIComponent(view.job.id)}/program`), label: 'Program' }
       }
       className="su-ed"
     >
@@ -71,13 +80,11 @@ export function SetupProgramEditorScreen({ jobId }: { jobId: string }) {
   );
 }
 
-/** "Program editor, 8 stages, 29 steps" / "Template editor, 8 stages, 29 steps, 160 working days". */
+/** "Program editor" / "Template editor, 160 working days" (v1 meta). */
 function EditorMeta({ view }: { view: ProgramSetupView }) {
-  const steps = view.stages.reduce((n, s) => n + s.steps.length, 0);
-  const counts = `${plural(view.stages.length, 'stage')}, ${plural(steps, 'step')}`;
-  if (view.job.isTemplate) return <>Template editor, {counts}, {view.workingDays} working days</>;
+  if (view.job.isTemplate) return <>Template editor, {view.workingDays} working days</>;
   if (view.job.kind === 'design') return <>Checklist</>;
-  return <>Program editor, {counts}</>;
+  return <>Program editor</>;
 }
 
 export function ProgramEditor({ data }: { data: EditorData }) {
@@ -85,7 +92,7 @@ export function ProgramEditor({ data }: { data: EditorData }) {
   const { view, today } = data;
   const job = view.job;
   const [edit, setEdit] = useState<PendingEdit | null>(null);
-  const [open, setOpen] = useState<string | null>(null);
+  const [pick, setPick] = useState<Pick>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -109,6 +116,9 @@ export function ProgramEditor({ data }: { data: EditorData }) {
   };
   const locked = (key: string) => !!edit && edit.key !== key;
   const ctx: RowCtx = { edit, propose, locked, names, today, job, steps, stages: view.stages, tradeTypes: view.tradeTypes, reset };
+  // The chart draws the dry run while a change is pending (v1 redrew from its draft).
+  const chart = (preview.status === 'ready' && edit?.args ? preview.preview.program : null) ?? data.program;
+  const forecastOf = (stepId: string) => chart?.steps.find((s) => s.stepId === stepId) ?? null;
 
   async function save() {
     if (!edit?.args || !canSave(preview)) return;
@@ -120,6 +130,12 @@ export function ProgramEditor({ data }: { data: EditorData }) {
         setSaveError(r.reason);
         return;
       }
+      // Keep the panel on what was made or changed (v1).
+      const made = (table: string) => r.result.changes.find((c) => c.kind === 'insert' && c.table === table)?.rowId;
+      if (edit.op === 'add_step' && made('step')) setPick({ kind: 'step', id: made('step')! });
+      else if (edit.op === 'add_stage' && made('stage')) setPick({ kind: 'stage', id: made('stage')! });
+      else if (edit.op === 'delete_step') setPick(pick?.kind === 'step' ? { kind: 'stage', id: view.stages.find((st) => st.steps.some((x) => x.id === pick.id))?.id ?? '' } : null);
+      else if (edit.op === 'delete_stage') setPick(null);
       setSaved(r.result.summary);
       setEdit(null);
       setReset((n) => n + 1);
@@ -131,22 +147,12 @@ export function ProgramEditor({ data }: { data: EditorData }) {
     }
   }
 
-  const jump = (stageId: string) => {
-    document.querySelector(`[data-testid="ed-stage-${stageId}"]`)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-  };
+  const pickedStep = pick?.kind === 'step' ? steps.find((s) => s.id === pick.id) : undefined;
+  const pickedStage = pick?.kind === 'stage' ? view.stages.find((s) => s.id === pick.id) : undefined;
+  const stageOf = (stepId: string) => view.stages.find((st) => st.steps.some((s) => s.id === stepId))!;
 
   return (
-    <div className="su-ed__body">
-      <div className="su-ed__stages" role="group" aria-label="Stages" data-testid="ed-stages">
-        {view.stages.map((st, i) => (
-          <button key={st.id} type="button" className="su-ed__chip" onClick={() => jump(st.id)}>
-            <span className="su-ed__chip-n" aria-hidden="true">
-              {i + 1}
-            </span>
-            {st.name}
-          </button>
-        ))}
-      </div>
+    <div className="su-ed__body" data-testid="editor">
       {saved && (
         <p className="su-saved" role="status" data-testid="ed-saved">
           Saved: {saved}. It's listed in <a href={href(`/history/${encodeURIComponent(job.id)}`)}>Changes</a>.
@@ -157,42 +163,54 @@ export function ProgramEditor({ data }: { data: EditorData }) {
           <option key={t} value={t} />
         ))}
       </datalist>
-      <div className="su-ed__plate">
-        <table className="su-ed__table" data-testid="editor">
-          <colgroup>
-            <col className="c-step" />
-            <col className="c-days" />
-            <col className="c-waits" />
-            <col className="c-hold" />
-            <col className="c-needs" />
-            <col className="c-trade" />
-            <col className="c-tools" />
-          </colgroup>
-          <thead>
-            <tr>
-              <th scope="col">Step</th>
-              <th scope="col">Working days</th>
-              <th scope="col">Waits for</th>
-              <th scope="col">Hold point</th>
-              <th scope="col">Needs, with lead time</th>
-              <th scope="col">Trade</th>
-              <th scope="col">
-                <span className="sr-only">Order and details</span>
-              </th>
-            </tr>
-          </thead>
-          {view.stages.map((st, i) => (
-            <StageRows key={st.id} stage={st} index={i} ctx={ctx} open={open} setOpen={setOpen} />
-          ))}
-          <tbody>
-            <tr className="su-addstage">
-              <td colSpan={7}>
-                <AddStage key={reset} ctx={ctx} />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div className="su-ed__stages" role="group" aria-label="Stages" data-testid="ed-stages">
+        {view.stages.map((st, i) => (
+          <button
+            key={st.id}
+            type="button"
+            className="su-ed__chip"
+            aria-pressed={pick?.kind === 'stage' && pick.id === st.id}
+            data-testid={`ed-chip-${st.id}`}
+            onClick={() => setPick({ kind: 'stage', id: st.id })}
+          >
+            <span className="su-ed__chip-n" aria-hidden="true">
+              {i + 1}
+            </span>
+            {st.name}
+          </button>
+        ))}
+        <button type="button" className="su-ed__chip su-ed__chip--add" aria-pressed={pick?.kind === 'new-stage'} data-testid="ed-chip-add" onClick={() => setPick({ kind: 'new-stage' })}>
+          Add stage
+        </button>
       </div>
+
+      <div className="su-ed__cols">
+        <div className="su-ed__chart">
+          {chart ? (
+            <Gantt p={chart} view="all" onPickStep={(id) => setPick({ kind: 'step', id })} pickedStepId={pick?.kind === 'step' ? pick.id : null} />
+          ) : (
+            <StepTree view={view} pick={pick} onPick={(id) => setPick({ kind: 'step', id })} />
+          )}
+        </div>
+        <aside className="su-ed__panel" aria-label="Edit" data-testid="editor-panel" data-kind={pick?.kind ?? 'none'}>
+          {pickedStep ? (
+            <StepPanel key={pickedStep.id} step={pickedStep} stage={stageOf(pickedStep.id)} ctx={ctx} forecast={forecastOf(pickedStep.id)} onPickStage={(id) => setPick({ kind: 'stage', id })} />
+          ) : pickedStage ? (
+            <StagePanel key={pickedStage.id} stage={pickedStage} ctx={ctx} onPickStep={(id) => setPick({ kind: 'step', id })} />
+          ) : pick?.kind === 'new-stage' ? (
+            <div className="su-ed__form">
+              <h2 className="su-ed__title">New stage</h2>
+              <AddStage key={reset} ctx={ctx} />
+            </div>
+          ) : (
+            <div className="su-ed__form">
+              <h2 className="su-ed__title">Nothing picked</h2>
+              <p className="su-ed__help">{chart ? 'Pick a bar on the chart, or a stage above.' : 'Pick a step from the list, or a stage above.'}</p>
+            </div>
+          )}
+        </aside>
+      </div>
+
       <ChangeBar
         edit={edit}
         preview={preview}
@@ -228,149 +246,182 @@ function shown<T extends string | boolean>(ctx: RowCtx, key: string, stored: T):
   return ctx.edit?.key === key && ctx.edit.draft !== undefined ? (ctx.edit.draft as T) : stored;
 }
 
-function StageRows({ stage, index, ctx, open, setOpen }: { stage: SetupStage; index: number; ctx: RowCtx; open: string | null; setOpen: (id: string | null) => void }) {
-  const nameKey = `stage:${stage.id}:name`;
-  const last = ctx.stages.length - 1;
+/** Templates have no forecast, so no chart: the steps as a list under their stages (v1 StepTree). */
+function StepTree({ view, pick, onPick }: { view: ProgramSetupView; pick: Pick; onPick: (id: string) => void }) {
   return (
-    <tbody className="su-stage" data-testid={`ed-stage-${stage.id}`}>
-      <tr className="su-stage-row">
-        <th scope="colgroup" colSpan={7}>
-          <div className="su-stage-head">
-            <span className="su-stage-num" aria-hidden="true">
-              {index + 1}
+    <div className="su-ed__tree" data-testid="ed-tree">
+      {view.stages.map((st, i) => (
+        <section key={st.id} className="su-ed__tree-stage" aria-label={st.name}>
+          <h3 className="su-ed__tree-title">
+            <span className="su-ed__tree-n" aria-hidden="true">
+              {i + 1}
             </span>
-            <label className="sr-only" htmlFor={`stn-${stage.id}`}>
-              Stage {index + 1} name
-            </label>
-            <input
-              id={`stn-${stage.id}`}
-              className="su-input su-stage-name"
-              value={shown(ctx, nameKey, stage.name)}
-              disabled={ctx.locked(nameKey)}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v.trim() === stage.name) return ctx.propose(null);
-                const err = checkName(v, 'stage');
-                ctx.propose({ key: nameKey, label: `Rename the ${stage.name} stage`, op: 'edit_stage', args: err ? null : { stage: stage.id, name: v.trim() }, error: err, draft: v });
-              }}
-            />
-            <span className="su-stage-count">{plural(stage.steps.length, 'step')}</span>
-            <span className="su-stage-tools">
-              <IconButton
-                label={`Move the ${stage.name} stage up`}
-                disabled={index === 0 || ctx.locked(`stage:${stage.id}:order`)}
-                onClick={() => ctx.propose({ key: `stage:${stage.id}:order`, label: `Move the ${stage.name} stage up, above ${ctx.stages[index - 1]?.name}`, op: 'edit_stage', args: { stage: stage.id, order: index }, error: null })}
-              >
-                ↑
-              </IconButton>
-              <IconButton
-                label={`Move the ${stage.name} stage down`}
-                disabled={index === last || ctx.locked(`stage:${stage.id}:order`)}
-                onClick={() => ctx.propose({ key: `stage:${stage.id}:order`, label: `Move the ${stage.name} stage down, below ${ctx.stages[index + 1]?.name}`, op: 'edit_stage', args: { stage: stage.id, order: index + 2 }, error: null })}
-              >
-                ↓
-              </IconButton>
-              {stage.steps.length === 0 && (
-                <button
-                  type="button"
-                  className="btn btn--small"
-                  disabled={ctx.locked(`stage:${stage.id}:delete`)}
-                  onClick={() => ctx.propose({ key: `stage:${stage.id}:delete`, label: `Delete the empty ${stage.name} stage`, op: 'delete_stage', args: { stage: stage.id }, error: null })}
-                >
-                  Delete stage
-                </button>
-              )}
-            </span>
-          </div>
-        </th>
-      </tr>
-      {stage.steps.map((s, i) => (
-        <StepRows key={s.id} step={s} index={i} stage={stage} ctx={ctx} open={open === s.id} toggle={() => setOpen(open === s.id ? null : s.id)} />
+            {st.name}
+          </h3>
+          {st.steps.length === 0 ? (
+            <p className="su-ed__help">No steps yet.</p>
+          ) : (
+            <ul className="su-ed__tree-list">
+              {st.steps.map((s) => (
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    className="su-ed__tree-step"
+                    aria-pressed={pick?.kind === 'step' && pick.id === s.id}
+                    aria-label={`${s.name}, ${plural(s.durationDays, 'working day')}${s.isHoldPoint ? ', hold point' : ''}`}
+                    data-testid={`ed-pick-${s.id}`}
+                    onClick={() => onPick(s.id)}
+                  >
+                    <span className="su-ed__tree-name">
+                      {s.isHoldPoint && <HoldDiamond className="su-ed__tree-hold-glyph" />}
+                      {s.name}
+                      {s.isHoldPoint && <span className="su-ed__tree-hold"> hold point</span>}
+                    </span>
+                    <span className="su-ed__tree-days">{plural(s.durationDays, 'day')}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       ))}
-      <tr className="su-addstep">
-        <td colSpan={7}>
-          <AddStep key={`${stage.id}-${ctx.reset}`} stage={stage} ctx={ctx} />
-        </td>
-      </tr>
-    </tbody>
+    </div>
   );
 }
 
-function IconButton({ label, disabled, onClick, children, testId }: { label: string; disabled?: boolean; onClick: () => void; children: ReactNode; testId?: string }) {
+/** The panel for one stage (v1 StageForm): rename, move, its steps, add a step, delete when empty. */
+function StagePanel({ stage, ctx, onPickStep }: { stage: SetupStage; ctx: RowCtx; onPickStep: (id: string) => void }) {
+  const index = ctx.stages.findIndex((s) => s.id === stage.id);
+  const last = ctx.stages.length - 1;
+  const nameKey = `stage:${stage.id}:name`;
   return (
-    <button type="button" className="su-icon" aria-label={label} title={label} disabled={disabled} onClick={onClick} data-testid={testId}>
-      <span aria-hidden="true">{children}</span>
-    </button>
+    <div className="su-ed__form" data-testid={`ed-stage-${stage.id}`}>
+      <div>
+        <h2 className="su-ed__title">{stage.name}</h2>
+        <p className="su-ed__sub">
+          Stage {index + 1} of {ctx.stages.length}, {plural(stage.steps.length, 'step')}
+        </p>
+      </div>
+      <div className="su-ed__field">
+        <label className="su-label" htmlFor={`stn-${stage.id}`}>
+          Stage name
+        </label>
+        <input
+          id={`stn-${stage.id}`}
+          className="su-input"
+          value={shown(ctx, nameKey, stage.name)}
+          disabled={ctx.locked(nameKey)}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v.trim() === stage.name) return ctx.propose(null);
+            const err = checkName(v, 'stage');
+            ctx.propose({ key: nameKey, label: `Rename the ${stage.name} stage`, op: 'edit_stage', args: err ? null : { stage: stage.id, name: v.trim() }, error: err, draft: v });
+          }}
+        />
+      </div>
+      <div className="su-ed__actions">
+        <button
+          type="button"
+          className="btn btn--desktop"
+          aria-label={`Move the ${stage.name} stage up`}
+          disabled={index === 0 || ctx.locked(`stage:${stage.id}:order`)}
+          onClick={() => ctx.propose({ key: `stage:${stage.id}:order`, label: `Move the ${stage.name} stage up, above ${ctx.stages[index - 1]?.name}`, op: 'edit_stage', args: { stage: stage.id, order: index }, error: null })}
+        >
+          Move earlier
+        </button>
+        <button
+          type="button"
+          className="btn btn--desktop"
+          aria-label={`Move the ${stage.name} stage down`}
+          disabled={index === last || ctx.locked(`stage:${stage.id}:order`)}
+          onClick={() => ctx.propose({ key: `stage:${stage.id}:order`, label: `Move the ${stage.name} stage down, below ${ctx.stages[index + 1]?.name}`, op: 'edit_stage', args: { stage: stage.id, order: index + 2 }, error: null })}
+        >
+          Move later
+        </button>
+      </div>
+      <section className="su-ed__section" aria-label={`Steps in ${stage.name}`}>
+        <h3 className="su-ed__section-title">Steps</h3>
+        {stage.steps.length ? (
+          <ul className="su-ed__list">
+            {stage.steps.map((s) => (
+              <li key={s.id} className="su-ed__item" data-step-name={s.name}>
+                <button type="button" className="su-ed__link" onClick={() => onPickStep(s.id)}>
+                  {s.name}
+                </button>
+                <span className="su-muted">{plural(s.durationDays, 'day')}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="su-ed__help">No steps yet.</p>
+        )}
+        <AddStep key={`${stage.id}-${ctx.reset}`} stage={stage} ctx={ctx} />
+      </section>
+      {stage.steps.length === 0 && (
+        <section className="su-ed__section">
+          <button
+            type="button"
+            className="btn btn--desktop"
+            disabled={ctx.locked(`stage:${stage.id}:delete`)}
+            onClick={() => ctx.propose({ key: `stage:${stage.id}:delete`, label: `Delete the empty ${stage.name} stage`, op: 'delete_stage', args: { stage: stage.id }, error: null })}
+          >
+            Delete stage
+          </button>
+        </section>
+      )}
+    </div>
   );
 }
 
-function StepRows({ step, index, stage, ctx, open, toggle }: { step: SetupStep; index: number; stage: SetupStage; ctx: RowCtx; open: boolean; toggle: () => void }) {
+/** The panel for one step (v1 StepForm): its fields, its order, what it waits for, what it needs. */
+function StepPanel({ step, stage, ctx, forecast, onPickStage }: { step: SetupStep; stage: SetupStage; ctx: RowCtx; forecast: ProgramView['steps'][number] | null; onPickStage: (id: string) => void }) {
   const k = (f: string) => `step:${step.id}:${f}`;
   const isTemplate = ctx.job.isTemplate;
+  const index = stage.steps.findIndex((s) => s.id === step.id);
   const nameV = shown(ctx, k('name'), step.name);
   const daysV = shown(ctx, k('days'), String(step.durationDays));
   const holdV = shown(ctx, k('hold'), step.isHoldPoint);
   const tradeV = shown(ctx, k('trade'), step.tradeType ?? '');
-  const waits = step.waitsFor.map((id) => ctx.names.get(id) ?? id);
-  const pendingHere = !!ctx.edit && ctx.edit.key.startsWith(`step:${step.id}:`);
   return (
-    <>
-      <tr className={pendingHere ? 'su-step is-pending' : 'su-step'} data-testid={`ed-step-${step.id}`} data-step-name={step.name}>
-        <th scope="row" className="su-c-step">
-          <div className="su-step-cell">
-          <span className="su-order">
-              <IconButton
-                label={`Move ${step.name} up`}
-                testId="ed-up"
-                disabled={index === 0 || ctx.locked(k('order'))}
-                onClick={() => ctx.propose({ key: k('order'), label: `List ${step.name} above ${stage.steps[index - 1]?.name}`, op: 'edit_step', args: { step: step.id, order: index }, error: null })}
-              >
-                ↑
-              </IconButton>
-              <IconButton
-                label={`Move ${step.name} down`}
-                testId="ed-down"
-                disabled={index === stage.steps.length - 1 || ctx.locked(k('order'))}
-                onClick={() => ctx.propose({ key: k('order'), label: `List ${step.name} below ${stage.steps[index + 1]?.name}`, op: 'edit_step', args: { step: step.id, order: index + 2 }, error: null })}
-              >
-                ↓
-              </IconButton>
-          </span>
-          <label className="sr-only" htmlFor={`sn-${step.id}`}>
-            Step name
-          </label>
-          {/* A one-line textarea that grows, so a long step name wraps instead of being cut off. */}
-          <div className="su-grow" data-value={nameV}>
-            <textarea
-              id={`sn-${step.id}`}
-              className="su-input"
-              rows={1}
-              data-testid="ed-name"
-              value={nameV}
-              disabled={ctx.locked(k('name'))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') e.preventDefault();
-              }}
-              onChange={(e) => {
-                const v = e.target.value.replace(/\s*[\r\n]+\s*/g, ' ');
-                if (v.trim() === step.name) return ctx.propose(null);
-                const err = checkName(v, 'step');
-                ctx.propose({ key: k('name'), label: `Rename ${step.name}`, op: 'edit_step', args: err ? null : { step: step.id, name: v.trim() }, error: err, draft: v });
-              }}
-            />
-          </div>
-          {!isTemplate && step.forecastStart && step.forecastEnd && (
-            <span className="su-step-dates">
-              {step.status === 'done' ? 'Done. ' : ''}
-              {formatDate(step.forecastStart, ctx.today)} to {formatDate(step.forecastEnd, ctx.today)}
-              {step.lateDays > 0 && <span className="flag su-flag">{plural(step.lateDays, 'day')} late</span>}
-            </span>
-          )}
-          </div>
-        </th>
-        <td className="su-c-days">
-          <label className="sr-only" htmlFor={`sd-${step.id}`}>
-            Working days for {step.name}
+    <div className="su-ed__form" data-testid={`ed-step-${step.id}`} data-step-name={step.name}>
+      <div>
+        <h2 className="su-ed__title">{step.name}</h2>
+        <p className="su-ed__sub">
+          <button type="button" className="su-ed__link su-ed__link--quiet" onClick={() => onPickStage(stage.id)}>
+            {stage.name}
+          </button>{' '}
+          stage
+        </p>
+      </div>
+      <div className="su-ed__field">
+        <label className="su-label" htmlFor={`sn-${step.id}`}>
+          Step name
+        </label>
+        {/* A one-line textarea that grows, so a long step name wraps instead of being cut off. */}
+        <div className="su-grow" data-value={nameV}>
+          <textarea
+            id={`sn-${step.id}`}
+            className="su-input"
+            rows={1}
+            data-testid="ed-name"
+            value={nameV}
+            disabled={ctx.locked(k('name'))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.preventDefault();
+            }}
+            onChange={(e) => {
+              const v = e.target.value.replace(/\s*[\r\n]+\s*/g, ' ');
+              if (v.trim() === step.name) return ctx.propose(null);
+              const err = checkName(v, 'step');
+              ctx.propose({ key: k('name'), label: `Rename ${step.name}`, op: 'edit_step', args: err ? null : { step: step.id, name: v.trim() }, error: err, draft: v });
+            }}
+          />
+        </div>
+      </div>
+      <div className="su-ed__row">
+        <div className="su-ed__field su-ed__field--short">
+          <label className="su-label" htmlFor={`sd-${step.id}`}>
+            Working days
           </label>
           <input
             id={`sd-${step.id}`}
@@ -393,48 +444,10 @@ function StepRows({ step, index, stage, ctx, open, toggle }: { step: SetupStep; 
               });
             }}
           />
-        </td>
-        <td className="su-c-waits">{waits.length ? waits.join(', ') : <span className="su-muted">{isTemplate ? 'Nothing' : 'Nothing, starts on plan'}</span>}</td>
-        <td className="su-c-hold">
-          <label className="su-check">
-            <input
-              type="checkbox"
-              data-testid="ed-hold"
-              checked={holdV}
-              disabled={ctx.locked(k('hold'))}
-              onChange={(e) => {
-                const v = e.target.checked;
-                if (v === step.isHoldPoint) return ctx.propose(null);
-                ctx.propose({
-                  key: k('hold'),
-                  label: v ? `Make ${step.name} a hold point` : `${step.name} is no longer a hold point`,
-                  op: 'edit_step',
-                  args: { step: step.id, isHoldPoint: v },
-                  error: null,
-                  draft: v,
-                });
-              }}
-            />
-            <span>{holdV ? 'Yes' : 'No'}</span>
-            <span className="sr-only"> for {step.name}</span>
-          </label>
-        </td>
-        <td className="su-c-needs">
-          {step.requirements.length ? (
-            <ul className="su-needs">
-              {step.requirements.map((r) => (
-                <li key={r.id}>
-                  {r.name}, {weeksWords(r.leadTimeWeeks)}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <span className="su-muted">Nothing</span>
-          )}
-        </td>
-        <td className="su-c-trade">
-          <label className="sr-only" htmlFor={`st-${step.id}`}>
-            Trade for {step.name}
+        </div>
+        <div className="su-ed__field">
+          <label className="su-label" htmlFor={`st-${step.id}`}>
+            Trade
           </label>
           <input
             id={`st-${step.id}`}
@@ -442,7 +455,6 @@ function StepRows({ step, index, stage, ctx, open, toggle }: { step: SetupStep; 
             list="trade-types"
             data-testid="ed-trade"
             value={tradeV}
-            title={tradeV || undefined}
             placeholder="None"
             disabled={ctx.locked(k('trade'))}
             onChange={(e) => {
@@ -452,22 +464,57 @@ function StepRows({ step, index, stage, ctx, open, toggle }: { step: SetupStep; 
               ctx.propose({ key: k('trade'), label: `${step.name}: trade`, op: 'edit_step', args: err ? null : { step: step.id, tradeType: v.trim() }, error: err, draft: v });
             }}
           />
-        </td>
-        <td className="su-c-tools">
-          <button type="button" className="btn btn--small" aria-expanded={open} aria-controls={`more-${step.id}`} data-testid="ed-more" onClick={toggle}>
-              {open ? 'Close' : 'Links and needs'}
-              <span className="sr-only"> for {step.name}</span>
-            </button>
-        </td>
-      </tr>
-      {open && (
-        <tr className="su-detail" id={`more-${step.id}`} data-testid={`ed-detail-${step.id}`}>
-          <td colSpan={7}>
-            <StepDetailEditor step={step} ctx={ctx} />
-          </td>
-        </tr>
+        </div>
+      </div>
+      {!isTemplate && forecast && (
+        <p className="su-ed__derived su-step-dates" data-testid="ed-dates">
+          {step.status === 'done' ? 'Done. ' : ''}Forecast <strong>{forecast.forecastStart === forecast.forecastEnd ? formatDate(forecast.forecastStart, ctx.today) : `${formatDate(forecast.forecastStart, ctx.today)} to ${formatDate(forecast.forecastEnd, ctx.today)}`}</strong>
+          , {stepWhenWords(forecast, ctx.today)}
+          {forecast.lateDays > 0 && step.status !== 'done' ? `, ${plural(forecast.lateDays, 'day')} late` : ''}
+        </p>
       )}
-    </>
+      <label className="su-check">
+        <input
+          type="checkbox"
+          data-testid="ed-hold"
+          checked={holdV}
+          disabled={ctx.locked(k('hold'))}
+          onChange={(e) => {
+            const v = e.target.checked;
+            if (v === step.isHoldPoint) return ctx.propose(null);
+            ctx.propose({ key: k('hold'), label: v ? `Make ${step.name} a hold point` : `${step.name} is no longer a hold point`, op: 'edit_step', args: { step: step.id, isHoldPoint: v }, error: null, draft: v });
+          }}
+        />
+        <span>Hold point</span>
+      </label>
+      <div className="su-ed__actions">
+        <IconButton
+          label={`Move ${step.name} up`}
+          testId="ed-up"
+          disabled={index <= 0 || ctx.locked(k('order'))}
+          onClick={() => ctx.propose({ key: k('order'), label: `List ${step.name} above ${stage.steps[index - 1]?.name}`, op: 'edit_step', args: { step: step.id, order: index }, error: null })}
+        >
+          Earlier in {stage.name}
+        </IconButton>
+        <IconButton
+          label={`Move ${step.name} down`}
+          testId="ed-down"
+          disabled={index === stage.steps.length - 1 || ctx.locked(k('order'))}
+          onClick={() => ctx.propose({ key: k('order'), label: `List ${step.name} below ${stage.steps[index + 1]?.name}`, op: 'edit_step', args: { step: step.id, order: index + 2 }, error: null })}
+        >
+          Later in {stage.name}
+        </IconButton>
+      </div>
+      <StepDetailEditor step={step} ctx={ctx} />
+    </div>
+  );
+}
+
+function IconButton({ label, disabled, onClick, children, testId }: { label: string; disabled?: boolean; onClick: () => void; children: ReactNode; testId?: string }) {
+  return (
+    <button type="button" className="btn btn--desktop" title={label} disabled={disabled} onClick={onClick} data-testid={testId}>
+      {children}
+    </button>
   );
 }
 
@@ -480,9 +527,9 @@ function StepDetailEditor({ step, ctx }: { step: SetupStep; ctx: RowCtx }) {
   const others = ctx.stages.map((st) => ({ stage: st, steps: st.steps.filter((s) => s.id !== step.id && !step.waitsFor.includes(s.id)) })).filter((g) => g.steps.length);
   const addKey = `link:${step.id}:add`;
   return (
-    <div className="su-detail-grid">
-      <section className="su-detail-sec" aria-label={`What ${step.name} waits for`}>
-        <h3 className="su-detail-h">Waits for</h3>
+    <div className="su-ed__details" data-testid={`ed-detail-${step.id}`}>
+      <section className="su-ed__section" aria-label={`What ${step.name} waits for`}>
+        <h3 className="su-ed__section-title">Waits for</h3>
         {step.waitsFor.length ? (
           <ul className="su-links">
             {step.waitsFor.map((id) => {
@@ -533,9 +580,9 @@ function StepDetailEditor({ step, ctx }: { step: SetupStep; ctx: RowCtx }) {
         </select>
       </section>
 
-      <section className="su-detail-sec" aria-label={`What ${step.name} needs`}>
-        <h3 className="su-detail-h">Needs</h3>
-        <p className="su-hint">A trade to book or a material to order. The act-by date is the forecast start minus the lead time.</p>
+      <section className="su-ed__section" aria-label={`What ${step.name} needs`}>
+        <h3 className="su-ed__section-title">Needs</h3>
+        <p className="su-hint">Act by = forecast start minus the lead time.</p>
         {step.requirements.length > 0 && (
           <ul className="su-reqs">
             {step.requirements.map((r) => (
@@ -546,8 +593,8 @@ function StepDetailEditor({ step, ctx }: { step: SetupStep; ctx: RowCtx }) {
         <AddRequirement key={`${step.id}-${ctx.reset}`} step={step} ctx={ctx} />
       </section>
 
-      <section className="su-detail-sec su-detail-remove" aria-label={`Remove ${step.name}`}>
-        <h3 className="su-detail-h">Remove</h3>
+      <section className="su-ed__section" aria-label={`Remove ${step.name}`}>
+        <h3 className="su-ed__section-title">Remove</h3>
         {step.itemCount > 0 ? (
           <p className="su-muted">
             {plural(step.itemCount, 'item')} {step.itemCount === 1 ? 'is' : 'are'} linked to {step.name}, so it stays. Items change through the bot.
@@ -576,7 +623,7 @@ function RequirementLine({ req, step, ctx }: { req: Requirement; step: SetupStep
   return (
     <li className={ctx.edit?.key === key || ctx.edit?.key === delKey ? 'su-req is-pending' : 'su-req'} data-testid={`ed-req-${req.id}`}>
       <span className="su-req-name">
-        {req.name} <span className="su-muted">{req.kind === 'trade' ? 'trade to book' : 'material to order'}</span>
+        {req.name}, {weeksWords(req.leadTimeWeeks)} <span className="su-muted">{req.kind === 'trade' ? 'trade to book' : 'material to order'}</span>
       </span>
       <label className="su-req-weeks">
         <input

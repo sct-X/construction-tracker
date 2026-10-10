@@ -10,8 +10,6 @@
  * Job tabs (`nav: true` under `/jobs/:jobId`): in table order, `kinds` limits a tab to build or design jobs,
  * `tab` overrides the label. Every `/jobs/:jobId...` route gets the job header from the shell (back link, the
  * job switcher as the page's h1, the tabs). `parent` names the tab a deeper page sits under.
- * `ownHeading: true` marks a job screen that still renders its own h1 (not yet restyled to the v1 look): the
- * job header then draws the job name without an h1, so a page never has two.
  * `redirect` rows forward old links (#/jobs, #/chase, #/monday).
  */
 import { lazy, useEffect, type ReactElement } from 'react';
@@ -54,8 +52,6 @@ export interface RouteDef {
   parent?: string;
   /** Shown on a desktop only (Setup). */
   desktopOnly?: boolean;
-  /** Job screens not yet in the v1 look: they draw their own h1, so the job header's title is not one. */
-  ownHeading?: boolean;
   /** Forward to this path (old links). */
   redirect?: string;
   render: (params: Record<string, string>) => ReactElement;

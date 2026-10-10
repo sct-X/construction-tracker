@@ -714,3 +714,25 @@
     display: none;
   }
 }
+
+/* The Look menu at the foot of the sidebar (v1's My settings "Look"). */
+.sidebar__look {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding: var(--space-3) var(--space-2) 0;
+  border-top: 0.5px solid var(--line);
+  font-size: var(--type-footnote);
+  color: var(--text-muted);
+}
+.sidebar__look select {
+  min-height: 28px;
+  padding: 0 var(--space-6) 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-row);
+  background-color: var(--fill);
+  background-position: right var(--space-2) center;
+  font-size: var(--type-footnote);
+}

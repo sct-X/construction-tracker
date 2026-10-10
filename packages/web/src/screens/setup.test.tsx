@@ -52,7 +52,6 @@ describe('New job', () => {
   it('previews the planned finish and stage dates from the duplex template, then creates the job', async () => {
     const mock = show(<SetupNewJobScreen />);
     fireEvent.change(await screen.findByLabelText('Job name'), { target: { value: 'Smith St' } });
-    fireEvent.change(screen.getByLabelText('Weekly holding cost'), { target: { value: '3200' } });
     // Start date defaults to next Monday, Mon 21 Sep.
     expect((screen.getByLabelText('Start on site') as HTMLInputElement).value).toBe('2026-09-21');
     // The template is a segmented pick with its counts (v1).
@@ -65,8 +64,12 @@ describe('New job', () => {
     expect(stages).toHaveLength(8);
     expect(stages[0]!.textContent).toContain('Site establishment');
     expect(screen.getByTestId('nj-preview').textContent).toContain('29 steps, about 35 weeks, from Mon 21 Sep 2026, in 4 days.');
-    // No slip, no $ beyond the holding cost field (timing first).
-    expect(screen.getByTestId('nj-preview').textContent).not.toMatch(/\$|slip/i);
+    // No money on the web: no holding cost field, no slip, no $ (SPEC revision 2; v1 had none).
+    expect(screen.queryByLabelText(/holding cost/i)).toBeNull();
+    expect(document.body.textContent).not.toMatch(/\$|slip/i);
+    // No "Not set" path: the template's own path is shown picked.
+    expect(within(screen.getByTestId('nj-path')).getAllByRole('button').map((b) => b.textContent)).toEqual(['DA', 'CDC']);
+    expect(screen.getByTestId('nj-path-CDC').getAttribute('aria-pressed')).toBe('true');
 
     fireEvent.click(screen.getByTestId('nj-create'));
     await waitFor(() => expect(window.location.hash).toMatch(/^#\/jobs\/job-/));
@@ -98,7 +101,12 @@ describe('New job', () => {
 describe('Program editor', () => {
   it('a longer step: the bar shows the steps that move (no finish or money on the web), and Save records it', async () => {
     const mock = show(<SetupProgramEditorScreen jobId="park-rd" />);
+    // v1: nothing picked until a bar on the Gantt is.
+    expect((await screen.findByTestId('editor-panel')).textContent).toContain('Pick a bar on the chart, or a stage above.');
+    fireEvent.click(screen.getByTestId('gantt-bar-pr-tiling'));
+    expect(screen.getByTestId('gantt-bar-pr-tiling').getAttribute('aria-current')).toBe('true');
     const row = within(await screen.findByTestId('ed-step-pr-tiling'));
+    expect(row.getByTestId('ed-dates').textContent).toContain('Forecast Mon 18 Jan 2027 to Fri 29 Jan 2027');
     fireEvent.change(row.getByTestId('ed-days'), { target: { value: 'ten' } });
     expect((await screen.findByTestId('bar-problem')).textContent).toBe('Working days must be a whole number from 1 to 1000.');
     expect((screen.getByTestId('bar-save') as HTMLButtonElement).disabled).toBe(true);
@@ -109,8 +117,11 @@ describe('Program editor', () => {
     expect(bar.queryByTestId('preview-finish')).toBeNull();
     expect(screen.getByTestId('change-bar').textContent).not.toMatch(/\$|Forecast finish/);
     expect(bar.getByTestId('bar-note').textContent).toContain("Planned dates don't change");
-    // One change at a time: other inputs are locked until Save or Discard.
-    expect((within(screen.getByTestId('ed-step-pr-painting')).getByTestId('ed-days') as HTMLInputElement).disabled).toBe(true);
+    // The chart redraws from the dry run: Tiling now ends a week later.
+    await waitFor(() => expect(screen.getByTestId('gantt-bar-pr-tiling').textContent).toContain('Mon 18 Jan to Fri 5 Feb'));
+    // One change at a time: another step's inputs are locked until Save or Discard.
+    fireEvent.click(screen.getByTestId('gantt-bar-pr-painting'));
+    expect((within(await screen.findByTestId('ed-step-pr-painting')).getByTestId('ed-days') as HTMLInputElement).disabled).toBe(true);
     // Nothing saved yet.
     expect((await mock.api.getMonday()).builds.find((b) => b.jobId === 'park-rd')!.forecastFinish).toBe('2027-02-26');
 
@@ -123,6 +134,7 @@ describe('Program editor', () => {
 
   it('Discard puts the stored value back', async () => {
     show(<SetupProgramEditorScreen jobId="park-rd" />);
+    fireEvent.click(await screen.findByTestId('gantt-bar-pr-tiling'));
     const row = within(await screen.findByTestId('ed-step-pr-tiling'));
     fireEvent.change(row.getByTestId('ed-days'), { target: { value: '12' } });
     fireEvent.click(await screen.findByTestId('bar-discard'));
@@ -143,13 +155,22 @@ describe('Program editor', () => {
       '6External works',
       '7Fit-out',
       '8Handover',
+      'Add stage',
     ]);
+    // A chip picks its stage into the panel.
+    fireEvent.click(screen.getByTestId('ed-chip-pr-st-lockup'));
+    const stage = within(screen.getByTestId('ed-stage-pr-st-lockup'));
+    expect(stage.getByText('Stage 5 of 8, 5 steps')).toBeTruthy();
+    expect(stage.getByRole('button', { name: 'Add a step to Lock-up' })).toBeTruthy();
   });
 
   it('a template: no dates, the change measured in working days', async () => {
     show(<SetupProgramEditorScreen jobId="tpl-duplex" />);
     expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('Duplex');
-    expect(await screen.findByText(/^Template editor, 8 stages, 29 steps/)).toBeTruthy();
+    expect(await screen.findByText('Template editor, 160 working days')).toBeTruthy();
+    // A template has no dates, so no chart: its steps are a list (v1 StepTree).
+    expect(screen.queryByTestId('gantt')).toBeNull();
+    fireEvent.click(await screen.findByRole('button', { name: 'Frame, 15 working days' }));
     const row = within(await screen.findByTestId('ed-step-tpl-frame'));
     fireEvent.change(row.getByTestId('ed-days'), { target: { value: '20' } });
     expect((await screen.findByTestId('template-impact')).textContent).toContain('Longest chain 160 to 165 working days.');
@@ -158,8 +179,7 @@ describe('Program editor', () => {
 
   it('a step with items linked cannot be deleted here, and says why', async () => {
     show(<SetupProgramEditorScreen jobId="park-rd" />);
-    const row = within(await screen.findByTestId('ed-step-pr-install-windows'));
-    fireEvent.click(row.getByTestId('ed-more'));
+    fireEvent.click(await screen.findByTestId('gantt-bar-pr-install-windows'));
     const detail = within(await screen.findByTestId('ed-detail-pr-install-windows'));
     expect(detail.getByText(/4 items are linked to Install windows, so it stays/)).toBeTruthy();
   });

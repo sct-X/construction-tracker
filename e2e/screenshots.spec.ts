@@ -35,7 +35,8 @@ for (const { w, h } of WIDTHS) {
     await page.getByTestId('job-progress').waitFor();
     await page.getByTestId('job-switcher').click();
     await expect(page.getByRole('listbox', { name: 'Switch job' })).toBeVisible();
-    await page.waitForTimeout(400); // the 240ms morph
+    // Wait for the 240ms morph to finish, not a fixed sleep.
+    await page.getByTestId('job-switcher-menu').evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
     await page.screenshot({ path: `e2e/screenshots/${info.project.name}-6a-job-switcher-${w}.png` });
   });
 }

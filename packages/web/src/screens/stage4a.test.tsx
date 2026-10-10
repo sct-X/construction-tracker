@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /** Stage 4a on the mock layer (today Thu 17 Sep 2026): the design-job redirect and the shell. Program, step and checklist moved to stage6c.test.tsx. */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createMockDashboard } from '@ct/core';
 import { DataProvider } from '../data/DataContext';
 import type { DataLayer } from '../data/layer';
@@ -38,7 +38,8 @@ describe('shell', () => {
     const tabs = within(within(bar).getByRole('navigation', { name: 'Park Rd pages' })).getAllByRole('link');
     expect(tabs.map((t) => t.textContent)).toEqual(['Overview', 'Program', 'Waiting on', 'Shipments', 'Photos', 'Notes']);
     expect(tabs[1]!.getAttribute('aria-current')).toBe('page');
-    expect(document.title).toContain('Park Rd');
+    // The App sets the title in an effect once the job list has loaded (route name first, then the job): wait for the final value.
+    await waitFor(() => expect(document.title).toBe('Program, Park Rd | Tracker'));
   });
 
   it('step detail sits under the Program tab; a design job has Checklist and Waiting on', async () => {
